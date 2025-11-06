@@ -1,0 +1,256 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Leave Management{% endblock %}
+{% block page_icon %}calendar-times{% endblock %}
+{% block page_title %}Leave Management{% endblock %}
+{% block page_subtitle %}Manage leave applications and approvals{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#applyLeaveModal">
+        <i class="fas fa-plus"></i> Apply Leave
+    </button>
+</div>
+
+<div class="modern-card">
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Leave Type</th>
+                    <th>From Date</th>
+                    <th>To Date</th>
+                    <th>Days</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for leave in leaves %}
+            <tr>
+                <td>
+                    <strong>
+                        {% if leave.applicant_type == 'teacher' and leave.teacher %}
+                            {{ leave.teacher.get_full_name }}
+                            <span class="badge bg-info ms-1">Teacher</span>
+                        {% elif leave.applicant_type == 'student' and leave.student %}
+                            {{ leave.student.get_full_name }}
+                            <span class="badge bg-primary ms-1">Student</span>
+                        {% elif leave.applicant_type == 'staff' and leave.staff %}
+                            {{ leave.staff.get_full_name }}
+                            <span class="badge bg-secondary ms-1">Staff</span>
+                        {% else %}
+                            Unknown
+                        {% endif %}
+                    </strong>
+                </td>
+                <td>{{ leave.leave_type|title }}</td>
+                <td>{{ leave.from_date|date:"M d, Y" }}</td>
+                <td>{{ leave.to_date|date:"M d, Y" }}</td>
+                <td>{{ leave.total_days }}</td>
+                <td>{{ leave.reason|truncatewords:10 }}</td>
+                <td>
+                    <span class="badge {% if leave.status == 'approved' %}bg-success{% elif leave.status == 'rejected' %}bg-danger{% else %}bg-warning{% endif %}">
+                        {{ leave.status|title }}
+                    </span>
+                </td>
+                <td>
+                    {% if user.role in 'super_admin,school_admin' and leave.status == 'pending' %}
+                    <button class="btn btn-sm btn-success" onclick="approveLeave({{ leave.pk }})">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="rejectLeave({{ leave.pk }})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8">No leave applications found.</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Apply Leave Modal -->
+<div class="modal fade" id="applyLeaveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-calendar-plus"></i> Apply for Leave</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="applyLeaveForm">
+                    {% csrf_token %}
+                    {% if user.role in 'super_admin,school_admin' %}
+                    <div class="mb-3">
+                        <label for="applicant_type" class="form-label">Applicant Type</label>
+                        <select class="form-select" id="applicant_type" name="applicant_type" onchange="loadApplicants()" required>
+                            <option value="">Select applicant type...</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="student">Student</option>
+                            <option value="staff">Staff</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="applicantSelectDiv" style="display: none;">
+                        <label for="applicant_id" class="form-label">Select Person</label>
+                        <select class="form-select" id="applicant_id" name="applicant_id" required>
+                            <option value="">Select person...</option>
+                        </select>
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label for="leave_type" class="form-label">Leave Type</label>
+                        <select class="form-select" id="leave_type" name="leave_type" required>
+                            <option value="">Select leave type...</option>
+                            <option value="sick">Sick Leave</option>
+                            <option value="casual">Casual Leave</option>
+                            <option value="annual">Annual Leave</option>
+                            <option value="emergency">Emergency Leave</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="from_date" class="form-label">From Date</label>
+                        <input type="date" class="form-control" id="from_date" name="from_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="to_date" class="form-label">To Date</label>
+                        <input type="date" class="form-control" id="to_date" name="to_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Reason</label>
+                        <textarea class="form-control" id="reason" name="reason" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitLeave()">Submit Application</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function loadApplicants() {
+    const applicantType = document.getElementById('applicant_type').value;
+    const applicantSelect = document.getElementById('applicant_id');
+    const selectDiv = document.getElementById('applicantSelectDiv');
+    
+    if (!applicantType) {
+        selectDiv.style.display = 'none';
+        return;
+    }
+    
+    selectDiv.style.display = 'block';
+    applicantSelect.innerHTML = '<option value="">Loading...</option>';
+    
+    let url = '';
+    if (applicantType === 'teacher') {
+        url = '/school/{{ school_slug }}/leave/api/teachers/';
+    } else if (applicantType === 'student') {
+        url = '/school/{{ school_slug }}/leave/api/students/';
+    } else if (applicantType === 'staff') {
+        url = '/school/{{ school_slug }}/leave/api/staff/';
+    }
+    
+    fetch(url, {
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        applicantSelect.innerHTML = '<option value="">Select person...</option>';
+        data.forEach(person => {
+            const option = document.createElement('option');
+            option.value = person.id;
+            option.textContent = person.name;
+            applicantSelect.appendChild(option);
+        });
+    })
+    .catch(error => {
+        console.error('Error loading applicants:', error);
+        applicantSelect.innerHTML = '<option value="">Error loading data</option>';
+    });
+}
+
+function submitLeave() {
+    const form = document.getElementById('applyLeaveForm');
+    const formData = new FormData(form);
+    
+    fetch("{% url 'leave:leave_apply' school_slug=school_slug %}", {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('applyLeaveModal'));
+            if (modal) modal.hide();
+            showSuccessAndReload('Leave application submitted successfully!');
+        } else {
+            alert('Error: ' + (data.error || 'Failed to submit leave application'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to submit leave application: ' + error.message);
+    });
+}
+
+function showSuccessAndReload(message) {
+    alert(message);
+    setTimeout(() => location.reload(), 1000);
+}
+
+function showError(message) {
+    alert(message);
+}
+
+function approveLeave(id) {
+    if (confirm('Approve this leave application?')) {
+        fetch(`/school/{{ school_slug }}/leave/${id}/approve/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        });
+    }
+}
+
+function rejectLeave(id) {
+    if (confirm('Reject this leave application?')) {
+        fetch(`/school/{{ school_slug }}/leave/${id}/reject/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

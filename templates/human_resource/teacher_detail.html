@@ -1,0 +1,40 @@
+<div class="p-3">
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <h5>{{ teacher.first_name }} {{ teacher.last_name }}</h5>
+        </div>
+    </div>
+    
+    <table class="table table-bordered">
+        <tr>
+            <th width="30%">Email</th>
+            <td>{{ teacher.email }}</td>
+        </tr>
+        <tr>
+            <th>Phone</th>
+            <td>{{ teacher.phone|default:"Not set" }}</td>
+        </tr>
+        <tr>
+            <th>Department</th>
+            <td>{{ teacher.department.name|default:"Not assigned" }}</td>
+        </tr>
+        <tr>
+            <th>Designation</th>
+            <td>{{ teacher.designation.name|default:"Not assigned" }}</td>
+        </tr>
+        <tr>
+            <th>Status</th>
+            <td>
+                {% if teacher.is_active %}
+                    <span class="badge bg-success">Active</span>
+                {% else %}
+                    <span class="badge bg-danger">Inactive</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Default Password</th>
+            <td><code>teacher123</code></td>
+        </tr>
+    </table>
+</div>

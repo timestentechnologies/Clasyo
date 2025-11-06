@@ -1,0 +1,163 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static widget_tweaks %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Class Routine - School Management{% endblock %}
+{% block page_icon %}calendar-alt{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Class Routine{% endblock %}
+{% block page_subtitle %}Create or modify a class timetable entry{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="modern-card">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Class <span class="text-danger">*</span></label>
+                        {% render_field form.class_name class="form-select" %}
+                        <small class="text-muted">Select the class for this routine</small>
+                        {% if form.class_name.errors %}
+                        <div class="invalid-feedback d-block">{{ form.class_name.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Section <span class="text-danger">*</span></label>
+                        {% render_field form.section class="form-select" %}
+                        <small class="text-muted">Select the section</small>
+                        {% if form.section.errors %}
+                        <div class="invalid-feedback d-block">{{ form.section.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Day of Week <span class="text-danger">*</span></label>
+                        {% render_field form.day_of_week class="form-select" %}
+                        <small class="text-muted">Select the day for this class</small>
+                        {% if form.day_of_week.errors %}
+                        <div class="invalid-feedback d-block">{{ form.day_of_week.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Time Period <span class="text-danger">*</span></label>
+                        {% render_field form.class_time class="form-select" %}
+                        <small class="text-muted">Select the time slot</small>
+                        {% if form.class_time.errors %}
+                        <div class="invalid-feedback d-block">{{ form.class_time.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Subject <span class="text-danger">*</span></label>
+                    {% render_field form.subject class="form-select" %}
+                    <small class="text-muted">Select the subject to be taught</small>
+                    {% if form.subject.errors %}
+                    <div class="invalid-feedback d-block">{{ form.subject.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Teacher</label>
+                        {% render_field form.teacher class="form-select" %}
+                        <small class="text-muted">Assign a teacher for this class</small>
+                        {% if form.teacher.errors %}
+                        <div class="invalid-feedback d-block">{{ form.teacher.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Room/Classroom</label>
+                        {% render_field form.room class="form-select" %}
+                        <small class="text-muted">Select the classroom</small>
+                        {% if form.room.errors %}
+                        <div class="invalid-feedback d-block">{{ form.room.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Academic Year <span class="text-danger">*</span></label>
+                    {% render_field form.academic_year class="form-select" %}
+                    <small class="text-muted">Select the academic year for this routine</small>
+                    {% if form.academic_year.errors %}
+                    <div class="invalid-feedback d-block">{{ form.academic_year.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Notes</label>
+                    {% render_field form.notes class="form-control" rows="3" %}
+                    <small class="text-muted">Additional notes or instructions (optional)</small>
+                    {% if form.notes.errors %}
+                    <div class="invalid-feedback d-block">{{ form.notes.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-check form-switch mb-3">
+                    {% render_field form.is_active class="form-check-input" id="isActive" %}
+                    <label class="form-check-label" for="isActive">
+                        <strong>Active</strong>
+                    </label>
+                    <small class="d-block text-muted mt-1">Inactive routines won't appear in the timetable</small>
+                    {% if form.is_active.errors %}
+                    <div class="invalid-feedback d-block">{{ form.is_active.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-lightbulb"></i> <strong>Tips:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Ensure no scheduling conflicts for the same class, section, and time</li>
+                        <li>Make sure the selected teacher is available at this time</li>
+                        <li>Verify the classroom is not double-booked</li>
+                    </ul>
+                </div>
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'academics:routine' school_slug=school_slug %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Routine
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> {% if form.instance.pk %}Update{% else %}Create{% endif %} Routine
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-control, .form-select {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.form-label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.form-check-input:checked {
+    background-color: #667eea;
+    border-color: #667eea;
+}
+
+select.form-control, select.form-select {
+    appearance: auto;
+}
+</style>
+{% endblock %}

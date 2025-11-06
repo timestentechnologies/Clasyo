@@ -1,0 +1,271 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Subjects - Academics{% endblock %}
+{% block page_icon %}book-open{% endblock %}
+{% block page_title %}Subjects{% endblock %}
+{% block page_subtitle %}Manage all subjects in your institution{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSubjectModal">
+        <i class="fas fa-plus"></i> Add Subject
+    </button>
+</div>
+
+<div class="modern-card">
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Subject Name</th>
+                    <th>Code</th>
+                    <th>Type</th>
+                    <th>Credits</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for subject in subjects %}
+            <tr>
+                <td><strong>{{ subject.name }}</strong></td>
+                <td><span class="badge bg-secondary">{{ subject.code }}</span></td>
+                <td><span class="badge bg-info">{{ subject.subject_type|title }}</span></td>
+                <td>{{ subject.credits|default:"-" }}</td>
+                <td>{{ subject.description|default:"No description"|truncatewords:8 }}</td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="editSubject(event, {{ subject.pk }})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteSubject({{ subject.pk }}, '{{ subject.name }}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center py-5">
+                    <i class="fas fa-book-open fa-3x text-muted mb-3 d-block"></i>
+                    <p class="text-muted mb-0">No subjects found.</p>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Subject Modal -->
+<div class="modal fade" id="addSubjectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-plus"></i> Add Subject</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="subjectAddForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Subject Name *</label>
+                        <input type="text" name="name" class="form-control" required placeholder="e.g., Mathematics">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Subject Code *</label>
+                        <input type="text" name="code" class="form-control" required placeholder="e.g., MATH101">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type</label>
+                        <select name="subject_type" class="form-control">
+                            <option value="theory">Theory</option>
+                            <option value="practical">Practical</option>
+                            <option value="both">Both</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Credits</label>
+                        <input type="number" name="credits" class="form-control" step="0.5" value="1">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" name="is_active" class="form-check-input" id="is_active" checked>
+                        <label class="form-check-label" for="is_active">Active</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddSubject()">Save Subject</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Subject Confirmation Modal -->
+<div class="modal fade" id="deleteSubjectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-trash"></i> Confirm Delete</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete subject <strong id="deleteSubjectName"></strong>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteSubjectBtn">Delete Subject</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Subject Modal -->
+<div class="modal fade" id="editSubjectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Subject</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="subjectEditForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="edit_subject_id">
+                    <div class="mb-3">
+                        <label class="form-label">Subject Name *</label>
+                        <input type="text" id="edit_subject_name" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Subject Code *</label>
+                        <input type="text" id="edit_subject_code" name="code" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Subject Type *</label>
+                        <select id="edit_subject_type" name="subject_type" class="form-control" required>
+                            <option value="theory">Theory</option>
+                            <option value="practical">Practical</option>
+                            <option value="both">Theory + Practical</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Credits</label>
+                        <input type="number" id="edit_credits" name="credits" class="form-control" value="1">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea id="edit_description" name="description" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" id="edit_is_active" name="is_active" class="form-check-input" checked>
+                        <label class="form-check-label" for="edit_is_active">Active</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditSubject()">Update Subject</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function submitAddSubject() {
+    const form = document.getElementById('subjectAddForm');
+    const formData = new FormData(form);
+    
+    fetch(window.location.pathname + 'add/', {
+        method: 'POST',
+        body: formData,
+        headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessAndReload('Subject added successfully!');
+        } else {
+            showError(data.error || 'Failed to add subject');
+        }
+    })
+    .catch(error => {
+        showError('Error adding subject: ' + error.message);
+    });
+}
+
+function editSubject(event, id) {
+    // Get data from the table row
+    const row = event.target.closest('tr');
+    const name = row.querySelector('td:nth-child(1)').textContent.trim();
+    const code = row.querySelector('td:nth-child(2) .badge').textContent.trim();
+    const type = row.querySelector('td:nth-child(3) .badge').textContent.trim().toLowerCase();
+    const credits = row.querySelector('td:nth-child(4)').textContent.trim();
+    const description = row.querySelector('td:nth-child(5)').textContent.trim();
+    
+    document.getElementById('edit_subject_id').value = id;
+    document.getElementById('edit_subject_name').value = name;
+    document.getElementById('edit_subject_code').value = code;
+    document.getElementById('edit_subject_type').value = type;
+    document.getElementById('edit_credits').value = credits === '-' ? '1' : credits;
+    document.getElementById('edit_description').value = description === 'No description' ? '' : description;
+    document.getElementById('edit_is_active').checked = true;
+    
+    new bootstrap.Modal(document.getElementById('editSubjectModal')).show();
+}
+
+function submitEditSubject() {
+    const form = document.getElementById('subjectEditForm');
+    const formData = new FormData(form);
+    const id = document.getElementById('edit_subject_id').value;
+    
+    fetch(window.location.pathname + id + '/edit/', {
+        method: 'POST',
+        body: formData,
+        headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessAndReload('Subject updated successfully!');
+        } else {
+            showError(data.error || 'Failed to update subject');
+        }
+    })
+    .catch(error => {
+        showError('Error updating subject: ' + error.message);
+    });
+}
+
+function deleteSubject(id, name) {
+    document.getElementById('deleteSubjectName').textContent = name;
+    const modal = new bootstrap.Modal(document.getElementById('deleteSubjectModal'));
+    modal.show();
+    
+    document.getElementById('confirmDeleteSubjectBtn').onclick = function() {
+        fetch(window.location.pathname + id + '/delete/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
+        })
+        .then(response => response.json())
+        .then(data => {
+            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteSubjectModal'));
+            if (deleteModal) deleteModal.hide();
+            
+            if (data.success) {
+                showSuccessAndReload('Subject deleted successfully!');
+            } else {
+                alert('Error: ' + (data.error || 'Failed to delete subject'));
+            }
+        })
+        .catch(error => {
+            alert('Error deleting subject: ' + error.message);
+        });
+    };
+}
+</script>
+{% endblock %}

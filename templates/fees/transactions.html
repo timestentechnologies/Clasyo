@@ -1,0 +1,79 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block page_icon %}receipt{% endblock %}
+{% block page_title %}Fee Transactions{% endblock %}
+{% block page_subtitle %}View all fee payment history{% endblock %}
+
+{% block extra_css %}{% endblock %}
+
+{% block page_actions %}
+<button class="btn btn-success">
+    <i class="fas fa-download"></i> Export
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="stats-icon bg-success">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="stats-info">
+                <h3>${{ total_collected|default:0 }}</h3>
+                <p>Total Collected</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modern-card">
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Transaction ID</th>
+                    <th>Date</th>
+                    <th>Student</th>
+                    <th>Fee Type</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for transaction in transactions %}
+            <tr>
+                <td><strong>#{{ transaction.id }}</strong></td>
+                <td>{{ transaction.payment_date|date:"M d, Y" }}</td>
+                <td>{{ transaction.student.get_full_name }}</td>
+                <td>{{ transaction.fee_structure.name }}</td>
+                <td>${{ transaction.amount_paid }}</td>
+                <td><span class="badge bg-info">{{ transaction.payment_method }}</span></td>
+                <td><span class="badge bg-success">Completed</span></td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="viewReceipt({{ transaction.id }})"><i class="fas fa-file-invoice"></i></button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center py-4">
+                    <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No transactions found</p>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function viewReceipt(id) {
+    console.log('View receipt:', id);
+    // Implement receipt viewing
+}
+</script>
+{% endblock %}

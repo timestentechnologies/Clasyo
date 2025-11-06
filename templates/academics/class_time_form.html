@@ -1,0 +1,127 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Time Period - School Management{% endblock %}
+{% block page_icon %}clock{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Time Period{% endblock %}
+{% block page_subtitle %}Define a class period or break time{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <div class="modern-card">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label class="form-label">Period Name <span class="text-danger">*</span></label>
+                    <input type="text" name="name" class="form-control" 
+                           placeholder="e.g., Period 1, Lunch Break, Recess" 
+                           value="{{ form.instance.name }}" required>
+                    <small class="text-muted">Descriptive name for this time period</small>
+                    {% if form.name.errors %}
+                    <div class="invalid-feedback d-block">{{ form.name.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Start Time <span class="text-danger">*</span></label>
+                        <input type="time" name="start_time" class="form-control" 
+                               value="{{ form.instance.start_time|time:'H:i' }}" required>
+                        {% if form.start_time.errors %}
+                        <div class="invalid-feedback d-block">{{ form.start_time.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">End Time <span class="text-danger">*</span></label>
+                        <input type="time" name="end_time" class="form-control" 
+                               value="{{ form.instance.end_time|time:'H:i' }}" required>
+                        {% if form.end_time.errors %}
+                        <div class="invalid-feedback d-block">{{ form.end_time.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Display Order <span class="text-danger">*</span></label>
+                    <input type="number" name="order" class="form-control" 
+                           placeholder="e.g., 1, 2, 3..." 
+                           value="{{ form.instance.order|default:0 }}" required>
+                    <small class="text-muted">Controls the sequence in the timetable (lower numbers first)</small>
+                    {% if form.order.errors %}
+                    <div class="invalid-feedback d-block">{{ form.order.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" name="is_break" id="isBreak"
+                           {% if form.instance.is_break %}checked{% endif %}>
+                    <label class="form-check-label" for="isBreak">
+                        <i class="fas fa-coffee text-warning"></i> <strong>This is a Break Period</strong>
+                    </label>
+                    <small class="d-block text-muted mt-1">Check this for lunch, recess, or other non-teaching periods</small>
+                    {% if form.is_break.errors %}
+                    <div class="invalid-feedback d-block">{{ form.is_break.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" name="is_active" id="isActive"
+                           {% if form.instance.pk %}{% if form.instance.is_active %}checked{% endif %}{% else %}checked{% endif %}>
+                    <label class="form-check-label" for="isActive">
+                        <strong>Active</strong>
+                    </label>
+                    <small class="d-block text-muted mt-1">Inactive periods won't appear in routine creation</small>
+                    {% if form.is_active.errors %}
+                    <div class="invalid-feedback d-block">{{ form.is_active.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-lightbulb"></i> <strong>Tips:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Ensure times don't overlap with other periods</li>
+                        <li>Break periods will be highlighted in yellow on the timetable</li>
+                        <li>Use clear names like "Period 1", "Morning Break", "Lunch"</li>
+                    </ul>
+                </div>
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'academics:class_time_list' school_slug=school_slug %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to List
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> {% if form.instance.pk %}Update{% else %}Create{% endif %} Period
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-control, .form-select {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.form-label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.form-check-input:checked {
+    background-color: #667eea;
+    border-color: #667eea;
+}
+</style>
+{% endblock %}

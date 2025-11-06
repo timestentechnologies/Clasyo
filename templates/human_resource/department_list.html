@@ -1,0 +1,291 @@
+{% extends 'core/admin_dashboard.html' %}
+{% block title %}Departments - HR{% endblock %}
+{% block page_icon %}building{% endblock %}
+{% block page_title %}Departments{% endblock %}
+{% block page_subtitle %}Manage all departments in your institution{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDeptModal">
+        <i class="fas fa-plus"></i> Add Department
+    </button>
+</div>
+
+<div class="modern-card">
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Department Name</th>
+                    <th>Code</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for dept in departments %}
+            <tr>
+                <td><strong>{{ dept.name }}</strong></td>
+                <td><span class="badge bg-secondary">{{ dept.code }}</span></td>
+                <td>{{ dept.description|default:"No description"|truncatewords:10 }}</td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="editDept({{ dept.pk }})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteDepartment({{ dept.pk }}, '{{ dept.name }}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center py-5">
+                    <i class="fas fa-building fa-3x text-muted mb-3 d-block"></i>
+                    <p class="text-muted mb-0">No departments found.</p>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Delete Department Confirmation Modal -->
+<div class="modal fade" id="deleteDepartmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-trash"></i> Confirm Delete</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete department <strong id="deleteDepartmentName"></strong>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteDepartmentBtn">Delete Department</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Department Modal -->
+<div class="modal fade" id="editDeptModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Department</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="deptEditForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="edit_dept_id">
+                    <div class="mb-3">
+                        <label>Department Name *</label>
+                        <input type="text" name="name" id="edit_dept_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Code *</label>
+                        <input type="text" name="code" id="edit_dept_code" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Description</label>
+                        <textarea name="description" id="edit_dept_description" class="form-control" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditDept()">Update Department</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addDeptModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title">Add Department</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="deptForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label>Department Name *</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Code *</label>
+                        <input type="text" name="code" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Description</label>
+                        <textarea name="description" class="form-control" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitDept()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title">Success</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="successMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="errorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title">Error</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="errorMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="confirmationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title">Confirmation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmationMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmationButton">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function submitDept() {
+    fetch(window.location.pathname + 'add/', {
+        method: 'POST',
+        body: new FormData(document.getElementById('deptForm')),
+        headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessAndReload('Department added successfully!');
+        } else {
+            showError(data.error || 'Failed to add department');
+        }
+    })
+    .catch(error => {
+        showError('Error: ' + error.message);
+    });
+}
+
+function editDept(id) {
+    const row = event.target.closest('tr');
+    const name = row.querySelector('td:nth-child(1)').textContent.trim();
+    const code = row.querySelector('td:nth-child(2) .badge').textContent.trim();
+    const description = row.querySelector('td:nth-child(3)').textContent.trim();
+    
+    document.getElementById('edit_dept_id').value = id;
+    document.getElementById('edit_dept_name').value = name;
+    document.getElementById('edit_dept_code').value = code;
+    document.getElementById('edit_dept_description').value = description === 'No description' ? '' : description;
+    
+    new bootstrap.Modal(document.getElementById('editDeptModal')).show();
+}
+
+function submitEditDept() {
+    const form = document.getElementById('deptEditForm');
+    const formData = new FormData(form);
+    const id = document.getElementById('edit_dept_id').value;
+    
+    fetch(window.location.pathname + id + '/edit/', {
+        method: 'POST',
+        body: formData,
+        headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessAndReload('Department updated successfully!');
+        } else {
+            showError(data.error || 'Failed to update department');
+        }
+    })
+    .catch(error => {
+        showError('Error: ' + error.message);
+    });
+}
+
+function deleteDepartment(id, name) {
+    document.getElementById('deleteDepartmentName').textContent = name;
+    const modal = new bootstrap.Modal(document.getElementById('deleteDepartmentModal'));
+    modal.show();
+    
+    document.getElementById('confirmDeleteDepartmentBtn').onclick = function() {
+        fetch(window.location.pathname + id + '/delete/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteDepartmentModal'));
+            if (deleteModal) deleteModal.hide();
+            
+            if (data.success) {
+                showSuccessAndReload('Department deleted successfully!');
+            } else {
+                showError('Failed to delete department: ' + (data.error || ''));
+            }
+        })
+        .catch(error => {
+            showError('Error: ' + error.message);
+        });
+    };
+}
+
+function showSuccessAndReload(message) {
+    document.getElementById('successMessage').innerHTML = message;
+    $('#successModal').modal('show');
+    setTimeout(function() {
+        location.reload();
+    }, 2000);
+}
+
+function showError(message) {
+    document.getElementById('errorMessage').innerHTML = message;
+    $('#errorModal').modal('show');
+}
+
+</script>
+{% endblock %}

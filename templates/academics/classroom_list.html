@@ -1,0 +1,153 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Classrooms & Rooms - School Management{% endblock %}
+{% block page_icon %}door-open{% endblock %}
+{% block page_title %}Classrooms & Rooms{% endblock %}
+{% block page_subtitle %}Manage all classroom and room information for your school{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{% url 'academics:routine' school_slug=school_slug %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Routine
+        </a>
+    </div>
+    <a href="{% url 'academics:classroom_create' school_slug=school_slug %}" class="btn btn-primary btn-lg">
+        <i class="fas fa-plus-circle"></i> Add Classroom/Room
+    </a>
+</div>
+
+<div class="modern-card">
+    {% if classrooms %}
+    <div class="row g-3">
+        {% for room in classrooms %}
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm" style="border-left: 4px solid {% if room.room_type == 'lecture' %}#667eea{% elif room.room_type == 'lab' %}#f093fb{% elif room.room_type == 'library' %}#43e97b{% else %}#ffd166{% endif %};">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="card-title mb-1">
+                                {% if room.room_type == 'lecture' %}
+                                    <i class="fas fa-chalkboard-teacher text-primary"></i>
+                                {% elif room.room_type == 'lab' %}
+                                    <i class="fas fa-flask text-danger"></i>
+                                {% elif room.room_type == 'library' %}
+                                    <i class="fas fa-book text-success"></i>
+                                {% elif room.room_type == 'computer' %}
+                                    <i class="fas fa-laptop text-info"></i>
+                                {% elif room.room_type == 'auditorium' %}
+                                    <i class="fas fa-theater-masks text-warning"></i>
+                                {% else %}
+                                    <i class="fas fa-door-open text-secondary"></i>
+                                {% endif %}
+                                Room {{ room.room_number }}
+                            </h5>
+                            <p class="card-text text-muted mb-0">{{ room.name }}</p>
+                        </div>
+                        <span class="badge bg-{% if room.is_active %}success{% else %}secondary{% endif %}">
+                            {% if room.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="text-muted">
+                                <i class="fas fa-layer-group"></i> {{ room.get_room_type_display }}
+                            </small>
+                            <small class="text-muted">
+                                <i class="fas fa-users"></i> {{ room.capacity }} seats
+                            </small>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            {% if room.building %}
+                            <small class="text-muted">
+                                <i class="fas fa-building"></i> {{ room.building }}
+                            </small>
+                            {% endif %}
+                            {% if room.floor %}
+                            <small class="text-muted">
+                                <i class="fas fa-arrow-up"></i> Floor {{ room.floor }}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'academics:classroom_update' school_slug=school_slug pk=room.pk %}" 
+                           class="btn btn-sm btn-outline-primary flex-fill">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        <button onclick="deleteRoom({{ room.pk }}, '{{ room.room_number }}')" 
+                                class="btn btn-sm btn-outline-danger flex-fill">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="alert alert-info mt-4">
+        <i class="fas fa-lightbulb"></i> <strong>Tip:</strong> Rooms are organized by building and floor for easy management. Color-coded borders indicate room types.
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-door-open fa-4x text-muted mb-3"></i>
+        <h4>No Classrooms Added Yet</h4>
+        <p class="text-muted">Add your first classroom or room to start organizing your timetable.</p>
+        <a href="{% url 'academics:classroom_create' school_slug=school_slug %}" class="btn btn-primary btn-lg mt-3">
+            <i class="fas fa-plus-circle"></i> Add First Room
+        </a>
+        
+        <div class="alert alert-success mt-4 mx-auto" style="max-width: 600px;">
+            <strong><i class="fas fa-info-circle"></i> What to Include:</strong>
+            <ul class="text-start mt-2 mb-0">
+                <li>Lecture halls and classrooms</li>
+                <li>Science and computer labs</li>
+                <li>Library and study rooms</li>
+                <li>Auditoriums and halls</li>
+                <li>Staff rooms and offices</li>
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function deleteRoom(id, number) {
+    if (confirm(`Are you sure you want to delete Room ${number}?\n\nThis will also affect any routine entries using this room.`)) {
+        fetch(`/school/{{ school_slug }}/academics/classrooms/${id}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + (data.error || 'Could not delete room'));
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    }
+}
+</script>
+
+<style>
+.card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
+}
+</style>
+{% endblock %}

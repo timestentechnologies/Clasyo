@@ -1,0 +1,96 @@
+{% extends 'core/admin_dashboard.html' %}
+{% block title %}Fee Structure{% endblock %}
+{% block page_icon %}dollar-sign{% endblock %}
+{% block page_title %}Fee Structure{% endblock %}
+{% block page_subtitle %}Manage fee structure and payments{% endblock %}
+
+{% block page_actions %}
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addFeeModal">
+    <i class="fas fa-plus"></i> Add Fee
+</button>
+{% endblock %}
+
+{% block content %}
+
+<div class="modern-card">
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Fee Name</th><th>Type</th><th>Amount</th><th>Actions</th></tr></thead>
+    <tbody>
+        {% for fee in fee_structures %}
+        <tr>
+            <td><strong>{{ fee.name }}</strong></td>
+            <td>{{ fee.fee_type }}</td>
+            <td>${{ fee.amount }}</td>
+            <td>
+                <button class="btn btn-sm btn-primary" onclick="editFee({{ fee.pk }})"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-danger" onclick="deleteFee({{ fee.pk }}, '{{ fee.name }}')"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4" class="text-center py-5">
+                <i class="fas fa-dollar-sign fa-3x text-muted mb-3 d-block"></i>
+                <p class="text-muted mb-0">No fee structures found.</p>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="addFeeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;"><h5 class="modal-title">Add Fee</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <form id="feeForm">
+                    {% csrf_token %}
+                    <div class="mb-3"><label>Fee Name</label><input type="text" name="name" class="form-control" required></div>
+                    <div class="mb-3"><label>Amount</label><input type="number" name="amount" class="form-control" required></div>
+                    <div class="mb-3"><label>Type</label><select name="fee_type" class="form-control"><option value="tuition">Tuition</option><option value="transport">Transport</option><option value="library">Library</option></select></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitFee()">Save Fee</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function submitFee() {
+    const form = document.getElementById('feeForm');
+    const formData = new FormData(form);
+    
+    fetch(window.location.pathname, {
+        method: 'POST',
+        body: formData,
+        headers: {'X-CSRFToken': '{{ csrf_token }}'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessAndReload('Fee structure saved successfully!');
+        } else {
+            showError(data.error || 'Failed to save fee');
+        }
+    })
+    .catch(error => {
+        showError('Error saving fee: ' + error.message);
+    });
+}
+
+function editFee(id) {
+    console.log('Edit fee:', id);
+}
+
+function deleteFee(id, name) {
+    if (confirm('Delete fee: ' + name + '?')) {
+        console.log('Delete fee:', id);
+    }
+}
+</script>
+{% endblock %}

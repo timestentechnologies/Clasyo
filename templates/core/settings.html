@@ -1,0 +1,178 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block page_title %}System Settings{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2><i class="fas fa-cog"></i> System Settings</h2>
+    <p class="text-muted">Manage your school system settings and configurations</p>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="modern-card mb-4">
+            <h4 class="mb-4"><i class="fas fa-school"></i> School Information</h4>
+            <form id="schoolSettingsForm">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="school_name" class="form-label">School Name</label>
+                    <input type="text" class="form-control" id="school_name" name="school_name" value="Demo School">
+                </div>
+                <div class="mb-3">
+                    <label for="school_email" class="form-label">School Email</label>
+                    <input type="email" class="form-control" id="school_email" name="school_email" value="school@demo.com">
+                </div>
+                <div class="mb-3">
+                    <label for="school_phone" class="form-label">School Phone</label>
+                    <input type="text" class="form-control" id="school_phone" name="school_phone" value="+1234567890">
+                </div>
+                <div class="mb-3">
+                    <label for="school_address" class="form-label">School Address</label>
+                    <textarea class="form-control" id="school_address" name="school_address" rows="3">123 Education Street, Learning City, ED 12345</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="school_website" class="form-label">School Website</label>
+                    <input type="url" class="form-control" id="school_website" name="school_website" value="https://demo-school.com">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save School Info
+                </button>
+            </form>
+        </div>
+
+        <div class="modern-card mb-4">
+            <h4 class="mb-4"><i class="fas fa-calendar-alt"></i> Academic Settings</h4>
+            <form id="academicSettingsForm">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="current_session" class="form-label">Current Academic Session</label>
+                    <input type="text" class="form-control" id="current_session" name="current_session" value="2024-2025">
+                </div>
+                <div class="mb-3">
+                    <label for="session_start" class="form-label">Session Start Date</label>
+                    <input type="date" class="form-control" id="session_start" name="session_start" value="2024-09-01">
+                </div>
+                <div class="mb-3">
+                    <label for="session_end" class="form-label">Session End Date</label>
+                    <input type="date" class="form-control" id="session_end" name="session_end" value="2025-06-30">
+                </div>
+                <div class="mb-3">
+                    <label for="grading_system" class="form-label">Grading System</label>
+                    <select class="form-select" id="grading_system" name="grading_system">
+                        <option value="letter">Letter Grades (A, B, C, D, F)</option>
+                        <option value="percentage" selected>Percentage (0-100)</option>
+                        <option value="gpa">GPA (0.0-4.0)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Academic Settings
+                </button>
+            </form>
+        </div>
+
+        <div class="modern-card">
+            <h4 class="mb-4"><i class="fas fa-bell"></i> Notification Settings</h4>
+            <form id="notificationSettingsForm">
+                {% csrf_token %}
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="email_notifications" checked>
+                    <label class="form-check-label" for="email_notifications">
+                        Enable email notifications
+                    </label>
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="sms_notifications" checked>
+                    <label class="form-check-label" for="sms_notifications">
+                        Enable SMS notifications
+                    </label>
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="parent_notifications" checked>
+                    <label class="form-check-label" for="parent_notifications">
+                        Send notifications to parents
+                    </label>
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="teacher_notifications" checked>
+                    <label class="form-check-label" for="teacher_notifications">
+                        Send notifications to teachers
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Notification Settings
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="modern-card mb-4">
+            <h4 class="mb-3"><i class="fas fa-info-circle"></i> System Info</h4>
+            <table class="table table-sm">
+                <tr>
+                    <th>Version:</th>
+                    <td>1.0.0</td>
+                </tr>
+                <tr>
+                    <th>Database:</th>
+                    <td>SQLite</td>
+                </tr>
+                <tr>
+                    <th>Django:</th>
+                    <td>5.2.7</td>
+                </tr>
+                <tr>
+                    <th>Users:</th>
+                    <td>{{ total_users|default:50 }}</td>
+                </tr>
+                <tr>
+                    <th>Students:</th>
+                    <td>{{ total_students|default:20 }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="modern-card mb-4">
+            <h4 class="mb-3"><i class="fas fa-database"></i> Database Actions</h4>
+            <button class="btn btn-warning btn-sm w-100 mb-2">
+                <i class="fas fa-download"></i> Backup Database
+            </button>
+            <button class="btn btn-danger btn-sm w-100 mb-2">
+                <i class="fas fa-trash"></i> Clear Cache
+            </button>
+            <button class="btn btn-info btn-sm w-100">
+                <i class="fas fa-sync"></i> Sync Data
+            </button>
+        </div>
+
+        <div class="modern-card">
+            <h4 class="mb-3"><i class="fas fa-tools"></i> Maintenance</h4>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="maintenance_mode">
+                <label class="form-check-label" for="maintenance_mode">
+                    Enable Maintenance Mode
+                </label>
+            </div>
+            <p class="text-muted small">When enabled, only administrators can access the system.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('schoolSettingsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    alert('School settings saved successfully!');
+});
+
+document.getElementById('academicSettingsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    alert('Academic settings saved successfully!');
+});
+
+document.getElementById('notificationSettingsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    alert('Notification settings saved successfully!');
+});
+</script>
+{% endblock %}

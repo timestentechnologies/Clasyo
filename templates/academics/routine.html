@@ -1,0 +1,378 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Class Routine - School Management{% endblock %}
+{% block page_icon %}clock{% endblock %}
+{% block page_title %}Class Routine / Timetable{% endblock %}
+{% block page_subtitle %}Manage class schedules, lessons, and breaks for all classes{% endblock %}
+
+{% block content %}
+<!-- Quick Setup Card -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-2"><i class="fas fa-info-circle"></i> Quick Setup</h5>
+                        <p class="mb-0">Before adding routine entries, make sure you have created time periods and rooms.</p>
+                    </div>
+                    <div>
+                        <a href="{% url 'academics:class_time_list' school_slug=school_slug %}" class="btn btn-light btn-sm me-2">
+                            <i class="fas fa-clock"></i> Manage Time Periods
+                        </a>
+                        <a href="{% url 'academics:classroom_list' school_slug=school_slug %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-door-open"></i> Manage Rooms
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Actions -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <button class="btn btn-outline-primary" id="filterBtn">
+        <i class="fas fa-filter"></i> Filter by Class
+    </button>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRoutineModal">
+        <i class="fas fa-plus-circle"></i> Add Routine Entry
+    </button>
+</div>
+
+<!-- Filter Section -->
+<div class="card border-0 shadow-sm mb-4" id="filterSection" style="display: none;">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Class</label>
+                <select name="class" class="form-select">
+                    <option value="">All Classes</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Section</label>
+                <select name="section" class="form-select">
+                    <option value="">All Sections</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Day</label>
+                <select name="day" class="form-select">
+                    <option value="">All Days</option>
+                    <option value="0">Monday</option>
+                    <option value="1">Tuesday</option>
+                    <option value="2">Wednesday</option>
+                    <option value="3">Thursday</option>
+                    <option value="4">Friday</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100 mt-4">
+                    <i class="fas fa-search"></i> Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Routine Entries -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        {% if routines %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Class</th>
+                        <th>Day</th>
+                        <th>Time</th>
+                        <th>Subject</th>
+                        <th>Teacher</th>
+                        <th>Room</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for routine in routines %}
+                <tr>
+                    <td><strong>{{ routine.class_name }} - {{ routine.section }}</strong></td>
+                    <td>{{ routine.get_day_of_week_display }}</td>
+                    <td>{{ routine.class_time }}</td>
+                    <td>{{ routine.subject }}</td>
+                    <td>{{ routine.teacher|default:"Not Assigned" }}</td>
+                    <td>{{ routine.room|default:"Not Assigned" }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="editRoutine({{ routine.pk }})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteRoutine({{ routine.pk }})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">No Routine Entries</h5>
+            <p class="text-muted">Click "Add Routine Entry" to create your first timetable entry.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Routine Modal -->
+<div class="modal fade" id="addRoutineModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-plus-circle"></i> Add Routine Entry</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="routineAddForm" method="post" action="{% url 'academics:routine_create' school_slug=school_slug %}">
+                    {% csrf_token %}
+                    
+                    <!-- Class & Section -->
+                    <div class="border-start border-primary border-4 ps-3 mb-4">
+                        <h6 class="text-primary fw-bold mb-3"><i class="fas fa-chalkboard"></i> Class & Section</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Class *</label>
+                                {{ form.class_name }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Section *</label>
+                                {{ form.section }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Schedule -->
+                    <div class="border-start border-success border-4 ps-3 mb-4">
+                        <h6 class="text-success fw-bold mb-3"><i class="fas fa-calendar"></i> Schedule</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Day of Week *</label>
+                                {{ form.day_of_week }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Time Period *</label>
+                                {{ form.class_time }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subject & Teacher -->
+                    <div class="border-start border-info border-4 ps-3 mb-4">
+                        <h6 class="text-info fw-bold mb-3"><i class="fas fa-book"></i> Subject & Teacher</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Subject *</label>
+                                {{ form.subject }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Teacher</label>
+                                {{ form.teacher }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Room</label>
+                                {{ form.room }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Info -->
+                    <div class="border-start border-warning border-4 ps-3">
+                        <h6 class="text-warning fw-bold mb-3"><i class="fas fa-cog"></i> Additional Info</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Academic Year *</label>
+                                {{ form.academic_year }}
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mt-4">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label fw-semibold" for="{{ form.is_active.id_for_label }}">Active</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Notes</label>
+                                {{ form.notes }}
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddRoutine()">
+                    <i class="fas fa-save"></i> Save Entry
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Routine Modal -->
+<div class="modal fade" id="editRoutineModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Routine Entry</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="routineEditForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="edit_routine_id">
+                    
+                    <!-- Same form structure as add modal -->
+                    <div class="border-start border-primary border-4 ps-3 mb-4">
+                        <h6 class="text-primary fw-bold mb-3"><i class="fas fa-chalkboard"></i> Class & Section</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Class *</label>
+                                <select id="edit_class_name" name="class_name" class="form-select" required></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Section *</label>
+                                <select id="edit_section" name="section" class="form-select" required></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-start border-success border-4 ps-3 mb-4">
+                        <h6 class="text-success fw-bold mb-3"><i class="fas fa-calendar"></i> Schedule</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Day of Week *</label>
+                                <select id="edit_day_of_week" name="day_of_week" class="form-select" required></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Time Period *</label>
+                                <select id="edit_class_time" name="class_time" class="form-select" required></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-start border-info border-4 ps-3 mb-4">
+                        <h6 class="text-info fw-bold mb-3"><i class="fas fa-book"></i> Subject & Teacher</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Subject *</label>
+                                <select id="edit_subject" name="subject" class="form-select" required></select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Teacher</label>
+                                <select id="edit_teacher" name="teacher" class="form-select"></select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Room</label>
+                                <select id="edit_room" name="room" class="form-select"></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-start border-warning border-4 ps-3">
+                        <h6 class="text-warning fw-bold mb-3"><i class="fas fa-cog"></i> Additional Info</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Academic Year *</label>
+                                <select id="edit_academic_year" name="academic_year" class="form-select" required></select>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mt-4">
+                                    <input type="checkbox" id="edit_is_active" name="is_active" class="form-check-input" checked>
+                                    <label class="form-check-label fw-semibold" for="edit_is_active">Active</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Notes</label>
+                                <textarea id="edit_notes" name="notes" class="form-control" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditRoutine()">
+                    <i class="fas fa-save"></i> Update Entry
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Toggle filter
+document.getElementById('filterBtn').addEventListener('click', function() {
+    const filterSection = document.getElementById('filterSection');
+    filterSection.style.display = filterSection.style.display === 'none' ? 'block' : 'none';
+});
+
+function submitAddRoutine() {
+    const form = document.getElementById('routineAddForm');
+    form.submit();
+}
+
+function editRoutine(id) {
+    // Load routine data and show edit modal
+    fetch(`/school/{{ school_slug }}/academics/routine/${id}/`)
+        .then(response => response.json())
+        .then(data => {
+            // Populate edit form
+            document.getElementById('edit_routine_id').value = id;
+            // ... populate other fields
+            new bootstrap.Modal(document.getElementById('editRoutineModal')).show();
+        });
+}
+
+function submitEditRoutine() {
+    const form = document.getElementById('routineEditForm');
+    const id = document.getElementById('edit_routine_id').value;
+    const formData = new FormData(form);
+    
+    fetch(`/school/{{ school_slug }}/academics/routine/${id}/edit/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to update'));
+        }
+    });
+}
+
+function deleteRoutine(id) {
+    if (confirm('Are you sure you want to delete this routine entry?')) {
+        fetch(`/school/{{ school_slug }}/academics/routine/${id}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to delete');
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

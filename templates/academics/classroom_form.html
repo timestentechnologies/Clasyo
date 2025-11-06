@@ -1,0 +1,153 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Classroom - School Management{% endblock %}
+{% block page_icon %}door-open{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Classroom/Room{% endblock %}
+{% block page_subtitle %}Add or update classroom and room information{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="modern-card">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> <strong>Note:</strong> Rooms can be lecture halls, labs, libraries, or any space used for teaching.
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Room Number <span class="text-danger">*</span></label>
+                        <input type="text" name="room_number" class="form-control" 
+                               placeholder="e.g., 101, Lab-A, Hall-1" 
+                               value="{{ form.instance.room_number }}" required>
+                        <small class="text-muted">Unique identifier for the room</small>
+                        {% if form.room_number.errors %}
+                        <div class="invalid-feedback d-block">{{ form.room_number.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Room Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" 
+                               placeholder="e.g., Physics Lab, Main Hall" 
+                               value="{{ form.instance.name }}" required>
+                        {% if form.name.errors %}
+                        <div class="invalid-feedback d-block">{{ form.name.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Room Type <span class="text-danger">*</span></label>
+                        <select name="room_type" class="form-select" required>
+                            <option value="">Select Room Type</option>
+                            <option value="lecture" {% if form.instance.room_type == 'lecture' %}selected{% endif %}>Lecture Hall</option>
+                            <option value="lab" {% if form.instance.room_type == 'lab' %}selected{% endif %}>Laboratory</option>
+                            <option value="computer" {% if form.instance.room_type == 'computer' %}selected{% endif %}>Computer Lab</option>
+                            <option value="library" {% if form.instance.room_type == 'library' %}selected{% endif %}>Library</option>
+                            <option value="auditorium" {% if form.instance.room_type == 'auditorium' %}selected{% endif %}>Auditorium</option>
+                            <option value="staffroom" {% if form.instance.room_type == 'staffroom' %}selected{% endif %}>Staff Room</option>
+                            <option value="office" {% if form.instance.room_type == 'office' %}selected{% endif %}>Office</option>
+                            <option value="other" {% if form.instance.room_type == 'other' %}selected{% endif %}>Other</option>
+                        </select>
+                        {% if form.room_type.errors %}
+                        <div class="invalid-feedback d-block">{{ form.room_type.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Capacity <span class="text-danger">*</span></label>
+                        <input type="number" name="capacity" class="form-control" 
+                               placeholder="e.g., 30, 50, 100" 
+                               value="{{ form.instance.capacity|default:30 }}" required min="1">
+                        <small class="text-muted">Number of students/seats</small>
+                        {% if form.capacity.errors %}
+                        <div class="invalid-feedback d-block">{{ form.capacity.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Building</label>
+                        <input type="text" name="building" class="form-control" 
+                               placeholder="e.g., Main Building, Block A" 
+                               value="{{ form.instance.building }}">
+                        <small class="text-muted">Optional - Building or block name</small>
+                        {% if form.building.errors %}
+                        <div class="invalid-feedback d-block">{{ form.building.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Floor</label>
+                        <select name="floor" class="form-select">
+                            <option value="">Select Floor</option>
+                            <option value="Ground" {% if form.instance.floor == 'Ground' %}selected{% endif %}>Ground Floor</option>
+                            <option value="1" {% if form.instance.floor == '1' %}selected{% endif %}>1st Floor</option>
+                            <option value="2" {% if form.instance.floor == '2' %}selected{% endif %}>2nd Floor</option>
+                            <option value="3" {% if form.instance.floor == '3' %}selected{% endif %}>3rd Floor</option>
+                            <option value="4" {% if form.instance.floor == '4' %}selected{% endif %}>4th Floor</option>
+                            <option value="5" {% if form.instance.floor == '5' %}selected{% endif %}>5th Floor</option>
+                            <option value="Basement" {% if form.instance.floor == 'Basement' %}selected{% endif %}>Basement</option>
+                        </select>
+                        <small class="text-muted">Optional - Floor location</small>
+                        {% if form.floor.errors %}
+                        <div class="invalid-feedback d-block">{{ form.floor.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" name="is_active" id="isActive"
+                           {% if form.instance.pk %}{% if form.instance.is_active %}checked{% endif %}{% else %}checked{% endif %}>
+                    <label class="form-check-label" for="isActive">
+                        <strong>Active</strong>
+                    </label>
+                    <small class="d-block text-muted mt-1">Inactive rooms won't appear in routine creation</small>
+                    {% if form.is_active.errors %}
+                    <div class="invalid-feedback d-block">{{ form.is_active.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'academics:classroom_list' school_slug=school_slug %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to List
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save"></i> {% if form.instance.pk %}Update{% else %}Create{% endif %} Room
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-control, .form-select {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.form-label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.form-check-input:checked {
+    background-color: #667eea;
+    border-color: #667eea;
+}
+</style>
+{% endblock %}

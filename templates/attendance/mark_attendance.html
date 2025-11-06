@@ -1,0 +1,52 @@
+{% extends 'core/admin_dashboard.html' %}
+{% block title %}Mark Attendance{% endblock %}
+{% block page_icon %}check-circle{% endblock %}
+{% block page_title %}Attendance{% endblock %}
+{% block page_subtitle %}Mark and manage student attendance - {{ today }}{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-body">
+        <form method="get" class="row mb-3">
+            <div class="col-md-4">
+                <select name="class" class="form-control" onchange="this.form.submit()">
+                    <option>Select Class</option>
+                    {% for class in classes %}<option value="{{ class.id }}">{{ class.name }}</option>{% endfor %}
+                </select>
+            </div>
+        </form>
+
+        <table class="table">
+            <thead><tr><th>Student</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td>{{ student.get_full_name }}</td>
+                    <td id="status-{{ student.pk }}">-</td>
+                    <td>
+                        <button class="btn btn-sm btn-success" onclick="markAttendance({{ student.pk }}, 'present')">Present</button>
+                        <button class="btn btn-sm btn-danger" onclick="markAttendance({{ student.pk }}, 'absent')">Absent</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function markAttendance(studentId, status) {
+    fetch(window.location.pathname, {
+        method: 'POST',
+        body: new URLSearchParams({student_id: studentId, status: status, date: '{{ today }}'}),
+        headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded'}
+    }).then(r => r.json()).then(d => { 
+        if(d.success) {
+            document.getElementById('status-' + studentId).textContent = status.toUpperCase();
+            document.getElementById('status-' + studentId).className = status === 'present' ? 'text-success' : 'text-danger';
+        }
+    });
+}
+</script>
+{% endblock %}

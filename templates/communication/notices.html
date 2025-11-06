@@ -1,0 +1,71 @@
+{% extends 'core/admin_dashboard.html' %}
+{% block title %}Notices{% endblock %}
+{% block page_icon %}bell{% endblock %}
+{% block page_title %}Notices{% endblock %}
+{% block page_subtitle %}View and manage notice board{% endblock %}
+
+{% block content %}
+{% if user.role in 'super_admin,school_admin' %}
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addNoticeModal"><i class="fas fa-plus"></i> Add Notice</button>
+</div>
+{% endif %}
+
+{% for notice in notices %}
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between">
+            <h5>{{ notice.title }}</h5>
+            <span class="badge bg-{% if notice.priority == 'high' %}danger{% elif notice.priority == 'medium' %}warning{% else %}info{% endif %}">{{ notice.priority|upper }}</span>
+        </div>
+        <p>{{ notice.content }}</p>
+        <small class="text-muted">Posted: {{ notice.created_at|date:"M d, Y" }} | For: {{ notice.target_audience }}</small>
+    </div>
+</div>
+{% endfor %}
+
+<div class="modal fade" id="addNoticeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;"><h5 class="modal-title"><i class="fas fa-plus"></i> Add Notice</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <form id="noticeForm">
+                    {% csrf_token %}
+                    <div class="mb-3"><label>Title</label><input type="text" name="title" class="form-control" required></div>
+                    <div class="mb-3"><label>Content</label><textarea name="content" class="form-control" rows="4" required></textarea></div>
+                    <div class="mb-3"><label>Target Audience</label><select name="target_audience" class="form-control"><option value="all">All</option><option value="teacher">Teachers</option><option value="student">Students</option><option value="parent">Parents</option></select></div>
+                    <div class="mb-3"><label>Priority</label><select name="priority" class="form-control"><option value="normal">Normal</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitNotice()">Post Notice</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function submitNotice() {
+    const form = document.getElementById('noticeForm');
+    const formData = new FormData(form);
+    
+    fetch(window.location.pathname, {
+        method: 'POST',
+        body: formData,
+        headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessAndReload('Notice posted successfully!');
+        } else {
+            showError(data.error || 'Failed to post notice');
+        }
+    })
+    .catch(error => {
+        showError('Error posting notice: ' + error.message);
+    });
+}
+</script>
+{% endblock %}

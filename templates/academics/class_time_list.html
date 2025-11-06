@@ -1,0 +1,161 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Class Time Periods - School Management{% endblock %}
+{% block page_icon %}clock{% endblock %}
+{% block page_title %}Class Time Periods & Breaks{% endblock %}
+{% block page_subtitle %}Define time slots for lessons and break periods throughout the school day{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{% url 'academics:routine' school_slug=school_slug %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Routine
+        </a>
+    </div>
+    <a href="{% url 'academics:class_time_create' school_slug=school_slug %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add Time Period
+    </a>
+</div>
+
+<div class="modern-card">
+    {% if class_times %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 80px;">Order</th>
+                    <th>Period Name</th>
+                    <th>Start Time</th>
+                    <th>End Time</th>
+                    <th style="width: 120px;">Duration</th>
+                    <th style="width: 120px;">Type</th>
+                    <th style="width: 100px;">Status</th>
+                    <th style="width: 150px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for time in class_times %}
+                <tr {% if time.is_break %}style="background-color: #fff3cd;"{% endif %}>
+                    <td class="text-center">
+                        <strong class="badge bg-secondary">{{ time.order }}</strong>
+                    </td>
+                    <td>
+                        {% if time.is_break %}
+                            <i class="fas fa-coffee text-warning me-2"></i>
+                        {% else %}
+                            <i class="fas fa-book text-primary me-2"></i>
+                        {% endif %}
+                        <strong>{{ time.name }}</strong>
+                    </td>
+                    <td>
+                        <i class="fas fa-clock text-muted me-1"></i>
+                        {{ time.start_time|time:"H:i" }}
+                    </td>
+                    <td>
+                        <i class="fas fa-clock text-muted me-1"></i>
+                        {{ time.end_time|time:"H:i" }}
+                    </td>
+                    <td>
+                        {% widthratio time.end_time.hour 1 60 as end_minutes %}
+                        {% widthratio time.start_time.hour 1 60 as start_minutes %}
+                        {% widthratio time.end_time.minute 1 1 as end_min %}
+                        {% widthratio time.start_time.minute 1 1 as start_min %}
+                        <span class="badge bg-info">
+                            {{ time.end_time.hour|add:"-1"|add:time.start_time.hour|add:"-1"|stringformat:"d" }}h 
+                            {{ time.end_time.minute|add:"-1"|add:time.start_time.minute|stringformat:"d" }}m
+                        </span>
+                    </td>
+                    <td>
+                        {% if time.is_break %}
+                            <span class="badge bg-warning text-dark">
+                                <i class="fas fa-coffee"></i> Break
+                            </span>
+                        {% else %}
+                            <span class="badge bg-primary">
+                                <i class="fas fa-book"></i> Class
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if time.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'academics:class_time_update' school_slug=school_slug pk=time.pk %}" 
+                           class="btn btn-sm btn-warning" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button onclick="deleteTime({{ time.pk }}, '{{ time.name }}')" 
+                                class="btn btn-sm btn-danger" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="alert alert-info mt-3">
+        <i class="fas fa-info-circle"></i> <strong>Tips:</strong>
+        <ul class="mb-0 mt-2">
+            <li>Use the <strong>Order</strong> field to control the sequence of periods</li>
+            <li>Mark periods as <strong>"Is Break"</strong> for lunch, recess, etc.</li>
+            <li>Break periods will be highlighted in the timetable view</li>
+            <li>Inactive periods won't appear in routine creation</li>
+        </ul>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-clock fa-4x text-muted mb-3"></i>
+        <h4>No Time Periods Defined</h4>
+        <p class="text-muted">Create time periods for your school day, including class times and breaks.</p>
+        <a href="{% url 'academics:class_time_create' school_slug=school_slug %}" class="btn btn-primary mt-2">
+            <i class="fas fa-plus"></i> Create First Time Period
+        </a>
+        
+        <div class="alert alert-success mt-4 mx-auto" style="max-width: 600px;">
+            <strong><i class="fas fa-lightbulb"></i> Example Schedule:</strong>
+            <ul class="text-start mt-2 mb-0">
+                <li>Period 1: 08:00 - 08:45</li>
+                <li>Period 2: 08:50 - 09:35</li>
+                <li><strong>Break:</strong> 09:35 - 09:50</li>
+                <li>Period 3: 09:50 - 10:35</li>
+                <li>Period 4: 10:40 - 11:25</li>
+                <li><strong>Lunch:</strong> 11:25 - 12:10</li>
+                <li>Period 5: 12:10 - 12:55</li>
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function deleteTime(id, name) {
+    if (confirm(`Are you sure you want to delete "${name}"?\n\nThis will also remove all routine entries using this time period.`)) {
+        fetch(`/school/{{ school_slug }}/academics/class-times/${id}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + (data.error || 'Could not delete time period'));
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    }
+}
+</script>
+{% endblock %}

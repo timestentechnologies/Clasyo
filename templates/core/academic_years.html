@@ -1,0 +1,534 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block page_icon %}calendar-check{% endblock %}
+{% block page_title %}Academic Years{% endblock %}
+{% block page_subtitle %}Manage academic years and terms{% endblock %}
+
+{% block extra_css %}{% endblock %}
+
+{% block page_actions %}
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addYearModal">
+    <i class="fas fa-plus"></i> Add Academic Year
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="modern-card">
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Year Name</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Terms</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for year in object_list %}
+            <tr>
+                <td><strong>{{ year.name }}</strong></td>
+                <td>{{ year.start_date|date:"M d, Y" }}</td>
+                <td>{{ year.end_date|date:"M d, Y" }}</td>
+                <td>
+                    <button class="btn btn-sm btn-info" onclick="manageTerms({{ year.id }}, '{{ year.name }}')">
+                        <i class="fas fa-list"></i> {{ year.sessions.count }} Term(s)
+                    </button>
+                </td>
+                <td>
+                    {% if year.is_active %}
+                    <span class="badge bg-success">Active</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="editYear({{ year.id }})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteYear({{ year.id }})"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <i class="fas fa-calendar-alt fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No academic years found</p>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Delete Year Confirmation Modal -->
+<div class="modal fade" id="deleteYearModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-trash"></i> Confirm Delete</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this academic year?</p>
+                <p class="text-danger">This will also delete all associated terms and data.</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteYearBtn">Delete Year</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addYearModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-plus"></i> Add Academic Year</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="yearForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label>Year Name *</label>
+                        <input type="text" name="name" class="form-control" required placeholder="e.g., 2024-2025">
+                    </div>
+                    <div class="mb-3">
+                        <label>Start Date *</label>
+                        <input type="date" name="start_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>End Date *</label>
+                        <input type="date" name="end_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>
+                            <input type="checkbox" name="is_active"> Set as Active Year
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitYear()">Save Year</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Year Modal -->
+<div class="modal fade" id="editYearModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Academic Year</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editYearForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="editYearId" name="id">
+                    <div class="mb-3">
+                        <label>Year Name *</label>
+                        <input type="text" id="editYearName" name="name" class="form-control" required placeholder="e.g., 2024-2025">
+                    </div>
+                    <div class="mb-3">
+                        <label>Start Date *</label>
+                        <input type="date" id="editYearStartDate" name="start_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>End Date *</label>
+                        <input type="date" id="editYearEndDate" name="end_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>
+                            <input type="checkbox" id="editYearIsActive" name="is_active"> Set as Active Year
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditYear()">Update Year</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="manageTermsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-list"></i> Manage Terms - <span id="yearName"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <button class="btn btn-sm btn-success mb-3" onclick="addTerm()">
+                    <i class="fas fa-plus"></i> Add Term
+                </button>
+                <div id="termsContainer">
+                    <p class="text-center text-muted">Loading terms...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addTermModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-plus"></i> Add Term</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="termForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="termYearId" name="academic_year">
+                    <div class="mb-3">
+                        <label>Type *</label>
+                        <select id="termType" class="form-control" required onchange="updateTermOptions()">
+                            <option value="">Select Type</option>
+                            <option value="term">Terms (High School)</option>
+                            <option value="semester">Semesters (College)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Name *</label>
+                        <select name="name" id="termNameSelect" class="form-control" required>
+                            <option value="">Select type first</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Start Date *</label>
+                        <input type="date" name="start_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>End Date *</label>
+                        <input type="date" name="end_date" class="form-control" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitTerm()">Save Term</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success/Error Modal -->
+<div class="modal fade" id="messageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" id="messageModalHeader" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title" id="messageModalTitle">Success</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="messageModalBody">
+                Operation completed successfully!
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentYearId = null;
+
+function showMessage(title, message, isSuccess = true) {
+    const modal = new bootstrap.Modal(document.getElementById('messageModal'));
+    document.getElementById('messageModalTitle').textContent = title;
+    document.getElementById('messageModalBody').innerHTML = message;
+    
+    const header = document.getElementById('messageModalHeader');
+    if (isSuccess) {
+        header.style.background = 'linear-gradient(180deg, #4CAF50 0%, #45a049 100%)';
+    } else {
+        header.style.background = 'linear-gradient(180deg, #f44336 0%, #da190b 100%)';
+    }
+    
+    modal.show();
+}
+
+function submitYear() {
+    const form = document.getElementById('yearForm');
+    const formData = new FormData(form);
+    
+    fetch('/school/{{ school_slug }}/academic-years/add/', {
+        method: 'POST',
+        body: formData,
+        headers: {'X-CSRFToken': '{{ csrf_token }}'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('Success!', 'Academic year added successfully', true);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showMessage('Error', data.error || 'Failed to save', false);
+        }
+    })
+    .catch(error => {
+        showMessage('Error', 'Failed to save: ' + error.message, false);
+    });
+}
+
+function editYear(id) {
+    // Fetch year data
+    fetch('/school/{{ school_slug }}/academic-years/' + id + '/edit/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Populate form with existing data
+                document.getElementById('editYearId').value = data.data.id;
+                document.getElementById('editYearName').value = data.data.name;
+                document.getElementById('editYearStartDate').value = data.data.start_date;
+                document.getElementById('editYearEndDate').value = data.data.end_date;
+                document.getElementById('editYearIsActive').checked = data.data.is_active;
+                
+                // Show edit modal
+                const modal = new bootstrap.Modal(document.getElementById('editYearModal'));
+                modal.show();
+            } else {
+                showMessage('Error', data.error || 'Failed to load year data', false);
+            }
+        })
+        .catch(error => {
+            showMessage('Error', 'Failed to load year data: ' + error.message, false);
+        });
+}
+
+function submitEditYear() {
+    const form = document.getElementById('editYearForm');
+    const formData = new FormData(form);
+    const yearId = document.getElementById('editYearId').value;
+    
+    fetch('/school/{{ school_slug }}/academic-years/' + yearId + '/edit/', {
+        method: 'POST',
+        body: formData,
+        headers: {'X-CSRFToken': '{{ csrf_token }}'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('Success!', 'Academic year updated successfully', true);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showMessage('Error', data.error || 'Failed to update', false);
+        }
+    })
+    .catch(error => {
+        showMessage('Error', 'Failed to update: ' + error.message, false);
+    });
+}
+
+function deleteYear(id) {
+    const modal = new bootstrap.Modal(document.getElementById('deleteYearModal'));
+    modal.show();
+    
+    document.getElementById('confirmDeleteYearBtn').onclick = function() {
+        fetch('/school/{{ school_slug }}/academic-years/' + id + '/delete/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteYearModal'));
+            if (deleteModal) deleteModal.hide();
+            
+            if (data.success) {
+                showMessage('Success!', 'Academic year deleted successfully', true);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showMessage('Error', data.error || 'Failed to delete academic year', false);
+            }
+        })
+        .catch(error => {
+            showMessage('Error', 'Failed to delete: ' + error.message, false);
+        });
+    };
+}
+
+function updateTermOptions() {
+    const type = document.getElementById('termType').value;
+    const select = document.getElementById('termNameSelect');
+    
+    select.innerHTML = '<option value="">Select...</option>';
+    
+    if (type === 'term') {
+        select.innerHTML += '<option value="Term 1">Term 1</option>';
+        select.innerHTML += '<option value="Term 2">Term 2</option>';
+        select.innerHTML += '<option value="Term 3">Term 3</option>';
+    } else if (type === 'semester') {
+        select.innerHTML += '<option value="Semester 1">Semester 1</option>';
+        select.innerHTML += '<option value="Semester 2">Semester 2</option>';
+    }
+}
+
+function manageTerms(yearId, yearName) {
+    currentYearId = yearId;
+    document.getElementById('yearName').textContent = yearName;
+    document.getElementById('termsContainer').innerHTML = '<p class="text-center text-muted">Loading terms...</p>';
+    
+    const modal = new bootstrap.Modal(document.getElementById('manageTermsModal'));
+    modal.show();
+    
+    // Fetch terms for this year
+    console.log('[DEBUG] Fetching terms for year:', yearId);
+    fetch('/school/{{ school_slug }}/academic-years/' + yearId + '/terms/')
+        .then(response => {
+            console.log('[DEBUG] Terms response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('[DEBUG] Terms data:', data);
+            if (data.success) {
+                displayTerms(data.terms);
+            } else {
+                console.error('[ERROR] Failed to fetch terms:', data.error);
+                document.getElementById('termsContainer').innerHTML = '<p class="text-center text-danger">Error: ' + data.error + '</p>';
+            }
+        })
+        .catch(error => {
+            console.error('[ERROR] Fetch error:', error);
+            document.getElementById('termsContainer').innerHTML = '<p class="text-center text-muted">No terms added yet</p>';
+        });
+}
+
+function displayTerms(terms) {
+    if (!terms || terms.length === 0) {
+        document.getElementById('termsContainer').innerHTML = '<p class="text-center text-muted">No terms added yet</p>';
+        return;
+    }
+    
+    let html = '<div class="table-responsive"><table class="table table-sm">';
+    html += '<thead><tr><th>Term</th><th>Start Date</th><th>End Date</th><th>Actions</th></tr></thead><tbody>';
+    
+    terms.forEach(term => {
+        html += '<tr>';
+        html += '<td><strong>' + term.name + '</strong></td>';
+        html += '<td>' + term.start_date + '</td>';
+        html += '<td>' + term.end_date + '</td>';
+        html += '<td><button class="btn btn-sm btn-danger" onclick="deleteTerm(' + term.id + ')"><i class="fas fa-trash"></i></button></td>';
+        html += '</tr>';
+    });
+    
+    html += '</tbody></table></div>';
+    document.getElementById('termsContainer').innerHTML = html;
+}
+
+function addTerm() {
+    document.getElementById('termYearId').value = currentYearId;
+    const modal = new bootstrap.Modal(document.getElementById('addTermModal'));
+    modal.show();
+}
+
+function submitTerm() {
+    console.log('submitTerm called');
+    const form = document.getElementById('termForm');
+    
+    if (!form) {
+        showMessage('Error', 'Form not found', false);
+        return;
+    }
+    
+    const formData = new FormData(form);
+    
+    // Validate form
+    if (!formData.get('academic_year')) {
+        showMessage('Error', 'Academic year not set', false);
+        return;
+    }
+    if (!formData.get('name')) {
+        showMessage('Error', 'Please select term/semester name', false);
+        return;
+    }
+    if (!formData.get('start_date')) {
+        showMessage('Error', 'Please select start date', false);
+        return;
+    }
+    if (!formData.get('end_date')) {
+        showMessage('Error', 'Please select end date', false);
+        return;
+    }
+    
+    console.log('[DEBUG] Submitting term with data:', {
+        academic_year: formData.get('academic_year'),
+        name: formData.get('name'),
+        start_date: formData.get('start_date'),
+        end_date: formData.get('end_date')
+    });
+    
+    fetch('/school/{{ school_slug }}/academic-years/terms/add/', {
+        method: 'POST',
+        body: formData,
+        headers: {'X-CSRFToken': '{{ csrf_token }}'}
+    })
+    .then(response => {
+        console.log('[DEBUG] Response status:', response.status);
+        console.log('[DEBUG] Response content-type:', response.headers.get('content-type'));
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            return response.text().then(text => {
+                console.error('[ERROR] Non-JSON response:', text.substring(0, 200));
+                throw new Error('Server returned HTML instead of JSON. Check server logs.');
+            });
+        }
+        
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showMessage('Success!', 'Term/Semester saved successfully!', true);
+            const addModal = bootstrap.Modal.getInstance(document.getElementById('addTermModal'));
+            if (addModal) {
+                addModal.hide();
+            }
+            setTimeout(() => {
+                manageTerms(currentYearId, document.getElementById('yearName').textContent);
+            }, 1000);
+        } else {
+            showMessage('Error', data.error || 'Failed to save term', false);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('Error', 'Failed to save: ' + error.message, false);
+    });
+}
+
+function deleteTerm(termId) {
+    if (confirm('Are you sure you want to delete this term?')) {
+        fetch('/school/{{ school_slug }}/academic-years/terms/' + termId + '/delete/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSuccess('Term deleted successfully!');
+                setTimeout(() => {
+                    manageTerms(currentYearId, document.getElementById('yearName').textContent);
+                }, 1000);
+            } else {
+                showError(data.error || 'Failed to delete term');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('Failed to delete term. Please try again.');
+        });
+    }
+}
+</script>
+{% endblock %}

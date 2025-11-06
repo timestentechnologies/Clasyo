@@ -1,0 +1,481 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Class{% endblock %}
+{% block page_icon %}chalkboard{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Class{% endblock %}
+{% block page_subtitle %}Manage class/grade levels and their sections{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 offset-lg-1">
+        <!-- Info Banner -->
+        <div class="alert alert-info mb-4">
+            <div class="d-flex align-items-start">
+                <i class="fas fa-info-circle fa-2x me-3"></i>
+                <div>
+                    <h6 class="mb-1">What is a Class?</h6>
+                    <p class="mb-0">A <strong>Class</strong> represents a grade or year level (e.g., Grade 10, Year 8). 
+                    Within each class, you can create <strong>Sections</strong> (e.g., Section A, B, C) to divide students into smaller groups.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="post" id="classForm">
+                    {% csrf_token %}
+                    
+                    <!-- Class Information -->
+                    <div class="form-section mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="section-icon bg-primary bg-opacity-10 text-primary rounded-circle p-3 me-3">
+                                <i class="fas fa-school fa-lg"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0 fw-bold text-primary">Class Information</h5>
+                                <small class="text-muted">Basic details about the class/grade</small>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-tag text-primary me-2"></i>Class Name <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" name="name" class="form-control" 
+                                       placeholder="e.g., Grade 10, Year 8, Form 3" 
+                                       value="{{ form.instance.name }}" required>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> The name or level (e.g., Grade 10, Year 8)
+                                </small>
+                                {% if form.name.errors %}
+                                <div class="invalid-feedback d-block">{{ form.name.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-sort-numeric-up text-primary me-2"></i>Numeric Name <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" name="numeric_name" class="form-control" 
+                                       placeholder="e.g., 10, 8, 3" 
+                                       value="{{ form.instance.numeric_name }}" required>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> Numeric value for sorting (e.g., 10 for Grade 10)
+                                </small>
+                                {% if form.numeric_name.errors %}
+                                <div class="invalid-feedback d-block">{{ form.numeric_name.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-sort text-primary me-2"></i>Display Order
+                                </label>
+                                <input type="number" name="order" class="form-control" 
+                                       placeholder="e.g., 1, 2, 3..." 
+                                       value="{{ form.instance.order|default:0 }}">
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> Controls sorting order in lists
+                                </small>
+                                {% if form.order.errors %}
+                                <div class="invalid-feedback d-block">{{ form.order.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-toggle-on text-primary me-2"></i>Status
+                                </label>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" name="is_active" id="isActive"
+                                           {% if form.instance.pk %}{% if form.instance.is_active %}checked{% endif %}{% else %}checked{% endif %}>
+                                    <label class="form-check-label" for="isActive">
+                                        Active
+                                    </label>
+                                </div>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> Inactive classes won't appear in selections
+                                </small>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-align-left text-primary me-2"></i>Description
+                                </label>
+                                <textarea name="description" class="form-control" rows="3" 
+                                          placeholder="Optional description or notes about this class">{{ form.instance.description }}</textarea>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> Any additional information (optional)
+                                </small>
+                                {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">{{ form.description.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" style="border-top: 2px dashed #e9ecef;">
+
+                    <!-- Sections Management -->
+                    <div class="form-section mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="section-icon bg-success bg-opacity-10 text-success rounded-circle p-3 me-3">
+                                    <i class="fas fa-users fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0 fw-bold text-success">Sections</h5>
+                                    <small class="text-muted">Divide this class into sections (e.g., A, B, C)</small>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-success" onclick="addSection()">
+                                <i class="fas fa-plus-circle"></i> Add Section
+                            </button>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-question-circle"></i> <strong>What are Sections?</strong><br>
+                            <small>Sections let you divide a large class into smaller groups. For example, if you have 150 students in Grade 10, 
+                            you can create Grade 10-A, Grade 10-B, and Grade 10-C. Each section gets its own timetable and can have different teachers.</small>
+                        </div>
+
+                        <div id="sectionsContainer">
+                            {% if form.instance.pk %}
+                                {% for section in form.instance.sections.all %}
+                                <div class="section-row card mb-3 border-start border-success border-4">
+                                    <div class="card-body">
+                                        <div class="row g-3 align-items-end">
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-semibold">Section Name</label>
+                                                <input type="text" class="form-control" value="{{ section.name }}" 
+                                                       name="sections[]" placeholder="e.g., A, B, C" required>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-semibold">Max Students</label>
+                                                <input type="number" class="form-control" value="{{ section.max_students }}" 
+                                                       name="section_capacity[]" placeholder="e.g., 40" min="1">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-semibold">Class Teacher (Optional)</label>
+                                                <select class="form-select" name="section_teacher[]" data-teacher-id="{% if section.class_teacher %}{{ section.class_teacher.id }}{% endif %}">
+                                                    <option value="">Select Teacher</option>
+                                                    <!-- Teachers will be loaded dynamically -->
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <button type="button" class="btn btn-danger w-100" onclick="removeSection(this)">
+                                                    <i class="fas fa-trash"></i> Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                            <!-- Default empty state with example -->
+                            <div class="text-center py-4 text-muted">
+                                <i class="fas fa-users fa-3x mb-3 opacity-25"></i>
+                                <p>No sections added yet. Click "Add Section" to create your first section.</p>
+                                <small>💡 Tip: Most schools create sections like A, B, C, D...</small>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between align-items-center mt-5 pt-4" style="border-top: 2px solid #e9ecef;">
+                        <a href="{% url 'academics:class_list' school_slug=school_slug %}" class="btn btn-lg btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to List
+                        </a>
+                        <button type="submit" class="btn btn-lg btn-primary px-5">
+                            <i class="fas fa-save me-2"></i>{% if form.instance.pk %}Update Class{% else %}Create Class{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section Template (Hidden) -->
+<template id="sectionTemplate">
+    <div class="section-row card mb-3 border-start border-success border-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Section Name</label>
+                    <input type="text" class="form-control" name="sections[]" placeholder="e.g., A, B, C" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Max Students</label>
+                    <input type="number" class="form-control" name="section_capacity[]" value="40" placeholder="e.g., 40" min="1">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Class Teacher (Optional)</label>
+                    <select class="form-select" name="section_teacher[]">
+                        <option value="">Select Teacher</option>
+                        <!-- Teachers will be loaded -->
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-danger w-100" onclick="removeSection(this)">
+                        <i class="fas fa-trash"></i> Remove
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<style>
+.section-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.form-control, .form-select {
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.15);
+    background-color: #f8f9ff;
+}
+
+.form-label {
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+}
+
+.form-check-input {
+    width: 3rem;
+    height: 1.5rem;
+}
+
+.form-check-input:checked {
+    background-color: #667eea;
+    border-color: #667eea;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.section-row {
+    transition: all 0.3s ease;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.section-row:hover {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.card {
+    border-radius: 12px;
+}
+</style>
+
+<script>
+let teachersData = [];
+
+// Load teachers on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // First test if API routing works
+    testAPI().then(() => {
+        loadTeachers();
+    });
+});
+
+function testAPI() {
+    const schoolSlug = '{{ school_slug }}';
+    const testUrl = `/school/${schoolSlug}/academics/api/test/`;
+    console.log('Testing API endpoint:', testUrl);
+    
+    return fetch(testUrl)
+        .then(response => response.json())
+        .then(data => {
+            console.log('API Test Response:', data);
+            if (data.success) {
+                console.log('✓ API routing is working!');
+            }
+        })
+        .catch(error => {
+            console.error('✗ API test failed:', error);
+            showNotification('API connection failed. Check console for details.', 'danger');
+        });
+}
+
+function loadTeachers() {
+    const schoolSlug = '{{ school_slug }}';
+    const apiUrl = `/school/${schoolSlug}/academics/api/teachers/`;
+    console.log('Fetching teachers from:', apiUrl);
+    
+    fetch(apiUrl)
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            
+            if (!response.ok) {
+                // Log the response text to see what's being returned
+                return response.text().then(text => {
+                    console.error('Error response:', text);
+                    throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Teachers loaded:', data);
+            teachersData = data.teachers || [];
+            // Populate existing teacher dropdowns
+            populateAllTeacherDropdowns();
+            
+            if (teachersData.length === 0) {
+                showNotification('No teachers found. Add teachers first in the HR section.', 'info');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading teachers:', error);
+            // Show user-friendly error
+            showNotification('Unable to load teachers. Check browser console for details.', 'danger');
+        });
+}
+
+function populateAllTeacherDropdowns() {
+    const selects = document.querySelectorAll('select[name="section_teacher[]"]');
+    selects.forEach(select => {
+        populateTeacherDropdown(select);
+    });
+}
+
+function populateTeacherDropdown(selectElement) {
+    // Store current value if any (from data attribute for existing records)
+    const currentValue = selectElement.value || selectElement.dataset.teacherId;
+    
+    // Clear existing options except the first one
+    selectElement.innerHTML = '<option value="">Select Teacher</option>';
+    
+    // Add teacher options
+    teachersData.forEach(teacher => {
+        const option = document.createElement('option');
+        option.value = teacher.id;
+        option.textContent = `${teacher.name} (${teacher.email})`;
+        selectElement.appendChild(option);
+    });
+    
+    // Restore previous value if it exists
+    if (currentValue) {
+        selectElement.value = currentValue;
+    }
+}
+
+function addSection() {
+    const template = document.getElementById('sectionTemplate');
+    const container = document.getElementById('sectionsContainer');
+    
+    // Remove empty state if exists
+    const emptyState = container.querySelector('.text-center');
+    if (emptyState) {
+        emptyState.remove();
+    }
+    
+    // Clone and add new section
+    const clone = template.content.cloneNode(true);
+    container.appendChild(clone);
+    
+    // Auto-suggest section name
+    const sections = container.querySelectorAll('.section-row');
+    const sectionCount = sections.length;
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    if (sectionCount <= 26) {
+        const lastInput = sections[sectionCount - 1].querySelector('input[name="sections[]"]');
+        lastInput.value = letters[sectionCount - 1];
+        
+        // Populate teacher dropdown for new section
+        const lastSelect = sections[sectionCount - 1].querySelector('select[name="section_teacher[]"]');
+        if (lastSelect && teachersData.length > 0) {
+            populateTeacherDropdown(lastSelect);
+        }
+        
+        lastInput.focus();
+    }
+}
+
+function removeSection(button) {
+    const row = button.closest('.section-row');
+    row.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => {
+        row.remove();
+        
+        // Show empty state if no sections
+        const container = document.getElementById('sectionsContainer');
+        if (container.querySelectorAll('.section-row').length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-users fa-3x mb-3 opacity-25"></i>
+                    <p>No sections added yet. Click "Add Section" to create your first section.</p>
+                    <small>💡 Tip: Most schools create sections like A, B, C, D...</small>
+                </div>
+            `;
+        }
+    }, 300);
+}
+
+function showNotification(message, type = 'info') {
+    // Simple notification function - you can enhance this
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    // Auto dismiss after 5 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+// Add animation for removal
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideOut {
+        to {
+            opacity: 0;
+            transform: translateX(50px);
+        }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

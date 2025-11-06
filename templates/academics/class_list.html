@@ -1,0 +1,450 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Classes - Academics{% endblock %}
+{% block page_icon %}chalkboard{% endblock %}
+{% block page_title %}Classes{% endblock %}
+{% block page_subtitle %}Manage all classes in your institution{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#addClassModal">
+        <i class="fas fa-plus-circle"></i> Add New Class
+    </button>
+</div>
+
+<div class="modern-card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>Class Name</th>
+                    <th>Sections</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for class in classes %}
+            <tr>
+                <td><strong><i class="fas fa-school text-primary me-2"></i>{{ class.name }}</strong></td>
+                <td>
+                    {% if class.sections.count > 0 %}
+                        <span class="badge bg-info me-1">{{ class.sections.count }} Sections</span>
+                        {% for section in class.sections.all|slice:":3" %}
+                            <span class="badge bg-secondary">{{ section.name }}</span>
+                        {% endfor %}
+                        {% if class.sections.count > 3 %}
+                            <span class="badge bg-light text-dark">+{{ class.sections.count|add:"-3" }} more</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="text-muted"><i class="fas fa-info-circle"></i> No sections</span>
+                    {% endif %}
+                </td>
+                <td>{{ class.description|default:"No description"|truncatewords:10 }}</td>
+                <td>
+                    <span class="badge {% if class.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                        {% if class.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="editClass(event, {{ class.pk }})">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteClass({{ class.pk }}, '{{ class.name }}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center py-5">
+                    <i class="fas fa-chalkboard fa-3x text-muted mb-3 d-block"></i>
+                    <p class="text-muted mb-0">No classes found. Create your first class!</p>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Class Modal -->
+<div class="modal fade" id="addClassModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-plus-circle"></i> Add New Class</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> <strong>What is a Class?</strong> A class represents a grade level. 
+                    You can add <strong>Sections</strong> (like A, B, C) to divide students into smaller groups.
+                </div>
+                
+                <form id="classAddForm">
+                    {% csrf_token %}
+                    
+                    <!-- Class Information -->
+                    <div class="border-start border-primary border-4 ps-3 mb-4">
+                        <h6 class="text-primary fw-bold mb-3"><i class="fas fa-school"></i> Class Information</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Class Name *</label>
+                                <input type="text" name="name" class="form-control" required placeholder="e.g., Grade 10, Year 8">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Numeric Name *</label>
+                                <input type="number" name="numeric_name" class="form-control" placeholder="e.g., 10, 8">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Display Order</label>
+                                <input type="number" name="order" class="form-control" value="0">
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mt-4">
+                                    <input type="checkbox" name="is_active" class="form-check-input" id="is_active_add" checked>
+                                    <label class="form-check-label fw-semibold" for="is_active_add">Active</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Description</label>
+                                <textarea name="description" class="form-control" rows="2" placeholder="Optional description"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sections -->
+                    <div class="border-start border-success border-4 ps-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="text-success fw-bold mb-0"><i class="fas fa-users"></i> Sections (Optional)</h6>
+                            <button type="button" class="btn btn-success btn-sm" onclick="addSectionAdd()">
+                                <i class="fas fa-plus"></i> Add Section
+                            </button>
+                        </div>
+                        
+                        <div class="alert alert-info py-2 small">
+                            <i class="fas fa-question-circle"></i> Sections divide a class into groups (e.g., Grade 10-A, Grade 10-B). Click "Add Section" to create them.
+                        </div>
+                        
+                        <div id="sectionsAddContainer">
+                            <div class="text-center py-3 text-muted">
+                                <small><i class="fas fa-users opacity-25"></i> No sections yet. Click "Add Section" above.</small>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-lg px-4" onclick="submitAddClass()">
+                    <i class="fas fa-save"></i> Save Class
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Class Modal -->
+<div class="modal fade" id="editClassModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Class</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="classEditForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="edit_class_id" name="class_id">
+                    
+                    <!-- Class Information -->
+                    <div class="border-start border-primary border-4 ps-3 mb-4">
+                        <h6 class="text-primary fw-bold mb-3"><i class="fas fa-school"></i> Class Information</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Class Name *</label>
+                                <input type="text" id="edit_name" name="name" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Numeric Name</label>
+                                <input type="number" id="edit_numeric_name" name="numeric_name" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Display Order</label>
+                                <input type="number" id="edit_order" name="order" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mt-4">
+                                    <input type="checkbox" id="edit_is_active" name="is_active" class="form-check-input">
+                                    <label class="form-check-label fw-semibold" for="edit_is_active">Active</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Description</label>
+                                <textarea id="edit_description" name="description" class="form-control" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sections -->
+                    <div class="border-start border-success border-4 ps-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="text-success fw-bold mb-0"><i class="fas fa-users"></i> Sections</h6>
+                            <button type="button" class="btn btn-success btn-sm" onclick="addSectionEdit()">
+                                <i class="fas fa-plus"></i> Add Section
+                            </button>
+                        </div>
+                        <div id="sectionsEditContainer">
+                            <!-- Sections will be loaded here -->
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-lg px-4" onclick="submitEditClass()">
+                    <i class="fas fa-save"></i> Update Class
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteClassModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-trash"></i> Confirm Delete</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete class <strong id="deleteClassName"></strong>?</p>
+                <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> This will also delete all sections and related data!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteClassBtn">Delete Class</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section Template -->
+<template id="sectionTemplate">
+    <div class="card mb-2 section-card border-success">
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-4">
+                    <input type="text" class="form-control form-control-sm" name="sections[]" placeholder="e.g., A, B, C" required>
+                </div>
+                <div class="col-md-3">
+                    <input type="number" class="form-control form-control-sm" name="section_capacity[]" value="40" placeholder="Max students" min="1">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select form-select-sm" name="section_teacher[]">
+                        <option value="">No teacher</option>
+                    </select>
+                </div>
+                <div class="col-md-2 text-end">
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeSection(this)">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<style>
+.section-card {
+    transition: all 0.3s ease;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.form-check-input {
+    width: 3rem;
+    height: 1.5rem;
+}
+</style>
+
+<script>
+let sectionCounter = 0;
+
+function addSectionAdd() {
+    const container = document.getElementById('sectionsAddContainer');
+    const template = document.getElementById('sectionTemplate');
+    
+    // Remove empty state
+    const emptyState = container.querySelector('.text-center');
+    if (emptyState) emptyState.remove();
+    
+    const clone = template.content.cloneNode(true);
+    const input = clone.querySelector('input[name="sections[]"]');
+    
+    // Auto-suggest letter
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const count = container.querySelectorAll('.section-card').length;
+    if (count < 26) {
+        input.value = letters[count];
+    }
+    
+    container.appendChild(clone);
+}
+
+function addSectionEdit() {
+    const container = document.getElementById('sectionsEditContainer');
+    const template = document.getElementById('sectionTemplate');
+    
+    const clone = template.content.cloneNode(true);
+    const input = clone.querySelector('input[name="sections[]"]');
+    
+    // Auto-suggest letter
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const count = container.querySelectorAll('.section-card').length;
+    if (count < 26) {
+        input.value = letters[count];
+    }
+    
+    container.appendChild(clone);
+}
+
+function removeSection(btn) {
+    const card = btn.closest('.section-card');
+    card.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => card.remove(), 300);
+}
+
+function submitAddClass() {
+    const form = document.getElementById('classAddForm');
+    const formData = new FormData(form);
+    
+    fetch(window.location.pathname + 'add/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to add class'));
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+        console.error(error);
+    });
+}
+
+function editClass(event, id) {
+    // Fetch class details with sections
+    fetch(`/school/{{ school_slug }}/academics/classes/${id}/`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('edit_class_id').value = id;
+            document.getElementById('edit_name').value = data.name;
+            document.getElementById('edit_numeric_name').value = data.numeric_name || '';
+            document.getElementById('edit_description').value = data.description || '';
+            document.getElementById('edit_order').value = data.order || 0;
+            document.getElementById('edit_is_active').checked = data.is_active;
+            
+            // Load sections
+            const container = document.getElementById('sectionsEditContainer');
+            container.innerHTML = '';
+            
+            if (data.sections && data.sections.length > 0) {
+                data.sections.forEach(section => {
+                    const template = document.getElementById('sectionTemplate');
+                    const clone = template.content.cloneNode(true);
+                    clone.querySelector('input[name="sections[]"]').value = section.name;
+                    clone.querySelector('input[name="section_capacity[]"]').value = section.max_students;
+                    container.appendChild(clone);
+                });
+            }
+            
+            new bootstrap.Modal(document.getElementById('editClassModal')).show();
+        })
+        .catch(error => {
+            // Fallback to basic edit
+            const row = event.target.closest('tr');
+            document.getElementById('edit_class_id').value = id;
+            document.getElementById('edit_name').value = row.querySelector('td:nth-child(1) strong').textContent.trim();
+            new bootstrap.Modal(document.getElementById('editClassModal')).show();
+        });
+}
+
+function submitEditClass() {
+    const form = document.getElementById('classEditForm');
+    const formData = new FormData(form);
+    const id = document.getElementById('edit_class_id').value;
+    
+    fetch(window.location.pathname + id + '/edit/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to update class'));
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
+}
+
+function deleteClass(id, name) {
+    document.getElementById('deleteClassName').textContent = name;
+    const modal = new bootstrap.Modal(document.getElementById('deleteClassModal'));
+    modal.show();
+    
+    document.getElementById('confirmDeleteClassBtn').onclick = function() {
+        fetch(window.location.pathname + id + '/delete/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to delete class');
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error.message);
+        });
+    };
+}
+
+// Slideout animation
+const style = document.createElement('style');
+style.textContent = '@keyframes slideOut { to { opacity: 0; transform: translateX(50px); } }';
+document.head.appendChild(style);
+</script>
+{% endblock %}

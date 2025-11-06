@@ -1,0 +1,273 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Parents{% endblock %}
+{% block page_icon %}user-friends{% endblock %}
+{% block page_title %}Parents{% endblock %}
+{% block page_subtitle %}Manage parent accounts and information{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addParentModal">
+        <i class="fas fa-user-plus"></i> Add Parent
+    </button>
+</div>
+
+<div class="modern-card">
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Children</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for parent in parents %}
+            <tr>
+                <td><strong>{{ parent.get_full_name|default:parent.email }}</strong></td>
+                <td>{{ parent.email }}</td>
+                <td>{{ parent.phone|default:"Not set" }}</td>
+                <td>{{ parent.children.count|default:0 }}</td>
+                <td>
+                    <span class="badge {% if parent.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                        {% if parent.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </td>
+                <td>
+                    {% comment %} Show Login As button for admins {% endcomment %}
+                    {% if request.user.role == 'admin' or request.user.role == 'school_admin' or request.user.role == 'super_admin' %}
+                        <a href="{% url 'core:login_as' school_slug=school_slug user_id=parent.pk %}" 
+                           class="btn btn-sm btn-warning" 
+                           title="Login as {{ parent.first_name }}">
+                            <i class="fas fa-sign-in-alt"></i>
+                        </a>
+                    {% elif request.original_user and request.original_user.role == 'admin' %}
+                        <a href="{% url 'core:login_as' school_slug=school_slug user_id=parent.pk %}" 
+                           class="btn btn-sm btn-warning" 
+                           title="Login as {{ parent.first_name }}">
+                            <i class="fas fa-sign-in-alt"></i>
+                        </a>
+                    {% endif %}
+                    <button class="btn btn-sm btn-primary" onclick="viewParent({{ parent.pk }})">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-success" onclick="editParent({{ parent.pk }})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6">No parents found.</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Parent Modal -->
+<div class="modal fade" id="addParentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-user-plus"></i> Add Parent</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addParentForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="first_name" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="first_name" name="first_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="last_name" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="last_name" name="last_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone</label>
+                        <input type="text" class="form-control" id="phone" name="phone">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitParent()">Add Parent</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Parent Modal -->
+<div class="modal fade" id="editParentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Parent</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editParentForm">
+                    <input type="hidden" id="editParentId" name="parent_id">
+                    <div class="mb-3">
+                        <label for="edit_first_name" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="edit_first_name" name="first_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_last_name" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="edit_last_name" name="last_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="edit_email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="text" name="password" class="form-control" value="parent123">
+                        <small class="text-muted">Default: parent123 - You can edit to change</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_phone" class="form-label">Phone</label>
+                        <input type="text" class="form-control" id="edit_phone" name="phone">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditParent()">Update Parent</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function submitParent() {
+    const form = document.getElementById('addParentForm');
+    const formData = new FormData(form);
+    
+    fetch(window.location.pathname + 'add/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessAndReload('Parent account created successfully!');
+        } else {
+            showError(data.error || 'Failed to create parent account');
+        }
+    })
+    .catch(error => {
+        showError('Error creating parent: ' + error.message);
+    });
+}
+
+function editParent(id) {
+    // Get parent details for editing
+    fetch(window.location.pathname + id + '/', {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const parent = data.parent;
+            // Populate edit form
+            document.getElementById('editParentId').value = id;
+            document.getElementById('edit_first_name').value = parent.first_name || '';
+            document.getElementById('edit_last_name').value = parent.last_name || '';
+            document.getElementById('edit_email').value = parent.email;
+            document.getElementById('edit_phone').value = parent.phone || '';
+            
+            // Show modal
+            new bootstrap.Modal(document.getElementById('editParentModal')).show();
+        } else {
+            alert('Failed to load parent details');
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
+}
+
+function submitEditParent() {
+    const form = document.getElementById('editParentForm');
+    const formData = new FormData(form);
+    const id = document.getElementById('editParentId').value;
+    
+    fetch(window.location.pathname + id + '/update/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('editParentModal')).hide();
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to update parent');
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
+}
+
+function viewParent(id) {
+    // Get parent details
+    fetch(window.location.pathname + id + '/', {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const parent = data.parent;
+            const children = data.children || [];
+            
+            let childrenList = '';
+            if (children.length > 0) {
+                childrenList = '<ul class="list-unstyled">';
+                children.forEach(child => {
+                    childrenList += `<li><i class="fas fa-user-graduate me-2"></i>${child.name} (${child.admission_number})</li>`;
+                });
+                childrenList += '</ul>';
+            } else {
+                childrenList = '<p class="text-muted">No children linked</p>';
+            }
+            
+            showMessage('Parent Details', `
+                <div class="mb-3">
+                    <strong>Name:</strong> ${parent.name}<br>
+                    <strong>Email:</strong> ${parent.email}<br>
+                    <strong>Password:</strong> <code>parent123</code> <small class="text-muted">(Default)</small><br>
+                    <strong>Phone:</strong> ${parent.phone || 'Not set'}<br>
+                    <strong>Status:</strong> <span class="badge ${parent.is_active ? 'bg-success' : 'bg-danger'}">${parent.is_active ? 'Active' : 'Inactive'}</span>
+                </div>
+                <div class="mb-3">
+                    <strong>Children:</strong><br>
+                    ${childrenList}
+                </div>
+            `, true);
+        } else {
+            showError('Failed to load parent details');
+        }
+    })
+    .catch(error => {
+        showError('Error loading parent: ' + error.message);
+    });
+}
+</script>
+{% endblock %}

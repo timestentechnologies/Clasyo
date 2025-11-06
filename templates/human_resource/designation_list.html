@@ -1,0 +1,242 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Designations - HR{% endblock %}
+{% block page_icon %}id-badge{% endblock %}
+{% block page_title %}Designations{% endblock %}
+{% block page_subtitle %}Manage all job designations in your institution{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDesignationModal">
+        <i class="fas fa-plus"></i> Add Designation
+    </button>
+</div>
+
+<div class="modern-card">
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for designation in designations %}
+            <tr>
+                <td><strong>{{ designation.name }}</strong></td>
+                <td>{{ designation.description|default:"No description"|truncatewords:15 }}</td>
+                <td>
+                    <span class="badge {% if designation.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                        {% if designation.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="editDesignation({{ designation.pk }})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteDesignation({{ designation.pk }}, '{{ designation.name }}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center py-5">
+                    <i class="fas fa-id-badge fa-3x text-muted mb-3 d-block"></i>
+                    <p class="text-muted mb-0">No designations found.</p>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Delete Designation Confirmation Modal -->
+<div class="modal fade" id="deleteDesignationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-trash"></i> Confirm Delete</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete designation <strong id="deleteDesignationName"></strong>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteDesignationBtn">Delete Designation</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Designation Modal -->
+<div class="modal fade" id="editDesignationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Designation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="designationEditForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="edit_designation_id">
+                    <div class="mb-3">
+                        <label>Designation Name *</label>
+                        <input type="text" name="name" id="edit_designation_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Code *</label>
+                        <input type="text" name="code" id="edit_designation_code" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Description</label>
+                        <textarea name="description" id="edit_designation_description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label>
+                            <input type="checkbox" name="is_active" id="edit_designation_active"> Active
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditDesignation()">Update Designation</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Designation Modal -->
+<div class="modal fade" id="addDesignationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-plus"></i> Add Designation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="designationForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label>Designation Name *</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Code *</label>
+                        <input type="text" name="code" class="form-control" placeholder="e.g., PRIN, HOD, TCH" required>
+                        <small class="text-muted">Short code for the designation</small>
+                    </div>
+                    <div class="mb-3">
+                        <label>Description</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitDesignation()">Add Designation</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function submitDesignation() {
+    const form = document.getElementById('designationForm');
+    const formData = new FormData(form);
+    
+    fetch(window.location.pathname + 'add/', {
+        method: 'POST',
+        body: formData,
+        headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessAndReload('Designation added successfully!');
+        } else {
+            showError(data.error || 'Failed to add designation');
+        }
+    })
+    .catch(error => {
+        showError('Error: ' + error.message);
+    });
+}
+
+function editDesignation(id) {
+    const row = event.target.closest('tr');
+    const name = row.querySelector('td:nth-child(1)').textContent.trim();
+    const description = row.querySelector('td:nth-child(2)').textContent.trim();
+    const isActive = row.querySelector('.badge').textContent.includes('Active');
+    
+    document.getElementById('edit_designation_id').value = id;
+    document.getElementById('edit_designation_name').value = name;
+    document.getElementById('edit_designation_code').value = '';
+    document.getElementById('edit_designation_description').value = description === 'No description' ? '' : description;
+    document.getElementById('edit_designation_active').checked = isActive;
+    
+    new bootstrap.Modal(document.getElementById('editDesignationModal')).show();
+}
+
+function submitEditDesignation() {
+    const form = document.getElementById('designationEditForm');
+    const formData = new FormData(form);
+    const id = document.getElementById('edit_designation_id').value;
+    
+    fetch(window.location.pathname + id + '/edit/', {
+        method: 'POST',
+        body: formData,
+        headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessAndReload('Designation updated successfully!');
+        } else {
+            showError(data.error || 'Failed to update designation');
+        }
+    })
+    .catch(error => {
+        showError('Error: ' + error.message);
+    });
+}
+
+function deleteDesignation(id, name) {
+    document.getElementById('deleteDesignationName').textContent = name;
+    const modal = new bootstrap.Modal(document.getElementById('deleteDesignationModal'));
+    modal.show();
+    
+    document.getElementById('confirmDeleteDesignationBtn').onclick = function() {
+        fetch(window.location.pathname + id + '/delete/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteDesignationModal'));
+            if (deleteModal) deleteModal.hide();
+            
+            if (data.success) {
+                showSuccessAndReload('Designation deleted successfully!');
+            } else {
+                showError('Failed to delete designation: ' + (data.error || ''));
+            }
+        })
+        .catch(error => {
+            showError('Error deleting designation: ' + error.message);
+        });
+    };
+}
+</script>
+{% endblock %}

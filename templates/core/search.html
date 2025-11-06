@@ -1,0 +1,136 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block page_title %}Search{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2><i class="fas fa-search"></i> Search</h2>
+    <div class="modern-card mb-4">
+        <div class="search-box">
+            <input type="text" 
+                   class="form-control form-control-lg" 
+                   id="liveSearch" 
+                   placeholder="Search for students, teachers, staff..." 
+                   value="{{ query }}"
+                   autofocus>
+        </div>
+    </div>
+    {% if query %}
+    <p class="text-muted">Showing results for "<strong>{{ query }}</strong>"</p>
+    {% endif %}
+</div>
+
+{% if query %}
+<div class="row" id="searchResults">
+    <div class="col-md-6">
+        <div class="modern-card">
+            <h4 class="mb-3"><i class="fas fa-user-graduate"></i> Students</h4>
+            {% if students %}
+            <div class="list-group">
+                {% for student in students %}
+                <a href="/school/{{ school_slug }}/students/{{ student.pk }}/" class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ student.first_name }} {{ student.last_name }}</strong><br>
+                            <small class="text-muted">{{ student.admission_number }} - Roll: {{ student.roll_number|default:"N/A" }}</small>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted">No students found.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="modern-card">
+            <h4 class="mb-3"><i class="fas fa-users"></i> Staff</h4>
+            {% if staff %}
+            <div class="list-group">
+                {% for member in staff %}
+                <a href="#" class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ member.get_full_name }}</strong><br>
+                            <small class="text-muted">{{ member.role|title }}</small>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted">No staff found.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="modern-card text-center py-5">
+    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+    <p class="text-muted">Enter a search term to find students, teachers, or staff.</p>
+</div>
+{% endif %}
+
+<style>
+.search-box {
+    position: relative;
+}
+.search-box input {
+    padding-left: 50px;
+}
+.search-box::before {
+    content: "\f002";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent-cyan);
+    font-size: 20px;
+    z-index: 10;
+}
+</style>
+
+<script>
+// Real-time search functionality
+let searchTimeout;
+const searchInput = document.getElementById('liveSearch');
+const searchResults = document.getElementById('searchResults');
+
+if (searchInput) {
+    searchInput.addEventListener('input', function(e) {
+        clearTimeout(searchTimeout);
+        const query = e.target.value.trim();
+        
+        if (query.length < 2) {
+            if (query.length === 0) {
+                window.location.href = '/school/{{ school_slug }}/search/';
+            }
+            return;
+        }
+        
+        // Debounce search
+        searchTimeout = setTimeout(() => {
+            window.location.href = `/school/{{ school_slug }}/search/?q=${encodeURIComponent(query)}`;
+        }, 500); // Wait 500ms after user stops typing
+    });
+    
+    // Handle Enter key
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            if (query) {
+                window.location.href = `/school/{{ school_slug }}/search/?q=${encodeURIComponent(query)}`;
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

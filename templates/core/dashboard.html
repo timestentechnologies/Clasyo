@@ -1,0 +1,226 @@
+{% extends "core/admin_dashboard.html" %}
+{% load static %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Calendar Widget -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="modern-card">
+            <h4 class="mb-3"><i class="fas fa-calendar"></i> Calendar</h4>
+            <div id="dashboard-calendar-main"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="stats-grid">
+    <div class="stat-card primary">
+        <div class="stat-icon">
+            <i class="fas fa-user-graduate"></i>
+        </div>
+        <div class="stat-value">{{ total_students|default:20 }}</div>
+        <div class="stat-label">Total Students</div>
+    </div>
+    
+    <div class="stat-card success">
+        <div class="stat-icon">
+            <i class="fas fa-chalkboard-teacher"></i>
+        </div>
+        <div class="stat-value">{{ total_teachers|default:15 }}</div>
+        <div class="stat-label">Total Teachers</div>
+    </div>
+    
+    <div class="stat-card warning">
+        <div class="stat-icon">
+            <i class="fas fa-book-open"></i>
+        </div>
+        <div class="stat-value">{{ total_classes|default:8 }}</div>
+        <div class="stat-label">Active Classes</div>
+    </div>
+    
+    <div class="stat-card danger">
+        <div class="stat-icon">
+            <i class="fas fa-bell"></i>
+        </div>
+        <div class="stat-value">{{ pending_tasks|default:12 }}</div>
+        <div class="stat-label">Pending Tasks</div>
+    </div>
+</div>
+
+<!-- Quick Actions & Events -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="modern-card">
+            <h4 class="mb-4"><i class="fas fa-bolt"></i> Quick Actions</h4>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <a href="/school/{{ school_slug }}/students/add/" class="btn btn-primary w-100">
+                        <i class="fas fa-user-plus"></i><br>Add Student
+                    </a>
+                </div>
+                <div class="col-md-4">
+                    <a href="/school/{{ school_slug }}/academics/classes/add/" class="btn btn-success w-100">
+                        <i class="fas fa-plus-circle"></i><br>Add Class
+                    </a>
+                </div>
+                <div class="col-md-4">
+                    <a href="/school/{{ school_slug }}/attendance/mark/" class="btn btn-primary w-100">
+                        <i class="fas fa-calendar-check"></i><br>Mark Attendance
+                    </a>
+                </div>
+                <div class="col-md-4">
+                    <a href="/school/{{ school_slug }}/fees/" class="btn btn-warning w-100">
+                        <i class="fas fa-dollar-sign"></i><br>Collect Fee
+                    </a>
+                </div>
+                <div class="col-md-4">
+                    <a href="/school/{{ school_slug }}/examinations/" class="btn btn-danger w-100">
+                        <i class="fas fa-file-alt"></i><br>Create Exam
+                    </a>
+                </div>
+                <div class="col-md-4">
+                    <a href="/school/{{ school_slug }}/reports/" class="btn btn-secondary w-100">
+                        <i class="fas fa-chart-bar"></i><br>View Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="modern-card">
+            <h4 class="mb-3"><i class="fas fa-calendar-alt"></i> Upcoming Events</h4>
+            <ul class="list-unstyled">
+                <li class="mb-3 p-3" style="background: var(--bg-light); border-radius: 8px;">
+                    <strong>Parent-Teacher Meeting</strong><br>
+                    <small class="text-muted"><i class="fas fa-calendar"></i> Nov 15, 2025</small>
+                </li>
+                <li class="mb-3 p-3" style="background: var(--bg-light); border-radius: 8px;">
+                    <strong>Annual Day Celebration</strong><br>
+                    <small class="text-muted"><i class="fas fa-calendar"></i> Nov 20, 2025</small>
+                </li>
+                <li class="mb-3 p-3" style="background: var(--bg-light); border-radius: 8px;">
+                    <strong>Mid-term Examinations</strong><br>
+                    <small class="text-muted"><i class="fas fa-calendar"></i> Nov 25, 2025</small>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="modern-card">
+            <h4 class="mb-4"><i class="fas fa-history"></i> Recent Activity</h4>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Activity</th>
+                            <th>User</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><i class="fas fa-user-plus" style="color: var(--accent-cyan);"></i> New student admitted</td>
+                            <td>Admin</td>
+                            <td>2 hours ago</td>
+                        </tr>
+                        <tr>
+                            <td><i class="fas fa-dollar-sign" style="color: var(--accent-cyan);"></i> Fee payment received</td>
+                            <td>Accountant</td>
+                            <td>3 hours ago</td>
+                        </tr>
+                        <tr>
+                            <td><i class="fas fa-calendar-check" style="color: var(--accent-cyan);"></i> Attendance marked</td>
+                            <td>Teacher</td>
+                            <td>4 hours ago</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Dashboard-specific calendar
+document.addEventListener('DOMContentLoaded', function() {
+    const calendarEl = document.getElementById('dashboard-calendar-main');
+    if (calendarEl) {
+        const today = new Date();
+        generateDashboardMainCalendar(today.getMonth(), today.getFullYear());
+        
+        function generateDashboardMainCalendar(month, year) {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                               'July', 'August', 'September', 'October', 'November', 'December'];
+            const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            
+            let html = `
+                <div class="calendar-header mb-3" style="display: flex; justify-content: space-between; align-items: center;">
+                    <button class="btn btn-secondary btn-sm" onclick="changeDashMainMonth(-1)">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <h4>${monthNames[month]} ${year}</h4>
+                    <button class="btn btn-secondary btn-sm" onclick="changeDashMainMonth(1)">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="mini-calendar-grid">
+            `;
+            
+            weekdays.forEach(day => {
+                html += `<div class="mini-calendar-weekday">${day}</div>`;
+            });
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const daysInPrevMonth = new Date(year, month, 0).getDate();
+            
+            for (let i = firstDay - 1; i >= 0; i--) {
+                html += `<div class="mini-calendar-day other-month"><div class="mini-calendar-day-number">${daysInPrevMonth - i}</div></div>`;
+            }
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const isToday = (day === today.getDate() && month === today.getMonth() && year === today.getFullYear());
+                const hasEvent = (day % 5 === 0);
+                html += `
+                    <div class="mini-calendar-day ${isToday ? 'today' : ''} ${hasEvent ? 'has-event' : ''}">
+                        <div class="mini-calendar-day-number">${day}</div>
+                        ${hasEvent ? '<span class="event-dot"></span>' : ''}
+                    </div>
+                `;
+            }
+            
+            const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+            const remainingCells = totalCells - (firstDay + daysInMonth);
+            for (let day = 1; day <= remainingCells; day++) {
+                html += `<div class="mini-calendar-day other-month"><div class="mini-calendar-day-number">${day}</div></div>`;
+            }
+            
+            html += '</div>';
+            calendarEl.innerHTML = html;
+        }
+        
+        window.dashMainMonth = today.getMonth();
+        window.dashMainYear = today.getFullYear();
+        
+        window.changeDashMainMonth = function(delta) {
+            window.dashMainMonth += delta;
+            if (window.dashMainMonth > 11) {
+                window.dashMainMonth = 0;
+                window.dashMainYear++;
+            } else if (window.dashMainMonth < 0) {
+                window.dashMainMonth = 11;
+                window.dashMainYear--;
+            }
+            generateDashboardMainCalendar(window.dashMainMonth, window.dashMainYear);
+        };
+    }
+});
+</script>
+{% endblock %}

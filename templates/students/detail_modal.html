@@ -1,0 +1,42 @@
+<!-- Student Detail for Modal -->
+<div class="row">
+    <div class="col-md-4 text-center mb-3">
+        {% if student.photo %}
+            <img src="{{ student.photo.url }}" alt="{{ student.first_name }} {{ student.last_name }}" class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;">
+        {% else %}
+            <div class="rounded-circle bg-primary text-white mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 120px; height: 120px; font-size: 36px;">
+                {{ student.first_name.0 }}{{ student.last_name.0 }}
+            </div>
+        {% endif %}
+        <h5>{{ student.first_name }} {{ student.last_name }}</h5>
+        <p class="text-muted">{{ student.admission_number }}</p>
+    </div>
+    <div class="col-md-8">
+        <table class="table table-sm">
+            <tr>
+                <th width="40%">Email:</th>
+                <td>{{ student.email|default:"-" }}</td>
+            </tr>
+            <tr>
+                <th>Date of Birth:</th>
+                <td>{{ student.date_of_birth|date:"M d, Y"|default:"-" }}</td>
+            </tr>
+            <tr>
+                <th>Gender:</th>
+                <td>{{ student.get_gender_display|title|default:"-" }}</td>
+            </tr>
+            <tr>
+                <th>Blood Group:</th>
+                <td>{{ student.blood_group|default:"-" }}</td>
+            </tr>
+            <tr>
+                <th>Address:</th>
+                <td>{{ student.current_address|default:"-" }}</td>
+            </tr>
+            <tr>
+                <th>City, State:</th>
+                <td>{{ student.city|default:"-" }}, {{ student.state|default:"-" }}</td>
+            </tr>
+        </table>
+    </div>
+</div>

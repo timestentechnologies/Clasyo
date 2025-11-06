@@ -1,0 +1,143 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Sections - Academics{% endblock %}
+{% block page_icon %}layer-group{% endblock %}
+{% block page_title %}Sections{% endblock %}
+{% block page_subtitle %}Manage all sections in your institution{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSectionModal">
+        <i class="fas fa-plus"></i> Add Section
+    </button>
+</div>
+
+<div class="modern-card">
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Section Name</th>
+                <th>Class</th>
+                <th>Max Students</th>
+                <th>Room</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for section in sections %}
+            <tr>
+                <td><strong>{{ section.name }}</strong></td>
+                <td>{{ section.class_name }}</td>
+                <td>{{ section.max_students|default:"-" }}</td>
+                <td>{{ section.room|default:"-" }}</td>
+                <td>
+                    <span class="badge {% if section.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                        {% if section.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="editSection({{ section.pk }})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteSection({{ section.pk }}, '{{ section.name }}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center py-5">
+                    <i class="fas fa-layer-group fa-3x text-muted mb-3 d-block"></i>
+                    <p class="text-muted mb-0">No sections found.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Section Modal -->
+<div class="modal fade" id="addSectionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-plus"></i> Add Section</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="sectionAddForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Section Name *</label>
+                        <input type="text" name="name" class="form-control" required placeholder="e.g., A, B, C">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Class *</label>
+                        <select name="class_name" class="form-control" required>
+                            <option value="">Select Class</option>
+                            {% for class in classes %}
+                            <option value="{{ class.id }}">{{ class.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Max Students</label>
+                        <input type="number" name="max_students" class="form-control" placeholder="40">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Room Number</label>
+                        <input type="text" name="room" class="form-control" placeholder="Room 101">
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" name="is_active" class="form-check-input" id="is_active" checked>
+                        <label class="form-check-label" for="is_active">Active</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddSection()">Save Section</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function submitAddSection() {
+    const form = document.getElementById('sectionAddForm');
+    const formData = new FormData(form);
+    
+    fetch(window.location.pathname + 'add/', {
+        method: 'POST',
+        body: formData,
+        headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessAndReload('Section added successfully!');
+        } else {
+            showError(data.error || 'Failed to add section');
+        }
+    })
+    .catch(error => {
+        showError('Error adding section: ' + error.message);
+    });
+}
+
+function deleteSection(id, name) {
+    if (confirm(`Delete section ${name}?`)) {
+        fetch(window.location.pathname + id + '/delete/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
+        })
+        .then(response => response.json())
+        .then(data => { if (data.success) location.reload(); });
+    }
+}
+</script>
+{% endblock %}
