@@ -21,4 +21,10 @@ urlpatterns = [
     
     # Subscriptions
     path('subscriptions/', views.SubscriptionListView.as_view(), name='subscriptions'),
+    
+    # Content Management
+    path('content/pricing/', views.PricingManagementView.as_view(), name='pricing_management'),
+    path('content/faq/', views.FAQManagementView.as_view(), name='faq_management'),
+    path('content/pages/', views.PageContentManagementView.as_view(), name='page_content_management'),
+    path('content/messages/', views.ContactMessagesView.as_view(), name='contact_messages'),
 ]

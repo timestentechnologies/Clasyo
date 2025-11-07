@@ -376,3 +376,57 @@ class AdminUserUpdateView(SuperAdminRequiredMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, f'Admin "{self.object.get_full_name()}" updated successfully!')
         return super().form_valid(form)
+
+
+# Content Management Views
+class PricingManagementView(SuperAdminRequiredMixin, ListView):
+    """Manage pricing plans"""
+    model = None  # Will import dynamically
+    template_name = 'superadmin/pricing_management.html'
+    context_object_name = 'pricing_plans'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        from frontend.models import PricingPlan
+        return PricingPlan.objects.all().order_by('order', 'price')
+
+
+class FAQManagementView(SuperAdminRequiredMixin, ListView):
+    """Manage FAQs"""
+    model = None
+    template_name = 'superadmin/faq_management.html'
+    context_object_name = 'faqs'
+    paginate_by = 50
+    
+    def get_queryset(self):
+        from frontend.models import FAQ
+        return FAQ.objects.all().order_by('order', 'category')
+
+
+class PageContentManagementView(SuperAdminRequiredMixin, ListView):
+    """Manage page content"""
+    model = None
+    template_name = 'superadmin/page_content_management.html'
+    context_object_name = 'page_contents'
+    
+    def get_queryset(self):
+        from frontend.models import PageContent
+        return PageContent.objects.all()
+
+
+class ContactMessagesView(SuperAdminRequiredMixin, ListView):
+    """View contact form submissions"""
+    model = None
+    template_name = 'superadmin/contact_messages.html'
+    context_object_name = 'messages_list'
+    paginate_by = 30
+    
+    def get_queryset(self):
+        from frontend.models import ContactMessage
+        queryset = ContactMessage.objects.all()
+        status = self.request.GET.get('status')
+        if status == 'unread':
+            queryset = queryset.filter(is_read=False)
+        elif status == 'replied':
+            queryset = queryset.filter(replied=True)
+        return queryset
