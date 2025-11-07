@@ -3,43 +3,288 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>School Management System - Home</title>
+    <title>Clasyo - Modern School Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .navbar {
+            padding: 1.2rem 0;
+            background: rgba(255, 255, 255, 0.98) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+        }
+        
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .nav-link {
+            font-weight: 500;
+            margin: 0 0.5rem;
+            transition: all 0.3s;
+        }
+        
+        .nav-link:hover {
+            color: #667eea !important;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 0.7rem 2rem;
+            font-weight: 600;
+            border-radius: 50px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
         .hero-section {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 100px 0;
+            padding: 120px 0 100px;
+            position: relative;
+            overflow: hidden;
         }
-        .feature-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .hero-section .container {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+            animation: fadeInUp 0.8s ease;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.3rem;
+            font-weight: 400;
+            margin-bottom: 2.5rem;
+            opacity: 0.95;
+            animation: fadeInUp 0.8s ease 0.2s both;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .btn-hero {
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 50px;
+            transition: all 0.3s;
+            animation: fadeInUp 0.8s ease 0.4s both;
+        }
+        
+        .btn-hero-primary {
+            background: white;
             color: #667eea;
+        }
+        
+        .btn-hero-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            color: #667eea;
+        }
+        
+        .btn-hero-outline {
+            border: 2px solid white;
+            color: white;
+        }
+        
+        .btn-hero-outline:hover {
+            background: white;
+            color: #667eea;
+            transform: translateY(-3px);
+        }
+        
+        .stats-section {
+            background: #f8f9fa;
+            padding: 4rem 0;
+            margin-top: -50px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+            text-align: center;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stat-label {
+            font-size: 1rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #2d3748;
+        }
+        
+        .section-subtitle {
+            font-size: 1.2rem;
+            color: #6c757d;
+            margin-bottom: 3rem;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.06);
+            transition: all 0.3s;
+            height: 100%;
+            border: 1px solid #f0f0f0;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.15);
+            border-color: #667eea;
+        }
+        
+        .feature-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .feature-icon i {
+            font-size: 2rem;
+            color: white;
+        }
+        
+        .feature-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #2d3748;
+        }
+        
+        .feature-description {
+            color: #6c757d;
+            line-height: 1.7;
+        }
+        
+        .cta-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 5rem 0;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></svg>');
+        }
+        
+        footer {
+            background: #2d3748;
+            padding: 3rem 0;
+            color: #a0aec0;
+        }
+        
+        footer a {
+            color: #a0aec0;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        footer a:hover {
+            color: white;
         }
     </style>
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
         <div class="container">
             <a class="navbar-brand" href="{% url 'frontend:home' %}">
-                <i class="fas fa-graduation-cap"></i> School Management System
+                <i class="fas fa-graduation-cap"></i> Clasyo
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item"><a class="nav-link" href="{% url 'frontend:home' %}">Home</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'frontend:about' %}">About</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'frontend:pricing' %}">Pricing</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'frontend:contact' %}">Contact</a></li>
-                    <li class="nav-item"><a class="nav-link btn btn-primary text-white ms-2" href="{% url 'accounts:login' %}">Login</a></li>
+                    <li class="nav-item ms-3"><a class="btn btn-primary" href="{% url 'accounts:login' %}">Login</a></li>
                 </ul>
             </div>
         </div>
     </nav>
+
+    <!-- Add padding to prevent fixed navbar overlap -->
+    <div style="padding-top: 80px;"></div>
 
     <!-- Messages -->
     {% if messages %}
@@ -56,74 +301,125 @@
     <!-- Hero Section -->
     <section class="hero-section">
         <div class="container text-center">
-            <h1 class="display-3 fw-bold mb-4">Multi-Tenant School Management System</h1>
-            <p class="lead mb-5">Manage multiple schools with ease. All-in-one solution for modern education management.</p>
+            <h1 class="hero-title">Transform Your School Management</h1>
+            <p class="hero-subtitle">Complete cloud-based solution for modern education management. Streamline operations and enhance learning experiences.</p>
             <div class="d-flex justify-content-center gap-3">
-                <a href="{% url 'frontend:pricing' %}" class="btn btn-light btn-lg">Start Free Trial</a>
-                <a href="{% url 'accounts:login' %}" class="btn btn-outline-light btn-lg">Login</a>
+                <a href="{% url 'frontend:pricing' %}" class="btn btn-hero btn-hero-primary">Start Free Trial</a>
+                <a href="{% url 'accounts:login' %}" class="btn btn-hero btn-hero-outline">Sign In</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number">500+</div>
+                        <div class="stat-label">Schools</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number">50K+</div>
+                        <div class="stat-label">Students</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number">5K+</div>
+                        <div class="stat-label">Teachers</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number">99.9%</div>
+                        <div class="stat-label">Uptime</div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
     <!-- Features Section -->
-    <section class="py-5">
+    <section class="py-5" style="padding: 6rem 0 !important;">
         <div class="container">
-            <h2 class="text-center mb-5">Comprehensive Features</h2>
+            <div class="text-center mb-5">
+                <h2 class="section-title">Comprehensive Features</h2>
+                <p class="section-subtitle">Everything you need to manage your school efficiently</p>
+            </div>
             <div class="row g-4">
                 <div class="col-md-3">
-                    <div class="text-center">
-                        <i class="fas fa-user-graduate feature-icon"></i>
-                        <h5>Student Management</h5>
-                        <p>Complete student profiles, admissions, and tracking</p>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <h5 class="feature-title">Student Management</h5>
+                        <p class="feature-description">Complete student profiles, admissions, and academic tracking system</p>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="text-center">
-                        <i class="fas fa-chalkboard-teacher feature-icon"></i>
-                        <h5>Academic Management</h5>
-                        <p>Classes, subjects, timetables, and study materials</p>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                        <h5 class="feature-title">Academic Management</h5>
+                        <p class="feature-description">Classes, subjects, timetables, and digital study materials</p>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="text-center">
-                        <i class="fas fa-dollar-sign feature-icon"></i>
-                        <h5>Fee Management</h5>
-                        <p>Flexible fee structure with online payments</p>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <h5 class="feature-title">Fee Management</h5>
+                        <p class="feature-description">Flexible fee structure with secure online payment gateway</p>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="text-center">
-                        <i class="fas fa-file-alt feature-icon"></i>
-                        <h5>Examinations</h5>
-                        <p>Complete exam system with online testing</p>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <h5 class="feature-title">Examinations</h5>
+                        <p class="feature-description">Complete exam system with online testing and automated grading</p>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="text-center">
-                        <i class="fas fa-calendar-check feature-icon"></i>
-                        <h5>Attendance</h5>
-                        <p>Daily attendance with SMS alerts</p>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <h5 class="feature-title">Attendance</h5>
+                        <p class="feature-description">Daily attendance tracking with real-time SMS alerts to parents</p>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="text-center">
-                        <i class="fas fa-comments feature-icon"></i>
-                        <h5>Communication</h5>
-                        <p>Real-time chat, SMS, and email notifications</p>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h5 class="feature-title">Communication</h5>
+                        <p class="feature-description">Real-time chat, SMS, and email notification system</p>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="text-center">
-                        <i class="fas fa-book feature-icon"></i>
-                        <h5>Library</h5>
-                        <p>Complete library management system</p>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <h5 class="feature-title">Library</h5>
+                        <p class="feature-description">Complete digital library management and book tracking</p>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="text-center">
-                        <i class="fas fa-bus feature-icon"></i>
-                        <h5>Transport</h5>
-                        <p>Route management and vehicle tracking</p>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-bus"></i>
+                        </div>
+                        <h5 class="feature-title">Transport</h5>
+                        <p class="feature-description">Route management with GPS vehicle tracking system</p>
                     </div>
                 </div>
             </div>
@@ -131,18 +427,59 @@
     </section>
 
     <!-- CTA Section -->
-    <section class="bg-light py-5">
-        <div class="container text-center">
-            <h2 class="mb-4">Ready to Get Started?</h2>
-            <p class="lead mb-4">Join hundreds of schools already using our platform</p>
-            <a href="{% url 'frontend:pricing' %}" class="btn btn-primary btn-lg">View Pricing Plans</a>
+    <section class="cta-section">
+        <div class="container text-center position-relative" style="z-index: 1;">
+            <h2 class="display-4 fw-bold mb-4">Ready to Get Started?</h2>
+            <p class="lead mb-5 opacity-90">Join hundreds of schools already transforming education with Clasyo</p>
+            <a href="{% url 'frontend:pricing' %}" class="btn btn-hero btn-hero-primary">View Pricing Plans <i class="fas fa-arrow-right ms-2"></i></a>
         </div>
     </section>
 
     <!-- Footer -->
-    <footer class="bg-dark text-white py-4">
-        <div class="container text-center">
-            <p class="mb-0">© 2025 School Management System. All rights reserved.</p>
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <h5 class="text-white mb-3">Clasyo</h5>
+                    <p>Modern cloud-based school management system for the digital age.</p>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h6 class="text-white mb-3">Product</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="{% url 'frontend:home' %}">Features</a></li>
+                        <li class="mb-2"><a href="{% url 'frontend:pricing' %}">Pricing</a></li>
+                        <li class="mb-2"><a href="#">Security</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h6 class="text-white mb-3">Company</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="{% url 'frontend:about' %}">About</a></li>
+                        <li class="mb-2"><a href="{% url 'frontend:contact' %}">Contact</a></li>
+                        <li class="mb-2"><a href="#">Careers</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h6 class="text-white mb-3">Support</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="#">Help Center</a></li>
+                        <li class="mb-2"><a href="#">Documentation</a></li>
+                        <li class="mb-2"><a href="#">API</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h6 class="text-white mb-3">Legal</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="#">Privacy</a></li>
+                        <li class="mb-2"><a href="#">Terms</a></li>
+                        <li class="mb-2"><a href="#">License</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4" style="border-color: #4a5568;">
+            <div class="text-center">
+                <p class="mb-0">© 2025 Clasyo by Timesten Technologies. All rights reserved.</p>
+            </div>
         </div>
     </footer>
 
