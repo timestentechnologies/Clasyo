@@ -349,3 +349,30 @@ School Management System Team
             )
         except Exception as e:
             messages.warning(self.request, f'Email sending failed: {str(e)}')
+
+
+class AdminUserUpdateView(SuperAdminRequiredMixin, UpdateView):
+    """Update school admin details"""
+    model = User
+    template_name = 'superadmin/admin_edit.html'
+    fields = ['email', 'first_name', 'last_name', 'phone', 'is_active']
+    success_url = reverse_lazy('superadmin:admins')
+    
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # Add Bootstrap classes to form fields
+        form.fields['email'].widget.attrs.update({'class': 'form-control'})
+        form.fields['first_name'].widget.attrs.update({'class': 'form-control'})
+        form.fields['last_name'].widget.attrs.update({'class': 'form-control'})
+        form.fields['phone'].widget.attrs.update({'class': 'form-control'})
+        form.fields['is_active'].widget.attrs.update({'class': 'form-check-input'})
+        return form
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['schools'] = School.objects.filter(is_active=True)
+        return context
+    
+    def form_valid(self, form):
+        messages.success(self.request, f'Admin "{self.object.get_full_name()}" updated successfully!')
+        return super().form_valid(form)

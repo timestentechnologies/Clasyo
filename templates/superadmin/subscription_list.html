@@ -5,102 +5,197 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Subscriptions - Super Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'superadmin:dashboard' %}">
-                <i class="fas fa-user-shield"></i> Super Admin
-            </a>
-            <div class="collapse navbar-collapse">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user"></i> {{ user.get_full_name }}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{% url 'accounts:logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                        </ul>
-                    </li>
-                </ul>
+    <!-- Modern Sidebar -->
+    <div class="modern-sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-logo">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <div class="brand-text">
+                <h3>Super Admin</h3>
+                <p>Control Panel</p>
             </div>
         </div>
-    </nav>
 
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-2 bg-light vh-100 py-4">
-                <div class="list-group">
-                    <a href="{% url 'superadmin:dashboard' %}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
-                    </a>
-                    <a href="{% url 'superadmin:schools' %}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-school"></i> Schools
-                    </a>
-                    <a href="{% url 'superadmin:subscriptions' %}" class="list-group-item list-group-item-action active">
-                        <i class="fas fa-credit-card"></i> Subscriptions
-                    </a>
-                    <a href="{% url 'admin:index' %}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-cog"></i> Django Admin
-                    </a>
+        <ul class="sidebar-menu">
+            <li><a href="{% url 'superadmin:dashboard' %}">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a></li>
+
+            <div class="menu-section-title">Management</div>
+            
+            <li><a href="{% url 'superadmin:schools' %}">
+                <i class="fas fa-school"></i>
+                <span>Schools</span>
+            </a></li>
+
+            <li><a href="{% url 'superadmin:admins' %}">
+                <i class="fas fa-user-shield"></i>
+                <span>School Admins</span>
+            </a></li>
+
+            <li><a href="{% url 'superadmin:subscriptions' %}" class="active">
+                <i class="fas fa-credit-card"></i>
+                <span>Subscriptions</span>
+            </a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Navigation Bar -->
+        <nav class="top-navbar">
+            <form action="" method="get" class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" name="search" placeholder="Search subscriptions..." value="{{ request.GET.search }}">
+            </form>
+            
+            <div class="navbar-actions">
+                <div class="dropdown">
+                    <div class="user-profile-nav" data-bs-toggle="dropdown" style="cursor: pointer;">
+                        <div class="user-avatar">{{ user.first_name.0|default:"S" }}{{ user.last_name.0|default:"A" }}</div>
+                        <div class="user-info">
+                            <h4>{{ user.get_full_name|default:user.email }}</h4>
+                            <p>Super Administrator</p>
+                        </div>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{% url 'accounts:logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Content Container -->
+        <div class="content-container">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="page-header mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2>
+                            <i class="fas fa-credit-card"></i>
+                            All Subscriptions
+                        </h2>
+                        <p class="text-muted mb-0">Manage school subscriptions and plans</p>
+                    </div>
                 </div>
             </div>
 
-            <div class="col-md-10 py-4">
-                <h1 class="mb-4">All Subscriptions</h1>
-                
-                <div class="card">
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>School</th>
-                                        <th>Plan</th>
-                                        <th>Start Date</th>
-                                        <th>End Date</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for subscription in subscriptions %}
-                                    <tr>
-                                        <td>{{ subscription.id }}</td>
-                                        <td>{{ subscription.school.name }}</td>
-                                        <td>{{ subscription.plan.name }}</td>
-                                        <td>{{ subscription.start_date|date:"M d, Y" }}</td>
-                                        <td>{{ subscription.end_date|date:"M d, Y" }}</td>
-                                        <td>
-                                            {% if subscription.is_active %}
-                                                <span class="badge bg-success">Active</span>
-                                            {% else %}
-                                                <span class="badge bg-danger">Inactive</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <button class="btn btn-sm btn-primary">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    {% empty %}
-                                    <tr>
-                                        <td colspan="7" class="text-center">No subscriptions found</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+            <!-- Filter Bar -->
+            <div class="modern-card mb-4">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="btn-group" role="group">
+                            <a href="?status=all" class="btn btn-sm {% if not request.GET.status or request.GET.status == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                All Subscriptions
+                            </a>
+                            <a href="?status=active" class="btn btn-sm {% if request.GET.status == 'active' %}btn-success{% else %}btn-outline-success{% endif %}">
+                                Active
+                            </a>
+                            <a href="?status=expired" class="btn btn-sm {% if request.GET.status == 'expired' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                                Expired
+                            </a>
                         </div>
                     </div>
+                    <div class="col-md-4 text-end">
+                        <span class="text-muted">Total: <strong>{{ subscriptions.count }}</strong> subscriptions</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modern-card">
+                <div class="table-responsive">
+                    <table class="table modern-table">
+                        <thead>
+                            <tr>
+                                <th>School</th>
+                                <th>Plan</th>
+                                <th>Duration</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for subscription in subscriptions %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle bg-primary text-white me-2">
+                                            {{ subscription.school.name.0 }}
+                                        </div>
+                                        <div>
+                                            <strong>{{ subscription.school.name }}</strong><br>
+                                            <small class="text-muted">{{ subscription.school.email }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong>{{ subscription.plan.name }}</strong><br>
+                                    <small class="text-muted">${{ subscription.plan.price|default:"0" }}/month</small>
+                                </td>
+                                <td>
+                                    <small class="d-block"><i class="fas fa-calendar-check text-success me-1"></i> {{ subscription.start_date|date:"M d, Y" }}</small>
+                                    <small class="d-block"><i class="fas fa-calendar-times text-danger me-1"></i> {{ subscription.end_date|date:"M d, Y" }}</small>
+                                </td>
+                                <td>
+                                    {% if subscription.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Expired</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'admin:subscriptions_subscription_change' subscription.id %}" 
+                                           class="btn btn-sm btn-outline-primary" title="Edit in Django Admin" target="_blank">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-5">
+                                    <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">No subscriptions found</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        .avatar-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+    </style>
 </body>
 </html>

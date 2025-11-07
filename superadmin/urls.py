@@ -17,6 +17,7 @@ urlpatterns = [
     # School Admins
     path('admins/', views.AdminUserListView.as_view(), name='admins'),
     path('admins/create/', views.AdminUserCreateView.as_view(), name='admin_create'),
+    path('admins/<int:pk>/edit/', views.AdminUserUpdateView.as_view(), name='admin_edit'),
     
     # Subscriptions
     path('subscriptions/', views.SubscriptionListView.as_view(), name='subscriptions'),
