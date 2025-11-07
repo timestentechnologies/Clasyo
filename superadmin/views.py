@@ -118,6 +118,24 @@ class SchoolCreateView(SuperAdminRequiredMixin, CreateView):
               'postal_code', 'website', 'is_active', 'is_trial', 'trial_end_date']
     success_url = reverse_lazy('superadmin:schools')
     
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # Add Bootstrap classes to form fields
+        form.fields['name'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Enter school name'})
+        form.fields['slug'].widget.attrs.update({'class': 'form-control', 'placeholder': 'e.g., demo-school'})
+        form.fields['email'].widget.attrs.update({'class': 'form-control', 'placeholder': 'school@example.com'})
+        form.fields['phone'].widget.attrs.update({'class': 'form-control', 'placeholder': '+254 xxx xxx xxx'})
+        form.fields['address'].widget.attrs.update({'class': 'form-control', 'rows': 3})
+        form.fields['city'].widget.attrs.update({'class': 'form-control'})
+        form.fields['state'].widget.attrs.update({'class': 'form-control'})
+        form.fields['country'].widget.attrs.update({'class': 'form-control'})
+        form.fields['postal_code'].widget.attrs.update({'class': 'form-control'})
+        form.fields['website'].widget.attrs.update({'class': 'form-control', 'placeholder': 'https://school.com'})
+        form.fields['is_active'].widget.attrs.update({'class': 'form-check-input'})
+        form.fields['is_trial'].widget.attrs.update({'class': 'form-check-input'})
+        form.fields['trial_end_date'].widget.attrs.update({'class': 'form-control', 'type': 'date'})
+        return form
+    
     def form_valid(self, form):
         response = super().form_valid(form)
         school = self.object
@@ -206,6 +224,23 @@ class SchoolUpdateView(SuperAdminRequiredMixin, UpdateView):
               'postal_code', 'website', 'is_active', 'is_trial', 'trial_end_date']
     success_url = reverse_lazy('superadmin:schools')
     
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # Add Bootstrap classes to form fields
+        form.fields['name'].widget.attrs.update({'class': 'form-control'})
+        form.fields['email'].widget.attrs.update({'class': 'form-control'})
+        form.fields['phone'].widget.attrs.update({'class': 'form-control'})
+        form.fields['address'].widget.attrs.update({'class': 'form-control', 'rows': 3})
+        form.fields['city'].widget.attrs.update({'class': 'form-control'})
+        form.fields['state'].widget.attrs.update({'class': 'form-control'})
+        form.fields['country'].widget.attrs.update({'class': 'form-control'})
+        form.fields['postal_code'].widget.attrs.update({'class': 'form-control'})
+        form.fields['website'].widget.attrs.update({'class': 'form-control'})
+        form.fields['is_active'].widget.attrs.update({'class': 'form-check-input'})
+        form.fields['is_trial'].widget.attrs.update({'class': 'form-check-input'})
+        form.fields['trial_end_date'].widget.attrs.update({'class': 'form-control', 'type': 'date'})
+        return form
+    
     def form_valid(self, form):
         messages.success(self.request, f'School "{self.object.name}" updated successfully!')
         return super().form_valid(form)
@@ -240,6 +275,15 @@ class AdminUserCreateView(SuperAdminRequiredMixin, CreateView):
     template_name = 'superadmin/admin_form.html'
     fields = ['email', 'first_name', 'last_name', 'phone']
     success_url = reverse_lazy('superadmin:admins')
+    
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # Add Bootstrap classes to form fields
+        form.fields['email'].widget.attrs.update({'class': 'form-control', 'placeholder': 'admin@example.com'})
+        form.fields['first_name'].widget.attrs.update({'class': 'form-control', 'placeholder': 'First Name'})
+        form.fields['last_name'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Last Name'})
+        form.fields['phone'].widget.attrs.update({'class': 'form-control', 'placeholder': '+254 xxx xxx xxx'})
+        return form
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
