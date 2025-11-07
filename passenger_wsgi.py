@@ -1,6 +1,13 @@
 import os
 import sys
 
+# PyMySQL setup for MySQL compatibility
+try:
+    import pymysql
+    pymysql.install_as_MySQLdb()
+except ImportError:
+    pass
+
 # Add your project directory to the sys.path
 project_home = os.path.dirname(os.path.abspath(__file__))
 if project_home not in sys.path:
