@@ -18,6 +18,8 @@ class LoginView(View):
     def get(self, request):
         # Redirect if already authenticated
         if request.user.is_authenticated:
+            messages.info(request, f'You are already logged in as {request.user.email}. Logout first to login with a different account.')
+            
             if request.user.role == 'super_admin':
                 return redirect('superadmin:dashboard')
             else:
@@ -25,6 +27,9 @@ class LoginView(View):
                 school = School.objects.filter(is_active=True).first()
                 if school:
                     return redirect('core:dashboard', school_slug=school.slug)
+                
+                # If no school exists, show helpful message
+                messages.warning(request, 'No active school found. Please contact administrator or logout.')
                 return redirect('frontend:home')
         
         form = self.form_class()
