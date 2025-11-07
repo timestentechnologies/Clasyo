@@ -13,6 +13,9 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = [host.strip() for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')]
 
+# CSRF trusted origins for HTTPS
+CSRF_TRUSTED_ORIGINS = [f'https://{host.strip()}' for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',') if host.strip() not in ['localhost', '127.0.0.1']]
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
