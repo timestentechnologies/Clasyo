@@ -20,7 +20,7 @@ class LoginView(View):
         if request.user.is_authenticated:
             messages.info(request, f'You are already logged in as {request.user.email}. Logout first to login with a different account.')
             
-            if request.user.role == 'super_admin':
+            if request.user.role == 'superadmin':  # Fixed: was 'super_admin'
                 return redirect('superadmin:dashboard')
             else:
                 from tenants.models import School
@@ -65,7 +65,7 @@ class LoginView(View):
                     next_url = request.GET.get('next')
                     
                     # Super admin ALWAYS goes to super admin dashboard (ignore next URL)
-                    if user.role == 'super_admin':
+                    if user.role == 'superadmin':  # Fixed: was 'super_admin'
                         return redirect('superadmin:dashboard')
                     
                     # For other roles, use next URL if provided
