@@ -7,7 +7,7 @@ if project_home not in sys.path:
     sys.path.insert(0, project_home)
 
 # Set environment variables
-os.environ['DJANGO_SETTINGS_MODULE'] = 'schoolsaas.settings'
+os.environ['DJANGO_SETTINGS_MODULE'] = 'school_saas.settings'
 
 # Import Django application
 from django.core.wsgi import get_wsgi_application
