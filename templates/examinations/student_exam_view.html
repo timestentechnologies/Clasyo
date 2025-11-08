@@ -1,0 +1,126 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}{{ exam.name }} - Exam{% endblock %}
+{% block page_title %}{{ exam.name }}{% endblock %}
+{% block page_icon %}file-alt{% endblock %}
+{% block page_subtitle %}{{ exam.get_exam_type_display }} | {{ exam.start_date }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="modern-card">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3><i class="fas fa-file-alt me-2"></i>{{ exam.name }}</h3>
+                    <p class="text-muted mb-0">
+                        <strong>Subject:</strong> {{ exam.subject.name|default:"General" }} | 
+                        <strong>Date:</strong> {{ exam.start_date|date:"F d, Y" }}
+                        {% if exam.is_online %}
+                        <br><strong>Duration:</strong> {{ exam.duration_minutes }} minutes | 
+                        <strong>Passing:</strong> {{ exam.passing_percentage }}%
+                        {% endif %}
+                    </p>
+                </div>
+                {% if exam.is_online and exam.is_published %}
+                <a href="{% url 'examinations:take_exam' school_slug=school_slug exam_id=exam.id %}" class="btn btn-primary">
+                    <i class="fas fa-play-circle me-2"></i>Start Exam
+                </a>
+                {% endif %}
+            </div>
+
+            {% if exam.note %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Instructions:</strong> {{ exam.note }}
+            </div>
+            {% endif %}
+
+            {% if exam.is_online %}
+            <div class="card border-primary mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Exam Questions</h5>
+                </div>
+                <div class="card-body">
+                    {% if questions %}
+                    <div class="list-group">
+                        {% for question in questions %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6><strong>Question {{ forloop.counter }}:</strong> {{ question.question_text }}</h6>
+                                    
+                                    {% if question.question_type == 'multiple_choice' %}
+                                    <div class="mt-2">
+                                        <div class="form-check">
+                                            <label class="form-check-label">A) {{ question.option_a }}</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <label class="form-check-label">B) {{ question.option_b }}</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <label class="form-check-label">C) {{ question.option_c }}</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <label class="form-check-label">D) {{ question.option_d }}</label>
+                                        </div>
+                                    </div>
+                                    {% elif question.question_type == 'true_false' %}
+                                    <div class="mt-2">
+                                        <div class="form-check">
+                                            <label class="form-check-label">True</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <label class="form-check-label">False</label>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <span class="badge bg-success">{{ question.points }} points</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted">No questions added yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                This is an offline exam. Please contact your teacher for more details.
+            </div>
+            {% endif %}
+
+            {% if user_result %}
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Your Result</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <h4>{{ user_result.marks_obtained }}</h4>
+                            <p class="text-muted">Marks Obtained</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h4>{{ user_result.total_marks }}</h4>
+                            <p class="text-muted">Total Marks</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h4>{{ user_result.percentage }}%</h4>
+                            <p class="text-muted">Percentage</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h4>{{ user_result.grade.name }}</h4>
+                            <p class="text-muted">Grade</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

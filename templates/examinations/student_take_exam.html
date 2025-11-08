@@ -1,0 +1,233 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static exam_filters %}
+
+{% block title %}Take Exam - {{ exam.name }}{% endblock %}
+{% block page_icon %}edit{% endblock %}
+{% block page_title %}{{ exam.name }}{% endblock %}
+{% block page_subtitle %}{{ exam.get_exam_type_display }} | {{ exam.subject.name|default:"General" }}{% endblock %}
+
+{% block content %}
+<div class="content-container">
+    <div class="page-header">
+        <h1 class="page-title">
+            <i class="fas fa-edit"></i> {{ exam.name }}
+        </h1>
+        <p class="text-muted">{{ exam.get_exam_type_display }} | {{ exam.subject.name|default:"General" }}</p>
+    </div>
+
+    {% if submission.status == 'submitted' or submission.status == 'graded' %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> You have already submitted this exam.
+        {% if submission.status == 'graded' %}
+        <a href="{% url 'examinations:student_result_detail' school_slug=school_slug submission_id=submission.id %}" class="btn btn-sm btn-primary ms-3">
+            View Results
+        </a>
+        {% else %}
+        Your submission is pending grading.
+        {% endif %}
+    </div>
+    {% else %}
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <h5><i class="fas fa-info-circle text-primary"></i> Exam Information</h5>
+                    <p><strong>Duration:</strong> {{ exam.duration_minutes|default:"No time limit" }} minutes</p>
+                    <p><strong>Total Questions:</strong> {{ questions.count }}</p>
+                    <p><strong>Passing Percentage:</strong> {{ exam.passing_percentage }}%</p>
+                    {% if exam.note %}
+                    <p><strong>Instructions:</strong> {{ exam.note }}</p>
+                    {% endif %}
+                </div>
+                <div class="col-md-4 text-end">
+                    {% if submission.status == 'in_progress' %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-clock"></i> Exam in Progress
+                        {% if submission.started_at %}
+                        <br><small>Started: {{ submission.started_at|date:"M d, Y H:i" }}</small>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form id="examForm">
+        {% csrf_token %}
+        {% for question in questions %}
+        <div class="card mb-3 question-card" data-question-id="{{ question.id }}">
+            <div class="card-header bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-question-circle text-primary"></i>
+                        Question {{ question.order }}
+                        <span class="badge bg-info ms-2">{{ question.points }} pts</span>
+                    </h6>
+                    <span class="badge bg-secondary">{{ question.get_question_type_display }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="fw-bold">{{ question.question_text }}</p>
+
+                {% if question.question_type == 'multiple_choice' %}
+                <div class="form-check mb-2">
+                    <input class="form-check-input answer-input" type="radio" 
+                           name="question_{{ question.id }}" 
+                           value="A" 
+                           id="q{{ question.id }}_a"
+                           {% if answers_dict|get_item:question.id and answers_dict|get_item:question.id.selected_option == 'A' %}checked{% endif %}>
+                    <label class="form-check-label" for="q{{ question.id }}_a">
+                        A. {{ question.option_a }}
+                    </label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input answer-input" type="radio" 
+                           name="question_{{ question.id }}" 
+                           value="B" 
+                           id="q{{ question.id }}_b"
+                           {% if answers_dict|get_item:question.id and answers_dict|get_item:question.id.selected_option == 'B' %}checked{% endif %}>
+                    <label class="form-check-label" for="q{{ question.id }}_b">
+                        B. {{ question.option_b }}
+                    </label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input answer-input" type="radio" 
+                           name="question_{{ question.id }}" 
+                           value="C" 
+                           id="q{{ question.id }}_c"
+                           {% if answers_dict|get_item:question.id and answers_dict|get_item:question.id.selected_option == 'C' %}checked{% endif %}>
+                    <label class="form-check-label" for="q{{ question.id }}_c">
+                        C. {{ question.option_c }}
+                    </label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input answer-input" type="radio" 
+                           name="question_{{ question.id }}" 
+                           value="D" 
+                           id="q{{ question.id }}_d"
+                           {% if answers_dict|get_item:question.id and answers_dict|get_item:question.id.selected_option == 'D' %}checked{% endif %}>
+                    <label class="form-check-label" for="q{{ question.id }}_d">
+                        D. {{ question.option_d }}
+                    </label>
+                </div>
+
+                {% elif question.question_type == 'true_false' %}
+                <div class="form-check mb-2">
+                    <input class="form-check-input answer-input" type="radio" 
+                           name="question_{{ question.id }}" 
+                           value="T" 
+                           id="q{{ question.id }}_true"
+                           {% if answers_dict|get_item:question.id and answers_dict|get_item:question.id.selected_option == 'T' %}checked{% endif %}>
+                    <label class="form-check-label" for="q{{ question.id }}_true">
+                        True
+                    </label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input answer-input" type="radio" 
+                           name="question_{{ question.id }}" 
+                           value="F" 
+                           id="q{{ question.id }}_false"
+                           {% if answers_dict|get_item:question.id and answers_dict|get_item:question.id.selected_option == 'F' %}checked{% endif %}>
+                    <label class="form-check-label" for="q{{ question.id }}_false">
+                        False
+                    </label>
+                </div>
+
+                {% elif question.question_type == 'short_answer' %}
+                <textarea class="form-control answer-text" 
+                          name="question_{{ question.id }}" 
+                          rows="3" 
+                          placeholder="Enter your answer here...">{% if answers_dict|get_item:question.id %}{{ answers_dict|get_item:question.id.answer_text }}{% endif %}</textarea>
+
+                {% elif question.question_type == 'essay' %}
+                <textarea class="form-control answer-text" 
+                          name="question_{{ question.id }}" 
+                          rows="6" 
+                          placeholder="Write your essay here...">{% if answers_dict|get_item:question.id %}{{ answers_dict|get_item:question.id.answer_text }}{% endif %}</textarea>
+                {% endif %}
+
+                <div class="mt-2">
+                    <small class="text-success save-status" style="display: none;">
+                        <i class="fas fa-check-circle"></i> Saved
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="d-flex justify-content-between mt-4">
+            <a href="{% url 'examinations:exam_list' school_slug=school_slug %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Exams
+            </a>
+            <button type="button" id="submitExamBtn" class="btn btn-success btn-lg">
+                <i class="fas fa-paper-plane"></i> Submit Exam
+            </button>
+        </div>
+    </form>
+    {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const examId = {{ exam.id }};
+    const schoolSlug = '{{ school_slug }}';
+    
+    // Auto-save answers
+    document.querySelectorAll('.answer-input, .answer-text').forEach(input => {
+        input.addEventListener('change', function() {
+            const questionCard = this.closest('.question-card');
+            const questionId = questionCard.dataset.questionId;
+            const answer = this.value;
+            
+            saveAnswer(questionId, answer, questionCard);
+        });
+    });
+    
+    function saveAnswer(questionId, answer, questionCard) {
+        const formData = new FormData();
+        formData.append('question_id', questionId);
+        formData.append('answer', answer);
+        
+        fetch(`/school/${schoolSlug}/examinations/${examId}/submit-answer/`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const statusEl = questionCard.querySelector('.save-status');
+                statusEl.style.display = 'inline';
+                setTimeout(() => statusEl.style.display = 'none', 2000);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    
+    // Submit exam
+    document.getElementById('submitExamBtn').addEventListener('click', function() {
+        if (confirm('Are you sure you want to submit this exam? You cannot change your answers after submission.')) {
+            fetch(`/school/${schoolSlug}/examinations/${examId}/submit-exam/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    window.location.href = `/school/${schoolSlug}/examinations/my-results/`;
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to submit exam');
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -120,20 +120,20 @@
                     
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'core:dashboard' %}">
+                            <a class="nav-link" href="{% url 'core:dashboard' school_slug=school_slug %}">
                                 <i class="fas fa-tachometer-alt"></i> Dashboard
                             </a>
                         </li>
                         
                         {% if user.is_school_admin or user.is_superadmin %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'students:list' %}">
+                            <a class="nav-link" href="{% url 'students:list' school_slug=school_slug %}">
                                 <i class="fas fa-user-graduate"></i> Students
                             </a>
                         </li>
                         
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'academics:class_list' %}">
+                            <a class="nav-link" href="{% url 'academics:class_list' school_slug=school_slug %}">
                                 <i class="fas fa-chalkboard"></i> Academics
                             </a>
                         </li>
@@ -213,8 +213,8 @@
                                     <i class="fas fa-user-circle fa-2x"></i>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="fas fa-user"></i> Profile</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'accounts:change_password' %}"><i class="fas fa-key"></i> Change Password</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'core:profile' school_slug=school_slug %}"><i class="fas fa-user"></i> Profile</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-key"></i> Change Password</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{% url 'accounts:logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                                 </ul>

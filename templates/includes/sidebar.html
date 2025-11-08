@@ -1,175 +1,334 @@
 {% load static %}
 
-<!-- This sidebar is now integrated into modern_base.html - This file kept for compatibility -->
-<div class="modern-sidebar-wrapper">
-    <!-- Sidebar content moved to modern_base.html for better integration -->
-    <div class="list-group">
-        <a href="{% if user.role == 'super_admin' %}{% url 'superadmin:dashboard' %}{% else %}{% url 'core:dashboard' school_slug=school_slug %}{% endif %}" class="list-group-item list-group-item-action active">
-            <i class="fas fa-tachometer-alt"></i> Dashboard
-        </a>
-        
-        {% if user.role in 'super_admin,school_admin,teacher' %}
-        <div class="list-group-item bg-secondary text-white">
-            <strong>Student Management</strong>
+<!-- Mobile Menu Toggle -->
+<button class="mobile-menu-toggle" id="menuToggle">
+    <i class="fas fa-bars"></i>
+</button>
+
+<!-- Sidebar Overlay for Mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- Modern Sidebar -->
+<div class="modern-sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-logo">
+            {% if user.role == 'superadmin' or user.role == 'super_admin' %}
+                <i class="fas fa-user-shield"></i>
+            {% else %}
+                {% if school and school.logo %}
+                    <img src="{{ school.logo.url }}" alt="{{ school.name }}" class="school-logo">
+                {% else %}
+                    <i class="fas fa-graduation-cap"></i>
+                {% endif %}
+            {% endif %}
         </div>
-        <a href="/school/{{ school_slug }}/students/" class="list-group-item list-group-item-action">
-            <i class="fas fa-users"></i> Students
-        </a>
-        {% if user.role in 'super_admin,school_admin' %}
-        <a href="/school/{{ school_slug }}/students/add/" class="list-group-item list-group-item-action">
-            <i class="fas fa-user-plus"></i> Add Student
-        </a>
-        {% endif %}
-        {% endif %}
-        
-        {% if user.role in 'super_admin,school_admin,teacher' %}
-        <div class="list-group-item bg-secondary text-white">
-            <strong>Academics</strong>
+        <div class="brand-text">
+            {% if user.role == 'superadmin' or user.role == 'super_admin' %}
+                <h3>Clasyo System</h3>
+                <p>Super Admin Panel</p>
+            {% else %}
+                <h3>{{ school.name|default:"School" }}</h3>
+                <p>Management System</p>
+            {% endif %}
         </div>
-        <a href="/school/{{ school_slug }}/academics/classes/" class="list-group-item list-group-item-action">
-            <i class="fas fa-chalkboard"></i> Classes
-        </a>
-        <a href="/school/{{ school_slug }}/academics/sections/" class="list-group-item list-group-item-action">
-            <i class="fas fa-layer-group"></i> Sections
-        </a>
-        <a href="/school/{{ school_slug }}/academics/subjects/" class="list-group-item list-group-item-action">
-            <i class="fas fa-book-open"></i> Subjects
-        </a>
-        <a href="/school/{{ school_slug }}/academics/routine/" class="list-group-item list-group-item-action">
-            <i class="fas fa-calendar-alt"></i> Class Routine
-        </a>
-        {% endif %}
-        
-        {% if user.role in 'super_admin,school_admin' %}
-        <div class="list-group-item bg-secondary text-white">
-            <strong>HR & Staff</strong>
-        </div>
-        <a href="/school/{{ school_slug }}/hr/teachers/" class="list-group-item list-group-item-action">
-            <i class="fas fa-chalkboard-teacher"></i> Teachers
-        </a>
-        <a href="/school/{{ school_slug }}/hr/staff/" class="list-group-item list-group-item-action">
-            <i class="fas fa-users-cog"></i> Staff
-        </a>
-        <a href="/school/{{ school_slug }}/hr/departments/" class="list-group-item list-group-item-action">
-            <i class="fas fa-building"></i> Departments
-        </a>
-        <a href="/school/{{ school_slug }}/hr/designations/" class="list-group-item list-group-item-action">
-            <i class="fas fa-user-tag"></i> Designations
-        </a>
-        {% endif %}
-        
-        {% if user.role in 'super_admin,school_admin,teacher' %}
-        <div class="list-group-item bg-secondary text-white">
-            <strong>Examinations</strong>
-        </div>
-        <a href="/school/{{ school_slug }}/examinations/" class="list-group-item list-group-item-action">
-            <i class="fas fa-file-alt"></i> Exams
-        </a>
-        <a href="/school/{{ school_slug }}/examinations/grades/" class="list-group-item list-group-item-action">
-            <i class="fas fa-graduation-cap"></i> Grades
-        </a>
-        <a href="/school/{{ school_slug }}/examinations/results/" class="list-group-item list-group-item-action">
-            <i class="fas fa-chart-line"></i> Results
-        </a>
-        {% if user.role == 'teacher' %}
-        <a href="/school/{{ school_slug }}/examinations/marks-entry/" class="list-group-item list-group-item-action">
-            <i class="fas fa-edit"></i> Marks Entry
-        </a>
-        {% endif %}
-        {% endif %}
-        
-        {% if user.role in 'super_admin,school_admin,teacher' %}
-        <div class="list-group-item bg-secondary text-white">
-            <strong>Attendance</strong>
-        </div>
-        <a href="/school/{{ school_slug }}/attendance/mark/" class="list-group-item list-group-item-action">
-            <i class="fas fa-check-circle"></i> Mark Attendance
-        </a>
-        <a href="/school/{{ school_slug }}/attendance/report/" class="list-group-item list-group-item-action">
-            <i class="fas fa-chart-pie"></i> Reports
-        </a>
-        {% endif %}
-        
-        {% if user.role in 'super_admin,school_admin' %}
-        <div class="list-group-item bg-secondary text-white">
-            <strong>Finance</strong>
-        </div>
-        <a href="/school/{{ school_slug }}/fees/" class="list-group-item list-group-item-action">
-            <i class="fas fa-dollar-sign"></i> Fee Management
-        </a>
-        <a href="/school/{{ school_slug }}/fees/collect/" class="list-group-item list-group-item-action">
-            <i class="fas fa-cash-register"></i> Collect Fees
-        </a>
-        <a href="/school/{{ school_slug }}/fees/transactions/" class="list-group-item list-group-item-action">
-            <i class="fas fa-receipt"></i> Transactions
-        </a>
-        {% endif %}
-        
-        {% if user.role in 'super_admin,school_admin,teacher,student' %}
-        <div class="list-group-item bg-secondary text-white">
-            <strong>Library</strong>
-        </div>
-        <a href="/school/{{ school_slug }}/library/books/" class="list-group-item list-group-item-action">
-            <i class="fas fa-book"></i> Books
-        </a>
-        {% if user.role in 'super_admin,school_admin,teacher' %}
-        <a href="/school/{{ school_slug }}/library/categories/" class="list-group-item list-group-item-action">
-            <i class="fas fa-tags"></i> Categories
-        </a>
-        <a href="/school/{{ school_slug }}/library/issue/" class="list-group-item list-group-item-action">
-            <i class="fas fa-book-reader"></i> Issue/Return
-        </a>
-        {% endif %}
-        {% endif %}
-        
-        <div class="list-group-item bg-secondary text-white">
-            <strong>Communication</strong>
-        </div>
-        <a href="/school/{{ school_slug }}/communication/notices/" class="list-group-item list-group-item-action">
-            <i class="fas fa-bell"></i> Notices
-        </a>
-        <a href="/school/{{ school_slug }}/communication/messages/" class="list-group-item list-group-item-action">
-            <i class="fas fa-envelope"></i> Messages
-        </a>
-        
-        {% if user.role in 'super_admin,school_admin' %}
-        <div class="list-group-item bg-secondary text-white">
-            <strong>Transport</strong>
-        </div>
-        <a href="/school/{{ school_slug }}/transport/routes/" class="list-group-item list-group-item-action">
-            <i class="fas fa-route"></i> Routes
-        </a>
-        <a href="/school/{{ school_slug }}/transport/vehicles/" class="list-group-item list-group-item-action">
-            <i class="fas fa-bus"></i> Vehicles
-        </a>
-        {% endif %}
-        
-        {% if user.role in 'super_admin,school_admin' %}
-        <div class="list-group-item bg-secondary text-white">
-            <strong>Dormitory</strong>
-        </div>
-        <a href="/school/{{ school_slug }}/dormitory/" class="list-group-item list-group-item-action">
-            <i class="fas fa-bed"></i> Dormitories
-        </a>
-        <a href="/school/{{ school_slug }}/dormitory/rooms/" class="list-group-item list-group-item-action">
-            <i class="fas fa-door-open"></i> Rooms
-        </a>
-        {% endif %}
-        
-        {% if user.role in 'super_admin,school_admin' %}
-        <div class="list-group-item bg-secondary text-white">
-            <strong>System</strong>
-        </div>
-        <a href="{% url 'admin:index' %}" class="list-group-item list-group-item-action">
-            <i class="fas fa-cog"></i> Django Admin
-        </a>
-        <a href="/school/{{ school_slug }}/reports/" class="list-group-item list-group-item-action">
-            <i class="fas fa-chart-bar"></i> Reports
-        </a>
-        {% endif %}
-        
-        <a href="/school/{{ school_slug }}/calendar/" class="list-group-item list-group-item-action">
-            <i class="fas fa-calendar"></i> My Calendar
-        </a>
     </div>
+
+    <ul class="sidebar-menu">
+        <li class="{% if 'dashboard' in request.path %}active{% endif %}"><a href="{% if user.role == 'superadmin' or user.role == 'super_admin' %}{% url 'superadmin:dashboard' %}{% elif school_slug %}{% url 'core:dashboard' school_slug=school_slug %}{% else %}#{% endif %}">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Dashboard</span>
+        </a></li>
+
+        {% if user.role == 'superadmin' or user.role == 'super_admin' %}
+        {# === SUPER ADMIN MENU === #}
+        <div class="menu-section-title">Management</div>
+        
+        <li><a href="{% url 'superadmin:schools' %}">
+            <i class="fas fa-school"></i>
+            <span>Schools</span>
+        </a></li>
+
+        <li><a href="{% url 'superadmin:admins' %}">
+            <i class="fas fa-user-shield"></i>
+            <span>School Admins</span>
+        </a></li>
+
+        <li><a href="{% url 'superadmin:subscriptions' %}">
+            <i class="fas fa-credit-card"></i>
+            <span>Subscriptions</span>
+        </a></li>
+
+        <div class="menu-section-title">Content</div>
+
+        <li><a href="{% url 'superadmin:pricing' %}">
+            <i class="fas fa-tags"></i>
+            <span>Pricing Plans</span>
+        </a></li>
+
+        <li><a href="{% url 'superadmin:page_content' %}">
+            <i class="fas fa-file-alt"></i>
+            <span>Page Content</span>
+        </a></li>
+
+        <li><a href="{% url 'superadmin:faqs' %}">
+            <i class="fas fa-question-circle"></i>
+            <span>FAQs</span>
+        </a></li>
+
+        <li><a href="{% url 'superadmin:contact_messages' %}">
+            <i class="fas fa-envelope"></i>
+            <span>Contact Messages</span>
+        </a></li>
+
+        <div class="menu-section-title">System</div>
+
+        <li><a href="{% url 'admin:index' %}">
+            <i class="fas fa-cog"></i>
+            <span>Django Admin</span>
+        </a></li>
+
+        {% else %}
+        {# === SCHOOL-BASED MENU === #}
+        
+        {% if user.role in 'school_admin,teacher' %}
+        <div class="menu-section-title">Academic</div>
+        
+        <li class="{% if '/students/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/students/">
+            <i class="fas fa-user-graduate"></i>
+            <span>Students</span>
+        </a></li>
+
+        <li class="{% if '/classes/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/academics/classes/">
+            <i class="fas fa-chalkboard"></i>
+            <span>Classes</span>
+        </a></li>
+
+        <li class="{% if '/subjects/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/academics/subjects/">
+            <i class="fas fa-book-open"></i>
+            <span>Subjects</span>
+        </a></li>
+
+        <li class="{% if '/routine/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/academics/routine/">
+            <i class="fas fa-clock"></i>
+            <span>Class Routine</span>
+        </a></li>
+
+        <li class="{% if '/examinations/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/examinations/">
+            <i class="fas fa-file-alt"></i>
+            <span>Examinations</span>
+        </a></li>
+
+        <li class="{% if '/grades/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/examinations/grades/">
+            <i class="fas fa-graduation-cap"></i>
+            <span>Grading</span>
+        </a></li>
+
+        <li class="{% if '/academic-years/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/academic-years/">
+            <i class="fas fa-calendar-check"></i>
+            <span>Academic Years</span>
+        </a></li>
+        {% endif %}
+
+        {% if user.role == 'school_admin' %}
+        <div class="menu-section-title">Human Resource</div>
+        
+        <li class="{% if '/teachers/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/hr/teachers/">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <span>Teachers</span>
+        </a></li>
+
+        <li class="{% if '/staff/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/hr/staff/">
+            <i class="fas fa-users"></i>
+            <span>Staff</span>
+        </a></li>
+
+        <li class="{% if '/departments/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/hr/departments/">
+            <i class="fas fa-building"></i>
+            <span>Departments</span>
+        </a></li>
+
+        <li class="{% if '/designations/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/hr/designations/">
+            <i class="fas fa-id-badge"></i>
+            <span>Designations</span>
+        </a></li>
+
+        <li class="{% if '/leave/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/leave/">
+            <i class="fas fa-calendar-times"></i>
+            <span>Leave Management</span>
+        </a></li>
+
+        <div class="menu-section-title">Finance</div>
+
+        <li class="{% if '/fees/' in request.path and '/collect/' not in request.path and '/transactions/' not in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/fees/">
+            <i class="fas fa-money-bill-wave"></i>
+            <span>Fee Structure</span>
+        </a></li>
+
+        <li class="{% if '/fees/collect/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/fees/collect/">
+            <i class="fas fa-hand-holding-usd"></i>
+            <span>Collect Fees</span>
+        </a></li>
+
+        <li class="{% if '/fees/transactions/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/fees/transactions/">
+            <i class="fas fa-receipt"></i>
+            <span>Transactions</span>
+        </a></li>
+        {% endif %}
+
+        <div class="menu-section-title">Features</div>
+        
+        {% if user.role in 'school_admin,teacher' %}
+        <li class="{% if '/attendance/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/attendance/mark/">
+            <i class="fas fa-check-circle"></i>
+            <span>Attendance</span>
+        </a></li>
+        {% endif %}
+
+        <li class="{% if '/library/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/library/books/">
+            <i class="fas fa-book"></i>
+            <span>Library</span>
+        </a></li>
+
+        <li class="{% if '/notices/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/communication/notices/">
+            <i class="fas fa-bell"></i>
+            <span>Notices</span>
+        </a></li>
+
+        <li class="{% if '/messages/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/communication/messages/">
+            <i class="fas fa-envelope"></i>
+            <span>Messages</span>
+        </a></li>
+
+        {% if user.role == 'school_admin' %}
+        <li class="{% if '/transport/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/transport/routes/">
+            <i class="fas fa-bus"></i>
+            <span>Transport</span>
+        </a></li>
+
+        <li class="{% if '/dormitory/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/dormitory/">
+            <i class="fas fa-bed"></i>
+            <span>Dormitory</span>
+        </a></li>
+
+        <li class="{% if '/reports/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/reports/">
+            <i class="fas fa-chart-bar"></i>
+            <span>Reports</span>
+        </a></li>
+        {% endif %}
+
+        {% if user.role == 'student' %}
+        <div class="menu-section-title">My Learning</div>
+        
+        <li class="{% if '/examinations/' in request.path and '/my-results/' not in request.path and '/take/' not in request.path and '/result/' not in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'examinations:exam_list' school_slug=school_slug %}{% else %}#{% endif %}">
+            <i class="fas fa-file-alt"></i>
+            <span>My Exams</span>
+        </a></li>
+
+        <li class="{% if '/my-results/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'examinations:student_results' school_slug=school_slug %}{% else %}#{% endif %}">
+            <i class="fas fa-chart-line"></i>
+            <span>My Results</span>
+        </a></li>
+
+        <li class="{% if '/attendance/my-attendance/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'attendance:my_attendance' school_slug=school_slug %}{% else %}#{% endif %}">
+            <i class="fas fa-calendar-check"></i>
+            <span>My Attendance</span>
+        </a></li>
+
+        <li class="{% if '/fees/my-fees/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'fees:my_fees' school_slug=school_slug %}{% else %}#{% endif %}">
+            <i class="fas fa-money-bill"></i>
+            <span>Fee Status</span>
+        </a></li>
+        {% endif %}
+
+        {% if user.role == 'parent' %}
+        <div class="menu-section-title">My Children</div>
+        
+        <li><a href="#">
+            <i class="fas fa-users"></i>
+            <span>Children</span>
+        </a></li>
+
+        <li><a href="#">
+            <i class="fas fa-calendar-check"></i>
+            <span>Attendance</span>
+        </a></li>
+
+        <li><a href="#">
+            <i class="fas fa-chart-line"></i>
+            <span>Results</span>
+        </a></li>
+
+        <li><a href="#">
+            <i class="fas fa-money-bill"></i>
+            <span>Fee Payments</span>
+        </a></li>
+        {% endif %}
+
+        {% endif %}
+
+        <div class="menu-section-title">Account</div>
+
+        <li><a href="{% if school_slug %}{% url 'core:profile' school_slug=school_slug %}{% else %}#{% endif %}">
+            <i class="fas fa-user"></i>
+            <span>My Profile</span>
+        </a></li>
+
+        <li class="{% if '/change-password/' in request.path %}active{% endif %}"><a href="{% url 'accounts:change_password' %}">
+            <i class="fas fa-key"></i>
+            <span>Change Password</span>
+        </a></li>
+
+        <li><a href="{% url 'accounts:logout' %}">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+        </a></li>
+    </ul>
 </div>
+
+<script>
+// Mobile sidebar toggle
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    sidebar.classList.toggle('show');
+    overlay.classList.toggle('show');
+}
+
+// Close sidebar when clicking a menu link on mobile
+document.addEventListener('DOMContentLoaded', function() {
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const menuLinks = sidebar.querySelectorAll('a');
+    
+    // Toggle button click
+    if (menuToggle) {
+        menuToggle.addEventListener('click', toggleSidebar);
+    }
+    
+    // Overlay click
+    if (overlay) {
+        overlay.addEventListener('click', toggleSidebar);
+    }
+    
+    // Menu link clicks on mobile
+    menuLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('show');
+                overlay.classList.remove('show');
+            }
+        });
+    });
+});
+
+// Handle window resize
+window.addEventListener('resize', function() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (window.innerWidth > 768) {
+        sidebar.classList.remove('show');
+        overlay.classList.remove('show');
+    }
+});
+</script>

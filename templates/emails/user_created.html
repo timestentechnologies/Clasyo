@@ -1,0 +1,30 @@
+{% extends 'emails/base.html' %}
+
+{% block title %}Welcome to Clasyo{% endblock %}
+
+{% block header %}Welcome to Clasyo!{% endblock %}
+
+{% block content %}
+<h2>Hello {{ user.get_full_name|default:user.email }}!</h2>
+
+<p>Your account has been created by {{ created_by.get_full_name }}. Welcome to our school management system!</p>
+
+<div class="info-box">
+    <strong>Account Details:</strong><br>
+    <strong>Email:</strong> {{ user.email }}<br>
+    <strong>Role:</strong> {{ user.get_role_display }}<br>
+    {% if password %}
+    <strong>Temporary Password:</strong> {{ password }}<br>
+    <small style="color: #e74a3b;">Please change your password after first login for security.</small>
+    {% endif %}
+</div>
+
+<p>You can now log in to access the system:</p>
+
+<a href="{{ login_url }}" class="button">Login to Clasyo</a>
+
+<p>If you have any questions, please contact your administrator.</p>
+
+<p>Best regards,<br>
+Clasyo Team</p>
+{% endblock %}

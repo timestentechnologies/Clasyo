@@ -1,793 +1,113 @@
+{% extends 'dashboards/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}School Management System{% endblock %}</title>
-    <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
-    <link rel="alternate icon" href="{% static 'images/favicon.ico' %}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}">
-</head>
-<body>
-    <!-- Modern Sidebar -->
-    <div class="modern-sidebar">
-        <div class="sidebar-brand">
-            <div class="brand-logo">
-                <i class="fas fa-graduation-cap"></i>
-            </div>
-            <div class="brand-text">
-                <h3>{{ school.name|default:"School" }}</h3>
-                <p>Management System</p>
-            </div>
+
+{% block title %}Admin Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_icon %}tachometer-alt{% endblock %}
+{% block page_subtitle %}Welcome back! Here's what's happening today.{% endblock %}
+
+{% block content %}
+<!-- Stats Grid -->
+<div class="stats-grid fade-in-up">
+    <div class="stat-card primary">
+        <div class="stat-icon">
+            <i class="fas fa-user-graduate"></i>
         </div>
-
-        <ul class="sidebar-menu">
-            <li><a href="{% url 'core:dashboard' school_slug=school_slug %}" class="active">
-                <i class="fas fa-tachometer-alt"></i>
-                <span>Dashboard</span>
-            </a></li>
-
-            {% if user.role in 'super_admin,school_admin,teacher' %}
-            <div class="menu-section-title">Academic</div>
-            
-            <li><a href="/school/{{ school_slug }}/students/">
-                <i class="fas fa-user-graduate"></i>
-                <span>Students</span>
-            </a></li>
-
-            <li><a href="/school/{{ school_slug }}/academics/classes/">
-                <i class="fas fa-chalkboard"></i>
-                <span>Classes</span>
-            </a></li>
-
-            <li><a href="/school/{{ school_slug }}/academics/subjects/">
-                <i class="fas fa-book-open"></i>
-                <span>Subjects</span>
-            </a></li>
-
-            <li><a href="/school/{{ school_slug }}/academics/routine/">
-                <i class="fas fa-clock"></i>
-                <span>Class Routine</span>
-            </a></li>
-
-            <li><a href="/school/{{ school_slug }}/examinations/">
-                <i class="fas fa-file-alt"></i>
-                <span>Examinations</span>
-            </a></li>
-
-            <li><a href="/school/{{ school_slug }}/examinations/grades/">
-                <i class="fas fa-graduation-cap"></i>
-                <span>Grading</span>
-            </a></li>
-
-            <li><a href="/school/{{ school_slug }}/academic-years/">
-                <i class="fas fa-calendar-check"></i>
-                <span>Academic Years</span>
-            </a></li>
-            {% endif %}
-
-            {% if user.role in 'super_admin,school_admin' %}
-            <div class="menu-section-title">Human Resource</div>
-            
-            <li><a href="/school/{{ school_slug }}/hr/teachers/">
-                <i class="fas fa-chalkboard-teacher"></i>
-                <span>Teachers</span>
-            </a></li>
-
-            <li><a href="/school/{{ school_slug }}/hr/staff/">
-                <i class="fas fa-users"></i>
-                <span>Staff</span>
-            </a></li>
-
-            <li><a href="/school/{{ school_slug }}/hr/departments/">
-                <i class="fas fa-building"></i>
-                <span>Departments</span>
-            </a></li>
-
-            <li><a href="/school/{{ school_slug }}/hr/designations/">
-                <i class="fas fa-id-badge"></i>
-                <span>Designations</span>
-            </a></li>
-
-            <li><a href="/school/{{ school_slug }}/leave/">
-                <i class="fas fa-calendar-times"></i>
-                <span>Leave Management</span>
-            </a></li>
-
-            <div class="menu-section-title">Finance</div>
-
-            <li><a href="/school/{{ school_slug }}/fees/">
-                <i class="fas fa-money-bill-wave"></i>
-                <span>Fee Structure</span>
-            </a></li>
-
-            <li><a href="/school/{{ school_slug }}/fees/collect/">
-                <i class="fas fa-hand-holding-usd"></i>
-                <span>Collect Fees</span>
-            </a></li>
-
-            <li><a href="/school/{{ school_slug }}/fees/transactions/">
-                <i class="fas fa-receipt"></i>
-                <span>Transactions</span>
-            </a></li>
-            {% endif %}
-
-            <div class="menu-section-title">Features</div>
-            
-            <li><a href="/school/{{ school_slug }}/attendance/mark/">
-                <i class="fas fa-check-circle"></i>
-                <span>Attendance</span>
-            </a></li>
-
-            <li><a href="/school/{{ school_slug }}/library/books/">
-                <i class="fas fa-book"></i>
-                <span>Library</span>
-            </a></li>
-
-            <li><a href="/school/{{ school_slug }}/communication/notices/">
-                <i class="fas fa-bell"></i>
-                <span>Notices</span>
-            </a></li>
-
-            <li><a href="/school/{{ school_slug }}/communication/messages/">
-                <i class="fas fa-envelope"></i>
-                <span>Messages</span>
-            </a></li>
-
-            {% if user.role in 'super_admin,school_admin,teacher,parent' %}
-            <li><a href="/school/{{ school_slug }}/students/parents/">
-                <i class="fas fa-users"></i>
-                <span>Parents</span>
-            </a></li>
-            {% endif %}
-
-            <li><a href="/school/{{ school_slug }}/events/">
-                <i class="fas fa-calendar-alt"></i>
-                <span>Events</span>
-            </a></li>
-
-            <li><a href="/school/{{ school_slug }}/calendar/">
-                <i class="fas fa-calendar"></i>
-                <span>Calendar</span>
-            </a></li>
-        </ul>
+        <div class="stat-value">{{ total_students|default:0 }}</div>
+        <div class="stat-label">Total Students</div>
     </div>
-
-    <!-- Main Content -->
-    <div class="main-content">
-        <!-- Impersonation Banner -->
-        {% if request.is_impersonating %}
-        <div class="alert alert-warning alert-dismissible fade show m-0 rounded-0 border-0" style="background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%); color: white; padding: 15px 20px; position: sticky; top: 0; z-index: 1050; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-            <div class="d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-user-shield fa-2x me-3"></i>
-                    <div>
-                        <strong style="font-size: 1.1rem;">Impersonation Mode Active</strong>
-                        <p class="mb-0" style="font-size: 0.9rem;">
-                            You are logged in as <strong>{{ user.get_full_name }}</strong> ({{ user.get_role_display }})
-                            <br><small>Original Admin: {{ request.original_user.get_full_name }}</small>
-                        </p>
-                    </div>
-                </div>
-                <a href="{% url 'core:stop_impersonation' school_slug=school_slug %}" 
-                   class="btn btn-light btn-lg">
-                    <i class="fas fa-sign-out-alt me-2"></i>
-                    Return to Admin Account
-                </a>
-            </div>
+    
+    <div class="stat-card success">
+        <div class="stat-icon">
+            <i class="fas fa-chalkboard-teacher"></i>
         </div>
-        {% endif %}
-        
-        <!-- Top Navigation Bar -->
-        <nav class="top-navbar">
-            <form action="/school/{{ school_slug }}/search/" method="get" class="search-bar">
-                <i class="fas fa-search"></i>
-                <input type="text" name="q" placeholder="Search for students, teachers, or anything..." id="globalSearch">
-            </form>
-            
-            <div class="navbar-actions">
-                <a href="/school/{{ school_slug }}/communication/notices/" class="nav-icon-btn" title="Notifications">
-                    <i class="fas fa-bell"></i>
-                    <span class="badge">3</span>
-                </a>
-                <a href="/school/{{ school_slug }}/communication/messages/" class="nav-icon-btn" title="Messages">
-                    <i class="fas fa-envelope"></i>
-                    <span class="badge">5</span>
-                </a>
-                
-                <div class="dropdown">
-                    <div class="user-profile-nav" data-bs-toggle="dropdown" style="cursor: pointer;">
-                        <div class="user-avatar">{{ user.first_name.0|default:"U" }}{{ user.last_name.0|default:"" }}</div>
-                        <div class="user-info">
-                            <h4>{{ user.get_full_name|default:user.email }}</h4>
-                            <p>{{ user.role|title }}</p>
-                        </div>
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="/school/{{ school_slug }}/profile/"><i class="fas fa-user"></i> Profile</a></li>
-                        <li><a class="dropdown-item" href="/school/{{ school_slug }}/settings/"><i class="fas fa-cog"></i> Settings</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'accounts:logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
+        <div class="stat-value">{{ total_teachers|default:0 }}</div>
+        <div class="stat-label">Total Teachers</div>
+    </div>
+    
+    <div class="stat-card warning">
+        <div class="stat-icon">
+            <i class="fas fa-book-open"></i>
+        </div>
+        <div class="stat-value">{{ total_classes|default:0 }}</div>
+        <div class="stat-label">Active Classes</div>
+    </div>
+    
+    <div class="stat-card danger">
+        <div class="stat-icon">
+            <i class="fas fa-bell"></i>
+        </div>
+        <div class="stat-value">{{ pending_tasks|default:0 }}</div>
+        <div class="stat-label">Pending Tasks</div>
+    </div>
+</div>
 
-        <!-- Content Container -->
-        <div class="content-container">
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show modern-card" style="animation: fadeInUp 0.5s;">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+<!-- Today's Events -->
+<div class="row mt-4">
+    <div class="col-lg-8">
+        <div class="modern-card">
+            <h4 class="mb-4"><i class="fas fa-calendar-check"></i> Today's Events</h4>
+            {% if upcoming_events %}
+            <div class="list-group">
+                {% for event in upcoming_events %}
+                <div class="list-group-item d-flex align-items-center">
+                    <div class="event-time me-3" style="min-width: 100px;">
+                        <span class="badge bg-primary">{{ event.start_date|date:"h:i A" }}</span>
                     </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">{{ event.title }}</h6>
+                        <small class="text-muted">{{ event.description|truncatewords:10 }}</small>
+                    </div>
+                </div>
                 {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No upcoming events scheduled</p>
+            </div>
             {% endif %}
-            
-            <div class="page-header mb-4">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2>
-                            <i class="fas fa-{% block page_icon %}tachometer-alt{% endblock %}"></i>
-                            {% block page_title %}Dashboard{% endblock %}
-                        </h2>
-                        <p class="text-muted mb-0">{% block page_subtitle %}Welcome back! Here's what's happening today.{% endblock %}</p>
-                    </div>
-                    <div>
-                        {% block page_actions %}{% endblock %}
-                    </div>
-                </div>
-            </div>
-
-            {% block content %}
-        
-            <!-- Stats Grid -->
-            <div class="stats-grid fade-in-up">
-                <div class="stat-card primary">
-                    <div class="stat-icon">
-                        <i class="fas fa-user-graduate"></i>
-                    </div>
-                    <div class="stat-value">{{ total_students|default:0 }}</div>
-                    <div class="stat-label">Total Students</div>
-                </div>
-                
-                <div class="stat-card success">
-                    <div class="stat-icon">
-                        <i class="fas fa-chalkboard-teacher"></i>
-                    </div>
-                    <div class="stat-value">{{ total_teachers|default:0 }}</div>
-                    <div class="stat-label">Total Teachers</div>
-                </div>
-                
-                <div class="stat-card warning">
-                    <div class="stat-icon">
-                        <i class="fas fa-book-open"></i>
-                    </div>
-                    <div class="stat-value">{{ total_classes|default:0 }}</div>
-                    <div class="stat-label">Active Classes</div>
-                </div>
-                
-                <div class="stat-card danger">
-                    <div class="stat-icon">
-                        <i class="fas fa-bell"></i>
-                    </div>
-                    <div class="stat-value">{{ pending_tasks|default:0 }}</div>
-                    <div class="stat-label">Pending Tasks</div>
-                </div>
-            </div>
-
-            <!-- Today's Events -->
-            <div class="row mt-4">
-                <div class="col-lg-8">
-                    <div class="modern-card">
-                        <h4 class="mb-4"><i class="fas fa-calendar-check"></i> Today's Events</h4>
-                        {% if upcoming_events %}
-                        <div class="list-group">
-                            {% for event in upcoming_events %}
-                            <div class="list-group-item d-flex align-items-center">
-                                <div class="event-time me-3" style="min-width: 100px;">
-                                    <span class="badge bg-primary">{{ event.start_date|date:"h:i A" }}</span>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-1">{{ event.title }}</h6>
-                                    <small class="text-muted">{{ event.description|truncatewords:10 }}</small>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% else %}
-                        <div class="text-center py-5">
-                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-                            <p class="text-muted">No upcoming events scheduled</p>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div class="col-lg-4">
-                    <div class="modern-card">
-                        <h4 class="mb-3"><i class="fas fa-tasks"></i> Quick Tasks</h4>
-                        <div class="list-group list-group-flush">
-                            <a href="/school/{{ school_slug }}/attendance/mark/" class="list-group-item list-group-item-action">
-                                <i class="fas fa-check-circle text-success me-2"></i> Mark Attendance
-                            </a>
-                            <a href="/school/{{ school_slug }}/students/" class="list-group-item list-group-item-action">
-                                <i class="fas fa-user-graduate text-primary me-2"></i> View Students
-                            </a>
-                            <a href="/school/{{ school_slug }}/communication/messages/" class="list-group-item list-group-item-action">
-                                <i class="fas fa-envelope text-info me-2"></i> Send Messages
-                            </a>
-                            <a href="/school/{{ school_slug }}/examinations/" class="list-group-item list-group-item-action">
-                                <i class="fas fa-file-alt text-warning me-2"></i> Manage Exams
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Calendar Widget -->
-            <div class="row mt-4">
-                <div class="col-md-12">
-                    <div class="modern-card">
-                        <h4 class="mb-3"><i class="fas fa-calendar"></i> Calendar</h4>
-                        <div id="dashboard-calendar-widget"></div>
-                    </div>
-                </div>
-            </div>
-
-            </div>
-            {% endblock %}
         </div>
     </div>
 
-    <style>
-    .mini-calendar-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 1px;
-        background: var(--border-light);
-        border-radius: 8px;
-        overflow: hidden;
-    }
-    .mini-calendar-weekday {
-        background: linear-gradient(135deg, var(--primary-navy), var(--secondary-navy));
-        color: white;
-        padding: 8px;
-        text-align: center;
-        font-weight: 600;
-        font-size: 11px;
-    }
-    .mini-calendar-day {
-        background: white;
-        padding: 8px;
-        min-height: 60px;
-        border: 1px solid var(--border-light);
-        text-align: center;
-    }
-    .mini-calendar-day.other-month {
-        background: var(--bg-light);
-        color: var(--text-muted);
-    }
-    .mini-calendar-day.today {
-        background: rgba(77, 208, 225, 0.15);
-        border: 2px solid var(--accent-cyan) !important;
-        font-weight: bold;
-    }
-    .mini-calendar-day.has-event {
-        background: rgba(77, 208, 225, 0.05);
-    }
-    .mini-calendar-day-number {
-        font-size: 14px;
-        margin-bottom: 4px;
-    }
-    .event-dot {
-        width: 5px;
-        height: 5px;
-        background: var(--accent-cyan);
-        border-radius: 50%;
-        display: inline-block;
-        margin: 0 1px;
-    }
-    </style>
+    <div class="col-lg-4">
+        <div class="modern-card">
+            <h4 class="mb-3"><i class="fas fa-tasks"></i> Quick Tasks</h4>
+            <div class="list-group list-group-flush">
+                <a href="/school/{{ school_slug }}/attendance/mark/" class="list-group-item list-group-item-action">
+                    <i class="fas fa-check-circle text-success me-2"></i> Mark Attendance
+                </a>
+                <a href="/school/{{ school_slug }}/students/" class="list-group-item list-group-item-action">
+                    <i class="fas fa-user-graduate text-primary me-2"></i> View Students
+                </a>
+                <a href="/school/{{ school_slug }}/communication/messages/" class="list-group-item list-group-item-action">
+                    <i class="fas fa-envelope text-info me-2"></i> Send Messages
+                </a>
+                <a href="/school/{{ school_slug }}/examinations/" class="list-group-item list-group-item-action">
+                    <i class="fas fa-file-alt text-warning me-2"></i> Manage Exams
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const dashboardCalendarEl = document.getElementById('dashboard-calendar');
-        if (dashboardCalendarEl) {
-            const today = new Date();
-            generateDashboardCalendar(today.getMonth(), today.getFullYear());
-            
-            function generateDashboardCalendar(month, year) {
-                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                                   'July', 'August', 'September', 'October', 'November', 'December'];
-                const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                
-                let html = `
-                    <div class="calendar-header mb-3">
-                        <button class="btn btn-secondary btn-sm" onclick="changeDashboardMonth(-1)">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <span style="flex:1; text-align:center;"><strong>${monthNames[month]} ${year}</strong></span>
-                        <button class="btn btn-secondary btn-sm" onclick="changeDashboardMonth(1)">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
-                    <div class="mini-calendar-grid">
-                `;
-                
-                weekdays.forEach(day => {
-                    html += `<div class="mini-calendar-weekday">${day}</div>`;
-                });
-                
-                const firstDay = new Date(year, month, 1).getDay();
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-                const daysInPrevMonth = new Date(year, month, 0).getDate();
-                
-                for (let i = firstDay - 1; i >= 0; i--) {
-                    html += `<div class="mini-calendar-day other-month"><div class="mini-calendar-day-number">${daysInPrevMonth - i}</div></div>`;
-                }
-                
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const isToday = (day === today.getDate() && month === today.getMonth() && year === today.getFullYear());
-                    const hasEvent = (day % 5 === 0); // Example: simulate events every 5 days
-                    html += `
-                        <div class="mini-calendar-day ${isToday ? 'today' : ''} ${hasEvent ? 'has-event' : ''}">
-                            <div class="mini-calendar-day-number">${day}</div>
-                            ${hasEvent ? '<span class="event-dot"></span>' : ''}
-                        </div>
-                    `;
-                }
-                
-                const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
-                const remainingCells = totalCells - (firstDay + daysInMonth);
-                for (let day = 1; day <= remainingCells; day++) {
-                    html += `<div class="mini-calendar-day other-month"><div class="mini-calendar-day-number">${day}</div></div>`;
-                }
-                
-                html += '</div>';
-                dashboardCalendarEl.innerHTML = html;
-            }
-            
-            window.dashboardMonth = today.getMonth();
-            window.dashboardYear = today.getFullYear();
-            
-            window.changeDashboardMonth = function(delta) {
-                window.dashboardMonth += delta;
-                if (window.dashboardMonth > 11) {
-                    window.dashboardMonth = 0;
-                    window.dashboardYear++;
-                } else if (window.dashboardMonth < 0) {
-                    window.dashboardMonth = 11;
-                    window.dashboardYear--;
-                }
-                generateDashboardCalendar(window.dashboardMonth, window.dashboardYear);
-            };
-        }
-        
-        // Generate default dashboard calendar widget if it exists
-        const dashboardWidgetEl = document.getElementById('dashboard-calendar-widget');
-        if (dashboardWidgetEl) {
-            const today = new Date();
-            generateDashboardWidgetCalendar(today.getMonth(), today.getFullYear());
-            
-            function generateDashboardWidgetCalendar(month, year) {
-                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                                   'July', 'August', 'September', 'October', 'November', 'December'];
-                const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                
-                let html = `
-                    <div class="calendar-header mb-3" style="display: flex; justify-content: space-between; align-items: center;">
-                        <button class="btn btn-secondary btn-sm" onclick="changeWidgetMonth(-1)">
-                            <i class="fas fa-chevron-left"></i> Previous
-                        </button>
-                        <h4>${monthNames[month]} ${year}</h4>
-                        <button class="btn btn-secondary btn-sm" onclick="changeWidgetMonth(1)">
-                            Next <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
-                    <div class="mini-calendar-grid">
-                `;
-                
-                weekdays.forEach(day => {
-                    html += `<div class="mini-calendar-weekday">${day}</div>`;
-                });
-                
-                const firstDay = new Date(year, month, 1).getDay();
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-                const daysInPrevMonth = new Date(year, month, 0).getDate();
-                
-                for (let i = firstDay - 1; i >= 0; i--) {
-                    html += `<div class="mini-calendar-day other-month"><div class="mini-calendar-day-number">${daysInPrevMonth - i}</div></div>`;
-                }
-                
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const isToday = (day === today.getDate() && month === today.getMonth() && year === today.getFullYear());
-                    const hasEvent = (day % 7 === 0); // Example: events every 7 days
-                    html += `
-                        <div class="mini-calendar-day ${isToday ? 'today' : ''} ${hasEvent ? 'has-event' : ''}">
-                            <div class="mini-calendar-day-number">${day}</div>
-                            ${hasEvent ? '<span class="event-dot"></span>' : ''}
-                        </div>
-                    `;
-                }
-                
-                const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
-                const remainingCells = totalCells - (firstDay + daysInMonth);
-                for (let day = 1; day <= remainingCells; day++) {
-                    html += `<div class="mini-calendar-day other-month"><div class="mini-calendar-day-number">${day}</div></div>`;
-                }
-                
-                html += '</div>';
-                dashboardWidgetEl.innerHTML = html;
-            }
-            
-            window.widgetMonth = today.getMonth();
-            window.widgetYear = today.getFullYear();
-            
-            window.changeWidgetMonth = function(delta) {
-                window.widgetMonth += delta;
-                if (window.widgetMonth > 11) {
-                    window.widgetMonth = 0;
-                    window.widgetYear++;
-                } else if (window.widgetMonth < 0) {
-                    window.widgetMonth = 11;
-                    window.widgetYear--;
-                }
-                generateDashboardWidgetCalendar(window.widgetMonth, window.widgetYear);
-            };
-        }
-        
-        // Global table enhancement functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            enhanceAllTables();
-            // Delay to ensure all content is loaded
-            setTimeout(highlightActiveSidebarLink, 100);
-        });
-        
-        // Also run on page load as backup
-        window.addEventListener('load', highlightActiveSidebarLink);
-
-        // Highlight active sidebar link
-        function highlightActiveSidebarLink() {
-            // Normalize path (remove trailing slash for comparison, except root)
-            let currentPath = window.location.pathname;
-            currentPath = currentPath.length > 1 && currentPath.endsWith('/') ? currentPath.slice(0, -1) : currentPath;
-            
-            const sidebarLinks = document.querySelectorAll('.sidebar-menu a');
-
-            // Remove active class from all first
-            sidebarLinks.forEach(link => {
-                const li = link.closest('li');
-                if (li) li.classList.remove('active');
-            });
-
-            // Find the best match
-            let bestMatch = null;
-            let bestMatchLength = 0;
-
-            sidebarLinks.forEach(link => {
-                try {
-                    let linkPath = new URL(link.href, window.location.origin).pathname;
-                    // Normalize link path too
-                    linkPath = linkPath.length > 1 && linkPath.endsWith('/') ? linkPath.slice(0, -1) : linkPath;
-                    
-                    // Exact match takes highest priority
-                    if (currentPath === linkPath) {
-                        bestMatch = link;
-                        bestMatchLength = linkPath.length;
-                    }
-                    // Partial match - check if current path starts with link path
-                    else if (currentPath.startsWith(linkPath + '/') && linkPath.length > bestMatchLength && linkPath !== '') {
-                        bestMatch = link;
-                        bestMatchLength = linkPath.length;
-                    }
-                } catch (e) {
-                    console.error('Error processing link:', link.href, e);
-                }
-            });
-
-            // Apply active class to best match
-            if (bestMatch) {
-                const li = bestMatch.closest('li');
-                if (li) {
-                    li.classList.add('active');
-                }
-            }
-        }
-
-        function enhanceAllTables() {
-            const tables = document.querySelectorAll('.table, .modern-table, table');
-            
-            tables.forEach(table => {
-                // Skip if already enhanced
-                if (table.classList.contains('enhanced')) return;
-                
-                // Skip if table has no thead (not a data table)
-                if (!table.querySelector('thead')) return;
-                
-                // Add search and filter controls
-                addTableControls(table);
-                
-                // Make headers sortable
-                makeSortable(table);
-                
-                table.classList.add('enhanced');
-            });
-        }
-
-        function addTableControls(table) {
-            const wrapper = table.closest('.table-responsive') || table.parentElement;
-            
-            // Create controls container
-            const controls = document.createElement('div');
-            controls.className = 'table-controls';
-            controls.innerHTML = `
-                <div class="table-search">
-                    <input type="text" placeholder="Search table..." class="table-search-input">
-                </div>
-                <div class="table-filter">
-                    <select class="table-rows-select">
-                        <option value="10">Show 10</option>
-                        <option value="25" selected>Show 25</option>
-                        <option value="50">Show 50</option>
-                        <option value="all">Show All</option>
-                    </select>
-                </div>
-            `;
-            
-            wrapper.insertBefore(controls, table);
-            
-            // Add search functionality
-            const searchInput = controls.querySelector('.table-search-input');
-            searchInput.addEventListener('input', function() {
-                filterTable(table, this.value.toLowerCase());
-            });
-            
-            // Add rows limit functionality
-            const rowsSelect = controls.querySelector('.table-rows-select');
-            rowsSelect.addEventListener('change', function() {
-                limitTableRows(table, this.value);
-            });
-            
-            // Add table info
-            const info = document.createElement('div');
-            info.className = 'table-info';
-            updateTableInfo(table, info);
-            wrapper.appendChild(info);
-            
-            // Initialize with default limit
-            limitTableRows(table, '25');
-        }
-
-        function filterTable(table, searchText) {
-            const tbody = table.querySelector('tbody');
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            let visibleCount = 0;
-            
-            rows.forEach(row => {
-                // Skip the "empty" row
-                if (row.cells.length === 1 && row.cells[0].getAttribute('colspan')) {
-                    row.style.display = 'none';
-                    return;
-                }
-                
-                const text = row.textContent.toLowerCase();
-                const shouldShow = searchText === '' || text.includes(searchText);
-                row.style.display = shouldShow ? '' : 'none';
-                if (shouldShow && !row.classList.contains('hidden-by-limit')) {
-                    visibleCount++;
-                }
-            });
-            
-            // Update info
-            const wrapper = table.closest('.table-responsive') || table.parentElement;
-            const info = wrapper.querySelector('.table-info');
-            if (info) {
-                updateTableInfo(table, info);
-            }
-            
-            // Show "no results" if needed
-            if (visibleCount === 0 && searchText !== '') {
-                showNoResults(table);
-            } else {
-                hideNoResults(table);
-            }
-        }
-
-        function limitTableRows(table, limit) {
-            const tbody = table.querySelector('tbody');
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            
-            rows.forEach((row, index) => {
-                // Skip the "empty" row
-                if (row.cells.length === 1 && row.cells[0].getAttribute('colspan')) {
-                    return;
-                }
-                
-                if (limit === 'all' || index < parseInt(limit)) {
-                    row.classList.remove('hidden-by-limit');
-                    if (row.style.display !== 'none') {
-                        row.style.display = '';
-                    }
-                } else {
-                    row.classList.add('hidden-by-limit');
-                    row.style.display = 'none';
-                }
-            });
-            
-            const wrapper = table.closest('.table-responsive') || table.parentElement;
-            const info = wrapper.querySelector('.table-info');
-            if (info) {
-                updateTableInfo(table, info);
-            }
-        }
-
-        function makeSortable(table) {
-            const headers = table.querySelectorAll('thead th');
-            
-            headers.forEach((header, index) => {
-                // Skip action columns
-                if (header.textContent.toLowerCase().includes('action')) {
-                    return;
-                }
-                
-                header.addEventListener('click', function() {
-                    sortTable(table, index, this);
-                });
-            });
-        }
-
-        function sortTable(table, columnIndex, header) {
-            const tbody = table.querySelector('tbody');
-            const rows = Array.from(tbody.querySelectorAll('tr')).filter(row => {
-                return !(row.cells.length === 1 && row.cells[0].getAttribute('colspan'));
-            });
-            
-            // Determine sort direction
-            const isAsc = header.classList.contains('sort-asc');
-            
-            // Remove sort classes from all headers
-            table.querySelectorAll('thead th').forEach(th => {
-                th.classList.remove('sort-asc', 'sort-desc');
-            });
-            
-            // Add appropriate class
-            header.classList.add(isAsc ? 'sort-desc' : 'sort-asc');
-            
-            // Sort rows
-            rows.sort((a, b) => {
-                const aText = a.cells[columnIndex]?.textContent.trim() || '';
-                const bText = b.cells[columnIndex]?.textContent.trim() || '';
-                
-                // Try numeric comparison
-                const aNum = parseFloat(aText.replace(/[^0-9.-]/g, ''));
-                const bNum = parseFloat(bText.replace(/[^0-9.-]/g, ''));
-                
-                if (!isNaN(aNum) && !isNaN(bNum)) {
-                    return isAsc ? bNum - aNum : aNum - bNum;
-                }
-                
-                // String comparison
-                return isAsc ? bText.localeCompare(aText) : aText.localeCompare(bText);
-            });
-            
-            // Re-append rows in sorted order
-        }
-    });
-    </script>
-
-    <!-- Global Message Modal -->
-    {% include 'includes/message_modal.html' %}
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{% static 'js/modern-dashboard.js' %}"></script>
-    <script src="{% static 'js/global-messages.js' %}"></script>
-    
-    {% block extra_js %}{% endblock %}
-</body>
-</html>
+<!-- Additional Charts and Info -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="modern-card">
+            <h4 class="mb-3"><i class="fas fa-chart-line"></i> Attendance Overview</h4>
+            <div class="text-center py-5">
+                <p class="text-muted">Attendance chart will appear here</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="modern-card">
+            <h4 class="mb-3"><i class="fas fa-chart-pie"></i> Fee Collection</h4>
+            <div class="text-center py-5">
+                <p class="text-muted">Fee collection chart will appear here</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Grade Submissions{% endblock %}
+{% block page_icon %}clipboard-check{% endblock %}
+{% block page_title %}Grade Student Submissions{% endblock %}
+{% block page_subtitle %}Review and grade student exam submissions{% endblock %}
+
+{% block content %}
+
+    <div class="modern-card">
+        <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Exam</th>
+                            <th>Subject</th>
+                            <th>Submitted At</th>
+                            <th>Status</th>
+                            <th>Score</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for submission in submissions %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="user-avatar me-2">
+                                        {{ submission.student.first_name|slice:":1" }}
+                                    </div>
+                                    <div>
+                                        <strong>{{ submission.student.first_name }} {{ submission.student.last_name }}</strong>
+                                        <br><small class="text-muted">{{ submission.student.admission_number }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <strong>{{ submission.exam.name }}</strong>
+                                <br><small class="text-muted">{{ submission.exam.get_exam_type_display }}</small>
+                            </td>
+                            <td>{{ submission.exam.subject.name|default:"N/A" }}</td>
+                            <td>{{ submission.submitted_at|date:"M d, Y H:i" }}</td>
+                            <td>
+                                {% if submission.status == 'submitted' %}
+                                <span class="badge bg-warning">Pending Grading</span>
+                                {% elif submission.status == 'graded' %}
+                                <span class="badge bg-success">Graded</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if submission.status == 'graded' %}
+                                <strong class="{% if submission.is_passed %}text-success{% else %}text-danger{% endif %}">
+                                    {{ submission.points_obtained }}/{{ submission.total_points }}
+                                    ({{ submission.percentage|floatformat:1 }}%)
+                                </strong>
+                                {% if submission.grade %}
+                                <br><span class="badge bg-info">{{ submission.grade.name }}</span>
+                                {% endif %}
+                                {% else %}
+                                <span class="text-muted">Not graded yet</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'examinations:teacher_grade_submission' school_slug=school_slug submission_id=submission.id %}" 
+                                   class="btn btn-sm btn-primary">
+                                    <i class="fas fa-edit"></i> {% if submission.status == 'graded' %}Review{% else %}Grade{% endif %}
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-3x mb-3"></i>
+                                <p>No submissions to grade yet.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+    </div>
+{% endblock %}

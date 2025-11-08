@@ -1,0 +1,28 @@
+{% extends 'emails/base.html' %}
+
+{% block title %}Student Enrollment Confirmation{% endblock %}
+
+{% block header %}Student Enrolled{% endblock %}
+
+{% block content %}
+<h2>Student Enrollment Confirmation</h2>
+
+<p>Your child has been successfully enrolled at {{ school.name }}.</p>
+
+<div class="info-box">
+    <strong>Student Details:</strong><br>
+    <strong>Name:</strong> {{ student.get_full_name }}<br>
+    <strong>School:</strong> {{ school.name }}<br>
+    {% if student.admission_number %}
+    <strong>Admission Number:</strong> {{ student.admission_number }}<br>
+    {% endif %}
+    {% if student.current_class %}
+    <strong>Class:</strong> {{ student.current_class.name }}<br>
+    {% endif %}
+</div>
+
+<p>You can now log in to track your child's academic progress, attendance, and fee status.</p>
+
+<p>Best regards,<br>
+{{ school.name }}</p>
+{% endblock %}

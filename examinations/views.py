@@ -8,7 +8,7 @@ from django.utils.decorators import method_decorator
 
 # Check if models exist
 try:
-    from .models import Exam, Grade, ExamMark, ExamResult, ExamQuestion
+    from .models import Exam, Grade, ExamMark, ExamResult, ExamQuestion, ExamSubmission, QuestionAnswer
     MODELS_EXIST = True
 except ImportError:
     MODELS_EXIST = False
@@ -23,6 +23,10 @@ except ImportError:
         pass
     class ExamQuestion:
         pass
+    class ExamSubmission:
+        pass
+    class QuestionAnswer:
+        pass
 
 
 class ExamListView(LoginRequiredMixin, ListView):
@@ -36,7 +40,26 @@ class ExamListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['school_slug'] = self.kwargs.get('school_slug', '')
+        school_slug = self.kwargs.get('school_slug', '')
+        context['school_slug'] = school_slug
+        
+        # Add school object to context
+        from tenants.models import School
+        try:
+            school = School.objects.get(slug=school_slug, is_active=True)
+            context['school'] = school
+        except School.DoesNotExist:
+            context['school'] = None
+        
+        # Add classes and subjects for the form
+        if MODELS_EXIST:
+            from academics.models import Class, Subject
+            context['classes'] = Class.objects.filter(is_active=True)
+            context['subjects'] = Subject.objects.filter(is_active=True)
+        else:
+            context['classes'] = []
+            context['subjects'] = []
+        
         return context
 
 
@@ -47,6 +70,10 @@ class ExamCreateView(LoginRequiredMixin, CreateView):
         try:
             is_online = request.POST.get('is_online') == 'true'
             duration = request.POST.get('duration_minutes')
+            class_id = request.POST.get('class_assigned')
+            subject_id = request.POST.get('subject')
+            
+            from academics.models import Class, Subject
             
             exam = Exam.objects.create(
                 name=request.POST.get('name'),
@@ -56,8 +83,23 @@ class ExamCreateView(LoginRequiredMixin, CreateView):
                 note=request.POST.get('note', ''),
                 is_published=False,
                 is_online=is_online,
-                duration_minutes=int(duration) if duration else None
+                duration_minutes=int(duration) if duration else None,
+                class_assigned=Class.objects.get(pk=class_id) if class_id else None,
+                subject=Subject.objects.get(pk=subject_id) if subject_id else None,
+                created_by=request.user
             )
+            
+            # Send notifications to students, teachers, and admins
+            from core.notifications import NotificationService
+            from tenants.models import School
+            try:
+                school_slug = self.kwargs.get('school_slug')
+                school = School.objects.get(slug=school_slug) if school_slug else None
+                if school:
+                    NotificationService.notify_exam_created(exam, request.user, school)
+            except Exception as e:
+                print(f"Error sending exam notifications: {e}")
+            
             return JsonResponse({'success': True, 'exam_id': exam.id})
         except Exception as e:
             import traceback
@@ -239,21 +281,131 @@ class QuestionDeleteView(LoginRequiredMixin, View):
             return JsonResponse({'success': False, 'error': str(e)})
 
 
-class MarksEntryView(LoginRequiredMixin, ListView):
+class MarksEntryView(LoginRequiredMixin, TemplateView):
     template_name = 'examinations/marks_entry.html'
-    context_object_name = 'marks'
-    
-    def get_queryset(self):
-        if MODELS_EXIST:
-            return ExamMark.objects.all()
-        return []
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
+        
         if MODELS_EXIST:
-            context['exams'] = Exam.objects.all()
+            from academics.models import Class, Subject
+            context['exams'] = Exam.objects.all().select_related('class_assigned', 'subject')
+            context['classes'] = Class.objects.filter(is_active=True)
+            context['subjects'] = Subject.objects.filter(is_active=True)
+        
         return context
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class GetStudentsForMarksEntryView(LoginRequiredMixin, View):
+    """AJAX view to get students for marks entry based on exam"""
+    def get(self, request, exam_id, *args, **kwargs):
+        try:
+            if not MODELS_EXIST:
+                return JsonResponse({'success': False, 'error': 'Models not available'})
+            
+            from students.models import Student
+            
+            exam = Exam.objects.get(pk=exam_id)
+            
+            # Get all students in the exam's class
+            students = Student.objects.filter(
+                current_class=exam.class_assigned,
+                is_active=True
+            ).order_by('first_name', 'last_name')
+            
+            students_data = []
+            for student in students:
+                # Check if marks already exist
+                try:
+                    mark = ExamMark.objects.get(
+                        exam=exam,
+                        student=student,
+                        subject=exam.subject if exam.subject else None
+                    )
+                    marks_obtained = float(mark.marks_obtained)
+                    remarks = mark.remarks
+                except ExamMark.DoesNotExist:
+                    marks_obtained = None
+                    remarks = ''
+                
+                students_data.append({
+                    'id': student.id,
+                    'name': f"{student.first_name} {student.last_name}",
+                    'admission_number': student.admission_number,
+                    'marks_obtained': marks_obtained,
+                    'remarks': remarks
+                })
+            
+            return JsonResponse({
+                'success': True,
+                'students': students_data,
+                'exam_name': exam.name,
+                'subject_name': exam.subject.name if exam.subject else 'General'
+            })
+        except Exam.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Exam not found'})
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)})
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class SaveMarksEntryView(LoginRequiredMixin, View):
+    """AJAX view to save marks for multiple students"""
+    def post(self, request, exam_id, *args, **kwargs):
+        try:
+            if not MODELS_EXIST:
+                return JsonResponse({'success': False, 'error': 'Models not available'})
+            
+            import json
+            from decimal import Decimal
+            from students.models import Student
+            
+            exam = Exam.objects.get(pk=exam_id)
+            marks_data = json.loads(request.POST.get('marks', '[]'))
+            total_marks = Decimal(request.POST.get('total_marks', '100'))
+            
+            saved_count = 0
+            for mark_entry in marks_data:
+                student = Student.objects.get(pk=mark_entry['student_id'])
+                marks_obtained = Decimal(str(mark_entry.get('marks_obtained', 0)))
+                
+                # Create or update exam mark
+                mark, created = ExamMark.objects.update_or_create(
+                    exam=exam,
+                    student=student,
+                    subject=exam.subject if exam.subject else None,
+                    defaults={
+                        'marks_obtained': marks_obtained,
+                        'total_marks': total_marks,
+                        'remarks': mark_entry.get('remarks', '')
+                    }
+                )
+                
+                # Assign grade based on percentage
+                percentage = (marks_obtained / total_marks) * 100 if total_marks > 0 else 0
+                grade = Grade.objects.filter(
+                    min_percentage__lte=percentage,
+                    max_percentage__gte=percentage
+                ).first()
+                mark.grade = grade
+                mark.save()
+                
+                saved_count += 1
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Marks saved for {saved_count} students successfully!'
+            })
+        except Exam.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Exam not found'})
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)})
 
 
 class ResultView(LoginRequiredMixin, TemplateView):
@@ -263,3 +415,327 @@ class ResultView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
         return context
+
+
+class StudentExamTakeView(LoginRequiredMixin, DetailView):
+    """View for students to take an exam"""
+    model = Exam
+    template_name = 'examinations/student_take_exam.html'
+    context_object_name = 'exam'
+    pk_url_kwarg = 'exam_id'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school_slug'] = self.kwargs.get('school_slug', '')
+        
+        if MODELS_EXIST and hasattr(self.request.user, 'student_profile'):
+            student = self.request.user.student_profile
+            exam = self.object
+            
+            # Get or create submission
+            submission, created = ExamSubmission.objects.get_or_create(
+                exam=exam,
+                student=student,
+                defaults={'status': 'not_started'}
+            )
+            context['submission'] = submission
+            
+            # Get questions
+            context['questions'] = exam.questions.all().order_by('order')
+            
+            # Get existing answers
+            answers_dict = {}
+            for answer in submission.answers.all():
+                answers_dict[answer.question.id] = answer
+            context['answers_dict'] = answers_dict
+        
+        return context
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class StudentSubmitAnswerView(LoginRequiredMixin, View):
+    """AJAX view for students to submit answers"""
+    def post(self, request, exam_id, *args, **kwargs):
+        try:
+            if not MODELS_EXIST or not hasattr(request.user, 'student_profile'):
+                return JsonResponse({'success': False, 'error': 'Not authorized'})
+            
+            from django.utils import timezone
+            student = request.user.student_profile
+            exam = Exam.objects.get(pk=exam_id)
+            question_id = request.POST.get('question_id')
+            question = ExamQuestion.objects.get(pk=question_id, exam=exam)
+            
+            # Get or create submission
+            submission, created = ExamSubmission.objects.get_or_create(
+                exam=exam,
+                student=student,
+                defaults={'status': 'in_progress', 'started_at': timezone.now()}
+            )
+            
+            # Update status to in_progress if it was not_started
+            if submission.status == 'not_started':
+                submission.status = 'in_progress'
+                submission.started_at = timezone.now()
+                submission.save()
+            
+            # Create or update answer
+            answer, created = QuestionAnswer.objects.get_or_create(
+                submission=submission,
+                question=question
+            )
+            
+            if question.question_type in ['multiple_choice', 'true_false']:
+                answer.selected_option = request.POST.get('answer', '')
+            else:
+                answer.answer_text = request.POST.get('answer', '')
+            
+            answer.save()
+            
+            # Auto-grade if multiple choice or true/false
+            answer.auto_grade()
+            
+            return JsonResponse({'success': True, 'message': 'Answer saved'})
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)})
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class StudentSubmitExamView(LoginRequiredMixin, View):
+    """View for students to submit the complete exam"""
+    def post(self, request, exam_id, *args, **kwargs):
+        try:
+            if not MODELS_EXIST or not hasattr(request.user, 'student_profile'):
+                return JsonResponse({'success': False, 'error': 'Not authorized'})
+            
+            from django.utils import timezone
+            from decimal import Decimal
+            
+            student = request.user.student_profile
+            exam = Exam.objects.get(pk=exam_id)
+            
+            submission = ExamSubmission.objects.get(exam=exam, student=student)
+            submission.status = 'submitted'
+            submission.submitted_at = timezone.now()
+            
+            # Calculate time taken
+            if submission.started_at:
+                time_diff = submission.submitted_at - submission.started_at
+                submission.time_taken_minutes = int(time_diff.total_seconds() / 60)
+            
+            # Calculate total points and auto-graded points
+            total_points = Decimal('0')
+            points_obtained = Decimal('0')
+            
+            for question in exam.questions.all():
+                total_points += question.points
+                
+                try:
+                    answer = QuestionAnswer.objects.get(submission=submission, question=question)
+                    if answer.points_awarded is not None:
+                        points_obtained += answer.points_awarded
+                except QuestionAnswer.DoesNotExist:
+                    pass
+            
+            submission.total_points = total_points
+            submission.points_obtained = points_obtained
+            
+            if total_points > 0:
+                submission.percentage = (points_obtained / total_points) * 100
+            
+            # Check if needs manual grading
+            has_essay = exam.questions.filter(question_type__in=['essay', 'short_answer']).exists()
+            if not has_essay:
+                submission.status = 'graded'
+            
+            submission.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Exam submitted successfully!',
+                'needs_grading': has_essay
+            })
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)})
+
+
+class TeacherGradingListView(LoginRequiredMixin, ListView):
+    """View for teachers to see all submissions needing grading"""
+    template_name = 'examinations/teacher_grading_list.html'
+    context_object_name = 'submissions'
+    
+    def get_queryset(self):
+        if not MODELS_EXIST:
+            return []
+        
+        # Show submitted exams that need grading
+        return ExamSubmission.objects.filter(
+            status__in=['submitted', 'graded']
+        ).select_related('exam', 'student', 'student__user').order_by('-submitted_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school_slug'] = self.kwargs.get('school_slug', '')
+        return context
+
+
+class TeacherGradeSubmissionView(LoginRequiredMixin, DetailView):
+    """View for teachers to grade a specific submission"""
+    model = ExamSubmission
+    template_name = 'examinations/teacher_grade_submission.html'
+    context_object_name = 'submission'
+    pk_url_kwarg = 'submission_id'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school_slug'] = self.kwargs.get('school_slug', '')
+        
+        if MODELS_EXIST:
+            submission = self.object
+            context['answers'] = submission.answers.all().select_related('question').order_by('question__order')
+        
+        return context
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class TeacherSaveGradingView(LoginRequiredMixin, View):
+    """AJAX view for teachers to save grading"""
+    def post(self, request, submission_id, *args, **kwargs):
+        try:
+            if not MODELS_EXIST:
+                return JsonResponse({'success': False, 'error': 'Models not available'})
+            
+            from django.utils import timezone
+            from decimal import Decimal
+            import json
+            
+            submission = ExamSubmission.objects.get(pk=submission_id)
+            
+            # Update answer grades
+            answers_data = json.loads(request.POST.get('answers', '[]'))
+            for answer_data in answers_data:
+                answer = QuestionAnswer.objects.get(pk=answer_data['answer_id'])
+                answer.points_awarded = Decimal(str(answer_data.get('points', 0)))
+                answer.teacher_feedback = answer_data.get('feedback', '')
+                
+                # For essay/short answer questions
+                if answer.question.question_type in ['essay', 'short_answer']:
+                    answer.is_correct = answer.points_awarded >= (answer.question.points * Decimal('0.5'))
+                
+                answer.save()
+            
+            # Recalculate total
+            total_points = Decimal('0')
+            points_obtained = Decimal('0')
+            
+            for answer in submission.answers.all():
+                total_points += answer.question.points
+                points_obtained += answer.points_awarded
+            
+            submission.total_points = total_points
+            submission.points_obtained = points_obtained
+            
+            if total_points > 0:
+                submission.percentage = (points_obtained / total_points) * 100
+            
+            # Update status and metadata
+            submission.status = 'graded'
+            submission.teacher_remarks = request.POST.get('remarks', '')
+            submission.graded_by = request.user
+            submission.graded_at = timezone.now()
+            
+            # Assign grade based on percentage
+            if MODELS_EXIST:
+                grade = Grade.objects.filter(
+                    min_percentage__lte=submission.percentage,
+                    max_percentage__gte=submission.percentage
+                ).first()
+                submission.grade = grade
+            
+            submission.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Grading saved successfully!',
+                'percentage': float(submission.percentage)
+            })
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)})
+
+
+class StudentResultsView(LoginRequiredMixin, ListView):
+    """View for students to see their exam results"""
+    template_name = 'examinations/student_results.html'
+    context_object_name = 'submissions'
+    
+    def get_queryset(self):
+        if not MODELS_EXIST or not hasattr(self.request.user, 'student_profile'):
+            return []
+        
+        student = self.request.user.student_profile
+        return ExamSubmission.objects.filter(
+            student=student,
+            status='graded'
+        ).select_related('exam', 'grade').order_by('-submitted_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school_slug'] = self.kwargs.get('school_slug', '')
+        return context
+
+
+class StudentResultDetailView(LoginRequiredMixin, DetailView):
+    """View for students to see detailed results and submit corrections"""
+    model = ExamSubmission
+    template_name = 'examinations/student_result_detail.html'
+    context_object_name = 'submission'
+    pk_url_kwarg = 'submission_id'
+    
+    def get_queryset(self):
+        if not MODELS_EXIST or not hasattr(self.request.user, 'student_profile'):
+            return ExamSubmission.objects.none()
+        
+        student = self.request.user.student_profile
+        return ExamSubmission.objects.filter(student=student, status='graded')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school_slug'] = self.kwargs.get('school_slug', '')
+        
+        if MODELS_EXIST:
+            submission = self.object
+            context['answers'] = submission.answers.all().select_related('question').order_by('question__order')
+        
+        return context
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class StudentSubmitCorrectionView(LoginRequiredMixin, View):
+    """AJAX view for students to submit corrections"""
+    def post(self, request, answer_id, *args, **kwargs):
+        try:
+            if not MODELS_EXIST or not hasattr(request.user, 'student_profile'):
+                return JsonResponse({'success': False, 'error': 'Not authorized'})
+            
+            from django.utils import timezone
+            
+            student = request.user.student_profile
+            answer = QuestionAnswer.objects.get(pk=answer_id, submission__student=student)
+            
+            answer.correction_text = request.POST.get('correction', '')
+            answer.correction_submitted_at = timezone.now()
+            answer.save()
+            
+            return JsonResponse({'success': True, 'message': 'Correction submitted!'})
+        except QuestionAnswer.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Answer not found'})
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)})

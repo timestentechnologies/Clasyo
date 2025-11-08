@@ -1,0 +1,25 @@
+{% extends 'emails/base.html' %}
+
+{% block title %}Welcome - Teacher Account Created{% endblock %}
+
+{% block header %}Welcome to {{ school.name }}!{% endblock %}
+
+{% block content %}
+<h2>Hello {{ teacher.get_full_name }}!</h2>
+
+<p>Your teacher account has been created at {{ school.name }}. Welcome to our team!</p>
+
+<div class="info-box">
+    <strong>Account Details:</strong><br>
+    <strong>Email:</strong> {{ teacher.email }}<br>
+    <strong>School:</strong> {{ school.name }}<br>
+    <strong>Role:</strong> Teacher
+</div>
+
+<p>You can now access the system to manage your classes, mark attendance, and enter grades.</p>
+
+<p>If you have any questions, please contact the school administration.</p>
+
+<p>Best regards,<br>
+{{ school.name }}</p>
+{% endblock %}

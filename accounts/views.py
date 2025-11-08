@@ -59,38 +59,45 @@ class LoginView(View):
                     user.last_login_ip = ip_address
                     user.save(update_fields=['last_login_ip'])
                     
-                    messages.success(request, f'Welcome back, {user.get_full_name()}!')
-                    
-                    # Check if there's a next URL parameter
-                    next_url = request.GET.get('next')
+                    # Check if there's a next URL parameter in GET or POST
+                    next_url = request.GET.get('next') or request.POST.get('next')
                     
                     # Super admin ALWAYS goes to super admin dashboard (ignore next URL)
-                    if user.role == 'superadmin':  # Fixed: was 'super_admin'
+                    if user.role == 'superadmin':
+                        messages.success(request, f'Welcome back, {user.get_full_name()}!')
                         return redirect('superadmin:dashboard')
                     
                     # For other roles, use next URL if provided
-                    if next_url:
+                    if next_url and next_url.startswith('/'):
+                        messages.success(request, f'Welcome back, {user.get_full_name()}!')
                         return redirect(next_url)
                     
-                    # Other roles need a school - get from user's school or demo school
+                    # Other roles need a school - get from user's school or first active school
                     from tenants.models import School
-                    try:
-                        # Try to get demo school or first active school
-                        school = School.objects.filter(is_active=True).first()
-                        if school:
-                            return redirect('core:dashboard', school_slug=school.slug)
-                        else:
-                            messages.error(request, 'No active school found. Please contact administrator.')
-                            return redirect('frontend:home')
-                    except Exception as e:
-                        messages.error(request, 'Error finding school. Please contact administrator.')
+                    
+                    # Get the school associated with the user or first active school
+                    school = School.objects.filter(is_active=True).first()
+                    
+                    if school:
+                        # Redirect to school dashboard
+                        messages.success(request, f'Welcome back, {user.get_full_name()}!')
+                        return redirect('core:dashboard', school_slug=school.slug)
+                    else:
+                        # No school found - stay on home page with message
+                        messages.warning(request, f'Welcome {user.get_full_name()}! No school associated with your account. Please contact administrator.')
                         return redirect('frontend:home')
                 else:
                     messages.error(request, 'Your account is inactive. Please contact the administrator.')
+                    return redirect('frontend:home')
             else:
                 messages.error(request, 'Invalid email or password.')
-        
-        return render(request, self.template_name, {'form': form})
+                return redirect('frontend:home')
+        else:
+            # Form validation failed
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
+            return redirect('frontend:home')
 
 
 class LogoutView(LoginRequiredMixin, View):
@@ -109,7 +116,7 @@ class LogoutView(LoginRequiredMixin, View):
         
         logout(request)
         messages.success(request, 'You have been logged out successfully.')
-        return redirect('accounts:login')
+        return redirect('frontend:home')
 
 
 class RegisterView(View):
@@ -128,17 +135,81 @@ class RegisterView(View):
         if form.is_valid():
             user = form.save(commit=False)
             user.is_verified = False
+            raw_password = form.cleaned_data.get('password')
             user.save()
             
-            messages.success(request, 'Registration successful! Please login.')
+            # Send notification and email
+            from core.notifications import NotificationService
+            try:
+                # Use the user themselves as creator for self-registration
+                NotificationService.notify_user_created(user, user, raw_password)
+            except Exception as e:
+                print(f"Error sending notification: {e}")
+            
+            messages.success(request, 'Registration successful! Please check your email and login.')
             return redirect('accounts:login')
         
         return render(request, self.template_name, {'form': form})
 
 
-class PasswordResetView(TemplateView):
-    """Password reset view"""
-    template_name = 'accounts/password_reset.html'
+class PasswordResetView(View):
+    """Password reset request view - handles sending reset emails"""
+    
+    def post(self, request):
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.http import urlsafe_base64_encode
+        from django.utils.encoding import force_bytes
+        from django.template.loader import render_to_string
+        from django.core.mail import send_mail
+        from django.conf import settings
+        
+        email = request.POST.get('email')
+        
+        try:
+            user = User.objects.get(email=email)
+            
+            # Generate password reset token
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            
+            # Build reset URL
+            reset_url = request.build_absolute_uri(
+                f'/accounts/password-reset/confirm/{uid}/{token}/'
+            )
+            
+            # Send email (you'll need to configure email settings)
+            subject = 'Password Reset Request - Clasyo'
+            message = f'''
+Hello {user.get_full_name()},
+
+You have requested to reset your password. Click the link below to reset it:
+
+{reset_url}
+
+If you didn't request this, please ignore this email.
+
+Best regards,
+Clasyo Team
+            '''
+            
+            try:
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [email],
+                    fail_silently=False,
+                )
+                messages.success(request, 'Password reset instructions have been sent to your email.')
+            except Exception as e:
+                # If email fails, still show success message for security
+                messages.success(request, 'If an account exists with that email, password reset instructions have been sent.')
+                
+        except User.DoesNotExist:
+            # Don't reveal if user exists or not for security
+            messages.success(request, 'If an account exists with that email, password reset instructions have been sent.')
+        
+        return redirect('frontend:home')
 
 
 class PasswordResetDoneView(TemplateView):
@@ -146,9 +217,71 @@ class PasswordResetDoneView(TemplateView):
     template_name = 'accounts/password_reset_done.html'
 
 
-class PasswordResetConfirmView(TemplateView):
-    """Password reset confirm view"""
-    template_name = 'accounts/password_reset_confirm.html'
+class PasswordResetConfirmView(View):
+    """Password reset confirm view - handles setting new password"""
+    template_name = 'frontend/password_reset_form.html'
+    
+    def get(self, request, uidb64, token):
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.http import urlsafe_base64_decode
+        from django.utils.encoding import force_str
+        
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            user = None
+        
+        if user is not None and default_token_generator.check_token(user, token):
+            # Show the password reset form
+            return render(request, self.template_name, {
+                'uidb64': uidb64,
+                'token': token,
+                'validlink': True
+            })
+        else:
+            messages.error(request, 'The password reset link is invalid or has expired.')
+            return redirect('frontend:home')
+    
+    def post(self, request, uidb64, token):
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.http import urlsafe_base64_decode
+        from django.utils.encoding import force_str
+        
+        password = request.POST.get('password')
+        password2 = request.POST.get('password2')
+        
+        if password != password2:
+            messages.error(request, 'Passwords do not match!')
+            return render(request, self.template_name, {
+                'uidb64': uidb64,
+                'token': token,
+                'validlink': True
+            })
+        
+        if len(password) < 8:
+            messages.error(request, 'Password must be at least 8 characters long!')
+            return render(request, self.template_name, {
+                'uidb64': uidb64,
+                'token': token,
+                'validlink': True
+            })
+        
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            messages.error(request, 'Invalid password reset link.')
+            return redirect('frontend:home')
+        
+        if user is not None and default_token_generator.check_token(user, token):
+            user.set_password(password)
+            user.save()
+            messages.success(request, 'Your password has been reset successfully! You can now log in.')
+            return redirect('frontend:home')
+        else:
+            messages.error(request, 'The password reset link is invalid or has expired.')
+            return redirect('frontend:home')
 
 
 class PasswordResetCompleteView(TemplateView):
@@ -186,9 +319,30 @@ class ChangePasswordView(LoginRequiredMixin, View):
     template_name = 'accounts/change_password.html'
     form_class = ChangePasswordForm
     
+    def get_school_slug(self, request):
+        """Get school slug from request or referer"""
+        # Try to get from request attribute (set by middleware)
+        school_slug = getattr(request, 'school_slug', '')
+        
+        # If not found, try to extract from referer URL
+        if not school_slug and request.META.get('HTTP_REFERER'):
+            referer = request.META.get('HTTP_REFERER', '')
+            if '/school/' in referer:
+                parts = referer.split('/school/')
+                if len(parts) > 1:
+                    slug_part = parts[1].split('/')[0]
+                    if slug_part:
+                        school_slug = slug_part
+        
+        return school_slug
+    
     def get(self, request):
         form = self.form_class(request.user)
-        return render(request, self.template_name, {'form': form})
+        context = {
+            'form': form,
+            'school_slug': self.get_school_slug(request)
+        }
+        return render(request, self.template_name, context)
     
     def post(self, request):
         form = self.form_class(request.user, request.POST)
@@ -196,9 +350,23 @@ class ChangePasswordView(LoginRequiredMixin, View):
             user = form.save()
             update_session_auth_hash(request, user)
             messages.success(request, 'Password changed successfully!')
-            return redirect('accounts:profile')
+            
+            # Redirect back to referer or dashboard
+            referer = request.META.get('HTTP_REFERER', '')
+            if referer and '/school/' in referer:
+                return redirect(referer)
+            
+            school_slug = self.get_school_slug(request)
+            if school_slug:
+                return redirect('core:dashboard', school_slug=school_slug)
+            
+            return redirect('frontend:home')
         
-        return render(request, self.template_name, {'form': form})
+        context = {
+            'form': form,
+            'school_slug': self.get_school_slug(request)
+        }
+        return render(request, self.template_name, context)
 
 
 class UserListView(LoginRequiredMixin, UserPassesTestMixin, ListView):

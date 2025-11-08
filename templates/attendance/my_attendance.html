@@ -1,0 +1,124 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}My Attendance{% endblock %}
+{% block page_icon %}calendar-check{% endblock %}
+{% block page_title %}My Attendance{% endblock %}
+{% block page_subtitle %}View your attendance records and statistics{% endblock %}
+
+{% block content %}
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Attendance Rate</h6>
+                <h2 class="{% if attendance_percentage >= 75 %}text-success{% else %}text-danger{% endif %}">
+                    {{ attendance_percentage|floatformat:1 }}%
+                </h2>
+                <p class="mb-0 small">{{ present_days }}/{{ total_days }} days</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Present</h6>
+                <h2 class="text-success">{{ present_days }}</h2>
+                <p class="mb-0 small">Days</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Absent</h6>
+                <h2 class="text-danger">{{ absent_days }}</h2>
+                <p class="mb-0 small">Days</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Late</h6>
+                <h2 class="text-warning">{{ late_days }}</h2>
+                <p class="mb-0 small">Days</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-list"></i> Attendance History</h5>
+    </div>
+    <div class="card-body">
+        {% if attendance_records %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Day</th>
+                        <th>Status</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in attendance_records %}
+                    <tr>
+                        <td>{{ record.date|date:"M d, Y" }}</td>
+                        <td>{{ record.date|date:"l" }}</td>
+                        <td>
+                            {% if record.status == 'present' %}
+                            <span class="badge bg-success">Present</span>
+                            {% elif record.status == 'absent' %}
+                            <span class="badge bg-danger">Absent</span>
+                            {% elif record.status == 'late' %}
+                            <span class="badge bg-warning">Late</span>
+                            {% elif record.status == 'excused' %}
+                            <span class="badge bg-info">Excused</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ record.note|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if is_paginated %}
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                </li>
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+            <p class="text-muted">No attendance records yet</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

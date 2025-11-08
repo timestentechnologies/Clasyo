@@ -48,6 +48,14 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         school_slug = self.kwargs.get('school_slug')
         context['school_slug'] = school_slug
         
+        # Fetch the actual school object
+        from tenants.models import School
+        try:
+            school = School.objects.get(slug=school_slug, is_active=True)
+            context['school'] = school
+        except School.DoesNotExist:
+            context['school'] = None
+        
         # Common data for all users
         context['notifications'] = Notification.objects.filter(
             user=user, is_read=False
@@ -60,6 +68,17 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             Q(is_public=True) | Q(participants=user),
             start_date__gte=date.today()
         ).order_by('start_date')[:5]
+        
+        # Message count (assuming there's a Message model with is_read field)
+        # If Message model doesn't exist yet, this will be 0
+        context['unread_messages_count'] = 0
+        try:
+            from communication.models import Message
+            context['unread_messages_count'] = Message.objects.filter(
+                recipient=user, is_read=False
+            ).count()
+        except:
+            pass
         
         # Role-specific data
         if user.is_school_admin or user.role == 'school_admin':

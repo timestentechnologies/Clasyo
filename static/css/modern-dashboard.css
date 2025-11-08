@@ -64,6 +64,14 @@ body {
     font-size: 24px;
     color: white;
     font-weight: 700;
+    flex-shrink: 0;
+}
+
+.brand-logo .school-logo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 12px;
 }
 
 .brand-text h3 {
@@ -939,4 +947,140 @@ textarea.form-control-modern {
 
 .modal.show .modal-dialog {
     transform: translateY(0);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    /* Hide sidebar by default on mobile */
+    .modern-sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 9999;
+    }
+    
+    .modern-sidebar.show {
+        transform: translateX(0);
+    }
+    
+    /* Overlay for mobile sidebar */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9998;
+    }
+    
+    .sidebar-overlay.show {
+        display: block;
+    }
+    
+    /* Adjust main content for mobile */
+    .main-content {
+        margin-left: 0 !important;
+        padding: 15px !important;
+    }
+    
+    /* Mobile header adjustments */
+    .modern-header {
+        left: 0 !important;
+        width: 100% !important;
+    }
+    
+    /* Responsive cards */
+    .stats-card {
+        margin-bottom: 15px;
+    }
+    
+    /* Responsive tables */
+    .table-responsive {
+        overflow-x: auto;
+    }
+    
+    /* Adjust font sizes for mobile */
+    .brand-text h3 {
+        font-size: 16px;
+    }
+    
+    .brand-text p {
+        font-size: 11px;
+    }
+    
+    /* Stack action buttons on mobile */
+    .table tbody td .btn-group {
+        flex-direction: column;
+    }
+    
+    /* Make stat cards full width on mobile */
+    .row .col-md-3,
+    .row .col-md-4,
+    .row .col-md-6 {
+        width: 100%;
+        margin-bottom: 15px;
+    }
+}
+
+/* Tablet Responsiveness */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .modern-sidebar {
+        width: 240px;
+    }
+    
+    .main-content {
+        margin-left: 240px;
+    }
+    
+    .modern-header {
+        left: 240px;
+    }
+}
+
+/* Mobile Menu Toggle Button */
+.mobile-menu-toggle {
+    display: none;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 10000;
+    background: var(--primary-navy);
+    color: white;
+    border: none;
+    width: 45px;
+    height: 45px;
+    border-radius: 10px;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: var(--shadow-lg);
+    transition: all 0.3s ease;
+}
+
+.mobile-menu-toggle:hover {
+    background: var(--secondary-navy);
+    transform: scale(1.05);
+}
+
+.mobile-menu-toggle:active {
+    transform: scale(0.95);
+}
+
+@media (max-width: 768px) {
+    .mobile-menu-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10001;
+    }
+    .mobile-menu-toggle:hover {
+        background: var(--secondary-navy);
+        transform: scale(1.05);
+    }
+    .mobile-menu-toggle:active {
+        transform: scale(0.95);
+    }
 }

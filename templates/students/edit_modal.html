@@ -55,6 +55,33 @@
         </div>
     </div>
     
+    <!-- Academic Information -->
+    <h6 class="mb-3 mt-3 text-primary"><i class="fas fa-graduation-cap"></i> Academic Details</h6>
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Class <span class="text-danger">*</span></label>
+            <select name="current_class" class="form-control" required>
+                <option value="">Select Class</option>
+                {% for class in classes %}
+                <option value="{{ class.id }}" {% if student.current_class and student.current_class.id == class.id %}selected{% endif %}>{{ class.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Section</label>
+            <select name="section" class="form-control">
+                <option value="">Select Section (Optional)</option>
+                {% for section in sections %}
+                <option value="{{ section.id }}" {% if student.section and student.section.id == section.id %}selected{% endif %}>{{ section.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Admission Date *</label>
+            <input type="date" name="admission_date" class="form-control" value="{{ student.admission_date|date:'Y-m-d' }}" required>
+        </div>
+    </div>
+    
     <!-- Address Information -->
     <h6 class="mb-3 mt-3 text-primary"><i class="fas fa-map-marker-alt"></i> Address Details</h6>
     <div class="row">

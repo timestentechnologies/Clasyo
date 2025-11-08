@@ -1,0 +1,25 @@
+{% extends 'emails/base.html' %}
+
+{% block title %}New User Created{% endblock %}
+
+{% block header %}New User Created{% endblock %}
+
+{% block content %}
+<h2>New User Account Created</h2>
+
+<p>A new user has been added to the system.</p>
+
+<div class="info-box">
+    <strong>User Details:</strong><br>
+    <strong>Name:</strong> {{ user.get_full_name }}<br>
+    <strong>Email:</strong> {{ user.email }}<br>
+    <strong>Role:</strong> {{ user.get_role_display }}<br>
+    <strong>Created By:</strong> {{ created_by.get_full_name }}<br>
+    <strong>Created At:</strong> {{ user.created_at|date:"F d, Y H:i" }}
+</div>
+
+<p>This is an automated notification for all system administrators.</p>
+
+<p>Best regards,<br>
+Clasyo System</p>
+{% endblock %}

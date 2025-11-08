@@ -86,3 +86,38 @@ class StudentAttendanceView(LoginRequiredMixin, ListView):
         present = self.get_queryset().filter(status='present').count()
         context['attendance_percentage'] = (present / total * 100) if total > 0 else 0
         return context
+
+
+class MyAttendanceView(LoginRequiredMixin, ListView):
+    """View for students to see their own attendance"""
+    template_name = 'attendance/my_attendance.html'
+    context_object_name = 'attendance_records'
+    paginate_by = 30
+    
+    def get_queryset(self):
+        if MODELS_EXIST and hasattr(self.request.user, 'student_profile'):
+            student = self.request.user.student_profile
+            return Attendance.objects.filter(student=student).order_by('-date')
+        return []
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school_slug'] = self.kwargs.get('school_slug', '')
+        
+        if hasattr(self.request.user, 'student_profile'):
+            context['student'] = self.request.user.student_profile
+            
+            # Calculate attendance statistics
+            queryset = self.get_queryset()
+            total = queryset.count()
+            present = queryset.filter(status='present').count()
+            absent = queryset.filter(status='absent').count()
+            late = queryset.filter(status='late').count()
+            
+            context['total_days'] = total
+            context['present_days'] = present
+            context['absent_days'] = absent
+            context['late_days'] = late
+            context['attendance_percentage'] = (present / total * 100) if total > 0 else 0
+        
+        return context

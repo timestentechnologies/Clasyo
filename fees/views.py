@@ -127,3 +127,38 @@ class WalletView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
         return context
+
+
+class MyFeesView(LoginRequiredMixin, ListView):
+    """View for students to see their fee payments and balances"""
+    template_name = 'fees/my_fees.html'
+    context_object_name = 'payments'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        if MODELS_EXIST and hasattr(self.request.user, 'student_profile'):
+            student = self.request.user.student_profile
+            return FeePayment.objects.filter(student=student).order_by('-payment_date')
+        return []
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school_slug'] = self.kwargs.get('school_slug', '')
+        
+        if hasattr(self.request.user, 'student_profile'):
+            student = self.request.user.student_profile
+            context['student'] = student
+            
+            # Calculate fee statistics
+            if MODELS_EXIST:
+                total_paid = FeePayment.objects.filter(student=student).aggregate(
+                    total=models.Sum('amount_paid'))['total'] or 0
+                context['total_paid'] = total_paid
+                
+                # Get fee structures for the student's class (if available)
+                context['fee_structures'] = FeeStructure.objects.filter(is_active=True)[:5]
+            else:
+                context['total_paid'] = 0
+                context['fee_structures'] = []
+        
+        return context

@@ -1,0 +1,38 @@
+{% extends 'emails/base.html' %}
+
+{% block title %}Upcoming Exam Notification{% endblock %}
+
+{% block header %}Exam Scheduled{% endblock %}
+
+{% block content %}
+<h2>Hello {{ student.first_name }}!</h2>
+
+<p>A new exam has been scheduled. Please prepare accordingly.</p>
+
+<div class="info-box">
+    <strong>Exam Details:</strong><br>
+    <strong>Exam Name:</strong> {{ exam.name }}<br>
+    <strong>Type:</strong> {{ exam.get_exam_type_display }}<br>
+    <strong>Subject:</strong> {{ exam.subject.name|default:"General" }}<br>
+    <strong>Date:</strong> {{ exam.start_date|date:"F d, Y" }}<br>
+    {% if exam.is_online %}
+    <strong>Mode:</strong> Online<br>
+    <strong>Duration:</strong> {{ exam.duration_minutes }} minutes<br>
+    {% else %}
+    <strong>Mode:</strong> Offline<br>
+    {% endif %}
+    <strong>Class:</strong> {{ exam.class_assigned.name|default:"All Classes" }}
+</div>
+
+{% if exam.note %}
+<p><strong>Instructions:</strong><br>
+{{ exam.note }}</p>
+{% endif %}
+
+<p>Please log in to the system to view more details and prepare for the exam.</p>
+
+<p>Good luck with your exam!</p>
+
+<p>Best regards,<br>
+{{ school.name }}</p>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'emails/base.html' %}
+
+{% block title %}Parent Account Created{% endblock %}
+
+{% block header %}Welcome to {{ school.name }}!{% endblock %}
+
+{% block content %}
+<h2>Hello {{ parent.get_full_name }}!</h2>
+
+<p>Your parent account has been created at {{ school.name }}. You can now track your child's academic progress online.</p>
+
+<div class="info-box">
+    <strong>Account Details:</strong><br>
+    <strong>Your Email:</strong> {{ parent.email }}<br>
+    <strong>Student:</strong> {{ student.get_full_name }}<br>
+    <strong>School:</strong> {{ school.name }}
+</div>
+
+<p>Through your parent portal, you can:</p>
+<ul>
+    <li>View academic performance and report cards</li>
+    <li>Track attendance records</li>
+    <li>Check fee payment status</li>
+    <li>Receive important notifications</li>
+    <li>Communicate with teachers</li>
+</ul>
+
+<p>Please log in to get started!</p>
+
+<p>Best regards,<br>
+{{ school.name }}</p>
+{% endblock %}

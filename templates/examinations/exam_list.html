@@ -5,10 +5,26 @@
 {% block page_subtitle %}Manage all examinations in your institution{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-end mb-3">
+<div class="d-flex justify-content-between mb-3">
+    <div>
+        {% if user.role == 'student' %}
+        <a href="{% url 'examinations:student_results' school_slug=school_slug %}" class="btn btn-info">
+            <i class="fas fa-chart-line"></i> My Results
+        </a>
+        {% elif user.role in 'school_admin,teacher' %}
+        <a href="{% url 'examinations:marks_entry' school_slug=school_slug %}" class="btn btn-success me-2">
+            <i class="fas fa-pen"></i> Enter Marks
+        </a>
+        <a href="{% url 'examinations:teacher_grading_list' school_slug=school_slug %}" class="btn btn-warning">
+            <i class="fas fa-clipboard-check"></i> Grade Online Exams
+        </a>
+        {% endif %}
+    </div>
+    {% if user.role in 'school_admin,teacher' %}
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addExamModal">
         <i class="fas fa-plus"></i> Add Exam
     </button>
+    {% endif %}
 </div>
 
 <div class="modern-card">
@@ -42,17 +58,23 @@
                     </span>
                 </td>
                 <td>
-                    {% if exam.is_online %}
-                    <button class="btn btn-sm btn-success" onclick="manageQuestions({{ exam.pk }}, '{{ exam.name }}')" title="Manage Questions">
-                        <i class="fas fa-question-circle"></i> Questions
-                    </button>
+                    {% if user.role == 'student' and exam.is_online %}
+                        <a href="{% url 'examinations:student_take_exam' school_slug=school_slug exam_id=exam.pk %}" class="btn btn-sm btn-success">
+                            <i class="fas fa-pen"></i> Take Exam
+                        </a>
+                    {% elif user.role in 'school_admin,teacher' %}
+                        {% if exam.is_online %}
+                        <button class="btn btn-sm btn-success" onclick="manageQuestions({{ exam.pk }}, '{{ exam.name }}')" title="Manage Questions">
+                            <i class="fas fa-question-circle"></i> Questions
+                        </button>
+                        {% endif %}
+                        <button class="btn btn-sm btn-primary" onclick="editExam({{ exam.pk }})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteExam({{ exam.pk }}, '{{ exam.name }}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     {% endif %}
-                    <button class="btn btn-sm btn-primary" onclick="editExam({{ exam.pk }})">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteExam({{ exam.pk }}, '{{ exam.name }}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
                 </td>
             </tr>
             {% empty %}
@@ -113,6 +135,26 @@
                             <option value="online">Online Exam</option>
                         </select>
                     </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Class <span class="text-danger">*</span></label>
+                            <select name="class_assigned" class="form-control" required>
+                                <option value="">Select Class</option>
+                                {% for class in classes %}
+                                <option value="{{ class.id }}">{{ class.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Subject</label>
+                            <select name="subject" class="form-control">
+                                <option value="">Select Subject (Optional)</option>
+                                {% for subject in subjects %}
+                                <option value="{{ subject.id }}">{{ subject.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
                     <div class="mb-3" id="onlineExamFields" style="display: none;">
                         <label>Duration (Minutes)</label>
                         <input type="number" name="duration_minutes" class="form-control" placeholder="e.g., 60">
@@ -120,11 +162,11 @@
                     </div>
                     <div class="mb-3">
                         <label>Start Date</label>
-                        <input type="date" name="start_date" class="form-control">
+                        <input type="date" name="start_date" class="form-control" required>
                     </div>
                     <div class="mb-3">
                         <label>End Date</label>
-                        <input type="date" name="end_date" class="form-control">
+                        <input type="date" name="end_date" class="form-control" required>
                     </div>
                     <div class="mb-3">
                         <label>Note</label>

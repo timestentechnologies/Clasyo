@@ -24,7 +24,22 @@ class StudentListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['school_slug'] = self.kwargs.get('school_slug', '')
+        school_slug = self.kwargs.get('school_slug', '')
+        context['school_slug'] = school_slug
+        
+        # Add school object to context
+        from tenants.models import School
+        try:
+            school = School.objects.get(slug=school_slug, is_active=True)
+            context['school'] = school
+        except School.DoesNotExist:
+            context['school'] = None
+        
+        # Add classes and sections for the form
+        from academics.models import Class, Section
+        context['classes'] = Class.objects.filter(is_active=True)
+        context['sections'] = Section.objects.filter(is_active=True)
+        
         return context
 
 
@@ -40,6 +55,12 @@ class StudentDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
+        
+        # Add classes and sections for edit form
+        from academics.models import Class, Section
+        context['classes'] = Class.objects.filter(is_active=True)
+        context['sections'] = Section.objects.filter(is_active=True)
+        
         return context
 
 

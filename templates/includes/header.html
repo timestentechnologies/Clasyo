@@ -1,0 +1,45 @@
+{% load static %}
+
+<!-- Top Navigation Bar -->
+<nav class="top-navbar">
+    <form action="{% if user.role == 'superadmin' or user.role == 'super_admin' %}#{% else %}/school/{{ school_slug }}/search/{% endif %}" method="get" class="search-bar">
+        <i class="fas fa-search"></i>
+        <input type="text" name="q" placeholder="Search for students, teachers, or anything..." id="globalSearch">
+    </form>
+    
+    <div class="navbar-actions">
+        {% if user.role != 'superadmin' and user.role != 'super_admin' %}
+        <a href="/school/{{ school_slug }}/communication/notices/" class="nav-icon-btn" title="Notifications">
+            <i class="fas fa-bell"></i>
+            {% if notifications.count > 0 %}
+            <span class="badge">{{ notifications.count }}</span>
+            {% endif %}
+        </a>
+        <a href="/school/{{ school_slug }}/communication/messages/" class="nav-icon-btn" title="Messages">
+            <i class="fas fa-envelope"></i>
+            {% if unread_messages_count > 0 %}
+            <span class="badge">{{ unread_messages_count }}</span>
+            {% endif %}
+        </a>
+        {% endif %}
+        
+        <div class="dropdown">
+            <div class="user-profile-nav" data-bs-toggle="dropdown" style="cursor: pointer;">
+                <div class="user-avatar">{{ user.first_name.0|default:"U" }}{{ user.last_name.0|default:"" }}</div>
+                <div class="user-info">
+                    <h4>{{ user.get_full_name|default:user.email }}</h4>
+                    <p>{{ user.role|title }}</p>
+                </div>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="fas fa-user"></i> Profile</a></li>
+                {% if user.role != 'superadmin' and user.role != 'super_admin' %}
+                <li><a class="dropdown-item" href="/school/{{ school_slug }}/settings/"><i class="fas fa-cog"></i> Settings</a></li>
+                {% endif %}
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{% url 'accounts:logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>

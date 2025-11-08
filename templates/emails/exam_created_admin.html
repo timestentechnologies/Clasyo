@@ -1,0 +1,32 @@
+{% extends 'emails/base.html' %}
+
+{% block title %}New Exam Created - {{ school.name }}{% endblock %}
+
+{% block header %}Exam Created{% endblock %}
+
+{% block content %}
+<h2>New Exam Created</h2>
+
+<p>An exam has been created at <strong>{{ school.name }}</strong>.</p>
+
+<div class="info-box">
+    <strong>Exam Details:</strong><br>
+    <strong>School:</strong> {{ school.name }}<br>
+    <strong>Exam Name:</strong> {{ exam.name }}<br>
+    <strong>Type:</strong> {{ exam.get_exam_type_display }}<br>
+    <strong>Subject:</strong> {{ exam.subject.name|default:"General" }}<br>
+    <strong>Date:</strong> {{ exam.start_date|date:"F d, Y" }} to {{ exam.end_date|date:"F d, Y" }}<br>
+    <strong>Class:</strong> {{ exam.class_assigned.name|default:"All Classes" }}<br>
+    <strong>Created By:</strong> {{ created_by.get_full_name }} ({{ created_by.get_role_display }})<br>
+    <strong>Created At:</strong> {{ exam.created_at|date:"F d, Y H:i" }}<br>
+    {% if exam.is_online %}
+    <strong>Mode:</strong> Online Exam<br>
+    <strong>Duration:</strong> {{ exam.duration_minutes }} minutes<br>
+    {% endif %}
+</div>
+
+<p>This is an automated notification for system administrators.</p>
+
+<p>Best regards,<br>
+Clasyo System</p>
+{% endblock %}

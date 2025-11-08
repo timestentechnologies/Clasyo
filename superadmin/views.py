@@ -379,54 +379,241 @@ class AdminUserUpdateView(SuperAdminRequiredMixin, UpdateView):
 
 
 # Content Management Views
-class PricingManagementView(SuperAdminRequiredMixin, ListView):
+from frontend.models import PricingPlan, FAQ, PageContent, ContactMessage
+from django.views import View
+from django import forms
+
+
+class PricingPlanForm(forms.ModelForm):
+    """Form for pricing plans"""
+    class Meta:
+        model = PricingPlan
+        fields = '__all__'
+        widgets = {
+            'features': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Enter each feature on a new line'}),
+        }
+
+
+class FAQForm(forms.ModelForm):
+    """Form for FAQs"""
+    class Meta:
+        model = FAQ
+        fields = '__all__'
+        widgets = {
+            'question': forms.TextInput(attrs={'class': 'form-control'}),
+            'answer': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
+            'category': forms.TextInput(attrs={'class': 'form-control'}),
+            'order': forms.NumberInput(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class PageContentForm(forms.ModelForm):
+    """Form for page content"""
+    class Meta:
+        model = PageContent
+        fields = '__all__'
+        widgets = {
+            'content': forms.Textarea(attrs={'rows': 6}),
+            'extra_data': forms.Textarea(attrs={'rows': 4, 'placeholder': '{"key": "value"}'}),
+        }
+
+
+class PricingManagementView(SuperAdminRequiredMixin, View):
     """Manage pricing plans"""
-    model = None  # Will import dynamically
     template_name = 'superadmin/pricing_management.html'
-    context_object_name = 'pricing_plans'
-    paginate_by = 20
     
-    def get_queryset(self):
-        from frontend.models import PricingPlan
-        return PricingPlan.objects.all().order_by('order', 'price')
+    def get(self, request):
+        plans = PricingPlan.objects.all().order_by('order', 'price')
+        form = PricingPlanForm()
+        edit_id = request.GET.get('edit')
+        edit_plan = None
+        
+        if edit_id:
+            edit_plan = get_object_or_404(PricingPlan, id=edit_id)
+            form = PricingPlanForm(instance=edit_plan)
+        
+        return render(request, self.template_name, {
+            'pricing_plans': plans,
+            'form': form,
+            'edit_plan': edit_plan
+        })
+    
+    def post(self, request):
+        plan_id = request.POST.get('plan_id')
+        action = request.POST.get('action')
+        
+        if action == 'delete' and plan_id:
+            plan = get_object_or_404(PricingPlan, id=plan_id)
+            plan_name = plan.name
+            plan.delete()
+            messages.success(request, f'Pricing plan "{plan_name}" deleted successfully!')
+            return redirect('superadmin:pricing_management')
+        
+        if plan_id:
+            plan = get_object_or_404(PricingPlan, id=plan_id)
+            form = PricingPlanForm(request.POST, instance=plan)
+            success_msg = 'Pricing plan updated successfully!'
+        else:
+            form = PricingPlanForm(request.POST)
+            success_msg = 'Pricing plan created successfully!'
+        
+        if form.is_valid():
+            form.save()
+            messages.success(request, success_msg)
+            return redirect('superadmin:pricing_management')
+        else:
+            plans = PricingPlan.objects.all().order_by('order', 'price')
+            return render(request, self.template_name, {
+                'pricing_plans': plans,
+                'form': form
+            })
 
 
-class FAQManagementView(SuperAdminRequiredMixin, ListView):
+class FAQManagementView(SuperAdminRequiredMixin, View):
     """Manage FAQs"""
-    model = None
     template_name = 'superadmin/faq_management.html'
-    context_object_name = 'faqs'
-    paginate_by = 50
     
-    def get_queryset(self):
-        from frontend.models import FAQ
-        return FAQ.objects.all().order_by('order', 'category')
+    def get(self, request):
+        category_filter = request.GET.get('category', '')
+        faqs = FAQ.objects.all()
+        
+        if category_filter:
+            faqs = faqs.filter(category=category_filter)
+        
+        faqs = faqs.order_by('category', 'order')
+        form = FAQForm()
+        edit_id = request.GET.get('edit')
+        edit_faq = None
+        
+        if edit_id:
+            edit_faq = get_object_or_404(FAQ, id=edit_id)
+            form = FAQForm(instance=edit_faq)
+        
+        categories = FAQ.objects.values_list('category', flat=True).distinct()
+        
+        return render(request, self.template_name, {
+            'faqs': faqs,
+            'form': form,
+            'edit_faq': edit_faq,
+            'categories': categories,
+            'category_filter': category_filter
+        })
+    
+    def post(self, request):
+        faq_id = request.POST.get('faq_id')
+        action = request.POST.get('action')
+        
+        if action == 'delete' and faq_id:
+            faq = get_object_or_404(FAQ, id=faq_id)
+            faq.delete()
+            messages.success(request, 'FAQ deleted successfully!')
+            return redirect('superadmin:faq_management')
+        
+        if faq_id:
+            faq = get_object_or_404(FAQ, id=faq_id)
+            form = FAQForm(request.POST, instance=faq)
+            success_msg = 'FAQ updated successfully!'
+        else:
+            form = FAQForm(request.POST)
+            success_msg = 'FAQ created successfully!'
+        
+        if form.is_valid():
+            form.save()
+            messages.success(request, success_msg)
+            return redirect('superadmin:faq_management')
+        else:
+            faqs = FAQ.objects.all().order_by('category', 'order')
+            categories = FAQ.objects.values_list('category', flat=True).distinct()
+            return render(request, self.template_name, {
+                'faqs': faqs,
+                'form': form,
+                'categories': categories
+            })
 
 
-class PageContentManagementView(SuperAdminRequiredMixin, ListView):
+class PageContentManagementView(SuperAdminRequiredMixin, View):
     """Manage page content"""
-    model = None
     template_name = 'superadmin/page_content_management.html'
-    context_object_name = 'page_contents'
     
-    def get_queryset(self):
-        from frontend.models import PageContent
-        return PageContent.objects.all()
+    def get(self, request):
+        page_contents = PageContent.objects.all()
+        form = PageContentForm()
+        edit_id = request.GET.get('edit')
+        edit_content = None
+        
+        if edit_id:
+            edit_content = get_object_or_404(PageContent, id=edit_id)
+            form = PageContentForm(instance=edit_content)
+        
+        return render(request, self.template_name, {
+            'page_contents': page_contents,
+            'form': form,
+            'edit_content': edit_content
+        })
+    
+    def post(self, request):
+        content_id = request.POST.get('content_id')
+        action = request.POST.get('action')
+        
+        if action == 'delete' and content_id:
+            content = get_object_or_404(PageContent, id=content_id)
+            content.delete()
+            messages.success(request, 'Page content deleted successfully!')
+            return redirect('superadmin:page_content_management')
+        
+        if content_id:
+            content = get_object_or_404(PageContent, id=content_id)
+            form = PageContentForm(request.POST, instance=content)
+            success_msg = 'Page content updated successfully!'
+        else:
+            form = PageContentForm(request.POST)
+            success_msg = 'Page content created successfully!'
+        
+        if form.is_valid():
+            form.save()
+            messages.success(request, success_msg)
+            return redirect('superadmin:page_content_management')
+        else:
+            page_contents = PageContent.objects.all()
+            return render(request, self.template_name, {
+                'page_contents': page_contents,
+                'form': form
+            })
 
 
 class ContactMessagesView(SuperAdminRequiredMixin, ListView):
     """View contact form submissions"""
-    model = None
     template_name = 'superadmin/contact_messages.html'
     context_object_name = 'messages_list'
     paginate_by = 30
     
     def get_queryset(self):
-        from frontend.models import ContactMessage
-        queryset = ContactMessage.objects.all()
+        queryset = ContactMessage.objects.all().order_by('-created_at')
         status = self.request.GET.get('status')
         if status == 'unread':
             queryset = queryset.filter(is_read=False)
         elif status == 'replied':
             queryset = queryset.filter(replied=True)
         return queryset
+    
+    def post(self, request):
+        message_id = request.POST.get('message_id')
+        action = request.POST.get('action')
+        
+        if message_id:
+            contact_message = get_object_or_404(ContactMessage, id=message_id)
+            
+            if action == 'mark_read':
+                contact_message.is_read = True
+                contact_message.save()
+                messages.success(request, 'Message marked as read!')
+            elif action == 'mark_replied':
+                contact_message.replied = True
+                contact_message.save()
+                messages.success(request, 'Message marked as replied!')
+            elif action == 'delete':
+                contact_message.delete()
+                messages.success(request, 'Message deleted successfully!')
+        
+        return redirect('superadmin:contact_messages')

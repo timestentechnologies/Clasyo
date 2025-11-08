@@ -21,10 +21,17 @@ class Exam(models.Model):
     note = models.TextField(blank=True)
     is_published = models.BooleanField(default=False)
     
+    # Class assignment - which class(es) this exam is for
+    class_assigned = models.ForeignKey(Class, on_delete=models.CASCADE, null=True, blank=True, related_name='exams')
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, null=True, blank=True, related_name='exams')
+    
     # Online exam fields
     is_online = models.BooleanField(default=False)
     duration_minutes = models.IntegerField(null=True, blank=True, help_text="Duration for online exam in minutes")
     passing_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=40.00)
+    
+    # Creator tracking
+    created_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='exams_created')
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -138,3 +145,86 @@ class ExamResult(models.Model):
     
     def __str__(self):
         return f"{self.student} - {self.exam}: {self.percentage}%"
+
+
+class ExamSubmission(models.Model):
+    """Model for student exam submissions"""
+    STATUS_CHOICES = (
+        ('not_started', 'Not Started'),
+        ('in_progress', 'In Progress'),
+        ('submitted', 'Submitted'),
+        ('graded', 'Graded'),
+    )
+    
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='submissions')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='exam_submissions')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='not_started')
+    
+    # Timing
+    started_at = models.DateTimeField(null=True, blank=True)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    time_taken_minutes = models.IntegerField(null=True, blank=True)
+    
+    # Grading
+    total_points = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    points_obtained = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    grade = models.ForeignKey(Grade, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Teacher feedback
+    teacher_remarks = models.TextField(blank=True)
+    graded_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='graded_submissions')
+    graded_at = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['exam', 'student']
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.student} - {self.exam} ({self.get_status_display()})"
+    
+    @property
+    def is_passed(self):
+        return self.percentage >= self.exam.passing_percentage if self.exam else False
+
+
+class QuestionAnswer(models.Model):
+    """Model for student answers to exam questions"""
+    submission = models.ForeignKey(ExamSubmission, on_delete=models.CASCADE, related_name='answers')
+    question = models.ForeignKey(ExamQuestion, on_delete=models.CASCADE, related_name='student_answers')
+    
+    # Student's answer
+    answer_text = models.TextField(blank=True)
+    selected_option = models.CharField(max_length=1, blank=True)  # A, B, C, D for multiple choice
+    
+    # Grading
+    is_correct = models.BooleanField(null=True, blank=True)
+    points_awarded = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    teacher_feedback = models.TextField(blank=True)
+    
+    # Correction by student
+    correction_text = models.TextField(blank=True, help_text="Student's correction after seeing results")
+    correction_submitted_at = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['submission', 'question']
+        ordering = ['question__order']
+    
+    def __str__(self):
+        return f"{self.submission.student} - Q{self.question.order}"
+    
+    def auto_grade(self):
+        """Auto-grade multiple choice and true/false questions"""
+        if self.question.question_type in ['multiple_choice', 'true_false']:
+            if self.selected_option and self.question.correct_answer:
+                self.is_correct = (self.selected_option.upper() == self.question.correct_answer.upper())
+                self.points_awarded = self.question.points if self.is_correct else 0
+                self.save()
+                return True
+        return False

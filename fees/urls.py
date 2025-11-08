@@ -8,4 +8,5 @@ urlpatterns = [
     path('collect/', views.CollectFeesView.as_view(), name='collect_fees'),
     path('transactions/', views.FeeTransactionView.as_view(), name='transactions'),
     path('wallet/', views.WalletView.as_view(), name='wallet'),
+    path('my-fees/', views.MyFeesView.as_view(), name='my_fees'),
 ]

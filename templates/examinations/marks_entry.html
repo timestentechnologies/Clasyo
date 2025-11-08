@@ -1,0 +1,262 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Marks Entry{% endblock %}
+{% block page_icon %}pen{% endblock %}
+{% block page_title %}Marks Entry{% endblock %}
+{% block page_subtitle %}Enter exam marks for all students in the class{% endblock %}
+
+{% block content %}
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="modern-card">
+            <div class="card-body">
+                <h5 class="mb-3"><i class="fas fa-clipboard-list"></i> Select Exam</h5>
+                <div class="row">
+                    <div class="col-md-10">
+                        <select id="examSelect" class="form-control form-control-lg">
+                            <option value="">-- Select an Exam --</option>
+                            {% for exam in exams %}
+                            <option value="{{ exam.id }}" 
+                                    data-class="{{ exam.class_assigned.name|default:'N/A' }}"
+                                    data-subject="{{ exam.subject.name|default:'General' }}">
+                                {{ exam.name }} - {{ exam.class_assigned.name|default:'All Classes' }} - {{ exam.subject.name|default:'General' }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button id="loadStudentsBtn" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-arrow-right"></i> Load Students
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="marksEntrySection" style="display: none;">
+    <div class="modern-card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h5 class="mb-0" id="examTitle">Exam Name</h5>
+                    <p class="text-muted mb-0" id="examSubject">Subject</p>
+                </div>
+                <div class="d-flex gap-3">
+                    <div>
+                        <label class="form-label mb-1">Total Marks:</label>
+                        <input type="number" id="totalMarks" class="form-control" value="100" min="1" style="width: 120px;">
+                    </div>
+                    <div class="align-self-end">
+                        <button id="saveMarksBtn" class="btn btn-success btn-lg">
+                            <i class="fas fa-save"></i> Save All Marks
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover" id="marksTable">
+                    <thead>
+                        <tr>
+                            <th width="5%">#</th>
+                            <th width="15%">Admission No.</th>
+                            <th width="25%">Student Name</th>
+                            <th width="15%">Marks Obtained</th>
+                            <th width="10%">Percentage</th>
+                            <th width="30%">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsTableBody">
+                        <!-- Students will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="text-center mt-3" id="noStudentsMessage" style="display: none;">
+                <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No students found in this class.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const schoolSlug = '{{ school_slug }}';
+    let currentExamId = null;
+
+    document.getElementById('loadStudentsBtn').addEventListener('click', function() {
+        const examSelect = document.getElementById('examSelect');
+        currentExamId = examSelect.value;
+        
+        if (!currentExamId) {
+            alert('Please select an exam first');
+            return;
+        }
+
+        const selectedOption = examSelect.options[examSelect.selectedIndex];
+        const examName = selectedOption.text.split(' - ')[0];
+        const examSubject = selectedOption.dataset.subject;
+
+        // Update exam info
+        document.getElementById('examTitle').textContent = examName;
+        document.getElementById('examSubject').textContent = examSubject;
+
+        // Load students
+        fetch(`/school/${schoolSlug}/examinations/marks/${currentExamId}/students/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.students.length === 0) {
+                        document.getElementById('noStudentsMessage').style.display = 'block';
+                        document.getElementById('marksTable').style.display = 'none';
+                    } else {
+                        populateStudentsTable(data.students);
+                        document.getElementById('noStudentsMessage').style.display = 'none';
+                        document.getElementById('marksTable').style.display = 'table';
+                    }
+                    document.getElementById('marksEntrySection').style.display = 'block';
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to load students');
+            });
+    });
+
+    function populateStudentsTable(students) {
+        const tbody = document.getElementById('studentsTableBody');
+        tbody.innerHTML = '';
+
+        students.forEach((student, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${student.admission_number}</td>
+                <td><strong>${student.name}</strong></td>
+                <td>
+                    <input type="number" 
+                           class="form-control marks-input" 
+                           data-student-id="${student.id}"
+                           value="${student.marks_obtained !== null ? student.marks_obtained : ''}" 
+                           min="0" 
+                           step="0.5"
+                           placeholder="0">
+                </td>
+                <td>
+                    <span class="percentage-display badge bg-secondary">-</span>
+                </td>
+                <td>
+                    <input type="text" 
+                           class="form-control remarks-input" 
+                           data-student-id="${student.id}"
+                           value="${student.remarks || ''}" 
+                           placeholder="Optional remarks">
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Add event listeners to calculate percentage
+        document.querySelectorAll('.marks-input').forEach(input => {
+            input.addEventListener('input', function() {
+                updatePercentage(this);
+            });
+            // Initialize percentages if marks exist
+            if (input.value) {
+                updatePercentage(input);
+            }
+        });
+
+        // Update percentages when total marks changes
+        document.getElementById('totalMarks').addEventListener('input', function() {
+            document.querySelectorAll('.marks-input').forEach(input => {
+                if (input.value) {
+                    updatePercentage(input);
+                }
+            });
+        });
+    }
+
+    function updatePercentage(marksInput) {
+        const totalMarks = parseFloat(document.getElementById('totalMarks').value) || 100;
+        const marksObtained = parseFloat(marksInput.value) || 0;
+        const percentage = (marksObtained / totalMarks) * 100;
+        
+        const row = marksInput.closest('tr');
+        const percentageDisplay = row.querySelector('.percentage-display');
+        
+        if (marksInput.value) {
+            percentageDisplay.textContent = percentage.toFixed(1) + '%';
+            
+            // Color code based on percentage
+            percentageDisplay.classList.remove('bg-success', 'bg-warning', 'bg-danger', 'bg-secondary');
+            if (percentage >= 75) {
+                percentageDisplay.classList.add('bg-success');
+            } else if (percentage >= 50) {
+                percentageDisplay.classList.add('bg-warning');
+            } else if (percentage >= 40) {
+                percentageDisplay.classList.add('bg-info');
+            } else {
+                percentageDisplay.classList.add('bg-danger');
+            }
+        } else {
+            percentageDisplay.textContent = '-';
+            percentageDisplay.classList.remove('bg-success', 'bg-warning', 'bg-danger', 'bg-info');
+            percentageDisplay.classList.add('bg-secondary');
+        }
+    }
+
+    document.getElementById('saveMarksBtn').addEventListener('click', function() {
+        if (!currentExamId) {
+            alert('No exam selected');
+            return;
+        }
+
+        const totalMarks = document.getElementById('totalMarks').value;
+        const marks = [];
+
+        document.querySelectorAll('.marks-input').forEach(input => {
+            const studentId = input.dataset.studentId;
+            const marksObtained = input.value || 0;
+            const remarksInput = document.querySelector(`.remarks-input[data-student-id="${studentId}"]`);
+            const remarks = remarksInput.value;
+
+            marks.push({
+                student_id: studentId,
+                marks_obtained: marksObtained,
+                remarks: remarks
+            });
+        });
+
+        const formData = new FormData();
+        formData.append('marks', JSON.stringify(marks));
+        formData.append('total_marks', totalMarks);
+
+        fetch(`/school/${schoolSlug}/examinations/marks/${currentExamId}/save/`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                // Optionally reload or reset
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to save marks');
+        });
+    });
+});
+</script>
+{% endblock %}
