@@ -106,7 +106,30 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         
         elif user.is_parent:
             # Parent specific data - get children
-            context['children'] = user.children.all()
+            from students.models import Student
+            children = Student.objects.filter(parent_user=user, is_active=True).select_related('current_class', 'section')
+            context['children'] = children
+            
+            # Calculate average attendance for all children
+            if children.exists():
+                from attendance.models import StudentAttendance
+                from django.db.models import Count, Q
+                total_present = 0
+                total_records = 0
+                for child in children:
+                    attendance_stats = StudentAttendance.objects.filter(student=child).aggregate(
+                        total=Count('id'),
+                        present=Count('id', filter=Q(status='present'))
+                    )
+                    total_records += attendance_stats['total'] or 0
+                    total_present += attendance_stats['present'] or 0
+                
+                if total_records > 0:
+                    context['avg_attendance'] = round((total_present / total_records) * 100, 1)
+                else:
+                    context['avg_attendance'] = 0
+            else:
+                context['avg_attendance'] = 0
         
         elif user.is_student:
             # Student specific data

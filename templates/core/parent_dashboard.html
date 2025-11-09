@@ -30,7 +30,7 @@
     <div class="col-md-3">
         <div class="modern-card text-center" style="background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%); color: white;">
             <i class="fas fa-calendar-check fa-3x mb-3"></i>
-            <h3>-</h3>
+            <h3>{{ avg_attendance|default:0 }}%</h3>
             <p class="mb-0">Avg. Attendance</p>
         </div>
     </div>
@@ -88,25 +88,46 @@
     <div class="col-12">
         <div class="modern-card">
             <h4 class="mb-3"><i class="fas fa-users"></i> My Children</h4>
-            {% if user.children.all %}
+            {% if children %}
             <div class="table-responsive">
                 <table class="table">
                     <thead>
                         <tr>
                             <th>Name</th>
                             <th>Class</th>
-                            <th>Attendance</th>
+                            <th>Section</th>
+                            <th>Roll No.</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for child in user.children.all %}
+                        {% for child in children %}
                         <tr>
-                            <td>{{ child.get_full_name }}</td>
-                            <td>{{ child.current_class|default:"N/A" }}</td>
-                            <td><span class="badge bg-success">Active</span></td>
                             <td>
-                                <a href="#" class="btn btn-sm btn-primary">View Details</a>
+                                <div class="d-flex align-items-center">
+                                    {% if child.photo %}
+                                    <img src="{{ child.photo.url }}" alt="{{ child.get_full_name }}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                    {% else %}
+                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                        {{ child.first_name|first }}{{ child.last_name|first }}
+                                    </div>
+                                    {% endif %}
+                                    <strong>{{ child.get_full_name }}</strong>
+                                </div>
+                            </td>
+                            <td>{{ child.current_class|default:"N/A" }}</td>
+                            <td>{{ child.section|default:"N/A" }}</td>
+                            <td>{{ child.roll_number|default:"N/A" }}</td>
+                            <td>
+                                <a href="/school/{{ school_slug }}/academics/routine/" class="btn btn-sm btn-info" title="View Routine">
+                                    <i class="fas fa-clock"></i>
+                                </a>
+                                <a href="/school/{{ school_slug }}/attendance/" class="btn btn-sm btn-primary" title="View Attendance">
+                                    <i class="fas fa-calendar-check"></i>
+                                </a>
+                                <a href="/school/{{ school_slug }}/examinations/" class="btn btn-sm btn-success" title="View Results">
+                                    <i class="fas fa-chart-line"></i>
+                                </a>
                             </td>
                         </tr>
                         {% endfor %}
@@ -114,7 +135,10 @@
                 </table>
             </div>
             {% else %}
-            <p class="text-muted">No children enrolled yet.</p>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                No children enrolled yet. Please contact the school administrator to link your children to your account.
+            </div>
             {% endif %}
         </div>
     </div>
