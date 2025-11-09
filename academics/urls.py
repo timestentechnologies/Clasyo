@@ -48,5 +48,6 @@ urlpatterns = [
     
     # API endpoints
     path('api/teachers/', views.get_teachers_api, name='get_teachers'),
+    path('api/sections/', views.get_sections_api, name='get_sections'),
     path('api/test/', views.test_api, name='test_api'),
 ]

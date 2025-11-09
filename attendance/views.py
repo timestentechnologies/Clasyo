@@ -18,18 +18,33 @@ except ImportError:
 
 class MarkAttendanceView(LoginRequiredMixin, ListView):
     template_name = 'attendance/mark_attendance.html'
-    context_object_name = 'attendance_records'
+    context_object_name = 'students'
     
     def get_queryset(self):
-        if MODELS_EXIST:
-            return Attendance.objects.all()
-        return []
+        # Get filter parameters
+        class_id = self.request.GET.get('class_id')
+        section_id = self.request.GET.get('section_id')
+        
+        if not class_id:
+            return []
+        
+        # Start with students query
+        queryset = Student.objects.filter(is_active=True, current_class_id=class_id)
+        
+        # Filter by section if provided
+        if section_id:
+            queryset = queryset.filter(section_id=section_id)
+        
+        return queryset.order_by('roll_number', 'first_name')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
-        context['classes'] = Class.objects.filter(is_active=True)
+        context['classes'] = Class.objects.filter(is_active=True).order_by('order', 'name')
         context['today'] = date.today()
+        context['selected_date'] = self.request.GET.get('date', date.today())
+        context['selected_class_id'] = self.request.GET.get('class_id', '')
+        context['selected_section_id'] = self.request.GET.get('section_id', '')
         return context
     
     def post(self, request, *args, **kwargs):
@@ -38,14 +53,28 @@ class MarkAttendanceView(LoginRequiredMixin, ListView):
             attendance_date = request.POST.get('date', date.today())
             status = request.POST.get('status', 'present')
             
+            if not MODELS_EXIST:
+                return JsonResponse({'success': False, 'error': 'Attendance model not available'})
+            
+            # Get student and school for the record
+            student = Student.objects.get(id=student_id)
+            
             Attendance.objects.update_or_create(
                 student_id=student_id,
                 date=attendance_date,
-                defaults={'status': status, 'note': request.POST.get('note', '')}
+                defaults={
+                    'status': status,
+                    'note': request.POST.get('note', ''),
+                    'school': student.school,
+                    'class_name': student.current_class,
+                    'section': student.section,
+                    'marked_by': request.user
+                }
             )
             return JsonResponse({'success': True})
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+            import traceback
+            return JsonResponse({'success': False, 'error': str(e), 'trace': traceback.format_exc()})
 
 
 class AttendanceReportView(LoginRequiredMixin, ListView):

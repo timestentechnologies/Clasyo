@@ -706,20 +706,43 @@ class ImpersonateUserView(SuperAdminRequiredMixin, View):
         
         messages.success(
             request, 
-            f'You are now impersonating {user_to_impersonate.get_full_name()} ({user_to_impersonate.get_role_display()})'
+            f'You are now logged in as {user_to_impersonate.get_full_name()} ({user_to_impersonate.get_role_display()})'
         )
         
-        # Redirect based on user role
-        if user_to_impersonate.role in ['admin', 'school_admin']:
-            # For school admin, redirect to their school dashboard
-            schools = School.objects.filter(is_active=True).first()
-            if schools:
-                return redirect('core:dashboard', school_slug=schools.slug)
-        elif user_to_impersonate.role in ['teacher', 'student', 'parent']:
-            # Redirect to appropriate dashboard
-            schools = School.objects.filter(is_active=True).first()
-            if schools:
-                return redirect('core:dashboard', school_slug=schools.slug)
+        # Redirect based on user role and find their school
+        school = None
+        
+        if user_to_impersonate.role == 'admin':
+            # For school admin, get their school
+            school = user_to_impersonate.school
+        elif user_to_impersonate.role == 'teacher':
+            # Get teacher's school (assuming teacher has school FK)
+            school = user_to_impersonate.school
+        elif user_to_impersonate.role == 'student':
+            # Get student's school
+            try:
+                from students.models import Student
+                student = Student.objects.filter(user=user_to_impersonate).first()
+                if student:
+                    school = student.school
+            except:
+                pass
+        elif user_to_impersonate.role == 'parent':
+            # Get parent's school from their children
+            try:
+                from students.models import Student
+                child = Student.objects.filter(parent=user_to_impersonate).first()
+                if child:
+                    school = child.school
+            except:
+                pass
+        
+        # If no school found, get first active school
+        if not school:
+            school = School.objects.filter(is_active=True).first()
+        
+        if school:
+            return redirect('core:dashboard', school_slug=school.slug)
         
         return redirect('frontend:home')
 

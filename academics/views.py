@@ -425,3 +425,47 @@ def get_teachers_api(request, school_slug=None):
             'traceback': traceback.format_exc(),
             'teachers': []
         }, status=500)
+
+
+def get_sections_api(request, school_slug=None):
+    """API endpoint to fetch sections for a given class"""
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            'success': False,
+            'error': 'Authentication required',
+            'sections': []
+        }, status=401)
+    
+    try:
+        class_id = request.GET.get('class_id')
+        if not class_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'class_id parameter required',
+                'sections': []
+            })
+        
+        sections = Section.objects.filter(class_name_id=class_id, is_active=True).values('id', 'name', 'capacity')
+        
+        sections_list = [
+            {
+                'id': s['id'],
+                'name': s['name'],
+                'capacity': s['capacity']
+            }
+            for s in sections
+        ]
+        
+        return JsonResponse({
+            'success': True,
+            'sections': sections_list,
+            'count': len(sections_list)
+        })
+    except Exception as e:
+        import traceback
+        return JsonResponse({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc(),
+            'sections': []
+        }, status=500)

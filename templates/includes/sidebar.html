@@ -98,6 +98,13 @@
             <span>Students</span>
         </a></li>
 
+        {% if user.role == 'admin' %}
+        <li class="{% if '/parents/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/students/parents/">
+            <i class="fas fa-users"></i>
+            <span>Parents</span>
+        </a></li>
+        {% endif %}
+
         <li class="{% if '/classes/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/academics/classes/">
             <i class="fas fa-chalkboard"></i>
             <span>Classes</span>
