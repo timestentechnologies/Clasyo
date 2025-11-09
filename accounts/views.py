@@ -114,6 +114,12 @@ class LogoutView(LoginRequiredMixin, View):
             last_log.session_duration = last_log.logout_time - last_log.login_time
             last_log.save()
         
+        # Clear impersonation session data if any
+        if 'impersonated_user_id' in request.session:
+            del request.session['impersonated_user_id']
+        if 'original_user_id' in request.session:
+            del request.session['original_user_id']
+        
         logout(request)
         messages.success(request, 'You have been logged out successfully.')
         return redirect('frontend:home')

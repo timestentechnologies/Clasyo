@@ -19,7 +19,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     
     def dispatch(self, request, *args, **kwargs):
         """Redirect super admins to their own dashboard"""
-        if request.user.is_authenticated and request.user.role == 'super_admin':
+        if request.user.is_authenticated and request.user.role == 'superadmin':
             return redirect('superadmin:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
@@ -110,7 +110,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         
         elif user.is_student:
             # Student specific data
-            context['student_profile'] = user.student_profile
+            # Check if student_profile exists before accessing it
+            try:
+                context['student_profile'] = user.student_profile
+            except:
+                # User has student role but no student profile yet
+                context['student_profile'] = None
         
         return context
 

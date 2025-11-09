@@ -12,7 +12,7 @@
 <div class="modern-sidebar" id="sidebar">
     <div class="sidebar-brand">
         <div class="brand-logo">
-            {% if user.role == 'superadmin' or user.role == 'super_admin' %}
+            {% if user.role == 'superadmin' %}
                 <i class="fas fa-user-shield"></i>
             {% else %}
                 {% if school and school.logo %}
@@ -23,7 +23,7 @@
             {% endif %}
         </div>
         <div class="brand-text">
-            {% if user.role == 'superadmin' or user.role == 'super_admin' %}
+            {% if user.role == 'superadmin' %}
                 <h3>Clasyo System</h3>
                 <p>Super Admin Panel</p>
             {% else %}
@@ -34,12 +34,12 @@
     </div>
 
     <ul class="sidebar-menu">
-        <li class="{% if 'dashboard' in request.path %}active{% endif %}"><a href="{% if user.role == 'superadmin' or user.role == 'super_admin' %}{% url 'superadmin:dashboard' %}{% elif school_slug %}{% url 'core:dashboard' school_slug=school_slug %}{% else %}#{% endif %}">
+        <li class="{% if 'dashboard' in request.path %}active{% endif %}"><a href="{% if user.role == 'superadmin' %}{% url 'superadmin:dashboard' %}{% elif school_slug %}{% url 'core:dashboard' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-tachometer-alt"></i>
             <span>Dashboard</span>
         </a></li>
 
-        {% if user.role == 'superadmin' or user.role == 'super_admin' %}
+        {% if user.role == 'superadmin' %}
         {# === SUPER ADMIN MENU === #}
         <div class="menu-section-title">Management</div>
         
@@ -60,17 +60,17 @@
 
         <div class="menu-section-title">Content</div>
 
-        <li><a href="{% url 'superadmin:pricing' %}">
+        <li><a href="{% url 'superadmin:pricing_management' %}">
             <i class="fas fa-tags"></i>
             <span>Pricing Plans</span>
         </a></li>
 
-        <li><a href="{% url 'superadmin:page_content' %}">
+        <li><a href="{% url 'superadmin:page_content_management' %}">
             <i class="fas fa-file-alt"></i>
             <span>Page Content</span>
         </a></li>
 
-        <li><a href="{% url 'superadmin:faqs' %}">
+        <li><a href="{% url 'superadmin:faq_management' %}">
             <i class="fas fa-question-circle"></i>
             <span>FAQs</span>
         </a></li>
