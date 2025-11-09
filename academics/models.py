@@ -1,10 +1,12 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator
+from tenants.models import School
 
 
 class Class(models.Model):
     """Class/Grade Model"""
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='classes', null=True, blank=True)
     name = models.CharField(_("Class Name"), max_length=100)
     numeric_name = models.IntegerField(_("Numeric Name"), null=True, blank=True)
     description = models.TextField(_("Description"), blank=True)
@@ -65,6 +67,7 @@ class Subject(models.Model):
         ('both', 'Theory + Practical'),
     ]
     
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='subjects', null=True, blank=True)
     name = models.CharField(_("Subject Name"), max_length=100)
     code = models.CharField(_("Subject Code"), max_length=20, unique=True)
     subject_type = models.CharField(_("Subject Type"), max_length=20, 
