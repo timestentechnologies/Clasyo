@@ -112,10 +112,13 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             # Student specific data
             # Check if student_profile exists before accessing it
             try:
-                context['student_profile'] = user.student_profile
+                student_profile = user.student_profile
+                context['student_profile'] = student_profile
+                context['student'] = student_profile  # Also add as 'student' for template compatibility
             except:
                 # User has student role but no student profile yet
                 context['student_profile'] = None
+                context['student'] = None
         
         return context
 
