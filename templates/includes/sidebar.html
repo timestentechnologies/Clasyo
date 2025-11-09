@@ -90,7 +90,7 @@
         {% else %}
         {# === SCHOOL-BASED MENU === #}
         
-        {% if user.role in 'school_admin,teacher' %}
+        {% if user.role in 'admin,teacher' %}
         <div class="menu-section-title">Academic</div>
         
         <li class="{% if '/students/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/students/">
@@ -113,12 +113,12 @@
             <span>Class Routine</span>
         </a></li>
 
-        <li class="{% if '/examinations/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/examinations/">
+        <li class="{% if '/examinations/' in request.path and '/grades/' not in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/examinations/">
             <i class="fas fa-file-alt"></i>
             <span>Examinations</span>
         </a></li>
 
-        <li class="{% if '/grades/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/examinations/grades/">
+        <li class="{% if '/grades/' in request.path or '/grading/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/examinations/grades/">
             <i class="fas fa-graduation-cap"></i>
             <span>Grading</span>
         </a></li>

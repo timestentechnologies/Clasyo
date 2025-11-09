@@ -4,5 +4,5 @@ from . import views
 app_name = 'reports'
 
 urlpatterns = [
-    # Add your URL patterns here
+    path('', views.ReportsIndexView.as_view(), name='index'),
 ]

@@ -1,0 +1,118 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Vehicles - Transport{% endblock %}
+{% block page_icon %}bus-alt{% endblock %}
+{% block page_title %}Transport Vehicles{% endblock %}
+{% block page_subtitle %}Manage school transport vehicles{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-bus text-primary me-2"></i>All Vehicles</h5>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addVehicleModal">
+                        <i class="fas fa-plus-circle"></i> Add Vehicle
+                    </button>
+                </div>
+
+                {% if vehicles %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Vehicle Number</th>
+                                <th>Model</th>
+                                <th>Capacity</th>
+                                <th>Route</th>
+                                <th>Driver</th>
+                                <th>Contact</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vehicle in vehicles %}
+                            <tr>
+                                <td><strong>{{ vehicle.vehicle_number }}</strong></td>
+                                <td>{{ vehicle.vehicle_model }}</td>
+                                <td>{{ vehicle.capacity }}</td>
+                                <td>{{ vehicle.route.name }}</td>
+                                <td>{{ vehicle.driver_name }}</td>
+                                <td>{{ vehicle.driver_contact }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-bus fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">No vehicles found</h5>
+                    <p>Add your first vehicle to get started</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Vehicle Modal -->
+<div class="modal fade" id="addVehicleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Vehicle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Vehicle Number</label>
+                        <input type="text" name="vehicle_number" class="form-control" placeholder="e.g., ABC-123" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Vehicle Model</label>
+                        <input type="text" name="vehicle_model" class="form-control" placeholder="e.g., Toyota Coaster" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Capacity</label>
+                        <input type="number" name="capacity" class="form-control" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Route</label>
+                        <select name="route" class="form-select" required>
+                            <option value="">Select Route</option>
+                            {% for route in routes %}
+                            <option value="{{ route.id }}">{{ route.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Driver Name</label>
+                        <input type="text" name="driver_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Driver Contact</label>
+                        <input type="text" name="driver_contact" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Vehicle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
