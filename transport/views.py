@@ -22,7 +22,13 @@ class RouteListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         if MODELS_EXIST:
-            return Route.objects.all()
+            from tenants.models import School
+            school_slug = self.kwargs.get('school_slug')
+            try:
+                school = School.objects.get(slug=school_slug)
+                return Route.objects.filter(school=school) | Route.objects.filter(school__isnull=True)
+            except:
+                return Route.objects.filter(school__isnull=True)
         return []
     
     def get_context_data(self, **kwargs):
@@ -32,7 +38,11 @@ class RouteListView(LoginRequiredMixin, ListView):
     
     def post(self, request, *args, **kwargs):
         try:
+            from tenants.models import School
+            school_slug = self.kwargs.get('school_slug')
+            school = School.objects.get(slug=school_slug)
             Route.objects.create(
+                school=school,
                 name=request.POST.get('name'),
                 start_place=request.POST.get('start_place'),
                 end_place=request.POST.get('end_place'),
@@ -50,14 +60,26 @@ class VehicleListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         if MODELS_EXIST:
-            return Vehicle.objects.all()
+            from tenants.models import School
+            school_slug = self.kwargs.get('school_slug')
+            try:
+                school = School.objects.get(slug=school_slug)
+                return Vehicle.objects.filter(school=school) | Vehicle.objects.filter(school__isnull=True)
+            except:
+                return Vehicle.objects.filter(school__isnull=True)
         return []
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['school_slug'] = self.kwargs.get('school_slug', '')
+        school_slug = self.kwargs.get('school_slug', '')
+        context['school_slug'] = school_slug
         if MODELS_EXIST:
-            context['routes'] = Route.objects.all()
+            from tenants.models import School
+            try:
+                school = School.objects.get(slug=school_slug)
+                context['routes'] = Route.objects.filter(school=school) | Route.objects.filter(school__isnull=True)
+            except:
+                context['routes'] = Route.objects.filter(school__isnull=True)
         else:
             context['routes'] = []
         return context

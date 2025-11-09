@@ -46,8 +46,8 @@ class ReportsIndexView(LoginRequiredMixin, TemplateView):
             context['school'] = school
             
             # Quick stats
-            context['total_students'] = Student.objects.filter(school=school, is_active=True).count()
-            context['total_teachers'] = User.objects.filter(school=school, role='teacher', is_active=True).count()
+            context['total_students'] = Student.objects.filter(current_class__school=school, is_active=True).count()
+            context['total_teachers'] = User.objects.filter(role='teacher', is_active=True).count()  # TODO: Add school filter for teachers
             context['total_classes'] = Class.objects.filter(school=school, is_active=True).count()
         except School.DoesNotExist:
             pass

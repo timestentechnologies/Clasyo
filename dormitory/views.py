@@ -24,7 +24,13 @@ class DormitoryListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         if MODELS_EXIST:
-            return Dormitory.objects.all()
+            from tenants.models import School
+            school_slug = self.kwargs.get('school_slug')
+            try:
+                school = School.objects.get(slug=school_slug)
+                return Dormitory.objects.filter(school=school) | Dormitory.objects.filter(school__isnull=True)
+            except:
+                return Dormitory.objects.filter(school__isnull=True)
         return []
     
     def get_context_data(self, **kwargs):
@@ -34,7 +40,11 @@ class DormitoryListView(LoginRequiredMixin, ListView):
     
     def post(self, request, *args, **kwargs):
         try:
+            from tenants.models import School
+            school_slug = self.kwargs.get('school_slug')
+            school = School.objects.get(slug=school_slug)
             Dormitory.objects.create(
+                school=school,
                 name=request.POST.get('name'),
                 dormitory_type=request.POST.get('dormitory_type'),
                 address=request.POST.get('address'),

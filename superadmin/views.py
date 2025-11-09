@@ -713,27 +713,41 @@ class ImpersonateUserView(SuperAdminRequiredMixin, View):
         school = None
         
         if user_to_impersonate.role == 'admin':
-            # For school admin, get their school
-            school = user_to_impersonate.school
+            # For school admin, find their school through SchoolAdmin
+            try:
+                from tenants.models import SchoolAdmin
+                school_admin = SchoolAdmin.objects.filter(user=user_to_impersonate).first()
+                if school_admin:
+                    school = school_admin.school
+            except:
+                # Fallback: find any school where user is admin
+                from tenants.models import School
+                school = School.objects.filter(admins__user=user_to_impersonate).first()
         elif user_to_impersonate.role == 'teacher':
-            # Get teacher's school (assuming teacher has school FK)
-            school = user_to_impersonate.school
+            # Get teacher's school through their classes or HR record
+            try:
+                from academics.models import Class
+                teacher_class = Class.objects.filter(class_teacher=user_to_impersonate).first()
+                if teacher_class:
+                    school = teacher_class.school
+            except:
+                pass
         elif user_to_impersonate.role == 'student':
-            # Get student's school
+            # Get student's school through current_class
             try:
                 from students.models import Student
-                student = Student.objects.filter(user=user_to_impersonate).first()
-                if student:
-                    school = student.school
+                student = Student.objects.select_related('current_class__school').filter(user=user_to_impersonate).first()
+                if student and student.current_class:
+                    school = student.current_class.school
             except:
                 pass
         elif user_to_impersonate.role == 'parent':
             # Get parent's school from their children
             try:
                 from students.models import Student
-                child = Student.objects.filter(parent=user_to_impersonate).first()
-                if child:
-                    school = child.school
+                child = Student.objects.select_related('current_class__school').filter(parent_user=user_to_impersonate).first()
+                if child and child.current_class:
+                    school = child.current_class.school
             except:
                 pass
         
