@@ -16,7 +16,7 @@ class StudentAttendance(models.Model):
         ('sick', 'Sick'),
     ]
     
-    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='student_attendance')
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='student_attendance', null=True, blank=True)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='attendance_records')
     class_name = models.ForeignKey(Class, on_delete=models.CASCADE, null=True, blank=True)
     section = models.ForeignKey(Section, on_delete=models.CASCADE, null=True, blank=True)
@@ -54,7 +54,7 @@ class StaffAttendance(models.Model):
         ('half_day', 'Half Day'),
     ]
     
-    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='staff_attendance')
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='staff_attendance', null=True, blank=True)
     staff = models.ForeignKey(User, on_delete=models.CASCADE, related_name='attendance_records',
                             limit_choices_to={'role__in': ['teacher', 'admin', 'staff']})
     

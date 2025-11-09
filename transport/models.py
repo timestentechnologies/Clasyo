@@ -7,7 +7,7 @@ from accounts.models import User
 
 class Route(models.Model):
     """Transport Route Model"""
-    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='transport_routes')
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='transport_routes', null=True, blank=True)
     name = models.CharField(_('Route Name'), max_length=200)
     route_number = models.CharField(_('Route Number'), max_length=50)
     start_place = models.CharField(_('Start Place'), max_length=200)
@@ -64,7 +64,7 @@ class Vehicle(models.Model):
         ('car', 'Car'),
     ]
     
-    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='vehicles')
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='vehicles', null=True, blank=True)
     vehicle_number = models.CharField(_('Vehicle Number'), max_length=50)
     vehicle_model = models.CharField(_('Vehicle Model'), max_length=100)
     vehicle_type = models.CharField(_('Vehicle Type'), max_length=20, choices=VEHICLE_TYPE_CHOICES, default='bus')
@@ -89,7 +89,7 @@ class Vehicle(models.Model):
 
 class Driver(models.Model):
     """Driver Model"""
-    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='drivers')
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='drivers', null=True, blank=True)
     user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='driver_profile')
     name = models.CharField(_('Driver Name'), max_length=200)
     phone = models.CharField(_('Phone Number'), max_length=20)

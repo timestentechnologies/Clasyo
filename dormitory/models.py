@@ -6,7 +6,7 @@ from students.models import Student
 
 class Dormitory(models.Model):
     """Dormitory/Hostel Model"""
-    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='dormitories')
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='dormitories', null=True, blank=True)
     name = models.CharField(_('Dormitory Name'), max_length=200)
     dormitory_type = models.CharField(_('Type'), max_length=20, 
                                      choices=[('boys', 'Boys'), ('girls', 'Girls'), ('mixed', 'Mixed')])
