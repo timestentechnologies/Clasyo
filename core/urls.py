@@ -7,6 +7,9 @@ urlpatterns = [
     # Dashboard
     path('', views.DashboardView.as_view(), name='dashboard'),
     
+    # Parent - My Children
+    path('my-children/', views.MyChildrenView.as_view(), name='my_children'),
+    
     # Notifications
     path('notifications/', views.NotificationListView.as_view(), name='notifications'),
     path('notifications/<int:pk>/mark-read/', views.MarkNotificationReadView.as_view(), name='mark_notification_read'),

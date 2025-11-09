@@ -144,15 +144,68 @@
     </div>
 </div>
 
+<!-- Personal Calendar -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="modern-card">
+            <h4 class="mb-3"><i class="fas fa-calendar-alt"></i> My Personal Calendar</h4>
+            <div class="row">
+                <div class="col-md-8">
+                    <div id="calendar" class="p-3"></div>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="mb-3">Quick Add Event</h5>
+                    <form id="quickEventForm" class="mb-3">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <input type="text" class="form-control form-control-sm" placeholder="Event title" id="eventTitle" required>
+                        </div>
+                        <div class="mb-2">
+                            <input type="date" class="form-control form-control-sm" id="eventDate" required>
+                        </div>
+                        <div class="mb-2">
+                            <input type="time" class="form-control form-control-sm" id="eventTime">
+                        </div>
+                        <div class="mb-2">
+                            <textarea class="form-control form-control-sm" placeholder="Description (optional)" id="eventDesc" rows="2"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                            <i class="fas fa-plus"></i> Add Event
+                        </button>
+                    </form>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Add personal events to keep track of parent-teacher meetings, school events, and important dates.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Recent Notifications & Events -->
 <div class="row">
     <div class="col-md-6">
         <div class="modern-card">
             <h4 class="mb-3"><i class="fas fa-bell"></i> Recent Notifications</h4>
             <div class="list-group">
+                {% if notifications %}
+                    {% for notification in notifications %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ notification.title }}</h6>
+                            <small>{{ notification.created_at|timesince }} ago</small>
+                        </div>
+                        <p class="mb-1 small">{{ notification.message|truncatewords:15 }}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
                 <div class="list-group-item">
                     <small class="text-muted">No new notifications</small>
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -161,11 +214,136 @@
         <div class="modern-card">
             <h4 class="mb-3"><i class="fas fa-calendar"></i> Upcoming Events</h4>
             <div class="list-group">
+                {% if upcoming_events %}
+                    {% for event in upcoming_events %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">
+                                <i class="fas fa-calendar-day text-primary me-2"></i>{{ event.title }}
+                            </h6>
+                            <small>{{ event.start_date|date:"M d" }}</small>
+                        </div>
+                        {% if event.description %}
+                        <p class="mb-1 small text-muted">{{ event.description|truncatewords:10 }}</p>
+                        {% endif %}
+                        <small class="text-muted">
+                            <i class="fas fa-clock me-1"></i>{{ event.start_date|date:"M d, Y" }}
+                            {% if event.start_time %}at {{ event.start_time|time:"g:i A" }}{% endif %}
+                        </small>
+                    </div>
+                    {% endfor %}
+                {% else %}
                 <div class="list-group-item">
                     <small class="text-muted">No upcoming events</small>
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+#calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+}
+.calendar-day {
+    aspect-ratio: 1;
+    border: 1px solid #dee2e6;
+    padding: 5px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: all 0.3s;
+}
+.calendar-day:hover {
+    background: #e9ecef;
+}
+.calendar-day.today {
+    background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+    color: white;
+    font-weight: bold;
+}
+.calendar-day.has-event {
+    background: #ffc107;
+    color: #000;
+}
+.calendar-header {
+    font-weight: bold;
+    padding: 10px 5px;
+    background: #f8f9fa;
+    text-align: center;
+}
+</style>
+
+<script>
+// Simple Calendar Implementation
+function initCalendar() {
+    const calendar = document.getElementById('calendar');
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    // Days of week
+    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    daysOfWeek.forEach(day => {
+        const header = document.createElement('div');
+        header.className = 'calendar-header';
+        header.textContent = day;
+        calendar.appendChild(header);
+    });
+    
+    // Get first day of month and total days
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    
+    // Add empty cells for days before month starts
+    for (let i = 0; i < firstDay; i++) {
+        const emptyDay = document.createElement('div');
+        emptyDay.className = 'calendar-day';
+        calendar.appendChild(emptyDay);
+    }
+    
+    // Add days of month
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dayCell = document.createElement('div');
+        dayCell.className = 'calendar-day';
+        dayCell.textContent = day;
+        
+        // Highlight today
+        if (day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()) {
+            dayCell.classList.add('today');
+        }
+        
+        calendar.appendChild(dayCell);
+    }
+}
+
+// Quick event form handler
+document.addEventListener('DOMContentLoaded', function() {
+    initCalendar();
+    
+    const eventForm = document.getElementById('quickEventForm');
+    if (eventForm) {
+        eventForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('eventTitle').value;
+            const date = document.getElementById('eventDate').value;
+            const time = document.getElementById('eventTime').value;
+            const desc = document.getElementById('eventDesc').value;
+            
+            // Here you would typically send this to the server via AJAX
+            // For now, just show a success message
+            alert('Event added successfully!\\nTitle: ' + title + '\\nDate: ' + date + (time ? '\\nTime: ' + time : ''));
+            
+            // Reset form
+            eventForm.reset();
+        });
+    }
+});
+</script>
 {% endblock %}

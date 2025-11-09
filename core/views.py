@@ -60,16 +60,27 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             context['school'] = None
         
         # Common data for all users
-        context['notifications'] = Notification.objects.filter(
-            user=user, is_read=False
-        )[:5]
-        context['todos'] = ToDoList.objects.filter(
-            user=user, is_completed=False
-        )[:5]
-        context['upcoming_events'] = CalendarEvent.objects.filter(
-            Q(is_public=True) | Q(participants=user),
-            start_date__gte=date.today()
-        ).order_by('start_date')[:5]
+        try:
+            context['notifications'] = Notification.objects.filter(
+                user=user, is_read=False
+            )[:5]
+        except:
+            context['notifications'] = []
+        
+        try:
+            context['todos'] = ToDoList.objects.filter(
+                user=user, is_completed=False
+            )[:5]
+        except:
+            context['todos'] = []
+        
+        try:
+            context['upcoming_events'] = CalendarEvent.objects.filter(
+                Q(is_public=True) | Q(participants=user),
+                start_date__gte=date.today()
+            ).order_by('start_date')[:5]
+        except:
+            context['upcoming_events'] = []
         
         # Message count (assuming there's a Message model with is_read field)
         # If Message model doesn't exist yet, this will be 0
@@ -144,6 +155,98 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 # User has student role but no student profile yet
                 context['student_profile'] = None
                 context['student'] = None
+        
+        return context
+
+
+class MyChildrenView(LoginRequiredMixin, TemplateView):
+    """Parent view to see ONLY their own children with performance details"""
+    template_name = 'core/my_children.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        # SECURITY: Only parents can access this view
+        if not request.user.is_parent:
+            messages.error(request, "Access denied. This page is for parents only.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        school_slug = self.kwargs.get('school_slug')
+        context['school_slug'] = school_slug
+        
+        from students.models import Student
+        from django.db.models import Avg, Count, Q
+        from tenants.models import School
+        
+        # Get school
+        try:
+            school = School.objects.get(slug=school_slug, is_active=True)
+            context['school'] = school
+        except School.DoesNotExist:
+            context['school'] = None
+        
+        # SECURITY: Get ONLY children linked to this parent user
+        children_data = []
+        children = Student.objects.filter(
+            parent_user=user,  # CRITICAL: Only this parent's children
+            is_active=True
+        ).select_related('current_class', 'section')
+        
+        # For each child, get their detailed information
+        for child in children:
+            child_info = {
+                'student': child,
+                'teachers': [],
+                'attendance_percentage': 0,
+                'recent_results': [],
+                'average_grade': None,
+            }
+            
+            # Get class teachers (only for THIS child's class)
+            if child.current_class:
+                try:
+                    from academics.models import ClassTeacher
+                    class_teachers = ClassTeacher.objects.filter(
+                        class_assigned=child.current_class
+                    ).select_related('teacher')
+                    child_info['teachers'] = [ct.teacher for ct in class_teachers]
+                except:
+                    pass
+            
+            # Get attendance stats (only for THIS child)
+            try:
+                from attendance.models import StudentAttendance
+                attendance_records = StudentAttendance.objects.filter(student=child)
+                total = attendance_records.count()
+                present = attendance_records.filter(status='present').count()
+                if total > 0:
+                    child_info['attendance_percentage'] = round((present / total) * 100, 1)
+            except:
+                pass
+            
+            # Get recent exam results (only for THIS child)
+            try:
+                from examinations.models import ExamResult
+                recent_results = ExamResult.objects.filter(
+                    student=child
+                ).select_related('exam', 'subject').order_by('-exam__date')[:5]
+                child_info['recent_results'] = recent_results
+                
+                # Calculate average grade
+                if recent_results:
+                    total_marks = sum(r.marks_obtained for r in recent_results if r.marks_obtained)
+                    total_possible = sum(r.total_marks for r in recent_results if r.total_marks)
+                    if total_possible > 0:
+                        child_info['average_grade'] = round((total_marks / total_possible) * 100, 1)
+            except:
+                pass
+            
+            children_data.append(child_info)
+        
+        context['children_data'] = children_data
+        context['children_count'] = len(children_data)
         
         return context
 

@@ -1,0 +1,188 @@
+{% extends "dashboards/base.html" %}
+{% load static %}
+
+{% block title %}My Children{% endblock %}
+{% block page_title %}My Children{% endblock %}
+{% block page_icon %}users{% endblock %}
+{% block page_subtitle %}Academic Performance & Information{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert" style="background: linear-gradient(135deg, #1e3a5f 0%, #0ea5e9 100%); color: white; border: none;">
+            <h4><i class="fas fa-users me-2"></i>My Children's Academic Progress</h4>
+            <p class="mb-0">View detailed information about your {{ children_count }} child{{ children_count|pluralize:"ren" }}'s performance, teachers, and class details.</p>
+        </div>
+    </div>
+</div>
+
+{% if children_data %}
+    {% for child_info in children_data %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="modern-card">
+                <!-- Child Header -->
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-center">
+                            {% if child_info.student.photo %}
+                            <img src="{{ child_info.student.photo.url }}" alt="{{ child_info.student.get_full_name }}" 
+                                 class="rounded-circle me-3" style="width: 80px; height: 80px; object-fit: cover;">
+                            {% else %}
+                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                 style="width: 80px; height: 80px; background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); color: white; font-size: 32px; font-weight: bold;">
+                                {{ child_info.student.first_name|first }}{{ child_info.student.last_name|first }}
+                            </div>
+                            {% endif %}
+                            <div>
+                                <h3 class="mb-1">{{ child_info.student.get_full_name }}</h3>
+                                <p class="mb-0 text-muted">
+                                    <i class="fas fa-graduation-cap me-2"></i>
+                                    <strong>Class:</strong> {{ child_info.student.current_class|default:"Not Assigned" }}
+                                    {% if child_info.student.section %} - Section: {{ child_info.student.section }}{% endif %}
+                                </p>
+                                <p class="mb-0 text-muted">
+                                    <i class="fas fa-id-badge me-2"></i>
+                                    <strong>Roll No:</strong> {{ child_info.student.roll_number|default:"N/A" }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="btn-group" role="group">
+                            <a href="/school/{{ school_slug }}/academics/routine/" class="btn btn-info btn-sm">
+                                <i class="fas fa-clock"></i> Routine
+                            </a>
+                            <a href="/school/{{ school_slug }}/attendance/" class="btn btn-primary btn-sm">
+                                <i class="fas fa-calendar-check"></i> Attendance
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Performance Stats -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="text-center p-3" style="background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); border-radius: 10px; color: white;">
+                            <i class="fas fa-calendar-check fa-2x mb-2"></i>
+                            <h3>{{ child_info.attendance_percentage }}%</h3>
+                            <p class="mb-0">Attendance</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3" style="background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%); border-radius: 10px; color: white;">
+                            <i class="fas fa-chart-line fa-2x mb-2"></i>
+                            <h3>{{ child_info.average_grade|default:"N/A" }}{% if child_info.average_grade %}%{% endif %}</h3>
+                            <p class="mb-0">Average Grade</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3" style="background: linear-gradient(135deg, #22d3ee 0%, #0ea5e9 100%); border-radius: 10px; color: white;">
+                            <i class="fas fa-file-alt fa-2x mb-2"></i>
+                            <h3>{{ child_info.recent_results|length }}</h3>
+                            <p class="mb-0">Recent Exams</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Teachers -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h5><i class="fas fa-chalkboard-teacher me-2"></i>Class Teachers</h5>
+                        {% if child_info.teachers %}
+                        <div class="row">
+                            {% for teacher in child_info.teachers %}
+                            <div class="col-md-6 mb-2">
+                                <div class="border rounded p-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" 
+                                             style="width: 40px; height: 40px;">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div>
+                                            <strong>{{ teacher.get_full_name }}</strong>
+                                            <p class="mb-0 small text-muted">
+                                                <i class="fas fa-envelope me-1"></i>{{ teacher.email|default:"No email" }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-muted">No teachers assigned yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Recent Exam Results -->
+                <div class="row">
+                    <div class="col-12">
+                        <h5><i class="fas fa-chart-bar me-2"></i>Recent Exam Results</h5>
+                        {% if child_info.recent_results %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Exam</th>
+                                        <th>Subject</th>
+                                        <th>Marks Obtained</th>
+                                        <th>Total Marks</th>
+                                        <th>Percentage</th>
+                                        <th>Grade</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for result in child_info.recent_results %}
+                                    <tr>
+                                        <td>{{ result.exam.title }}</td>
+                                        <td>{{ result.subject.name }}</td>
+                                        <td>{{ result.marks_obtained|default:"N/A" }}</td>
+                                        <td>{{ result.total_marks|default:"N/A" }}</td>
+                                        <td>
+                                            {% if result.marks_obtained and result.total_marks %}
+                                                {% widthratio result.marks_obtained result.total_marks 100 %}%
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if result.grade %}
+                                                <span class="badge bg-success">{{ result.grade }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-center">
+                            <a href="/school/{{ school_slug }}/examinations/" class="btn btn-primary">
+                                <i class="fas fa-eye me-2"></i>View All Results
+                            </a>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">No exam results available yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                No children are linked to your account yet. Please contact the school administrator to link your children.
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
