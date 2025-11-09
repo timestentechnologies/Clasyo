@@ -182,6 +182,7 @@
         </a></li>
         {% endif %}
 
+        {% if user.role in 'admin,teacher,student' %}
         <div class="menu-section-title">Features</div>
         
         {% if user.role in 'admin,teacher' %}
@@ -191,11 +192,7 @@
         </a></li>
         {% endif %}
 
-        <li class="{% if '/library/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/library/books/">
-            <i class="fas fa-book"></i>
-            <span>Library</span>
-        </a></li>
-
+        {% if user.role in 'admin,teacher,student' %}
         <li class="{% if '/notices/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/communication/notices/">
             <i class="fas fa-bell"></i>
             <span>Notices</span>
@@ -205,6 +202,7 @@
             <i class="fas fa-envelope"></i>
             <span>Messages</span>
         </a></li>
+        {% endif %}
 
         {% if user.role == 'admin' %}
         <li class="{% if '/transport/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/transport/routes/">
@@ -250,24 +248,19 @@
         {% if user.role == 'parent' %}
         <div class="menu-section-title">My Children</div>
         
-        <li><a href="#">
+        <li class="{% if '/my-children/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'core:dashboard' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-users"></i>
-            <span>Children</span>
+            <span>My Children</span>
         </a></li>
 
-        <li><a href="#">
-            <i class="fas fa-calendar-check"></i>
-            <span>Attendance</span>
+        <li class="{% if '/notices/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/communication/notices/">
+            <i class="fas fa-bell"></i>
+            <span>Notices</span>
         </a></li>
 
-        <li><a href="#">
-            <i class="fas fa-chart-line"></i>
-            <span>Results</span>
-        </a></li>
-
-        <li><a href="#">
-            <i class="fas fa-money-bill"></i>
-            <span>Fee Payments</span>
+        <li class="{% if '/messages/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/communication/messages/">
+            <i class="fas fa-envelope"></i>
+            <span>Messages</span>
         </a></li>
         {% endif %}
 
