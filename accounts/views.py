@@ -44,6 +44,12 @@ class LoginView(View):
             
             if user is not None:
                 if user.is_active:
+                    # Clear any stale impersonation session data before login
+                    if 'impersonated_user_id' in request.session:
+                        del request.session['impersonated_user_id']
+                    if 'original_user_id' in request.session:
+                        del request.session['original_user_id']
+                    
                     login(request, user)
                     
                     # Log the login

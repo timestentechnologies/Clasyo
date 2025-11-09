@@ -152,7 +152,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 LOGIN_URL = 'accounts:login'
-LOGIN_REDIRECT_URL = 'dashboard'
+# LOGIN_REDIRECT_URL handled manually in LoginView based on user role
 LOGOUT_REDIRECT_URL = 'frontend:home'
 
 # Internationalization
