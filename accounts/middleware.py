@@ -26,12 +26,27 @@ class ImpersonationMiddleware:
                     # Store the original admin user
                     request.original_user = User.objects.get(pk=original_user_id)
                     
-                    # Replace the current user with the impersonated user
-                    impersonated_user = User.objects.get(pk=impersonated_user_id)
-                    request.user = impersonated_user
-                    
-                    # Set a flag to indicate impersonation is active
-                    request.is_impersonating = True
+                    # Validate: Only allow impersonation if original user is admin/superadmin
+                    if request.original_user.role not in ['admin', 'school_admin', 'superadmin']:
+                        # Invalid impersonation - clear it
+                        del request.session['impersonated_user_id']
+                        del request.session['original_user_id']
+                        request.is_impersonating = False
+                        request.original_user = None
+                    # Validate: Don't allow if current authenticated user doesn't match original user
+                    elif request.user.id != original_user_id and request.user.id != impersonated_user_id:
+                        # Session mismatch - clear impersonation
+                        del request.session['impersonated_user_id']
+                        del request.session['original_user_id']
+                        request.is_impersonating = False
+                        request.original_user = None
+                    else:
+                        # Valid impersonation - Replace the current user with the impersonated user
+                        impersonated_user = User.objects.get(pk=impersonated_user_id)
+                        request.user = impersonated_user
+                        
+                        # Set a flag to indicate impersonation is active
+                        request.is_impersonating = True
                 except User.DoesNotExist:
                     # If user doesn't exist, clear the impersonation session
                     if 'impersonated_user_id' in request.session:
@@ -39,6 +54,7 @@ class ImpersonationMiddleware:
                     if 'original_user_id' in request.session:
                         del request.session['original_user_id']
                     request.is_impersonating = False
+                    request.original_user = None
             else:
                 request.is_impersonating = False
                 request.original_user = None
