@@ -9,9 +9,9 @@ class Route(models.Model):
     """Transport Route Model"""
     school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='transport_routes', null=True, blank=True)
     name = models.CharField(_('Route Name'), max_length=200)
-    route_number = models.CharField(_('Route Number'), max_length=50)
-    start_place = models.CharField(_('Start Place'), max_length=200)
-    end_place = models.CharField(_('End Place'), max_length=200)
+    route_number = models.CharField(_('Route Number'), max_length=50, blank=True)
+    start_place = models.CharField(_('Start Place'), max_length=200, blank=True)
+    end_place = models.CharField(_('End Place'), max_length=200, blank=True)
     distance = models.DecimalField(_('Distance (km)'), max_digits=10, decimal_places=2, default=0)
     description = models.TextField(_('Description'), blank=True)
     fare = models.DecimalField(_('Monthly Fare'), max_digits=10, decimal_places=2, default=0)
@@ -23,7 +23,6 @@ class Route(models.Model):
         verbose_name = _('Route')
         verbose_name_plural = _('Routes')
         ordering = ['route_number']
-        unique_together = ['school', 'route_number']
     
     def __str__(self):
         return f"{self.route_number} - {self.name}"
@@ -81,7 +80,6 @@ class Vehicle(models.Model):
         verbose_name = _('Vehicle')
         verbose_name_plural = _('Vehicles')
         ordering = ['vehicle_number']
-        unique_together = ['school', 'vehicle_number']
     
     def __str__(self):
         return f"{self.vehicle_number} - {self.vehicle_model}"

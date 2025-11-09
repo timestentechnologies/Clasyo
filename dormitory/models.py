@@ -45,7 +45,7 @@ class Room(models.Model):
     capacity = models.IntegerField(_('Capacity'), default=1)
     current_occupancy = models.IntegerField(_('Current Occupancy'), default=0)
     room_type = models.CharField(_('Room Type'), max_length=50, blank=True)
-    floor = models.IntegerField(_('Floor Number'), default=1)
+    floor = models.IntegerField(_('Floor Number'), default=1, blank=True)
     is_active = models.BooleanField(_('Is Active'), default=True)
     created_at = models.DateTimeField(_('Created At'), auto_now_add=True)
     updated_at = models.DateTimeField(_('Updated At'), auto_now=True)
