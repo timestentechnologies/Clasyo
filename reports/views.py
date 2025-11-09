@@ -45,10 +45,10 @@ class ReportsIndexView(LoginRequiredMixin, TemplateView):
             school = School.objects.get(slug=school_slug)
             context['school'] = school
             
-            # Quick stats
-            context['total_students'] = Student.objects.filter(current_class__school=school, is_active=True).count()
-            context['total_teachers'] = User.objects.filter(role='teacher', is_active=True).count()  # TODO: Add school filter for teachers
-            context['total_classes'] = Class.objects.filter(school=school, is_active=True).count()
+            # Quick stats (Note: Class model doesn't have school field yet)
+            context['total_students'] = Student.objects.filter(is_active=True).count()
+            context['total_teachers'] = User.objects.filter(role='teacher', is_active=True).count()
+            context['total_classes'] = Class.objects.filter(is_active=True).count()
         except School.DoesNotExist:
             pass
         
@@ -68,8 +68,8 @@ class StudentEnrollmentReportView(LoginRequiredMixin, TemplateView):
             school = School.objects.get(slug=school_slug)
             context['school'] = school
             
-            # Get enrollment by class
-            classes = Class.objects.filter(school=school, is_active=True)
+            # Get enrollment by class (Note: Class model doesn't have school field yet)
+            classes = Class.objects.filter(is_active=True)
             enrollment_data = []
             
             for cls in classes:
@@ -101,8 +101,8 @@ class ExportStudentEnrollmentView(LoginRequiredMixin, View):
     def get(self, request, school_slug, format='csv'):
         school = get_object_or_404(School, slug=school_slug)
         
-        # Get data
-        classes = Class.objects.filter(school=school, is_active=True)
+        # Get data (Note: Class model doesn't have school field yet)
+        classes = Class.objects.filter(is_active=True)
         data = []
         
         for cls in classes:
