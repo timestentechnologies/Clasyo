@@ -6,13 +6,15 @@ from students.models import Student
 
 # Check if models exist
 try:
-    from .models import Dormitory, Room
+    from .models import Dormitory, Room, RoomAllocation
     MODELS_EXIST = True
 except ImportError:
     MODELS_EXIST = False
     class Dormitory:
         pass
     class Room:
+        pass
+    class RoomAllocation:
         pass
 
 
@@ -72,3 +74,55 @@ class RoomListView(LoginRequiredMixin, ListView):
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
+
+
+class RoomAllocationListView(LoginRequiredMixin, ListView):
+    template_name = 'dormitory/allocations.html'
+    context_object_name = 'allocations'
+    
+    def get_queryset(self):
+        if MODELS_EXIST:
+            return RoomAllocation.objects.filter(is_active=True).select_related('student', 'room', 'room__dormitory')
+        return []
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school_slug'] = self.kwargs.get('school_slug', '')
+        return context
+
+
+class AllocateRoomView(LoginRequiredMixin, CreateView):
+    template_name = 'dormitory/allocate_room.html'
+    model = RoomAllocation if MODELS_EXIST else None
+    fields = ['student', 'room', 'bed_number', 'monthly_fee', 'start_date', 'end_date']
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school_slug'] = self.kwargs.get('school_slug', '')
+        if MODELS_EXIST:
+            context['available_rooms'] = Room.objects.filter(is_active=True).exclude(is_full=True)
+        return context
+
+
+class OccupancyReportView(LoginRequiredMixin, ListView):
+    template_name = 'dormitory/occupancy_report.html'
+    context_object_name = 'dormitories'
+    
+    def get_queryset(self):
+        if MODELS_EXIST:
+            return Dormitory.objects.filter(is_active=True).prefetch_related('rooms', 'rooms__allocations')
+        return []
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school_slug'] = self.kwargs.get('school_slug', '')
+        
+        if MODELS_EXIST:
+            # Calculate overall statistics
+            total_capacity = sum(d.total_capacity for d in self.get_queryset())
+            total_occupied = RoomAllocation.objects.filter(is_active=True).count()
+            context['total_capacity'] = total_capacity
+            context['total_occupied'] = total_occupied
+            context['occupancy_percentage'] = (total_occupied / total_capacity * 100) if total_capacity > 0 else 0
+        
+        return context

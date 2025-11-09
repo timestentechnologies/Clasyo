@@ -1,0 +1,218 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Student Enrollment Report - {{ school.name }}{% endblock %}
+{% block page_icon %}users{% endblock %}
+{% block page_title %}Student Enrollment Report{% endblock %}
+{% block page_subtitle %}View enrollment statistics by class and gender{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group">
+    <a href="{% url 'reports:export_enrollment' school_slug=school_slug format='csv' %}" class="btn btn-outline-success">
+        <i class="fas fa-file-csv"></i> Export CSV
+    </a>
+    <a href="{% url 'reports:export_enrollment' school_slug=school_slug format='excel' %}" class="btn btn-outline-primary">
+        <i class="fas fa-file-excel"></i> Export Excel
+    </a>
+    <a href="{% url 'reports:export_enrollment' school_slug=school_slug format='pdf' %}" class="btn btn-outline-danger">
+        <i class="fas fa-file-pdf"></i> Export PDF
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1">Total Students</p>
+                        <h3 class="mb-0 fw-bold">{{ total_students }}</h3>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1">Male Students</p>
+                        <h3 class="mb-0 fw-bold text-info">{{ total_male }}</h3>
+                    </div>
+                    <div class="bg-info bg-opacity-10 text-info rounded-circle p-3">
+                        <i class="fas fa-male fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1">Female Students</p>
+                        <h3 class="mb-0 fw-bold text-danger">{{ total_female }}</h3>
+                    </div>
+                    <div class="bg-danger bg-opacity-10 text-danger rounded-circle p-3">
+                        <i class="fas fa-female fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enrollment Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0 fw-bold"><i class="fas fa-table me-2"></i>Enrollment by Class</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Class</th>
+                        <th class="text-center">Total Students</th>
+                        <th class="text-center">Male</th>
+                        <th class="text-center">Female</th>
+                        <th class="text-center">Gender Ratio (M:F)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for data in enrollment_data %}
+                    <tr>
+                        <td><strong>{{ data.class.name }}</strong></td>
+                        <td class="text-center">
+                            <span class="badge bg-primary">{{ data.total }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-info">{{ data.male }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-danger">{{ data.female }}</span>
+                        </td>
+                        <td class="text-center">
+                            {% if data.total > 0 %}
+                            {{ data.male|floatformat:0 }}:{{ data.female|floatformat:0 }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">No enrollment data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light fw-bold">
+                    <tr>
+                        <td>Total</td>
+                        <td class="text-center">
+                            <span class="badge bg-primary">{{ total_students }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-info">{{ total_male }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-danger">{{ total_female }}</span>
+                        </td>
+                        <td class="text-center">
+                            {% if total_students > 0 %}
+                            {{ total_male|floatformat:0 }}:{{ total_female|floatformat:0 }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Visual Representation -->
+<div class="row mt-4">
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-chart-pie me-2"></i>Gender Distribution</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="genderChart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-chart-bar me-2"></i>Class-wise Enrollment</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="classChart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Gender Pie Chart
+const genderCtx = document.getElementById('genderChart').getContext('2d');
+new Chart(genderCtx, {
+    type: 'pie',
+    data: {
+        labels: ['Male', 'Female'],
+        datasets: [{
+            data: [{{ total_male }}, {{ total_female }}],
+            backgroundColor: ['#17a2b8', '#dc3545']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true
+    }
+});
+
+// Class Bar Chart
+const classCtx = document.getElementById('classChart').getContext('2d');
+new Chart(classCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for data in enrollment_data %}'{{ data.class.name }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+        datasets: [
+            {
+                label: 'Male',
+                data: [{% for data in enrollment_data %}{{ data.male }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: '#17a2b8'
+            },
+            {
+                label: 'Female',
+                data: [{% for data in enrollment_data %}{{ data.female }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: '#dc3545'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+            x: { stacked: false },
+            y: { 
+                stacked: false,
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+{% endblock %}
