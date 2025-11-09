@@ -68,7 +68,7 @@ class StaffAttendance(models.Model):
     marked_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='marked_staff_attendance')
     
     # Link to leave application if applicable
-    leave_application = models.ForeignKey('leave_management.LeaveApplication', 
+    leave_application = models.ForeignKey('leave_management.Leave', 
                                         on_delete=models.SET_NULL, null=True, blank=True,
                                         related_name='attendance_records')
     
