@@ -50,6 +50,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         
         # Fetch the actual school object
         from tenants.models import School
+        from datetime import date
+        from django.db.models import Q
+        
         try:
             school = School.objects.get(slug=school_slug, is_active=True)
             context['school'] = school
@@ -63,7 +66,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context['todos'] = ToDoList.objects.filter(
             user=user, is_completed=False
         )[:5]
-        from datetime import date
         context['upcoming_events'] = CalendarEvent.objects.filter(
             Q(is_public=True) | Q(participants=user),
             start_date__gte=date.today()
@@ -113,7 +115,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             # Calculate average attendance for all children
             if children.exists():
                 from attendance.models import StudentAttendance
-                from django.db.models import Count, Q
+                from django.db.models import Count
                 total_present = 0
                 total_records = 0
                 for child in children:
