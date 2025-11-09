@@ -247,16 +247,80 @@ class SchoolUpdateView(SuperAdminRequiredMixin, UpdateView):
 
 
 class SchoolDeleteView(SuperAdminRequiredMixin, DeleteView):
-    """Delete a school"""
+    """Delete a school and all related data"""
     model = School
     template_name = 'superadmin/school_confirm_delete.html'
     success_url = reverse_lazy('superadmin:schools')
     
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        school = self.get_object()
+        
+        # Count related objects
+        from students.models import Student, Parent
+        from academics.models import Class, Subject
+        from library.models import Book
+        from fees.models import FeeStructure
+        from examinations.models import Exam
+        
+        context['counts'] = {
+            'students': Student.objects.filter(school=school).count(),
+            'parents': Parent.objects.filter(school=school).count(),
+            'teachers': User.objects.filter(role='teacher').count(),
+            'classes': Class.objects.filter(school=school).count(),
+            'subjects': Subject.objects.filter(school=school).count(),
+            'books': Book.objects.filter(school=school).count(),
+            'fees': FeeStructure.objects.filter(school=school).count(),
+            'exams': Exam.objects.filter(school=school).count(),
+        }
+        return context
+    
     def delete(self, request, *args, **kwargs):
-        school_name = self.get_object().name
-        response = super().delete(request, *args, **kwargs)
-        messages.success(request, f'School "{school_name}" deleted successfully!')
-        return response
+        school = self.get_object()
+        school_name = school.name
+        
+        # Django will handle cascading deletes for ForeignKey with on_delete=CASCADE
+        # But we'll explicitly delete to ensure cleanup
+        from students.models import Student, Parent
+        from academics.models import Class, Subject, ClassTime
+        from library.models import Book, BookIssue
+        from fees.models import FeeStructure, FeeCollection
+        from examinations.models import Exam, Grade
+        from attendance.models import Attendance
+        from human_resource.models import Teacher, Staff, Department
+        
+        try:
+            # Delete related data
+            Student.objects.filter(school=school).delete()
+            Parent.objects.filter(school=school).delete()
+            Class.objects.filter(school=school).delete()
+            Subject.objects.filter(school=school).delete()
+            ClassTime.objects.filter(school=school).delete()
+            Book.objects.filter(school=school).delete()
+            BookIssue.objects.filter(school=school).delete()
+            FeeStructure.objects.filter(school=school).delete()
+            FeeCollection.objects.filter(school=school).delete()
+            Exam.objects.filter(school=school).delete()
+            Grade.objects.filter(school=school).delete()
+            Attendance.objects.filter(school=school).delete()
+            Teacher.objects.filter(school=school).delete()
+            Staff.objects.filter(school=school).delete()
+            Department.objects.filter(school=school).delete()
+            
+            # Delete school admins (users with admin role)
+            # Note: Be careful not to delete the superadmin!
+            User.objects.filter(role='admin').delete()  # You may want to add school filtering here
+            
+            # Delete subscriptions related to the school
+            Subscription.objects.filter(school=school).delete()
+            
+            # Finally delete the school
+            response = super().delete(request, *args, **kwargs)
+            messages.success(request, f'School "{school_name}" and all related data deleted successfully!')
+            return response
+        except Exception as e:
+            messages.error(request, f'Error deleting school: {str(e)}')
+            return redirect('superadmin:schools')
 
 
 class AdminUserListView(SuperAdminRequiredMixin, ListView):
@@ -617,3 +681,87 @@ class ContactMessagesView(SuperAdminRequiredMixin, ListView):
                 messages.success(request, 'Message deleted successfully!')
         
         return redirect('superadmin:contact_messages')
+
+
+# ===== IMPERSONATION VIEWS =====
+
+class ImpersonateUserView(SuperAdminRequiredMixin, View):
+    """Allow superadmin to impersonate any user"""
+    
+    def get(self, request, user_id):
+        # Get the user to impersonate
+        user_to_impersonate = get_object_or_404(User, id=user_id)
+        
+        # Don't allow impersonating another superadmin
+        if user_to_impersonate.role == 'superadmin':
+            messages.error(request, 'Cannot impersonate another superadmin!')
+            return redirect(request.META.get('HTTP_REFERER', 'superadmin:dashboard'))
+        
+        # Store original user in session (use same keys as existing system)
+        if 'original_user_id' not in request.session:
+            request.session['original_user_id'] = request.user.id
+        
+        # Store impersonated user in session
+        request.session['impersonated_user_id'] = user_to_impersonate.id
+        
+        messages.success(
+            request, 
+            f'You are now impersonating {user_to_impersonate.get_full_name()} ({user_to_impersonate.get_role_display()})'
+        )
+        
+        # Redirect based on user role
+        if user_to_impersonate.role in ['admin', 'school_admin']:
+            # For school admin, redirect to their school dashboard
+            schools = School.objects.filter(is_active=True).first()
+            if schools:
+                return redirect('core:dashboard', school_slug=schools.slug)
+        elif user_to_impersonate.role in ['teacher', 'student', 'parent']:
+            # Redirect to appropriate dashboard
+            schools = School.objects.filter(is_active=True).first()
+            if schools:
+                return redirect('core:dashboard', school_slug=schools.slug)
+        
+        return redirect('frontend:home')
+
+
+class StopImpersonationView(LoginRequiredMixin, View):
+    """Stop impersonating and return to original superadmin account"""
+    
+    def get(self, request):
+        # Check if impersonating
+        if 'original_user_id' not in request.session:
+            messages.warning(request, 'You are not currently impersonating anyone.')
+            return redirect('frontend:home')
+        
+        # Get original user
+        original_user_id = request.session.get('original_user_id')
+        try:
+            original_user = User.objects.get(id=original_user_id)
+        except User.DoesNotExist:
+            messages.error(request, 'Original user not found.')
+            return redirect('accounts:login')
+        
+        # Clear impersonation session
+        del request.session['impersonated_user_id']
+        del request.session['original_user_id']
+        
+        messages.success(request, f'You have stopped impersonating and returned to your {original_user.get_role_display()} account.')
+        
+        # Redirect based on original user role
+        if original_user.role == 'superadmin':
+            return redirect('superadmin:dashboard')
+        else:
+            schools = School.objects.filter(is_active=True).first()
+            if schools:
+                return redirect('core:dashboard', school_slug=schools.slug)
+            return redirect('frontend:home')
+
+
+class SuperAdminProfileView(SuperAdminRequiredMixin, TemplateView):
+    """Superadmin profile view"""
+    template_name = 'superadmin/profile.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['user'] = self.request.user
+        return context

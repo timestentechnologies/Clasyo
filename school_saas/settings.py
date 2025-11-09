@@ -91,6 +91,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.media',
                 'core.context_processors.school_context',  # Add school to all templates
+                'superadmin.context_processors.impersonation_context',  # Add impersonation status
             ],
         },
     },

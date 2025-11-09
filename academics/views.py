@@ -379,18 +379,26 @@ class AssignmentDetailView(LoginRequiredMixin, DetailView):
 
 
 # API Views
-def test_api(request):
+def test_api(request, school_slug=None):
     """Simple test endpoint to verify API routing"""
     return JsonResponse({
         'success': True,
         'message': 'API is working!',
+        'school_slug': school_slug,
         'user': request.user.email if request.user.is_authenticated else 'Anonymous'
     })
 
 
-@login_required
-def get_teachers_api(request):
+def get_teachers_api(request, school_slug=None):
     """API endpoint to fetch teachers for dropdowns"""
+    # Allow unauthenticated for debugging, but check user
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            'success': False,
+            'error': 'Authentication required',
+            'teachers': []
+        }, status=401)
+    
     try:
         # Get all teachers (you can add tenant filtering later if needed)
         teachers = User.objects.filter(role='teacher', is_active=True).values('id', 'first_name', 'last_name', 'email')
@@ -410,8 +418,10 @@ def get_teachers_api(request):
             'count': len(teachers_list)
         })
     except Exception as e:
+        import traceback
         return JsonResponse({
             'success': False,
             'error': str(e),
+            'traceback': traceback.format_exc(),
             'teachers': []
         }, status=500)

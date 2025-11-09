@@ -27,4 +27,11 @@ urlpatterns = [
     path('content/faq/', views.FAQManagementView.as_view(), name='faq_management'),
     path('content/pages/', views.PageContentManagementView.as_view(), name='page_content_management'),
     path('content/messages/', views.ContactMessagesView.as_view(), name='contact_messages'),
+    
+    # Impersonation
+    path('impersonate/<int:user_id>/', views.ImpersonateUserView.as_view(), name='impersonate_user'),
+    path('stop-impersonation/', views.StopImpersonationView.as_view(), name='stop_impersonation'),
+    
+    # Profile
+    path('profile/', views.SuperAdminProfileView.as_view(), name='profile'),
 ]

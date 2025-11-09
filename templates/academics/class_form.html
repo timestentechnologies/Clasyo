@@ -45,7 +45,7 @@
                                 </label>
                                 <input type="text" name="name" class="form-control" 
                                        placeholder="e.g., Grade 10, Year 8, Form 3" 
-                                       value="{{ form.instance.name }}" required>
+                                       value="{{ form.instance.name|default:'' }}" required>
                                 <small class="form-text text-muted">
                                     <i class="fas fa-info-circle"></i> The name or level (e.g., Grade 10, Year 8)
                                 </small>
@@ -60,7 +60,7 @@
                                 </label>
                                 <input type="number" name="numeric_name" class="form-control" 
                                        placeholder="e.g., 10, 8, 3" 
-                                       value="{{ form.instance.numeric_name }}" required>
+                                       value="{% if form.instance.numeric_name %}{{ form.instance.numeric_name }}{% endif %}" required>
                                 <small class="form-text text-muted">
                                     <i class="fas fa-info-circle"></i> Numeric value for sorting (e.g., 10 for Grade 10)
                                 </small>
@@ -75,7 +75,7 @@
                                 </label>
                                 <input type="number" name="order" class="form-control" 
                                        placeholder="e.g., 1, 2, 3..." 
-                                       value="{{ form.instance.order|default:0 }}">
+                                       value="{% if form.instance.order is not None %}{{ form.instance.order }}{% else %}0{% endif %}">
                                 <small class="form-text text-muted">
                                     <i class="fas fa-info-circle"></i> Controls sorting order in lists
                                 </small>
@@ -105,7 +105,7 @@
                                     <i class="fas fa-align-left text-primary me-2"></i>Description
                                 </label>
                                 <textarea name="description" class="form-control" rows="3" 
-                                          placeholder="Optional description or notes about this class">{{ form.instance.description }}</textarea>
+                                          placeholder="Optional description or notes about this class">{{ form.instance.description|default:'' }}</textarea>
                                 <small class="form-text text-muted">
                                     <i class="fas fa-info-circle"></i> Any additional information (optional)
                                 </small>

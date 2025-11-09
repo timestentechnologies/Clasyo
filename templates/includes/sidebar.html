@@ -129,7 +129,7 @@
         </a></li>
         {% endif %}
 
-        {% if user.role == 'school_admin' %}
+        {% if user.role == 'admin' %}
         <div class="menu-section-title">Human Resource</div>
         
         <li class="{% if '/teachers/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/hr/teachers/">
@@ -177,7 +177,7 @@
 
         <div class="menu-section-title">Features</div>
         
-        {% if user.role in 'school_admin,teacher' %}
+        {% if user.role in 'admin,teacher' %}
         <li class="{% if '/attendance/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/attendance/mark/">
             <i class="fas fa-check-circle"></i>
             <span>Attendance</span>
@@ -199,7 +199,7 @@
             <span>Messages</span>
         </a></li>
 
-        {% if user.role == 'school_admin' %}
+        {% if user.role == 'admin' %}
         <li class="{% if '/transport/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/transport/routes/">
             <i class="fas fa-bus"></i>
             <span>Transport</span>
@@ -268,7 +268,7 @@
 
         <div class="menu-section-title">Account</div>
 
-        <li><a href="{% if school_slug %}{% url 'core:profile' school_slug=school_slug %}{% else %}#{% endif %}">
+        <li><a href="{% if user.role == 'superadmin' %}{% url 'superadmin:profile' %}{% elif school_slug %}{% url 'core:profile' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-user"></i>
             <span>My Profile</span>
         </a></li>
