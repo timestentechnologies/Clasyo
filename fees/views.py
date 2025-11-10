@@ -9,15 +9,13 @@ from django.utils.decorators import method_decorator
 
 # Check if models exist
 try:
-    from .models import FeeStructure, FeePayment, Wallet
+    from .models import FeeStructure, FeeCollection
     MODELS_EXIST = True
 except ImportError:
     MODELS_EXIST = False
     class FeeStructure:
         pass
-    class FeePayment:
-        pass
-    class Wallet:
+    class FeeCollection:
         pass
 
 
@@ -34,15 +32,21 @@ class FeeStructureView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
+        from academics.models import Class
+        context['classes'] = Class.objects.filter(is_active=True)
         return context
     
     def post(self, request, *args, **kwargs):
         try:
             if not request.user.is_authenticated:
                 return JsonResponse({'success': False, 'error': 'Not authenticated'})
+            
+            if not MODELS_EXIST:
+                return JsonResponse({'success': False, 'error': 'Fee models are not available'})
                 
             FeeStructure.objects.create(
                 name=request.POST.get('name'),
+                class_name_id=request.POST.get('class_id'),
                 amount=request.POST.get('amount'),
                 fee_type=request.POST.get('fee_type'),
                 description=request.POST.get('description', '')
@@ -61,7 +65,7 @@ class CollectFeesView(ListView):
     
     def get_queryset(self):
         if MODELS_EXIST:
-            return FeePayment.objects.all()
+            return FeeCollection.objects.all()
         return []
     
     def get_context_data(self, **kwargs):
@@ -78,14 +82,26 @@ class CollectFeesView(ListView):
         try:
             if not request.user.is_authenticated:
                 return JsonResponse({'success': False, 'error': 'Not authenticated'})
+            
+            if not MODELS_EXIST:
+                return JsonResponse({'success': False, 'error': 'Fee models are not available'})
                 
-            FeePayment.objects.create(
+            # Get the fee structure to determine the amount
+            fee_structure = FeeStructure.objects.get(id=request.POST.get('fee_structure_id'))
+            paid_amount = request.POST.get('amount_paid', 0)
+            
+            FeeCollection.objects.create(
                 student_id=request.POST.get('student_id'),
                 fee_structure_id=request.POST.get('fee_structure_id'),
-                amount_paid=request.POST.get('amount_paid'),
+                amount=fee_structure.amount,
+                paid_amount=paid_amount,
                 payment_method=request.POST.get('payment_method'),
-                transaction_id=request.POST.get('transaction_id', ''),
-                note=request.POST.get('note', '')
+                payment_date=request.POST.get('payment_date'),
+                due_date=request.POST.get('due_date'),
+                receipt_number=request.POST.get('transaction_id', ''),
+                notes=request.POST.get('note', ''),
+                collected_by=request.user,
+                payment_status='paid' if float(paid_amount) >= float(fee_structure.amount) else 'partial'
             )
             return JsonResponse({'success': True})
         except Exception as e:
@@ -100,14 +116,14 @@ class FeeTransactionView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         if MODELS_EXIST:
-            return FeePayment.objects.all().order_by('-payment_date')
+            return FeeCollection.objects.all().order_by('-payment_date')
         return []
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
         if MODELS_EXIST:
-            total_collected = FeePayment.objects.aggregate(total=models.Sum('amount_paid'))['total'] or 0
+            total_collected = FeeCollection.objects.aggregate(total=models.Sum('amount_paid'))['total'] or 0
         else:
             total_collected = 0
         context['total_collected'] = total_collected
@@ -119,8 +135,7 @@ class WalletView(LoginRequiredMixin, ListView):
     context_object_name = 'wallets'
     
     def get_queryset(self):
-        if MODELS_EXIST:
-            return Wallet.objects.all()
+        # TODO: Wallet model needs to be created
         return []
     
     def get_context_data(self, **kwargs):
@@ -138,7 +153,7 @@ class MyFeesView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         if MODELS_EXIST and hasattr(self.request.user, 'student_profile'):
             student = self.request.user.student_profile
-            return FeePayment.objects.filter(student=student).order_by('-payment_date')
+            return FeeCollection.objects.filter(student=student).order_by('-payment_date')
         return []
     
     def get_context_data(self, **kwargs):
@@ -151,7 +166,7 @@ class MyFeesView(LoginRequiredMixin, ListView):
             
             # Calculate fee statistics
             if MODELS_EXIST:
-                total_paid = FeePayment.objects.filter(student=student).aggregate(
+                total_paid = FeeCollection.objects.filter(student=student).aggregate(
                     total=models.Sum('amount_paid'))['total'] or 0
                 context['total_paid'] = total_paid
                 
