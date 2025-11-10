@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Expense Tracking - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-dollar-sign"></i> Expense Tracking</h2>
+        <div>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                <i class="fas fa-plus"></i> Add Expense
+            </button>
+            <button class="btn btn-success" onclick="window.print()">
+                <i class="fas fa-print"></i> Print Report
+            </button>
+            <a href="{% url 'inventory:inventory_list' school_slug %}" class="btn btn-secondary">
+                <i class="fas fa-boxes"></i> Back to Inventory
+            </a>
+        </div>
+    </div>
+
+    <!-- Expense Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5>Total Expenses</h5>
+                    <h2>${{ total_expenses|floatformat:2 }}</h2>
+                </div>
+            </div>
+        </div>
+        {% for summary in expense_summary %}
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted">{{ summary.expense_type|title }}</h6>
+                    <h4>${{ summary.total|floatformat:2 }}</h4>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>Expense Records</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Expense #</th>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Payee</th>
+                        <th>Payment Method</th>
+                        <th>Amount</th>
+                        <th>Reference</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in expenses %}
+                    <tr>
+                        <td><strong>{{ expense.expense_number }}</strong></td>
+                        <td>{{ expense.expense_date }}</td>
+                        <td>
+                            {% if expense.expense_type == 'purchase' %}
+                            <span class="badge bg-info">Purchase</span>
+                            {% elif expense.expense_type == 'salary' %}
+                            <span class="badge bg-success">Salary</span>
+                            {% elif expense.expense_type == 'utility' %}
+                            <span class="badge bg-warning">Utility</span>
+                            {% elif expense.expense_type == 'maintenance' %}
+                            <span class="badge bg-secondary">Maintenance</span>
+                            {% elif expense.expense_type == 'transport' %}
+                            <span class="badge bg-primary">Transport</span>
+                            {% else %}
+                            <span class="badge bg-dark">Other</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ expense.description }}</td>
+                        <td>{{ expense.payee_name }}</td>
+                        <td>{{ expense.get_payment_method_display }}</td>
+                        <td><strong>${{ expense.amount }}</strong></td>
+                        <td>{{ expense.reference_number|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center">No expenses recorded yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-primary">
+                        <th colspan="6" class="text-end">Total:</th>
+                        <th colspan="2">${{ total_expenses|floatformat:2 }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Expense Modal -->
+<div class="modal fade" id="addExpenseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Expense</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addExpenseForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Expense Type *</label>
+                            <select name="expense_type" class="form-control" required>
+                                <option value="">Select Type</option>
+                                <option value="purchase">Purchase/Procurement</option>
+                                <option value="salary">Salary Payment</option>
+                                <option value="utility">Utility Bills</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="transport">Transport</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Expense Date *</label>
+                            <input type="date" name="expense_date" class="form-control" value="{% now 'Y-m-d' %}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description *</label>
+                        <input type="text" name="description" class="form-control" maxlength="300" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Payee Name *</label>
+                            <input type="text" name="payee_name" class="form-control" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Amount *</label>
+                            <input type="number" name="amount" class="form-control" step="0.01" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Payment Method *</label>
+                            <select name="payment_method" class="form-control" required>
+                                <option value="cash">Cash</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="cheque">Cheque</option>
+                                <option value="online">Online Payment</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Reference Number</label>
+                            <input type="text" name="reference_number" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Expense</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('addExpenseForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch(window.location.pathname, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Expense recorded successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
+});
+</script>
+
+<style>
+@media print {
+    .btn, .modal, .no-print {
+        display: none !important;
+    }
+    .card {
+        border: none;
+        box-shadow: none;
+    }
+}
+</style>
+{% endblock %}
