@@ -227,6 +227,9 @@ class StudentUpdateView(UpdateView):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
         context['student'] = self.get_object()
+        from academics.models import Class, Section
+        context['classes'] = Class.objects.filter(is_active=True)
+        context['sections'] = Section.objects.filter(is_active=True)
         return context
     
     def post(self, request, *args, **kwargs):
@@ -247,6 +250,24 @@ class StudentUpdateView(UpdateView):
             student.city = request.POST.get('city', student.city)
             student.state = request.POST.get('state', student.state)
             student.postal_code = request.POST.get('postal_code', student.postal_code)
+            student.admission_date = request.POST.get('admission_date', student.admission_date)
+            
+            # Update academic details
+            current_class_id = request.POST.get('current_class')
+            if current_class_id:
+                from academics.models import Class
+                try:
+                    student.current_class_id = current_class_id
+                except:
+                    pass
+            
+            section_id = request.POST.get('section')
+            if section_id:
+                from academics.models import Section
+                try:
+                    student.section_id = section_id
+                except:
+                    pass
             
             # Update parent details
             student.father_name = request.POST.get('father_name', student.father_name)
