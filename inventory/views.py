@@ -357,7 +357,19 @@ class StaffPaymentView(LoginRequiredMixin, ListView):
         
         # Import models
         from human_resource.models import Teacher, Staff
+        import json
         
+        # Fetch teachers and staff with salary data
+        teachers = Teacher.objects.filter(is_active=True).values(
+            'id', 'first_name', 'last_name', 'basic_salary', 'allowances', 'employee_id'
+        )
+        staff_members = Staff.objects.filter(is_active=True).values(
+            'id', 'first_name', 'last_name', 'basic_salary', 'allowances', 'employee_id'
+        )
+        
+        # Convert to list and serialize for JavaScript
+        context['teachers_json'] = json.dumps(list(teachers))
+        context['staff_json'] = json.dumps(list(staff_members))
         context['teachers'] = Teacher.objects.filter(is_active=True)
         context['staff_members'] = Staff.objects.filter(is_active=True)
         

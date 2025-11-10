@@ -180,6 +180,38 @@
             <i class="fas fa-receipt"></i>
             <span>Transactions</span>
         </a></li>
+
+        <li class="{% if '/inventory/expenses/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/inventory/expenses/">
+            <i class="fas fa-dollar-sign"></i>
+            <span>Expenses</span>
+        </a></li>
+
+        <li class="{% if '/inventory/payments/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/inventory/payments/">
+            <i class="fas fa-money-check-alt"></i>
+            <span>Staff Payments</span>
+        </a></li>
+
+        <div class="menu-section-title">Procurement</div>
+
+        <li class="{% if '/inventory/' in request.path and '/expenses/' not in request.path and '/payments/' not in request.path and '/suppliers/' not in request.path and '/purchase-orders/' not in request.path and '/distributions/' not in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/inventory/">
+            <i class="fas fa-boxes"></i>
+            <span>Inventory</span>
+        </a></li>
+
+        <li class="{% if '/inventory/suppliers/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/inventory/suppliers/">
+            <i class="fas fa-truck"></i>
+            <span>Suppliers</span>
+        </a></li>
+
+        <li class="{% if '/inventory/purchase-orders/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/inventory/purchase-orders/">
+            <i class="fas fa-shopping-cart"></i>
+            <span>Purchase Orders</span>
+        </a></li>
+
+        <li class="{% if '/inventory/distributions/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/inventory/distributions/">
+            <i class="fas fa-share-alt"></i>
+            <span>Item Distribution</span>
+        </a></li>
         {% endif %}
 
         {% if user.role in 'admin,teacher,student' %}

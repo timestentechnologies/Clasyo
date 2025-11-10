@@ -202,8 +202,9 @@
 </div>
 
 <script>
-const teachers = {{ teachers|safe|default:"[]" }};
-const staffMembers = {{ staff_members|safe|default:"[]" }};
+// Parse JSON data from context
+const teachers = {{ teachers_json|safe }};
+const staffMembers = {{ staff_json|safe }};
 
 document.getElementById('staff_type').addEventListener('change', function() {
     const staffSelect = document.getElementById('staff_select');
@@ -215,17 +216,37 @@ document.getElementById('staff_type').addEventListener('change', function() {
         data.forEach(person => {
             const option = document.createElement('option');
             option.value = person.id;
-            option.textContent = person.first_name + ' ' + person.last_name;
+            option.textContent = person.first_name + ' ' + person.last_name + ' (' + person.employee_id + ')';
             option.dataset.name = person.first_name + ' ' + person.last_name;
+            option.dataset.basicSalary = person.basic_salary;
+            option.dataset.allowances = person.allowances;
+            option.dataset.employeeId = person.employee_id;
             staffSelect.appendChild(option);
         });
     }
+    
+    // Clear salary fields when changing type
+    document.getElementById('basic_salary').value = '';
+    document.getElementById('allowances').value = '0';
+    document.getElementById('deductions').value = '0';
+    calculateNetSalary();
 });
 
 document.getElementById('staff_select').addEventListener('change', function() {
     const selected = this.options[this.selectedIndex];
-    if (selected) {
+    if (selected && selected.value) {
+        // Set name
         document.getElementById('staff_name_hidden').value = selected.dataset.name || selected.textContent;
+        
+        // Auto-populate salary data from their account
+        const basicSalary = parseFloat(selected.dataset.basicSalary) || 0;
+        const allowances = parseFloat(selected.dataset.allowances) || 0;
+        
+        document.getElementById('basic_salary').value = basicSalary.toFixed(2);
+        document.getElementById('allowances').value = allowances.toFixed(2);
+        
+        // Recalculate net salary
+        calculateNetSalary();
     }
 });
 
