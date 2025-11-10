@@ -1,24 +1,23 @@
-{% extends 'base.html' %}
+{% extends 'core/admin_dashboard.html' %}
 {% load static %}
 
-{% block title %}Inventory Management - {{ block.super }}{% endblock %}
+{% block title %}Inventory Management{% endblock %}
+{% block page_icon %}boxes{% endblock %}
+{% block page_title %}Inventory Management{% endblock %}
+{% block page_subtitle %}Manage items, stock levels, and inventory{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-boxes"></i> Inventory Management</h2>
-        <div>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
-                <i class="fas fa-plus"></i> Add Item
-            </button>
-            <a href="{% url 'inventory:supplier_list' school_slug %}" class="btn btn-secondary">
-                <i class="fas fa-truck"></i> Suppliers
-            </a>
-            <a href="{% url 'inventory:purchase_order_list' school_slug %}" class="btn btn-info">
-                <i class="fas fa-shopping-cart"></i> Purchase Orders
-            </a>
-        </div>
-    </div>
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addItemModal">
+        <i class="fas fa-plus"></i> Add Item
+    </button>
+    <a href="{% url 'inventory:supplier_list' school_slug %}" class="btn btn-secondary me-2">
+        <i class="fas fa-truck"></i> Suppliers
+    </a>
+    <a href="{% url 'inventory:purchase_order_list' school_slug %}" class="btn btn-info">
+        <i class="fas fa-shopping-cart"></i> Purchase Orders
+    </a>
+</div>
 
     {% if low_stock_items %}
     <div class="alert alert-warning">
@@ -27,8 +26,8 @@
     </div>
     {% endif %}
 
-    <div class="card">
-        <div class="card-body">
+<div class="modern-card">
+        <div class="table-responsive">
             <table class="table table-hover">
                 <thead>
                     <tr>
