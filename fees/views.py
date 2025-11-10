@@ -20,7 +20,7 @@ except ImportError:
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class FeeStructureView(ListView):
+class FeeStructureView(LoginRequiredMixin, ListView):
     template_name = 'fees/fee_structure.html'
     context_object_name = 'fee_structures'
     
@@ -59,7 +59,7 @@ class FeeStructureView(ListView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class CollectFeesView(ListView):
+class CollectFeesView(LoginRequiredMixin, ListView):
     template_name = 'fees/collect_fees.html'
     context_object_name = 'payments'
     
