@@ -34,7 +34,14 @@
     </div>
 
     <ul class="sidebar-menu">
-        <li class="{% if 'dashboard' in request.path %}active{% endif %}"><a href="{% if user.role == 'superadmin' %}{% url 'superadmin:dashboard' %}{% elif school_slug %}{% url 'core:dashboard' school_slug=school_slug %}{% else %}#{% endif %}">
+        {% if user.role != 'superadmin' %}
+        <li class="{% if '/apps/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'core:apps_home' school_slug=school_slug %}{% else %}#{% endif %}">
+            <i class="fas fa-th-large"></i>
+            <span>Apps</span>
+        </a></li>
+        {% endif %}
+        
+        <li class="{% if 'dashboard' in request.path and '/apps/' not in request.path %}active{% endif %}"><a href="{% if user.role == 'superadmin' %}{% url 'superadmin:dashboard' %}{% elif school_slug %}{% url 'core:dashboard' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-tachometer-alt"></i>
             <span>Dashboard</span>
         </a></li>

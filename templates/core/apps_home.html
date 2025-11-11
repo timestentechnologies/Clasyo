@@ -1,0 +1,132 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apps - Clasyo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #1a1f3a 0%, #2a3042 100%); min-height: 100vh; color: #fff; }
+        .apps-header { background: rgba(42, 48, 66, 0.95); backdrop-filter: blur(10px); padding: 1rem 2rem; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); position: sticky; top: 0; z-index: 100; }
+        .header-content { display: flex; align-items: center; justify-content: space-between; gap: 2rem; max-width: 1600px; margin: 0 auto; }
+        .school-info { display: flex; align-items: center; gap: 1rem; }
+        .school-logo { width: 48px; height: 48px; background: linear-gradient(135deg, #4dd0e1 0%, #26c6da 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; }
+        .school-logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
+        .school-name h2 { font-size: 1.25rem; font-weight: 600; margin: 0; }
+        .school-name p { font-size: 0.875rem; color: rgba(255, 255, 255, 0.7); margin: 0; }
+        .user-info { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; background: rgba(255, 255, 255, 0.1); border-radius: 8px; }
+        .user-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, #4dd0e1 0%, #26c6da 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; }
+        .search-section { padding: 2rem; max-width: 1400px; margin: 0 auto; }
+        .search-box { position: relative; max-width: 600px; margin: 0 auto; }
+        .search-box input { width: 100%; padding: 1rem 1rem 1rem 3.5rem; background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 12px; color: #fff; font-size: 1rem; }
+        .search-box input:focus { outline: none; background: rgba(255, 255, 255, 0.15); border-color: #4dd0e1; }
+        .search-box input::placeholder { color: rgba(255, 255, 255, 0.5); }
+        .search-box i { position: absolute; left: 1.25rem; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.5); font-size: 1.25rem; }
+        .apps-container { padding: 0 2rem 2rem; max-width: 1400px; margin: 0 auto; }
+        .apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1.5rem; }
+        .app-card { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem 1rem; background: rgba(42, 48, 66, 0.6); border-radius: 12px; text-decoration: none; border: 2px solid transparent; min-height: 140px; transition: all 0.3s; }
+        .app-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3); border-color: rgba(77, 208, 225, 0.3); background: rgba(42, 48, 66, 0.8); }
+        .app-icon { width: 64px; height: 64px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem; background: linear-gradient(135deg, #4dd0e1 0%, #26c6da 100%); transition: transform 0.3s; }
+        .app-card:hover .app-icon { transform: scale(1.1); }
+        .app-icon i { font-size: 28px; color: #fff; }
+        .app-name { color: #fff; font-size: 13px; font-weight: 500; text-align: center; margin: 0; }
+        @media (max-width: 768px) { .apps-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 1rem; } .header-content { flex-direction: column; } }
+    </style>
+</head>
+<body>
+    <header class="apps-header">
+        <div class="header-content">
+            <div class="school-info">
+                <div class="school-logo">
+                    {% if school and school.logo %}<img src="{{ school.logo.url }}" alt="{{ school.name }}">
+                    {% else %}<i class="fas fa-graduation-cap"></i>{% endif %}
+                </div>
+                <div class="school-name">
+                    <h2>{{ school.name|default:"School Management" }}</h2>
+                    <p>Management System</p>
+                </div>
+            </div>
+            <div class="user-info">
+                <div class="user-avatar">{{ user.first_name.0|upper }}{{ user.last_name.0|upper }}</div>
+            </div>
+        </div>
+    </header>
+    <div class="search-section">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="appSearch" placeholder="Search for apps...">
+        </div>
+    </div>
+    <div class="apps-container">
+        <div class="apps-grid" id="appsGrid">
+            <a href="{% url 'core:dashboard' school_slug=school_slug %}" class="app-card" data-name="dashboard"><div class="app-icon"><i class="fas fa-tachometer-alt"></i></div><p class="app-name">Dashboard</p></a>
+            {% if user.role in 'admin,teacher' %}
+            <a href="/school/{{ school_slug }}/students/" class="app-card" data-name="students"><div class="app-icon"><i class="fas fa-user-graduate"></i></div><p class="app-name">Students</p></a>
+            {% if user.role == 'admin' %}
+            <a href="/school/{{ school_slug }}/students/parents/" class="app-card" data-name="parents"><div class="app-icon"><i class="fas fa-users"></i></div><p class="app-name">Parents</p></a>
+            {% endif %}
+            <a href="/school/{{ school_slug }}/academics/classes/" class="app-card" data-name="classes"><div class="app-icon"><i class="fas fa-chalkboard"></i></div><p class="app-name">Classes</p></a>
+            <a href="/school/{{ school_slug }}/academics/subjects/" class="app-card" data-name="subjects"><div class="app-icon"><i class="fas fa-book-open"></i></div><p class="app-name">Subjects</p></a>
+            <a href="/school/{{ school_slug }}/academics/routine/" class="app-card" data-name="routine"><div class="app-icon"><i class="fas fa-clock"></i></div><p class="app-name">Routine</p></a>
+            <a href="/school/{{ school_slug }}/examinations/" class="app-card" data-name="exams"><div class="app-icon"><i class="fas fa-file-alt"></i></div><p class="app-name">Exams</p></a>
+            <a href="/school/{{ school_slug }}/examinations/grades/" class="app-card" data-name="grading"><div class="app-icon"><i class="fas fa-graduation-cap"></i></div><p class="app-name">Grading</p></a>
+            <a href="/school/{{ school_slug }}/academic-years/" class="app-card" data-name="academic"><div class="app-icon"><i class="fas fa-calendar-check"></i></div><p class="app-name">Academic Years</p></a>
+            {% endif %}
+            {% if user.role == 'admin' %}
+            <a href="/school/{{ school_slug }}/hr/teachers/" class="app-card" data-name="teachers"><div class="app-icon"><i class="fas fa-chalkboard-teacher"></i></div><p class="app-name">Teachers</p></a>
+            <a href="/school/{{ school_slug }}/hr/staff/" class="app-card" data-name="staff"><div class="app-icon"><i class="fas fa-users"></i></div><p class="app-name">Staff</p></a>
+            <a href="/school/{{ school_slug }}/hr/departments/" class="app-card" data-name="departments"><div class="app-icon"><i class="fas fa-building"></i></div><p class="app-name">Departments</p></a>
+            <a href="/school/{{ school_slug }}/hr/designations/" class="app-card" data-name="designations"><div class="app-icon"><i class="fas fa-id-badge"></i></div><p class="app-name">Designations</p></a>
+            <a href="/school/{{ school_slug }}/leave/" class="app-card" data-name="leave"><div class="app-icon"><i class="fas fa-calendar-times"></i></div><p class="app-name">Leave</p></a>
+            <a href="/school/{{ school_slug }}/fees/" class="app-card" data-name="fees"><div class="app-icon"><i class="fas fa-money-bill-wave"></i></div><p class="app-name">Fees</p></a>
+            <a href="/school/{{ school_slug }}/fees/collect/" class="app-card" data-name="collect"><div class="app-icon"><i class="fas fa-hand-holding-usd"></i></div><p class="app-name">Collect Fees</p></a>
+            <a href="/school/{{ school_slug }}/fees/transactions/" class="app-card" data-name="transactions"><div class="app-icon"><i class="fas fa-receipt"></i></div><p class="app-name">Transactions</p></a>
+            <a href="/school/{{ school_slug }}/inventory/expenses/" class="app-card" data-name="expenses"><div class="app-icon"><i class="fas fa-dollar-sign"></i></div><p class="app-name">Expenses</p></a>
+            <a href="/school/{{ school_slug }}/inventory/payments/" class="app-card" data-name="payments"><div class="app-icon"><i class="fas fa-money-check-alt"></i></div><p class="app-name">Payments</p></a>
+            <a href="/school/{{ school_slug }}/inventory/" class="app-card" data-name="inventory"><div class="app-icon"><i class="fas fa-boxes"></i></div><p class="app-name">Inventory</p></a>
+            <a href="/school/{{ school_slug }}/inventory/suppliers/" class="app-card" data-name="suppliers"><div class="app-icon"><i class="fas fa-truck"></i></div><p class="app-name">Suppliers</p></a>
+            <a href="/school/{{ school_slug }}/inventory/purchase-orders/" class="app-card" data-name="purchase"><div class="app-icon"><i class="fas fa-shopping-cart"></i></div><p class="app-name">Purchase Orders</p></a>
+            <a href="/school/{{ school_slug }}/inventory/distributions/" class="app-card" data-name="distribution"><div class="app-icon"><i class="fas fa-share-alt"></i></div><p class="app-name">Distribution</p></a>
+            <a href="/school/{{ school_slug }}/transport/routes/" class="app-card" data-name="transport"><div class="app-icon"><i class="fas fa-bus"></i></div><p class="app-name">Transport</p></a>
+            <a href="/school/{{ school_slug }}/dormitory/" class="app-card" data-name="dormitory"><div class="app-icon"><i class="fas fa-bed"></i></div><p class="app-name">Dormitory</p></a>
+            <a href="/school/{{ school_slug }}/reports/" class="app-card" data-name="reports"><div class="app-icon"><i class="fas fa-chart-bar"></i></div><p class="app-name">Reports</p></a>
+            {% endif %}
+            {% if user.role in 'admin,teacher' %}
+            <a href="/school/{{ school_slug }}/attendance/mark/" class="app-card" data-name="attendance"><div class="app-icon"><i class="fas fa-check-circle"></i></div><p class="app-name">Attendance</p></a>
+            <a href="/school/{{ school_slug }}/library/books/" class="app-card" data-name="library"><div class="app-icon"><i class="fas fa-book"></i></div><p class="app-name">Library</p></a>
+            {% endif %}
+            {% if user.role in 'admin,teacher,student' %}
+            <a href="/school/{{ school_slug }}/communication/notices/" class="app-card" data-name="notices"><div class="app-icon"><i class="fas fa-bell"></i></div><p class="app-name">Notices</p></a>
+            <a href="/school/{{ school_slug }}/communication/messages/" class="app-card" data-name="messages"><div class="app-icon"><i class="fas fa-envelope"></i></div><p class="app-name">Messages</p></a>
+            {% endif %}
+            <a href="{% url 'core:calendar' school_slug=school_slug %}" class="app-card" data-name="calendar"><div class="app-icon"><i class="fas fa-calendar-alt"></i></div><p class="app-name">Calendar</p></a>
+            <a href="{% url 'core:todos' school_slug=school_slug %}" class="app-card" data-name="todo"><div class="app-icon"><i class="fas fa-tasks"></i></div><p class="app-name">To-Do</p></a>
+            {% if user.role == 'student' %}
+            <a href="{% url 'examinations:exam_list' school_slug=school_slug %}" class="app-card" data-name="myexams"><div class="app-icon"><i class="fas fa-file-alt"></i></div><p class="app-name">My Exams</p></a>
+            <a href="{% url 'examinations:student_results' school_slug=school_slug %}" class="app-card" data-name="results"><div class="app-icon"><i class="fas fa-chart-line"></i></div><p class="app-name">My Results</p></a>
+            <a href="{% url 'attendance:my_attendance' school_slug=school_slug %}" class="app-card" data-name="myattendance"><div class="app-icon"><i class="fas fa-calendar-check"></i></div><p class="app-name">My Attendance</p></a>
+            <a href="{% url 'fees:my_fees' school_slug=school_slug %}" class="app-card" data-name="feestatus"><div class="app-icon"><i class="fas fa-money-bill"></i></div><p class="app-name">Fee Status</p></a>
+            {% endif %}
+            {% if user.role == 'parent' %}
+            <a href="{% url 'core:my_children' school_slug=school_slug %}" class="app-card" data-name="children"><div class="app-icon"><i class="fas fa-users"></i></div><p class="app-name">My Children</p></a>
+            <a href="/school/{{ school_slug }}/hr/teachers/" class="app-card" data-name="teachers"><div class="app-icon"><i class="fas fa-chalkboard-teacher"></i></div><p class="app-name">Teachers</p></a>
+            {% endif %}
+        </div>
+    </div>
+    <script>
+        document.getElementById('appSearch').addEventListener('input', function(e) {
+            const search = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll('.app-card');
+            cards.forEach(card => {
+                const name = card.getAttribute('data-name');
+                const text = card.querySelector('.app-name').textContent.toLowerCase();
+                card.style.display = (name.includes(search) || text.includes(search)) ? 'flex' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>

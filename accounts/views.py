@@ -26,7 +26,7 @@ class LoginView(View):
                 from tenants.models import School
                 school = School.objects.filter(is_active=True).first()
                 if school:
-                    return redirect('core:dashboard', school_slug=school.slug)
+                    return redirect('core:apps_home', school_slug=school.slug)
                 
                 # If no school exists, show helpful message
                 messages.warning(request, 'No active school found. Please contact administrator or logout.')
@@ -85,9 +85,9 @@ class LoginView(View):
                     school = School.objects.filter(is_active=True).first()
                     
                     if school:
-                        # Redirect to school dashboard
+                        # Redirect to apps home page
                         messages.success(request, f'Welcome back, {user.get_full_name()}!')
-                        return redirect('core:dashboard', school_slug=school.slug)
+                        return redirect('core:apps_home', school_slug=school.slug)
                     else:
                         # No school found - stay on home page with message
                         messages.warning(request, f'Welcome {user.get_full_name()}! No school associated with your account. Please contact administrator.')

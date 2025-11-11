@@ -13,6 +13,32 @@ from .models import (
 )
 
 
+class AppsHomeView(LoginRequiredMixin, TemplateView):
+    """Apps home page - landing page after login"""
+    template_name = 'core/apps_home.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Redirect super admins to their own dashboard"""
+        if request.user.is_authenticated and request.user.role == 'superadmin':
+            return redirect('superadmin:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        school_slug = self.kwargs.get('school_slug')
+        context['school_slug'] = school_slug
+        
+        # Fetch the actual school object
+        from tenants.models import School
+        try:
+            school = School.objects.get(slug=school_slug, is_active=True)
+            context['school'] = school
+        except School.DoesNotExist:
+            context['school'] = None
+        
+        return context
+
+
 class DashboardView(LoginRequiredMixin, TemplateView):
     """Main dashboard view"""
     template_name = 'core/dashboard.html'

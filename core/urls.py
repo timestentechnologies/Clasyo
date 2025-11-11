@@ -4,6 +4,9 @@ from . import views
 app_name = 'core'
 
 urlpatterns = [
+    # Apps Home (landing page)
+    path('apps/', views.AppsHomeView.as_view(), name='apps_home'),
+    
     # Dashboard
     path('', views.DashboardView.as_view(), name='dashboard'),
     
