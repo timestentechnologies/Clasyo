@@ -1,0 +1,268 @@
+{% extends "dashboards/base.html" %}
+{% load static %}
+
+{% block title %}Homework Dashboard{% endblock %}
+{% block page_title %}Homework{% endblock %}
+{% block page_icon %}book{% endblock %}
+{% block page_subtitle %}Manage and track student assignments{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h3 class="page-title">Homework Dashboard</h3>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' school_slug=school_slug %}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Homework</li>
+                </ul>
+            </div>
+            <div class="col-auto float-right ml-auto">
+                {% if perms.homework.add_homeworkassignment or user.is_school_admin %}
+                <a href="{% url 'homework:create' school_slug=school_slug %}" class="btn btn-primary"><i class="fas fa-plus"></i> Assign Homework</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <!-- /Page Header -->
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+        <div class="stat-card primary">
+            <div class="stat-icon">
+                <i class="fas fa-book"></i>
+            </div>
+            <div class="stat-value">{{ total_assignments|default:"0" }}</div>
+            <div class="stat-label">Total Assignments</div>
+        </div>
+        
+        <div class="stat-card warning">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-value">{{ pending_submissions|default:"0" }}</div>
+            <div class="stat-label">Pending Submissions</div>
+        </div>
+        
+        <div class="stat-card info">
+            <div class="stat-icon">
+                <i class="fas fa-check-square"></i>
+            </div>
+            <div class="stat-value">{{ submissions_to_grade|default:"0" }}</div>
+            <div class="stat-label">To Be Graded</div>
+        </div>
+        
+        <div class="stat-card danger">
+            <div class="stat-icon">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <div class="stat-value">{{ overdue_submissions|default:"0" }}</div>
+            <div class="stat-label">Overdue</div>
+        </div>
+    </div>
+    <!-- /Statistics Cards -->
+
+    <!-- Recent Assignments -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="modern-card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">Recent Assignments</h4>
+                </div>
+                <div class="card-body">
+                    {% if recent_assignments %}
+                    <div class="table-responsive">
+                        <table class="table table-striped custom-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Class</th>
+                                    <th>Subject</th>
+                                    <th>Assigned Date</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th class="text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assignment in recent_assignments %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'homework:detail' school_slug=school_slug pk=assignment.id %}">{{ assignment.title }}</a>
+                                    </td>
+                                    <td>{{ assignment.class_ref.name }}</td>
+                                    <td>{{ assignment.subject.name }}</td>
+                                    <td>{{ assignment.assigned_date|date:"M d, Y" }}</td>
+                                    <td>{{ assignment.due_date|date:"M d, Y" }}</td>
+                                    <td>
+                                        {% if assignment.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-right">
+                                        <div class="dropdown dropdown-action">
+                                            <a href="#" class="action-icon dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
+                                            <div class="dropdown-menu dropdown-menu-right">
+                                                <a class="dropdown-item" href="{% url 'homework:detail' school_slug=school_slug pk=assignment.id %}"><i class="fas fa-eye m-r-5"></i> View</a>
+                                                {% if assignment.created_by == user or user.is_school_admin %}
+                                                <a class="dropdown-item" href="{% url 'homework:update' school_slug=school_slug pk=assignment.id %}"><i class="fas fa-pencil-alt m-r-5"></i> Edit</a>
+                                                <a class="dropdown-item" href="{% url 'homework:delete' school_slug=school_slug pk=assignment.id %}"><i class="fas fa-trash m-r-5"></i> Delete</a>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <img src="{% static 'img/icons/no-data.svg' %}" alt="No Data" style="width: 100px; opacity: 0.5">
+                        <h5 class="mt-3 text-muted">No assignments found</h5>
+                        {% if perms.homework.add_homeworkassignment or user.is_school_admin %}
+                        <a href="{% url 'homework:create' school_slug=school_slug %}" class="btn btn-primary mt-3"><i class="fas fa-plus"></i> Create your first assignment</a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- /Recent Assignments -->
+
+    <!-- For students: Assignments Due -->
+    {% if user.is_student %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="modern-card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">My Pending Assignments</h4>
+                </div>
+                <div class="card-body">
+                    {% if pending_assignments %}
+                    <div class="table-responsive">
+                        <table class="table table-striped custom-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Subject</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th class="text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assignment in pending_assignments %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'homework:detail' school_slug=school_slug pk=assignment.id %}">{{ assignment.title }}</a>
+                                    </td>
+                                    <td>{{ assignment.subject.name }}</td>
+                                    <td>
+                                        {{ assignment.due_date|date:"M d, Y" }}
+                                        {% if assignment.is_overdue %}
+                                        <span class="badge bg-danger">Overdue</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if assignment.submission %}
+                                            {% if assignment.submission.is_graded %}
+                                                <span class="badge bg-success">Graded: {{ assignment.submission.grade }}</span>
+                                            {% else %}
+                                                <span class="badge bg-info">Submitted</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-warning">Not Submitted</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-right">
+                                        {% if assignment.submission %}
+                                        <a href="{% url 'homework:view_submission' school_slug=school_slug assignment_id=assignment.id %}" class="btn btn-sm btn-info">View Submission</a>
+                                        {% else %}
+                                        <a href="{% url 'homework:submit' school_slug=school_slug assignment_id=assignment.id %}" class="btn btn-sm btn-primary">Submit</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-muted">You have no pending assignments.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    <!-- /For students -->
+
+    <!-- For teachers: Submissions to Grade -->
+    {% if user.is_teacher or user.is_school_admin %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="modern-card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">Submissions to Grade</h4>
+                </div>
+                <div class="card-body">
+                    {% if submissions_to_grade_list %}
+                    <div class="table-responsive">
+                        <table class="table table-striped custom-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Assignment</th>
+                                    <th>Student</th>
+                                    <th>Submission Date</th>
+                                    <th class="text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for submission in submissions_to_grade_list %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'homework:detail' school_slug=school_slug pk=submission.assignment.id %}">{{ submission.assignment.title }}</a>
+                                    </td>
+                                    <td>{{ submission.student.get_full_name }}</td>
+                                    <td>{{ submission.submitted_date|date:"M d, Y H:i" }}</td>
+                                    <td class="text-right">
+                                        <a href="{% url 'homework:grade_submission' school_slug=school_slug submission_id=submission.id %}" class="btn btn-sm btn-primary">Grade</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-muted">No submissions waiting to be graded.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    <!-- /For teachers -->
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize datatable if needed
+        if($.fn.DataTable){
+            $('.datatable').DataTable({
+                "order": [[3, "desc"]],
+                "pageLength": 10
+            });
+        }
+    });
+</script>
+{% endblock %}

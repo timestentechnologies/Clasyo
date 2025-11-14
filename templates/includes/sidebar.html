@@ -127,9 +127,24 @@
             <span>Class Routine</span>
         </a></li>
 
+        <li class="{% if '/lesson-plan/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/lesson-plan/">
+            <i class="fas fa-tasks"></i>
+            <span>Lesson Plans</span>
+        </a></li>
+
         <li class="{% if '/examinations/' in request.path and '/grades/' not in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/examinations/">
             <i class="fas fa-file-alt"></i>
             <span>Examinations</span>
+        </a></li>
+
+        <li class="{% if '/online-exam/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/online-exam/">
+            <i class="fas fa-laptop-code"></i>
+            <span>Online Exams</span>
+        </a></li>
+
+        <li class="{% if '/homework/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/homework/">
+            <i class="fas fa-book-reader"></i>
+            <span>Homework</span>
         </a></li>
 
         <li class="{% if '/grades/' in request.path or '/grading/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/examinations/grades/">
@@ -230,11 +245,26 @@
             <span>Attendance</span>
         </a></li>
 
-        <li class="{% if '/library/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/library/books/">
+        <li class="{% if '/library/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/library/">
             <i class="fas fa-book"></i>
             <span>Library</span>
         </a></li>
+
+        <li class="{% if '/certificates/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/certificates/">
+            <i class="fas fa-certificate"></i>
+            <span>Certificates</span>
+        </a></li>
+
+        <li class="{% if '/reports/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/reports/">
+            <i class="fas fa-chart-bar"></i>
+            <span>Reports</span>
+        </a></li>
         {% endif %}
+
+        <li class="{% if '/chat/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/chat/">
+            <i class="fas fa-comments"></i>
+            <span>Chat</span>
+        </a></li>
 
         <li class="{% if '/notices/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/communication/notices/">
             <i class="fas fa-bell"></i>
@@ -256,11 +286,6 @@
         <li class="{% if '/dormitory/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/dormitory/">
             <i class="fas fa-bed"></i>
             <span>Dormitory</span>
-        </a></li>
-
-        <li class="{% if '/reports/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/reports/">
-            <i class="fas fa-chart-bar"></i>
-            <span>Reports</span>
         </a></li>
         {% endif %}
 

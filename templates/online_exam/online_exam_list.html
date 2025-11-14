@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Online Exams{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h3 class="page-title">Online Exams</h3>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' school_slug=school_slug %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'online_exam:dashboard' school_slug=school_slug %}">Online Exams</a></li>
+                    <li class="breadcrumb-item active">All Exams</li>
+                </ul>
+            </div>
+            <div class="col-auto float-right ml-auto">
+                {% if perms.online_exam.add_onlineexam or user.is_school_admin %}
+                <a href="{% url 'online_exam:create' school_slug=school_slug %}" class="btn btn-primary"><i class="fas fa-plus"></i> Create Online Exam</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <!-- /Page Header -->
+    
+    <!-- Search Filter -->
+    <div class="row filter-row mb-4">
+        <div class="col-sm-6 col-md-3">
+            <div class="form-group">
+                <label>Class</label>
+                <select class="form-control filter-select" id="class-filter">
+                    <option value="">All Classes</option>
+                    {% for class in classes %}
+                    <option value="{{ class.id }}" {% if request.GET.class == class.id|stringformat:"i" %}selected{% endif %}>{{ class.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="form-group">
+                <label>Subject</label>
+                <select class="form-control filter-select" id="subject-filter">
+                    <option value="">All Subjects</option>
+                    {% for subject in subjects %}
+                    <option value="{{ subject.id }}" {% if request.GET.subject == subject.id|stringformat:"i" %}selected{% endif %}>{{ subject.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="form-group">
+                <label>Status</label>
+                <select class="form-control filter-select" id="status-filter">
+                    <option value="">All Status</option>
+                    <option value="upcoming" {% if request.GET.status == "upcoming" %}selected{% endif %}>Upcoming</option>
+                    <option value="ongoing" {% if request.GET.status == "ongoing" %}selected{% endif %}>Ongoing</option>
+                    <option value="completed" {% if request.GET.status == "completed" %}selected{% endif %}>Completed</option>
+                </select>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="form-group">
+                <label>&nbsp;</label>
+                <button class="btn btn-primary btn-block" id="apply-filters">Apply Filters</button>
+            </div>
+        </div>
+    </div>
+    <!-- /Search Filter -->
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if exams %}
+                    <div class="table-responsive">
+                        <table class="table table-striped custom-table mb-0 datatable">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Class</th>
+                                    <th>Subject</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Duration</th>
+                                    <th>Status</th>
+                                    <th class="text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for exam in exams %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'online_exam:detail' school_slug=school_slug pk=exam.id %}">{{ exam.title }}</a>
+                                    </td>
+                                    <td>{{ exam.class_ref.name }}</td>
+                                    <td>{{ exam.subject.name }}</td>
+                                    <td>{{ exam.start_date|date:"M d, Y H:i" }}</td>
+                                    <td>{{ exam.end_date|date:"M d, Y H:i" }}</td>
+                                    <td>{{ exam.duration_minutes }} mins</td>
+                                    <td>
+                                        {% if exam.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-right">
+                                        <div class="dropdown dropdown-action">
+                                            <a href="#" class="action-icon dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
+                                            <div class="dropdown-menu dropdown-menu-right">
+                                                <a class="dropdown-item" href="{% url 'online_exam:detail' school_slug=school_slug pk=exam.id %}"><i class="fas fa-eye m-r-5"></i> View</a>
+                                                {% if exam.created_by == user or user.is_school_admin %}
+                                                <a class="dropdown-item" href="{% url 'online_exam:update' school_slug=school_slug pk=exam.id %}"><i class="fas fa-pencil-alt m-r-5"></i> Edit</a>
+                                                <a class="dropdown-item" href="{% url 'online_exam:delete' school_slug=school_slug pk=exam.id %}"><i class="fas fa-trash m-r-5"></i> Delete</a>
+                                                {% endif %}
+                                                <a class="dropdown-item" href="{% url 'online_exam:results' school_slug=school_slug exam_id=exam.id %}"><i class="fas fa-chart-bar m-r-5"></i> Results</a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if is_paginated %}
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_obj.has_previous %}
+                                    <li class="page-item"><a class="page-link" href="?page=1">First</a></li>
+                                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+                                    {% endif %}
+                                    
+                                    {% for num in paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                    <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                                    {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if page_obj.has_next %}
+                                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+                                    <li class="page-item"><a class="page-link" href="?page={{ paginator.num_pages }}">Last</a></li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <!-- /Pagination -->
+                    {% else %}
+                    <div class="text-center py-5">
+                        <img src="{% static 'img/icons/no-data.svg' %}" alt="No Data" style="width: 100px; opacity: 0.5">
+                        <h5 class="mt-3 text-muted">No exams found</h5>
+                        {% if perms.online_exam.add_onlineexam or user.is_school_admin %}
+                        <a href="{% url 'online_exam:create' school_slug=school_slug %}" class="btn btn-primary mt-3"><i class="fas fa-plus"></i> Create your first online exam</a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    $(document).ready(function() {
+        // Apply filters
+        $('#apply-filters').click(function() {
+            var classId = $('#class-filter').val();
+            var subjectId = $('#subject-filter').val();
+            var status = $('#status-filter').val();
+            
+            var url = new URL(window.location.href);
+            url.searchParams.delete('class');
+            url.searchParams.delete('subject');
+            url.searchParams.delete('status');
+            
+            if(classId) url.searchParams.append('class', classId);
+            if(subjectId) url.searchParams.append('subject', subjectId);
+            if(status) url.searchParams.append('status', status);
+            
+            window.location.href = url.toString();
+        });
+    });
+</script>
+{% endblock %}

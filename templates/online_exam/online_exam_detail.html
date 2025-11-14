@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ exam.title }} - Online Exam Detail{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h3 class="page-title">{{ exam.title }}</h3>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' school_slug=school_slug %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'online_exam:dashboard' school_slug=school_slug %}">Online Exams</a></li>
+                    <li class="breadcrumb-item active">Exam Detail</li>
+                </ul>
+            </div>
+            <div class="col-auto float-right ml-auto">
+                {% if perms.online_exam.change_onlineexam or user.is_school_admin or exam.created_by == user %}
+                <a href="{% url 'online_exam:update' school_slug=school_slug pk=exam.id %}" class="btn btn-info"><i class="fas fa-edit"></i> Edit</a>
+                {% endif %}
+                <a href="{% url 'online_exam:results' school_slug=school_slug exam_id=exam.id %}" class="btn btn-primary"><i class="fas fa-chart-bar"></i> Results</a>
+            </div>
+        </div>
+    </div>
+    <!-- /Page Header -->
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Exam Information</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Class</label>
+                                <div class="form-control-static">{{ exam.class_ref.name }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Subject</label>
+                                <div class="form-control-static">{{ exam.subject.name }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Start Date</label>
+                                <div class="form-control-static">{{ exam.start_date|date:"F d, Y H:i" }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>End Date</label>
+                                <div class="form-control-static">{{ exam.end_date|date:"F d, Y H:i" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Duration</label>
+                                <div class="form-control-static">{{ exam.duration_minutes }} minutes</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Total Marks</label>
+                                <div class="form-control-static">{{ exam.total_marks }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Passing Marks</label>
+                                <div class="form-control-static">{{ exam.passing_marks }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Status</label>
+                                <div class="form-control-static">
+                                    {% if exam.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% if exam.instructions %}
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h5>Instructions</h5>
+                            <div class="form-control-static">{{ exam.instructions|safe }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if exam.syllabus %}
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h5>Syllabus/Topics</h5>
+                            <div class="form-control-static">{{ exam.syllabus|safe }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Exam Stats</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col">
+                            <h5 class="mb-0">{{ total_questions }}</h5>
+                            <span class="text-muted">Total Questions</span>
+                        </div>
+                        <div class="col">
+                            <h5 class="mb-0">{{ total_attempts }}</h5>
+                            <span class="text-muted">Total Attempts</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col">
+                            <h5 class="mb-0">{{ pass_count }}</h5>
+                            <span class="text-muted">Passed</span>
+                        </div>
+                        <div class="col">
+                            <h5 class="mb-0">{{ fail_count }}</h5>
+                            <span class="text-muted">Failed</span>
+                        </div>
+                    </div>
+                    {% if average_score %}
+                    <div class="row mb-3">
+                        <div class="col">
+                            <h5 class="mb-0">{{ average_score }}/{{ exam.total_marks }}</h5>
+                            <span class="text-muted">Average Score</span>
+                        </div>
+                        <div class="col">
+                            <h5 class="mb-0">{{ highest_score }}/{{ exam.total_marks }}</h5>
+                            <span class="text-muted">Highest Score</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            {% if can_attempt %}
+                            <a href="{% url 'online_exam:take_exam' school_slug=school_slug pk=exam.id %}" class="btn btn-primary btn-block">Take Exam Now</a>
+                            {% elif user.is_teacher or user.is_school_admin %}
+                            <a href="{% url 'online_exam:preview' school_slug=school_slug pk=exam.id %}" class="btn btn-info btn-block">Preview Exam</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if user.is_teacher or user.is_school_admin or exam.created_by == user %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h4 class="card-title">Management</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12 mb-2">
+                            <a href="{% url 'online_exam:manage_questions' school_slug=school_slug exam_id=exam.id %}" class="btn btn-info btn-block">Manage Questions</a>
+                        </div>
+                        <div class="col-12 mb-2">
+                            <a href="{% url 'online_exam:results' school_slug=school_slug exam_id=exam.id %}" class="btn btn-success btn-block">View Results</a>
+                        </div>
+                        {% if exam.is_active %}
+                        <div class="col-12 mb-2">
+                            <form method="post" action="{% url 'online_exam:toggle_status' school_slug=school_slug pk=exam.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-warning btn-block">Deactivate Exam</button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <div class="col-12 mb-2">
+                            <form method="post" action="{% url 'online_exam:toggle_status' school_slug=school_slug pk=exam.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success btn-block">Activate Exam</button>
+                            </form>
+                        </div>
+                        {% endif %}
+                        <div class="col-12">
+                            <a href="{% url 'online_exam:delete' school_slug=school_slug pk=exam.id %}" class="btn btn-danger btn-block">Delete Exam</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% if user.is_teacher or user.is_school_admin or exam.created_by == user %}
+    <!-- Questions Section -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Questions</h4>
+                    <a href="{% url 'online_exam:add_question' school_slug=school_slug exam_id=exam.id %}" class="btn btn-sm btn-primary">Add Question</a>
+                </div>
+                <div class="card-body">
+                    {% if questions %}
+                    <div class="accordion" id="questionAccordion">
+                        {% for question in questions %}
+                        <div class="card mb-2">
+                            <div class="card-header" id="heading{{ question.id }}">
+                                <h5 class="mb-0 d-flex justify-content-between align-items-center">
+                                    <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapse{{ question.id }}" aria-expanded="false" aria-controls="collapse{{ question.id }}">
+                                        Q{{ forloop.counter }}. {{ question.text|truncatechars:100 }} ({{ question.marks }} marks)
+                                    </button>
+                                    <div>
+                                        <a href="{% url 'online_exam:edit_question' school_slug=school_slug exam_id=exam.id question_id=question.id %}" class="btn btn-sm btn-info"><i class="fas fa-pencil-alt"></i></a>
+                                        <a href="{% url 'online_exam:delete_question' school_slug=school_slug exam_id=exam.id question_id=question.id %}" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
+                                    </div>
+                                </h5>
+                            </div>
+                            <div id="collapse{{ question.id }}" class="collapse" aria-labelledby="heading{{ question.id }}" data-parent="#questionAccordion">
+                                <div class="card-body">
+                                    <p><strong>Question:</strong> {{ question.text }}</p>
+                                    <p><strong>Type:</strong> {{ question.get_question_type_display }}</p>
+                                    <p><strong>Marks:</strong> {{ question.marks }}</p>
+                                    
+                                    {% if question.question_type == 'mcq' or question.question_type == 'multi' %}
+                                    <div class="mt-3">
+                                        <h6>Options:</h6>
+                                        <ul class="list-group">
+                                            {% for choice in question.choices.all %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                {{ choice.text }}
+                                                {% if choice.is_correct %}
+                                                <span class="badge badge-success">Correct</span>
+                                                {% endif %}
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-muted">No questions added yet.</p>
+                        <a href="{% url 'online_exam:add_question' school_slug=school_slug exam_id=exam.id %}" class="btn btn-primary">Add First Question</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- /Questions Section -->
+    {% endif %}
+</div>
+{% endblock %}

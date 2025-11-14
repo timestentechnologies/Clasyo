@@ -1,0 +1,243 @@
+{% extends "dashboards/base.html" %}
+{% load static %}
+
+{% block title %}Certificates{% endblock %}
+{% block page_title %}Certificates{% endblock %}
+{% block page_icon %}certificate{% endblock %}
+{% block page_subtitle %}Manage and issue student certificates{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h3 class="page-title">Certificates</h3>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' school_slug=school_slug %}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Certificates</li>
+                </ul>
+            </div>
+            <div class="col-auto float-right ml-auto">
+                {% if perms.certificates.add_certificate or user.is_school_admin %}
+                <div class="btn-group">
+                    <a href="{% url 'certificates:create' school_slug=school_slug %}" class="btn btn-primary"><i class="fas fa-plus"></i> Create Certificate</a>
+                    <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <span class="sr-only">Toggle Dropdown</span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a class="dropdown-item" href="{% url 'certificates:add_template' school_slug=school_slug %}">Add Certificate Template</a>
+                        <a class="dropdown-item" href="{% url 'certificates:type_list' school_slug=school_slug %}">Manage Certificate Types</a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <!-- /Page Header -->
+
+    <!-- Search Filter -->
+    <div class="row filter-row mb-4">
+        <div class="col-sm-6 col-md-3">
+            <div class="form-group">
+                <label>Certificate Type</label>
+                <select class="form-control select2" id="certificate-type-filter">
+                    <option value="">All Types</option>
+                    {% for cert_type in certificate_types %}
+                    <option value="{{ cert_type.id }}" {% if request.GET.type == cert_type.id|stringformat:"i" %}selected{% endif %}>{{ cert_type.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="form-group">
+                <label>Class</label>
+                <select class="form-control select2" id="class-filter">
+                    <option value="">All Classes</option>
+                    {% for class in classes %}
+                    <option value="{{ class.id }}" {% if request.GET.class == class.id|stringformat:"i" %}selected{% endif %}>{{ class.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="form-group">
+                <label>Date Range</label>
+                <div class="cal-icon">
+                    <input type="text" class="form-control" id="date-range" placeholder="Select date range">
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="form-group">
+                <label>&nbsp;</label>
+                <button class="btn btn-primary btn-block" id="apply-filters">Apply Filter</button>
+            </div>
+        </div>
+    </div>
+    <!-- /Search Filter -->
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="modern-card">
+                <div class="card-body">
+                    {% if certificates %}
+                    <div class="table-responsive">
+                        <table class="table table-striped custom-table mb-0 datatable">
+                            <thead>
+                                <tr>
+                                    <th>Certificate ID</th>
+                                    <th>Type</th>
+                                    <th>Student</th>
+                                    <th>Class</th>
+                                    <th>Issue Date</th>
+                                    <th>Status</th>
+                                    <th class="text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for certificate in certificates %}
+                                <tr>
+                                    <td>{{ certificate.certificate_number }}</td>
+                                    <td>{{ certificate.certificate_type.name }}</td>
+                                    <td>
+                                        <h2 class="table-avatar">
+                                            {% if certificate.student.user.profile_pic %}
+                                            <a href="#" class="avatar"><img alt="" src="{{ certificate.student.user.profile_pic.url }}"></a>
+                                            {% else %}
+                                            <a href="#" class="avatar"><img alt="" src="{% static 'img/profiles/avatar-placeholder.jpg' %}"></a>
+                                            {% endif %}
+                                            <a href="#">{{ certificate.student.get_full_name }} <span>{{ certificate.student.admission_number }}</span></a>
+                                        </h2>
+                                    </td>
+                                    <td>{{ certificate.class_name.name }}</td>
+                                    <td>{{ certificate.issued_date|date:"d M Y" }}</td>
+                                    <td>
+                                        {% if certificate.is_verified %}
+                                        <span class="badge bg-success">Verified</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-right">
+                                        <div class="dropdown dropdown-action">
+                                            <a href="#" class="action-icon dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
+                                            <div class="dropdown-menu dropdown-menu-right">
+                                                <a class="dropdown-item" href="{% url 'certificates:view' school_slug=school_slug pk=certificate.id %}"><i class="fas fa-eye m-r-5"></i> View</a>
+                                                <a class="dropdown-item" href="{% url 'certificates:download' school_slug=school_slug pk=certificate.id %}"><i class="fas fa-download m-r-5"></i> Download</a>
+                                                {% if perms.certificates.change_certificate or user.is_school_admin %}
+                                                <a class="dropdown-item" href="{% url 'certificates:edit' school_slug=school_slug pk=certificate.id %}"><i class="fas fa-pencil-alt m-r-5"></i> Edit</a>
+                                                {% endif %}
+                                                {% if perms.certificates.delete_certificate or user.is_school_admin %}
+                                                <a class="dropdown-item" href="{% url 'certificates:delete' school_slug=school_slug pk=certificate.id %}"><i class="fas fa-trash m-r-5"></i> Delete</a>
+                                                {% endif %}
+                                                <a class="dropdown-item" href="{% url 'certificates:verify' school_slug=school_slug certificate_uuid=certificate.verification_uuid %}"><i class="fas fa-check-circle m-r-5"></i> Verify</a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <img src="{% static 'img/icons/certificate.svg' %}" alt="No Data" style="width: 100px; opacity: 0.5">
+                        <h5 class="mt-3 text-muted">No certificates found</h5>
+                        {% if perms.certificates.add_certificate or user.is_school_admin %}
+                        <a href="{% url 'certificates:create' school_slug=school_slug %}" class="btn btn-primary mt-3"><i class="fas fa-plus"></i> Create your first certificate</a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Pagination -->
+                    {% if is_paginated %}
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_obj.has_previous %}
+                                    <li class="page-item"><a class="page-link" href="?page=1">First</a></li>
+                                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+                                    {% endif %}
+                                    
+                                    {% for num in paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                    <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                                    {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if page_obj.has_next %}
+                                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+                                    <li class="page-item"><a class="page-link" href="?page={{ paginator.num_pages }}">Last</a></li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize Select2
+        if($.fn.select2) {
+            $('.select2').select2();
+        }
+        
+        // Initialize DataTable
+        if($.fn.DataTable){
+            $('.datatable').DataTable({
+                paging: false,
+                ordering: true,
+                info: false
+            });
+        }
+        
+        // Initialize Daterange picker
+        if($.fn.daterangepicker) {
+            $('#date-range').daterangepicker({
+                opens: 'left',
+                autoUpdateInput: false,
+                locale: {
+                    cancelLabel: 'Clear'
+                }
+            });
+            
+            $('#date-range').on('apply.daterangepicker', function(ev, picker) {
+                $(this).val(picker.startDate.format('MM/DD/YYYY') + ' - ' + picker.endDate.format('MM/DD/YYYY'));
+            });
+
+            $('#date-range').on('cancel.daterangepicker', function(ev, picker) {
+                $(this).val('');
+            });
+        }
+        
+        // Apply filters
+        $('#apply-filters').click(function() {
+            var typeId = $('#certificate-type-filter').val();
+            var classId = $('#class-filter').val();
+            var dateRange = $('#date-range').val();
+            
+            var url = new URL(window.location.href);
+            url.searchParams.delete('type');
+            url.searchParams.delete('class');
+            url.searchParams.delete('date_range');
+            
+            if(typeId) url.searchParams.append('type', typeId);
+            if(classId) url.searchParams.append('class', classId);
+            if(dateRange) url.searchParams.append('date_range', dateRange);
+            
+            window.location.href = url.toString();
+        });
+    });
+</script>
+{% endblock %}

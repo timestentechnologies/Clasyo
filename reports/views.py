@@ -1,9 +1,12 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView, View
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponse, JsonResponse
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.http import HttpResponse, JsonResponse, Http404
 from django.db.models import Count, Sum, Avg, Q
 from django.utils import timezone
+from django.urls import reverse_lazy, reverse
+from django.contrib import messages
+from django.utils.translation import gettext as _
 from datetime import datetime, timedelta
 import csv
 import json
@@ -11,6 +14,10 @@ from tenants.models import School
 from students.models import Student
 from accounts.models import User
 from academics.models import Class, Section
+from django import forms
+
+# Import our report models
+from .models import ReportType, SavedReport, ReportDistribution
 
 # Try to import optional libraries
 try:
@@ -221,3 +228,181 @@ class ExportStudentEnrollmentView(LoginRequiredMixin, View):
         doc.build(elements)
         
         return response
+
+
+# Additional report views using the new models
+class ReportDashboardView(LoginRequiredMixin, TemplateView):
+    """Dashboard for reports using the new report models"""
+    template_name = 'reports/dashboard.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school_slug'] = self.kwargs.get('school_slug', '')
+        user = self.request.user
+        
+        # Get report categories
+        try:
+            context['academic_reports'] = ReportType.objects.filter(module='academic')
+            context['attendance_reports'] = ReportType.objects.filter(module='attendance')
+            context['finance_reports'] = ReportType.objects.filter(module='finance')
+            context['exam_reports'] = ReportType.objects.filter(module='examination')
+        except:
+            context['academic_reports'] = []
+            context['attendance_reports'] = []
+            context['finance_reports'] = []
+            context['exam_reports'] = []
+        
+        # Recent reports
+        try:
+            if user.is_school_admin:
+                context['recent_reports'] = SavedReport.objects.filter(
+                    school__slug=context['school_slug']
+                ).order_by('-created_at')[:5]
+            else:
+                context['recent_reports'] = SavedReport.objects.filter(
+                    Q(created_by=user) | 
+                    Q(is_public=True) | 
+                    Q(shared_with=user)
+                ).distinct().order_by('-created_at')[:5]
+        except:
+            # Fallback if there are no reports yet
+            context['recent_reports'] = []
+        
+        # Quick stats
+        try:
+            context['total_report_types'] = ReportType.objects.count()
+            context['total_saved_reports'] = SavedReport.objects.filter(
+                Q(created_by=user) | 
+                Q(is_public=True) | 
+                Q(shared_with=user)
+            ).distinct().count()
+        except:
+            # Fallback if models don't exist yet
+            context['total_report_types'] = 0
+            context['total_saved_reports'] = 0
+        
+        return context
+
+
+class ReportTypeListView(LoginRequiredMixin, ListView):
+    """List all report types"""
+    model = ReportType
+    template_name = 'reports/report_type_list.html'
+    context_object_name = 'report_types'
+    
+    def get_queryset(self):
+        try:
+            queryset = ReportType.objects.all()
+            
+            # Filter by module if specified
+            module = self.request.GET.get('module')
+            if module:
+                queryset = queryset.filter(module=module)
+            
+            # Filter by user role
+            user_role = getattr(self.request.user, 'role', None)
+            if user_role:
+                queryset = queryset.filter(available_to_roles__contains=[user_role])
+            
+            return queryset
+        except:
+            # Fallback if model doesn't exist yet
+            return ReportType.objects.none()
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school_slug'] = self.kwargs.get('school_slug', '')
+        
+        # Available modules
+        try:
+            context['modules'] = ReportType.objects.values_list('module', flat=True).distinct()
+        except:
+            context['modules'] = []
+        
+        # Current filter
+        context['current_module'] = self.request.GET.get('module', '')
+        
+        return context
+
+
+class SavedReportListView(LoginRequiredMixin, ListView):
+    """List all saved reports"""
+    model = SavedReport
+    template_name = 'reports/saved_report_list.html'
+    context_object_name = 'reports'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        try:
+            user = self.request.user
+            
+            # Get reports visible to user
+            queryset = SavedReport.objects.filter(
+                Q(created_by=user) | 
+                Q(is_public=True) | 
+                Q(shared_with=user)
+            ).distinct()
+            
+            # Apply filters
+            report_type = self.request.GET.get('type')
+            if report_type:
+                queryset = queryset.filter(report_type_id=report_type)
+            
+            status = self.request.GET.get('status')
+            if status:
+                queryset = queryset.filter(status=status)
+            
+            # Default ordering
+            queryset = queryset.order_by('-created_at')
+            
+            return queryset
+        except:
+            # Fallback if model doesn't exist yet
+            return SavedReport.objects.none()
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school_slug'] = self.kwargs.get('school_slug', '')
+        
+        # Get report types for filter
+        try:
+            context['report_types'] = ReportType.objects.all()
+            context['status_choices'] = SavedReport.STATUS_CHOICES
+        except:
+            context['report_types'] = []
+            context['status_choices'] = []
+        
+        # Current filters
+        context['current_filters'] = {
+            'type': self.request.GET.get('type', ''),
+            'status': self.request.GET.get('status', ''),
+        }
+        
+        return context
+
+
+class SavedReportDetailView(LoginRequiredMixin, DetailView):
+    """View a saved report"""
+    model = SavedReport
+    template_name = 'reports/saved_report_detail.html'
+    context_object_name = 'report'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school_slug'] = self.kwargs.get('school_slug', '')
+        
+        # Convert report data for template
+        report = self.object
+        try:
+            context['report_data'] = report.get_data_as_list()
+            context['summary_items'] = report.get_summary_items()
+        except AttributeError:
+            context['report_data'] = []
+            context['summary_items'] = []
+        
+        # Check user permissions
+        user = self.request.user
+        context['can_edit'] = user == report.created_by or getattr(user, 'is_school_admin', False)
+        context['can_share'] = user == report.created_by or getattr(user, 'is_school_admin', False)
+        
+        return context

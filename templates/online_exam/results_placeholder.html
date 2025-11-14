@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Exam Results{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h3 class="page-title">Exam Results</h3>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' school_slug=school_slug %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'online_exam:dashboard' school_slug=school_slug %}">Online Exams</a></li>
+                    <li class="breadcrumb-item active">Exam Results</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- /Page Header -->
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <img src="{% static 'img/icons/chart-line.svg' %}" alt="Results" style="width: 100px; opacity: 0.5">
+                    <h4 class="mt-4">{{ message }}</h4>
+                    <p class="text-muted">Exam ID: {{ exam_id }}</p>
+                    <a href="{% url 'online_exam:dashboard' school_slug=school_slug %}" class="btn btn-primary mt-3">Return to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

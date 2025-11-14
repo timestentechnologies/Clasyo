@@ -173,7 +173,7 @@ class ExamSubmission(models.Model):
     
     # Teacher feedback
     teacher_remarks = models.TextField(blank=True)
-    graded_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='graded_submissions')
+    graded_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='exam_graded_submissions')
     graded_at = models.DateTimeField(null=True, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)

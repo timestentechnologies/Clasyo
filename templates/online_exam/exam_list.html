@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Online Exams{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h3 class="page-title">Online Exams</h3>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' school_slug=school_slug %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'online_exam:dashboard' school_slug=school_slug %}">Online Exams</a></li>
+                    <li class="breadcrumb-item active">All Exams</li>
+                </ul>
+            </div>
+            <div class="col-auto float-right ml-auto">
+                {% if perms.online_exam.add_onlineexam or user.is_school_admin %}
+                <a href="{% url 'online_exam:create' school_slug=school_slug %}" class="btn btn-primary"><i class="fas fa-plus"></i> Create Online Exam</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <!-- /Page Header -->
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="text-center py-5">
+                        <img src="{% static 'img/icons/no-data.svg' %}" alt="No Data" style="width: 100px; opacity: 0.5">
+                        <h5 class="mt-3 text-muted">No exams found</h5>
+                        {% if perms.online_exam.add_onlineexam or user.is_school_admin %}
+                        <a href="{% url 'online_exam:create' school_slug=school_slug %}" class="btn btn-primary mt-3"><i class="fas fa-plus"></i> Create your first online exam</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

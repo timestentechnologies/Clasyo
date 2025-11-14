@@ -1,0 +1,220 @@
+{% extends "dashboards/base.html" %}
+{% load static %}
+
+{% block title %}Library Dashboard{% endblock %}
+{% block page_title %}Library{% endblock %}
+{% block page_icon %}book{% endblock %}
+{% block page_subtitle %}Manage books, resources and lending{% endblock %}
+
+{% block content %}
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card primary">
+        <div class="stat-icon">
+            <i class="fas fa-book"></i>
+        </div>
+        <div class="stat-value">{{ total_books|default:"0" }}</div>
+        <div class="stat-label">Total Books</div>
+    </div>
+    
+    <div class="stat-card success">
+        <div class="stat-icon">
+            <i class="fas fa-book-reader"></i>
+        </div>
+        <div class="stat-value">{{ books_issued|default:"0" }}</div>
+        <div class="stat-label">Books Issued</div>
+    </div>
+    
+    <div class="stat-card warning">
+        <div class="stat-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-value">{{ overdue_books|default:"0" }}</div>
+        <div class="stat-label">Overdue Books</div>
+    </div>
+    
+    <div class="stat-card danger">
+        <div class="stat-icon">
+            <i class="fas fa-user-clock"></i>
+        </div>
+        <div class="stat-value">{{ pending_requests|default:"0" }}</div>
+        <div class="stat-label">Book Requests</div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-lg-6">
+        <div class="modern-card">
+            <h4 class="mb-4"><i class="fas fa-bolt"></i> Quick Actions</h4>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <a href="{% url 'library:book_list' school_slug=school_slug %}" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-search"></i><br>Search Books
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <a href="{% url 'library:issue_create' school_slug=school_slug %}" class="btn btn-success btn-lg w-100">
+                        <i class="fas fa-share-square"></i><br>Issue Book
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <a href="{% url 'library:issue_list' school_slug=school_slug %}" class="btn btn-info btn-lg w-100">
+                        <i class="fas fa-undo"></i><br>Return/View Books
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <a href="{% url 'library:book_create' school_slug=school_slug %}" class="btn btn-warning btn-lg w-100">
+                        <i class="fas fa-plus-circle"></i><br>Add New Book
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="modern-card">
+            <h4 class="mb-4"><i class="fas fa-chart-pie"></i> Library Statistics</h4>
+            <div class="chart-container">
+                <canvas id="libraryStatsChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recently Added Books -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="modern-card">
+            <h4 class="mb-4"><i class="fas fa-book"></i> Recently Added Books</h4>
+            {% if recent_books %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Book Title</th>
+                            <th>Author</th>
+                            <th>Category</th>
+                            <th>Added On</th>
+                            <th>Available Copies</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for book in recent_books %}
+                        <tr>
+                            <td>{{ book.title }}</td>
+                            <td>{{ book.author }}</td>
+                            <td>{{ book.category.name }}</td>
+                            <td>{{ book.created_at|date:"M d, Y" }}</td>
+                            <td>{{ book.available_copies }}/{{ book.total_copies }}</td>
+                            <td>
+                                <a href="{% url 'library:book_detail' school_slug=school_slug pk=book.id %}" class="btn btn-sm btn-info">View</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <img src="{% static 'img/icons/book.svg' %}" alt="No Books" style="width: 80px; opacity: 0.5">
+                <h5 class="mt-3 text-muted">No books found in the library</h5>
+                <a href="{% url 'library:book_create' school_slug=school_slug %}" class="btn btn-primary mt-3">
+                    <i class="fas fa-plus"></i> Add your first book
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Current Borrowers -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="modern-card">
+            <h4 class="mb-4"><i class="fas fa-users"></i> Recent Borrowers</h4>
+            {% if recent_issues %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Book</th>
+                            <th>Issue Date</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for issue in recent_issues %}
+                        <tr>
+                            <td>{{ issue.student.get_full_name }}</td>
+                            <td>{{ issue.book.title }}</td>
+                            <td>{{ issue.issue_date|date:"M d, Y" }}</td>
+                            <td>{{ issue.due_date|date:"M d, Y" }}</td>
+                            <td>
+                                {% if issue.is_returned %}
+                                <span class="badge bg-success">Returned</span>
+                                {% elif issue.is_overdue %}
+                                <span class="badge bg-danger">Overdue</span>
+                                {% else %}
+                                <span class="badge bg-primary">Issued</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not issue.is_returned %}
+                                <a href="{% url 'library:book_return' school_slug=school_slug pk=issue.id %}" class="btn btn-sm btn-warning">Return</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <p class="text-muted">No recent borrowing activity</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Library statistics chart
+        var ctx = document.getElementById('libraryStatsChart').getContext('2d');
+        var libraryStatsChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Available', 'Issued', 'Overdue', 'Lost'],
+                datasets: [{
+                    data: [70, 20, 5, 5],
+                    backgroundColor: [
+                        '#36b9cc', // cyan - info
+                        '#1cc88a', // green - success
+                        '#f6c23e', // yellow - warning
+                        '#e74a3b'  // red - danger
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}

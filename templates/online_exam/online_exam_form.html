@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load widget_tweaks %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Online Exam{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <h3 class="page-title">{% if form.instance.pk %}Edit{% else %}Create{% endif %} Online Exam</h3>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' school_slug=school_slug %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'online_exam:dashboard' school_slug=school_slug %}">Online Exams</a></li>
+                    <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}Create{% endif %} Exam</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- /Page Header -->
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Exam Information</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.title.id_for_label }}">Title <span class="text-danger">*</span></label>
+                                    {{ form.title|add_class:"form-control" }}
+                                    {% if form.title.errors %}
+                                    <div class="text-danger">{{ form.title.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.description.id_for_label }}">Description</label>
+                                    {{ form.description|add_class:"form-control" }}
+                                    {% if form.description.errors %}
+                                    <div class="text-danger">{{ form.description.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.class_ref.id_for_label }}">Class <span class="text-danger">*</span></label>
+                                    {{ form.class_ref|add_class:"form-control select2" }}
+                                    {% if form.class_ref.errors %}
+                                    <div class="text-danger">{{ form.class_ref.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.subject.id_for_label }}">Subject <span class="text-danger">*</span></label>
+                                    {{ form.subject|add_class:"form-control select2" }}
+                                    {% if form.subject.errors %}
+                                    <div class="text-danger">{{ form.subject.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.start_date.id_for_label }}">Start Date & Time <span class="text-danger">*</span></label>
+                                    {{ form.start_date|add_class:"form-control datetimepicker" }}
+                                    {% if form.start_date.errors %}
+                                    <div class="text-danger">{{ form.start_date.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.end_date.id_for_label }}">End Date & Time <span class="text-danger">*</span></label>
+                                    {{ form.end_date|add_class:"form-control datetimepicker" }}
+                                    {% if form.end_date.errors %}
+                                    <div class="text-danger">{{ form.end_date.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.duration_minutes.id_for_label }}">Duration (minutes) <span class="text-danger">*</span></label>
+                                    {{ form.duration_minutes|add_class:"form-control" }}
+                                    {% if form.duration_minutes.errors %}
+                                    <div class="text-danger">{{ form.duration_minutes.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.total_marks.id_for_label }}">Total Marks <span class="text-danger">*</span></label>
+                                    {{ form.total_marks|add_class:"form-control" }}
+                                    {% if form.total_marks.errors %}
+                                    <div class="text-danger">{{ form.total_marks.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.passing_marks.id_for_label }}">Passing Marks <span class="text-danger">*</span></label>
+                                    {{ form.passing_marks|add_class:"form-control" }}
+                                    {% if form.passing_marks.errors %}
+                                    <div class="text-danger">{{ form.passing_marks.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label for="{{ form.instructions.id_for_label }}">Instructions for Students</label>
+                                    {{ form.instructions|add_class:"form-control rich-editor" }}
+                                    {% if form.instructions.errors %}
+                                    <div class="text-danger">{{ form.instructions.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label for="{{ form.syllabus.id_for_label }}">Syllabus/Topics Covered</label>
+                                    {{ form.syllabus|add_class:"form-control rich-editor" }}
+                                    {% if form.syllabus.errors %}
+                                    <div class="text-danger">{{ form.syllabus.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.randomize_questions.id_for_label }}">Randomize Questions</label>
+                                    <div class="form-check">
+                                        {{ form.randomize_questions|add_class:"form-check-input" }}
+                                        <label class="form-check-label" for="{{ form.randomize_questions.id_for_label }}">
+                                            Show questions in random order
+                                        </label>
+                                    </div>
+                                    {% if form.randomize_questions.errors %}
+                                    <div class="text-danger">{{ form.randomize_questions.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.show_result_immediately.id_for_label }}">Show Results</label>
+                                    <div class="form-check">
+                                        {{ form.show_result_immediately|add_class:"form-check-input" }}
+                                        <label class="form-check-label" for="{{ form.show_result_immediately.id_for_label }}">
+                                            Show result immediately after submission
+                                        </label>
+                                    </div>
+                                    {% if form.show_result_immediately.errors %}
+                                    <div class="text-danger">{{ form.show_result_immediately.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.is_active.id_for_label }}">Status</label>
+                                    <div class="form-check">
+                                        {{ form.is_active|add_class:"form-check-input" }}
+                                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                            Make exam active
+                                        </label>
+                                    </div>
+                                    {% if form.is_active.errors %}
+                                    <div class="text-danger">{{ form.is_active.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col-12 text-center">
+                                <button type="submit" class="btn btn-primary">
+                                    {% if form.instance.pk %}
+                                        Save Changes
+                                    {% else %}
+                                        Create Exam
+                                    {% endif %}
+                                </button>
+                                <a href="{% url 'online_exam:dashboard' school_slug=school_slug %}" class="btn btn-secondary ml-2">Cancel</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script src="https://cdn.ckeditor.com/4.16.2/standard/ckeditor.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    $(document).ready(function() {
+        // Initialize rich text editors
+        if (typeof CKEDITOR !== 'undefined') {
+            $('.rich-editor').each(function() {
+                CKEDITOR.replace(this.id, {
+                    height: 200
+                });
+            });
+        }
+        
+        // Initialize datetime pickers
+        if (typeof flatpickr !== 'undefined') {
+            $(".datetimepicker").flatpickr({
+                enableTime: true,
+                dateFormat: "Y-m-d H:i",
+            });
+        }
+        
+        // Initialize Select2
+        if($.fn.select2) {
+            $('.select2').select2();
+        }
+        
+        // Validate passing marks against total marks
+        $('#id_passing_marks').on('change', function() {
+            var passingMarks = parseFloat($(this).val());
+            var totalMarks = parseFloat($('#id_total_marks').val());
+            
+            if(passingMarks > totalMarks) {
+                alert('Passing marks cannot be greater than total marks');
+                $(this).val(totalMarks);
+            }
+        });
+        
+        // Validate end date against start date
+        $('#id_end_date').on('change', function() {
+            var startDate = new Date($('#id_start_date').val());
+            var endDate = new Date($(this).val());
+            
+            if(endDate < startDate) {
+                alert('End date cannot be before start date');
+                $(this).val($('#id_start_date').val());
+            }
+        });
+    });
+</script>
+{% endblock %}
+
+{% block custom_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .select2-container {
+        width: 100% !important;
+    }
+</style>
+{% endblock %}
