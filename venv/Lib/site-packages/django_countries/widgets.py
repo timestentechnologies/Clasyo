@@ -1,5 +1,5 @@
 import copy
-from typing import List, Union
+from typing import Dict, List, Union
 from urllib import parse as urlparse
 
 import django
@@ -42,6 +42,8 @@ class LazyChoicesMixin:
 
 
 class LazySelectMixin(LazyChoicesMixin):
+    attrs: Dict[str, str]
+
     if django.VERSION < (5, 0):
 
         def __deepcopy__(self, memo):
@@ -50,6 +52,30 @@ class LazySelectMixin(LazyChoicesMixin):
             obj.choices = copy.copy(self._choices)
             memo[id(self)] = obj
             return obj
+
+    def use_required_attribute(self, initial):  # type: ignore[no-untyped-def]
+        """
+        Override Django's default behavior to check if ANY choice has an empty
+        value, not just the first one. This is necessary for COUNTRIES_FIRST_BREAK
+        which puts a blank separator option in the middle of the choices list.
+
+        Django's default implementation only checks the first choice, but when
+        COUNTRIES_FIRST_BREAK is used, the blank separator appears after the
+        first countries, causing the required attribute to be incorrectly omitted.
+        """
+        # Don't use required attribute for hidden widgets
+        if self.is_hidden:  # type: ignore[attr-defined]
+            return False
+
+        # 'required' is always okay for <select multiple>.
+        if self.allow_multiple_selected:  # type: ignore[attr-defined]
+            return True
+
+        # Check if any choice has an empty value, not just the first one
+        return any(
+            self._choice_has_empty_value(choice)  # type: ignore[attr-defined]
+            for choice in self.choices
+        )
 
 
 class LazySelect(LazySelectMixin, widgets.Select):  # type: ignore

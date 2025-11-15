@@ -439,12 +439,31 @@ class PreviewExamView(LoginRequiredMixin, UserPassesTestMixin, View):
         school_slug = self.kwargs.get('school_slug')
         exam_id = self.kwargs.get('pk')
         
-        # This is a placeholder view
-        return render(request, 'online_exam/preview_placeholder.html', {
+        # Get the exam with related data
+        exam = get_object_or_404(
+            OnlineExam.objects.select_related('subject', 'class_ref', 'section')
+                            .prefetch_related('questions__choices'),
+            pk=exam_id
+        )
+        
+        # Get questions with their choices
+        questions = exam.questions.all().order_by('order')
+        
+        # Calculate total marks if not set
+        if not exam.total_marks:
+            exam.total_marks = sum(question.marks for question in questions)
+        
+        context = {
             'school_slug': school_slug,
-            'exam_id': exam_id,
-            'message': 'Exam preview would be shown here.'
-        })
+            'exam': exam,
+            'questions': questions,
+            'question_count': questions.count(),
+            'total_marks': exam.total_marks,
+            'duration_hours': exam.duration_minutes // 60,
+            'duration_minutes': exam.duration_minutes % 60,
+        }
+        
+        return render(request, 'online_exam/preview_placeholder.html', context)
 
 
 class ToggleExamStatusView(LoginRequiredMixin, UserPassesTestMixin, View):
@@ -460,11 +479,16 @@ class ToggleExamStatusView(LoginRequiredMixin, UserPassesTestMixin, View):
         exam_id = self.kwargs.get('pk')
         exam = get_object_or_404(OnlineExam, pk=exam_id)
         
-        # Toggle status
-        exam.is_active = not exam.is_active
+        # Toggle the is_published status instead of is_active
+        exam.is_published = not exam.is_published
+        
+        # If publishing the exam, ensure the status is set correctly
+        if exam.is_published and exam.status == 'draft':
+            exam.status = 'published' if timezone.now() < exam.start_time else 'in_progress'
+        
         exam.save()
         
-        status = 'activated' if exam.is_active else 'deactivated'
+        status = 'published' if exam.is_published else 'unpublished'
         messages.success(request, _(f'Exam {status} successfully'))
         
         return redirect('online_exam:detail', school_slug=school_slug, pk=exam_id)
@@ -481,11 +505,13 @@ class ManageQuestionsView(LoginRequiredMixin, UserPassesTestMixin, View):
     def get(self, request, *args, **kwargs):
         school_slug = self.kwargs.get('school_slug')
         exam_id = self.kwargs.get('exam_id')
+        exam = get_object_or_404(OnlineExam, pk=exam_id)
         
         # This is a placeholder view
         return render(request, 'online_exam/manage_questions_placeholder.html', {
             'school_slug': school_slug,
             'exam_id': exam_id,
+            'exam': exam,
             'message': 'Question management interface would be shown here.'
         })
 
@@ -501,11 +527,13 @@ class AddQuestionView(LoginRequiredMixin, UserPassesTestMixin, View):
     def get(self, request, *args, **kwargs):
         school_slug = self.kwargs.get('school_slug')
         exam_id = self.kwargs.get('exam_id')
+        exam = get_object_or_404(OnlineExam, pk=exam_id)
         
         # This is a placeholder view
         return render(request, 'online_exam/add_question_placeholder.html', {
             'school_slug': school_slug,
             'exam_id': exam_id,
+            'exam': exam,
             'message': 'Add question form would be shown here.'
         })
 

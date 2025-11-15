@@ -1,7 +1,10 @@
-{% extends "base.html" %}
+{% extends "dashboards/base.html" %}
 {% load static %}
 
 {% block title %}{{ lesson_plan.title }} - Lesson Plan Detail{% endblock %}
+{% block page_icon %}book-open{% endblock %}
+{% block page_title %}{{ lesson_plan.title }}{% endblock %}
+{% block page_subtitle %}Detailed lesson plan information{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -9,19 +12,13 @@
     <div class="page-header">
         <div class="row align-items-center">
             <div class="col">
-                <h3 class="page-title">{{ lesson_plan.title }}</h3>
-                <ul class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' school_slug=school_slug %}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'lesson_plan:dashboard' school_slug=school_slug %}">Lesson Plans</a></li>
-                    <li class="breadcrumb-item active">Lesson Plan Detail</li>
-                </ul>
             </div>
-            <div class="col-auto float-right ml-auto">
+            <div class="col-auto float-right ms-auto">
                 {% if perms.lesson_plan.change_lessonplan or user.is_school_admin or lesson_plan.created_by == user %}
-                <a href="{% url 'lesson_plan:update' school_slug=school_slug pk=lesson_plan.id %}" class="btn btn-info"><i class="fas fa-edit"></i> Edit</a>
+                <a href="{% url 'lesson_plan:update' school_slug=school_slug pk=lesson_plan.id %}" class="btn btn-info"><i class="fas fa-edit me-2"></i>Edit</a>
                 {% endif %}
-                <a href="{% url 'lesson_plan:export_pdf' school_slug=school_slug pk=lesson_plan.id %}" class="btn btn-primary"><i class="fas fa-download"></i> Export PDF</a>
-                <a href="javascript:window.print();" class="btn btn-secondary"><i class="fas fa-print"></i> Print</a>
+                <a href="{% url 'lesson_plan:export_pdf' school_slug=school_slug pk=lesson_plan.id %}" class="btn btn-primary"><i class="fas fa-download me-2"></i>Export PDF</a>
+                <a href="javascript:window.print();" class="btn btn-secondary"><i class="fas fa-print me-2"></i>Print</a>
             </div>
         </div>
     </div>
@@ -29,51 +26,257 @@
     
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
+            <div class="modern-card">
                 <div class="card-header">
                     <h4 class="card-title">Lesson Plan Information</h4>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="lesson-plan-info">
-                                <h5>Subject</h5>
-                                <p>{{ lesson_plan.subject.name }}</p>
-                            </div>
+                    <!-- Main Info Card -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Basic Information</h5>
                         </div>
-                        <div class="col-md-6">
-                            <div class="lesson-plan-info">
-                                <h5>Class</h5>
-                                <p>{{ lesson_plan.class_ref.name }}{% if lesson_plan.section %} - {{ lesson_plan.section.name }}{% endif %}</p>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-8">
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-shrink-0 me-3">
+                                            <i class="fas fa-book fa-2x text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0 text-muted">Lesson Title</h6>
+                                            <h4 class="mb-0">{{ lesson_plan.title }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center h-100">
+                                        <div class="flex-shrink-0 me-3">
+                                            <i class="fas fa-info-circle fa-2x text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0 text-muted">Status</h6>
+                                            <span class="badge bg-{% if lesson_plan.status == 'draft' %}warning{% elif lesson_plan.status == 'published' %}success{% elif lesson_plan.status == 'archived' %}secondary{% else %}info{% endif %} text-uppercase">
+                                                {{ lesson_plan.get_status_display }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if lesson_plan.description %}
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="border-top pt-3 mt-3">
+                                        <h6 class="text-muted">Description</h6>
+                                        <p class="mb-0">{{ lesson_plan.description }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Class & Subject Info Card -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Class & Subject Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0 me-3 text-primary">
+                                            <i class="fas fa-book-open"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="text-muted mb-1">Subject</h6>
+                                            <p class="mb-0">{{ lesson_plan.subject.name }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0 me-3 text-primary">
+                                            <i class="fas fa-chalkboard"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="text-muted mb-1">Class & Section</h6>
+                                            <p class="mb-0">
+                                                {{ lesson_plan.class_ref.name }}
+                                                {% if lesson_plan.section %}
+                                                <span class="text-muted">({{ lesson_plan.section.name }})</span>
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0 me-3 text-primary">
+                                            <i class="fas fa-graduation-cap"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="text-muted mb-1">Grade Level</h6>
+                                            <p class="mb-0">{{ lesson_plan.grade_level|default:"Not specified" }}</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="lesson-plan-info">
-                                <h5>Date</h5>
-                                <p>{{ lesson_plan.lesson_date }}</p>
-                            </div>
+
+                    <!-- Schedule & Duration Card -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Schedule & Duration</h5>
                         </div>
-                        <div class="col-md-6">
-                            <div class="lesson-plan-info">
-                                <h5>Duration</h5>
-                                <p>{{ lesson_plan.duration_minutes }} minutes</p>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0 me-3 text-primary">
+                                            <i class="far fa-calendar-alt"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="text-muted mb-1">Planned Date</h6>
+                                            <p class="mb-0">{{ lesson_plan.planned_date|date:"F j, Y" }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0 me-3 text-primary">
+                                            <i class="far fa-clock"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="text-muted mb-1">Duration</h6>
+                                            <p class="mb-0">{{ lesson_plan.duration_minutes }} minutes</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0 me-3 text-primary">
+                                            <i class="fas fa-hashtag"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="text-muted mb-1">Lesson Number</h6>
+                                            <p class="mb-0">{{ lesson_plan.lesson_number|default:"Not specified" }}</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+                            {% if lesson_plan.unit_title %}
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0 me-3 text-primary">
+                                            <i class="fas fa-layer-group"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="text-muted mb-1">Unit Title</h6>
+                                            <p class="mb-0">{{ lesson_plan.unit_title }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="lesson-plan-info">
-                                <h5>Created By</h5>
-                                <p>{{ lesson_plan.created_by.get_full_name }}</p>
-                            </div>
+
+                    <!-- Metadata Card -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Metadata</h5>
                         </div>
-                        <div class="col-md-6">
-                            <div class="lesson-plan-info">
-                                <h5>Created On</h5>
-                                <p>{{ lesson_plan.created_at }}</p>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0 me-3 text-primary">
+                                            <i class="fas fa-user-edit"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="text-muted mb-1">Created By</h6>
+                                            <p class="mb-0">
+                                                {{ lesson_plan.created_by.get_full_name }}
+                                                <small class="text-muted d-block">{{ lesson_plan.created_at|date:"F j, Y H:i" }}</small>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0 me-3 text-primary">
+                                            <i class="fas fa-sync"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="text-muted mb-1">Last Updated</h6>
+                                            <p class="mb-0">{{ lesson_plan.updated_at|date:"F j, Y H:i" }}</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+                            
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0 me-3 text-primary">
+                                            <i class="fas fa-check-circle"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="text-muted mb-1">Approval</h6>
+                                            <p class="mb-0">
+                                                {% if lesson_plan.approved_by %}
+                                                    Approved by {{ lesson_plan.approved_by.get_full_name }}
+                                                    <small class="text-muted d-block">{{ lesson_plan.approved_at|date:"F j, Y H:i" }}</small>
+                                                {% else %}
+                                                    Not approved yet
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0 me-3 text-primary">
+                                            <i class="fas fa-tasks"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="text-muted mb-1">Execution Status</h6>
+                                            <p class="mb-0">
+                                                {% if lesson_plan.is_executed %}
+                                                    <span class="badge bg-success">Completed</span>
+                                                    {% if lesson_plan.execution_date %}
+                                                        <small class="text-muted d-block">{{ lesson_plan.execution_date|date:"F j, Y" }}</small>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Not Executed</span>
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if lesson_plan.execution_notes %}
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0 me-3 text-primary">
+                                            <i class="far fa-sticky-note"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="text-muted mb-1">Execution Notes</h6>
+                                            <div class="bg-light p-3 rounded">
+                                                {{ lesson_plan.execution_notes|linebreaks }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -83,91 +286,262 @@
     
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
+            <div class="modern-card">
                 <div class="card-header">
                     <h4 class="card-title">Lesson Content</h4>
                 </div>
-                <div class="card-body">
-                    <div class="lesson-plan-section">
-                        <h5>Learning Objectives</h5>
-                        <div class="rich-content">{{ lesson_plan.learning_objectives|safe }}</div>
-                    </div>
-                    
-                    <hr class="my-4">
-                    
-                    <div class="lesson-plan-section">
-                        <h5>Materials Needed</h5>
-                        <div class="rich-content">{{ lesson_plan.materials_needed|safe }}</div>
-                    </div>
-                    
-                    <hr class="my-4">
-                    
-                    <div class="lesson-plan-section">
-                        <h5>Lesson Introduction</h5>
-                        <div class="rich-content">{{ lesson_plan.introduction|safe }}</div>
-                    </div>
-                    
-                    <hr class="my-4">
-                    
-                    <div class="lesson-plan-section">
-                        <h5>Lesson Development</h5>
-                        <div class="rich-content">{{ lesson_plan.development|safe }}</div>
-                    </div>
-                    
-                    <hr class="my-4">
-                    
-                    <div class="lesson-plan-section">
-                        <h5>Guided Practice</h5>
-                        <div class="rich-content">{{ lesson_plan.guided_practice|safe }}</div>
-                    </div>
-                    
-                    <hr class="my-4">
-                    
-                    <div class="lesson-plan-section">
-                        <h5>Independent Practice</h5>
-                        <div class="rich-content">{{ lesson_plan.independent_practice|safe }}</div>
-                    </div>
-                    
-                    <hr class="my-4">
-                    
-                    <div class="lesson-plan-section">
-                        <h5>Assessment</h5>
-                        <div class="rich-content">{{ lesson_plan.assessment|safe }}</div>
-                    </div>
-                    
-                    <hr class="my-4">
-                    
-                    <div class="lesson-plan-section">
-                        <h5>Closure</h5>
-                        <div class="rich-content">{{ lesson_plan.closure|safe }}</div>
-                    </div>
-                    
-                    <hr class="my-4">
-                    
-                    <div class="lesson-plan-section">
-                        <h5>Differentiation</h5>
-                        <div class="rich-content">{{ lesson_plan.differentiation|safe }}</div>
-                    </div>
-                    
-                    <hr class="my-4">
-                    
-                    <div class="lesson-plan-section">
-                        <h5>Notes</h5>
-                        <div class="rich-content">{{ lesson_plan.notes|safe }}</div>
+                <div class="card-body p-0">
+                    <div class="accordion" id="lessonContentAccordion">
+                        <!-- Learning Objectives -->
+                        <div class="accordion-item border-0 mb-3">
+                            <h2 class="accordion-header" id="headingOne">
+                                <button class="accordion-button bg-light text-dark py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                    <div class="d-flex align-items-center w-100">
+                                        <div class="me-3 d-flex align-items-center justify-content-center rounded-circle bg-cyan-100 text-cyan-600" style="width: 36px; height: 36px;">
+                                            <i class="fas fa-bullseye"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h5 class="mb-0">Learning Objectives</h5>
+                                            <small class="text-muted">What will students know and be able to do as a result of this lesson?</small>
+                                        </div>
+                                        <i class="fas fa-chevron-down accordion-arrow text-muted"></i>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#lessonContentAccordion">
+                                <div class="accordion-body p-4">
+                                    <div class="rich-content">{{ lesson_plan.learning_objectives|safe }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Materials Needed -->
+                        <div class="accordion-item border-0 mb-3">
+                            <h2 class="accordion-header" id="headingTwo">
+                                <button class="accordion-button collapsed bg-light text-dark py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                    <div class="d-flex align-items-center w-100">
+                                        <div class="me-3 d-flex align-items-center justify-content-center rounded-circle bg-cyan-100 text-cyan-600" style="width: 36px; height: 36px;">
+                                            <i class="fas fa-tools"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h5 class="mb-0">Materials Needed</h5>
+                                            <small class="text-muted">List all materials, resources, and technology needed</small>
+                                        </div>
+                                        <i class="fas fa-chevron-down accordion-arrow text-muted"></i>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#lessonContentAccordion">
+                                <div class="accordion-body p-4">
+                                    <div class="rich-content">{{ lesson_plan.materials_resources|safe|default:"No materials specified." }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Lesson Introduction -->
+                        <div class="accordion-item border-0 mb-3">
+                            <h2 class="accordion-header" id="headingThree">
+                                <button class="accordion-button collapsed bg-light text-dark py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                    <div class="d-flex align-items-center w-100">
+                                        <div class="me-3 d-flex align-items-center justify-content-center rounded-circle bg-cyan-100 text-cyan-600" style="width: 36px; height: 36px;">
+                                            <i class="fas fa-door-open"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h5 class="mb-0">Lesson Introduction</h5>
+                                            <small class="text-muted">How will you engage students and activate prior knowledge?</small>
+                                        </div>
+                                        <i class="fas fa-chevron-down accordion-arrow text-muted"></i>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#lessonContentAccordion">
+                                <div class="accordion-body p-4">
+                                    <div class="rich-content">{{ lesson_plan.introduction|safe|default:"No introduction provided." }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Homework / Independent Practice -->
+                        <div class="accordion-item border-0 mb-3">
+                            <h2 class="accordion-header" id="headingSix">
+                                <button class="accordion-button collapsed bg-light text-dark py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix" aria-expanded="false" aria-controls="collapseSix">
+                                    <div class="d-flex align-items-center w-100">
+                                        <div class="me-3 d-flex align-items-center justify-content-center rounded-circle bg-cyan-100 text-cyan-600" style="width: 36px; height: 36px;">
+                                            <i class="fas fa-home"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h5 class="mb-0">Homework / Independent Practice</h5>
+                                            <small class="text-muted">Tasks for students to complete independently</small>
+                                        </div>
+                                        <i class="fas fa-chevron-down accordion-arrow text-muted"></i>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="collapseSix" class="accordion-collapse collapse" aria-labelledby="headingSix" data-bs-parent="#lessonContentAccordion">
+                                <div class="accordion-body p-4">
+                                    <div class="rich-content">{{ lesson_plan.homework|safe|default:"No homework assigned." }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Lesson Development / Main Activity -->
+                        <div class="accordion-item border-0 mb-3">
+                            <h2 class="accordion-header" id="headingFour">
+                                <button class="accordion-button collapsed bg-light text-dark py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                                    <div class="d-flex align-items-center w-100">
+                                        <div class="me-3 d-flex align-items-center justify-content-center rounded-circle bg-cyan-100 text-cyan-600" style="width: 36px; height: 36px;">
+                                            <i class="fas fa-tasks"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h5 class="mb-0">Lesson Development / Main Activity</h5>
+                                            <small class="text-muted">Step-by-step procedure, including questions to ask and anticipated responses</small>
+                                        </div>
+                                        <i class="fas fa-chevron-down accordion-arrow text-muted"></i>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#lessonContentAccordion">
+                                <div class="accordion-body p-4">
+                                    <div class="rich-content">{{ lesson_plan.main_content|safe|default:"No content provided for main activity." }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Activities / Guided Practice -->
+                        <div class="accordion-item border-0 mb-3">
+                            <h2 class="accordion-header" id="headingFive">
+                                <button class="accordion-button collapsed bg-light text-dark py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive">
+                                    <div class="d-flex align-items-center w-100">
+                                        <div class="me-3 d-flex align-items-center justify-content-center rounded-circle bg-cyan-100 text-cyan-600" style="width: 36px; height: 36px;">
+                                            <i class="fas fa-users"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h5 class="mb-0">Activities / Guided Practice</h5>
+                                            <small class="text-muted">Describe the activities students will do with your guidance</small>
+                                        </div>
+                                        <i class="fas fa-chevron-down accordion-arrow text-muted"></i>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="collapseFive" class="accordion-collapse collapse" aria-labelledby="headingFive" data-bs-parent="#lessonContentAccordion">
+                                <div class="accordion-body p-4">
+                                    <div class="rich-content">{{ lesson_plan.activities|safe|default:"No activities specified." }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Assessment / Evaluation -->
+                        <div class="accordion-item border-0 mb-3">
+                            <h2 class="accordion-header" id="headingSeven">
+                                <button class="accordion-button collapsed bg-light text-dark py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSeven" aria-expanded="false" aria-controls="collapseSeven">
+                                    <div class="d-flex align-items-center w-100">
+                                        <div class="me-3 d-flex align-items-center justify-content-center rounded-circle bg-cyan-100 text-cyan-600" style="width: 36px; height: 36px;">
+                                            <i class="fas fa-clipboard-check"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h5 class="mb-0">Assessment / Evaluation</h5>
+                                            <small class="text-muted">How will you measure student understanding?</small>
+                                        </div>
+                                        <i class="fas fa-chevron-down accordion-arrow text-muted"></i>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="collapseSeven" class="accordion-collapse collapse" aria-labelledby="headingSeven" data-bs-parent="#lessonContentAccordion">
+                                <div class="accordion-body p-4">
+                                    <div class="rich-content">{{ lesson_plan.assessment|safe|default:"No assessment details provided." }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Conclusion / Wrap-up -->
+                        <div class="accordion-item border-0 mb-3">
+                            <h2 class="accordion-header" id="headingEight">
+                                <button class="accordion-button collapsed bg-light text-dark py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEight" aria-expanded="false" aria-controls="collapseEight">
+                                    <div class="d-flex align-items-center w-100">
+                                        <div class="me-3 d-flex align-items-center justify-content-center rounded-circle bg-cyan-100 text-cyan-600" style="width: 36px; height: 36px;">
+                                            <i class="fas fa-check-circle"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h5 class="mb-0">Conclusion / Closure</h5>
+                                            <small class="text-muted">Summary and review of key points</small>
+                                        </div>
+                                        <i class="fas fa-chevron-down accordion-arrow text-muted"></i>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="collapseEight" class="accordion-collapse collapse" aria-labelledby="headingEight" data-bs-parent="#lessonContentAccordion">
+                                <div class="accordion-body p-4">
+                                    <div class="rich-content">{{ lesson_plan.conclusion|safe|default:"No conclusion provided." }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Differentiation / Accommodations -->
+                        <div class="accordion-item border-0 mb-3">
+                            <h2 class="accordion-header" id="headingNine">
+                                <button class="accordion-button collapsed bg-light text-dark py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNine" aria-expanded="false" aria-controls="collapseNine">
+                                    <div class="d-flex align-items-center w-100">
+                                        <div class="me-3 d-flex align-items-center justify-content-center rounded-circle bg-cyan-100 text-cyan-600" style="width: 36px; height: 36px;">
+                                            <i class="fas fa-cogs"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h5 class="mb-0">Differentiation / Accommodations</h5>
+                                            <small class="text-muted">How will you meet diverse student needs?</small>
+                                        </div>
+                                        <i class="fas fa-chevron-down accordion-arrow text-muted"></i>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="collapseNine" class="accordion-collapse collapse" aria-labelledby="headingNine" data-bs-parent="#lessonContentAccordion">
+                                <div class="accordion-body p-4">
+                                    <div class="rich-content">{{ lesson_plan.differentiation|safe|default:"No differentiation provided." }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Additional Notes -->
+                        <div class="accordion-item border-0 mb-3">
+                            <h2 class="accordion-header" id="headingTen">
+                                <button class="accordion-button collapsed bg-light text-dark py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTen" aria-expanded="false" aria-controls="collapseTen">
+                                    <div class="d-flex align-items-center w-100">
+                                        <div class="me-3 d-flex align-items-center justify-content-center rounded-circle bg-cyan-100 text-cyan-600" style="width: 36px; height: 36px;">
+                                            <i class="fas fa-sticky-note"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h5 class="mb-0">Additional Notes</h5>
+                                            <small class="text-muted">Any additional information, reflections, or reminders</small>
+                                        </div>
+                                        <i class="fas fa-chevron-down accordion-arrow text-muted"></i>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="collapseTen" class="accordion-collapse collapse" aria-labelledby="headingTen" data-bs-parent="#lessonContentAccordion">
+                                <div class="accordion-body p-4">
+                                    <div class="rich-content">{{ lesson_plan.notes|safe|default:"No additional notes." }}</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     
-    {% if lesson_plan.resources.exists %}
+    {% if lesson_plan.resources.exists or lesson_plan.attachments %}
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
+            <div class="modern-card">
                 <div class="card-header">
                     <h4 class="card-title">Resources</h4>
                 </div>
                 <div class="card-body">
+                    {% if lesson_plan.attachments %}
+                    <div class="lesson-plan-info mb-3">
+                        <h5>Main Attachment</h5>
+                        <a href="{{ lesson_plan.attachments.url }}" class="btn btn-sm btn-primary" target="_blank">
+                            <i class="fas fa-download me-2"></i>Download Attachment
+                        </a>
+                    </div>
+                    {% endif %}
                     <div class="table-responsive">
                         <table class="table table-striped custom-table mb-0">
                             <thead>
@@ -191,12 +565,12 @@
                                     <td class="text-right">
                                         {% if resource.file %}
                                         <a href="{{ resource.file.url }}" class="btn btn-sm btn-primary" target="_blank">
-                                            <i class="fas fa-download"></i> Download
+                                            <i class="fas fa-download me-2"></i>Download
                                         </a>
                                         {% endif %}
                                         {% if resource.url %}
                                         <a href="{{ resource.url }}" class="btn btn-sm btn-info" target="_blank">
-                                            <i class="fas fa-external-link-alt"></i> Open Link
+                                            <i class="fas fa-external-link-alt me-2"></i>Open Link
                                         </a>
                                         {% endif %}
                                     </td>
@@ -215,6 +589,66 @@
 
 {% block custom_css %}
 <style>
+    /* Accordion Styles */
+    .accordion-button:not(.collapsed) {
+        background-color: #f8f9fa;
+        color: #0c9aa9;
+        box-shadow: none;
+    }
+    
+    .accordion-button {
+        transition: all 0.3s ease;
+    }
+    
+    .accordion-button:hover {
+        background-color: #f1f1f1;
+    }
+    
+    .accordion-button:focus {
+        box-shadow: 0 0 0 0.15rem rgba(12, 154, 169, 0.25);
+    }
+    
+    .accordion-button:not(.collapsed) .accordion-arrow {
+        transform: rotate(180deg);
+    }
+    
+    .accordion-arrow {
+        transition: transform 0.3s ease;
+    }
+    
+    .bg-cyan-100 {
+        background-color: #e0f7fa !important;
+    }
+    
+    .text-cyan-600 {
+        color: #0c9aa9 !important;
+    }
+    
+    .accordion-body {
+        border-left: 3px solid #e0f7fa;
+        margin-left: 2.5rem;
+    }
+    .modern-breadcrumb {
+        font-size: 1.05rem;
+        padding: 0.5rem 0;
+    }
+    .breadcrumb-link {
+        color: #6c757d;
+        text-decoration: none;
+        outline: none;
+        border: none;
+    }
+    .breadcrumb-link:hover {
+        color: #495057;
+    }
+    .breadcrumb-separator {
+        color: #6c757d;
+        padding: 0 0.25rem;
+    }
+    .breadcrumb-current {
+        color: #495057;
+    }
+    
     .lesson-plan-info h5 {
         font-size: 0.9rem;
         color: #888;
@@ -241,6 +675,53 @@
         padding-left: 20px;
     }
     
+    .lesson-section-container {
+        counter-reset: section;
+    }
+    
+    .lesson-section {
+        position: relative;
+        border-left: 3px solid #f0f0f0;
+        padding-left: 20px;
+        margin-bottom: 25px;
+        padding-top: 10px;
+        padding-bottom: 15px;
+        background-color: #ffffff;
+    }
+    
+    .lesson-section:hover {
+        border-left-color: #0d6efd;
+        background-color: #f8f9fa;
+    }
+    
+    .lesson-section .section-number {
+        position: absolute;
+        left: -15px;
+        top: 10px;
+        width: 30px;
+        height: 30px;
+        background-color: #fd790d;
+        color: #ffffff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+    
+    .lesson-section .section-title {
+        font-weight: 600;
+        font-size: 1.05rem;
+        margin-bottom: 4px;
+    }
+    
+    .lesson-section .section-subtitle {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-bottom: 10px;
+    }
+    
     @media print {
         .header, .sidebar, .chat-sidebar, .search-box, .breadcrumb, .page-header .float-right, 
         .footer, .action-buttons, #back-to-top {
@@ -252,7 +733,7 @@
             padding: 0 !important;
         }
         
-        .card {
+        .modern-card, .card {
             break-inside: avoid;
             border: none !important;
             box-shadow: none !important;

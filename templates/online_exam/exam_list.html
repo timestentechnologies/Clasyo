@@ -1,7 +1,10 @@
-{% extends "base.html" %}
+{% extends "dashboards/base.html" %}
 {% load static %}
 
 {% block title %}Online Exams{% endblock %}
+{% block page_icon %}laptop-code{% endblock %}
+{% block page_title %}Online Exams{% endblock %}
+{% block page_subtitle %}View all exams in your school{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -18,7 +21,7 @@
             </div>
             <div class="col-auto float-right ml-auto">
                 {% if perms.online_exam.add_onlineexam or user.is_school_admin %}
-                <a href="{% url 'online_exam:create' school_slug=school_slug %}" class="btn btn-primary"><i class="fas fa-plus"></i> Create Online Exam</a>
+                <a href="{% url 'online_exam:create' school_slug=school_slug %}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Create Online Exam</a>
                 {% endif %}
             </div>
         </div>
@@ -27,13 +30,13 @@
 
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
+            <div class="modern-card">
                 <div class="card-body">
                     <div class="text-center py-5">
                         <img src="{% static 'img/icons/no-data.svg' %}" alt="No Data" style="width: 100px; opacity: 0.5">
                         <h5 class="mt-3 text-muted">No exams found</h5>
                         {% if perms.online_exam.add_onlineexam or user.is_school_admin %}
-                        <a href="{% url 'online_exam:create' school_slug=school_slug %}" class="btn btn-primary mt-3"><i class="fas fa-plus"></i> Create your first online exam</a>
+                        <a href="{% url 'online_exam:create' school_slug=school_slug %}" class="btn btn-primary mt-3"><i class="fas fa-plus me-2"></i>Create your first online exam</a>
                         {% endif %}
                     </div>
                 </div>

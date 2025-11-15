@@ -1,7 +1,10 @@
-{% extends "base.html" %}
+{% extends "dashboards/base.html" %}
 {% load static %}
 
 {% block title %}Take Online Exam{% endblock %}
+{% block page_icon %}laptop-code{% endblock %}
+{% block page_title %}Take Online Exam{% endblock %}
+{% block page_subtitle %}Complete your online examination{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -22,12 +25,28 @@
 
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-body text-center py-5">
-                    <img src="{% static 'img/icons/laptop-code.svg' %}" alt="Take Exam" style="width: 100px; opacity: 0.5">
-                    <h4 class="mt-4">{{ message }}</h4>
-                    <p class="text-muted">Exam ID: {{ exam_id }}</p>
-                    <a href="{% url 'online_exam:dashboard' school_slug=school_slug %}" class="btn btn-primary mt-3">Return to Dashboard</a>
+            <div class="modern-card">
+                <div class="text-center py-5">
+                    <i class="fas fa-laptop-code fa-4x text-primary mb-4"></i>
+                    <h4 class="mt-4">{{ message|default:'Taking Online Exam' }}</h4>
+                    <p class="text-muted">Exam: {{ exam.title|default:'Online Exam' }}</p>
+                    {% if exam %}
+                    <div class="exam-info mt-3 mb-4">
+                        <p><strong>Duration:</strong> {{ exam.duration_minutes }} minutes</p>
+                        <p><strong>Total Marks:</strong> {{ exam.total_marks }}</p>
+                        <p><strong>Passing Percentage:</strong> {{ exam.passing_percentage }}%</p>
+                    </div>
+                    {% endif %}
+                    <div class="mt-3">
+                        <a href="{% url 'online_exam:dashboard' school_slug=school_slug %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Return to Dashboard
+                        </a>
+                        {% if exam %}
+                        <a href="{% url 'online_exam:detail' school_slug=school_slug pk=exam.id %}" class="btn btn-primary ms-2">
+                            <i class="fas fa-info-circle me-2"></i>View Exam Details
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

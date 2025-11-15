@@ -1,7 +1,10 @@
-{% extends "base.html" %}
+{% extends "dashboards/base.html" %}
 {% load static %}
 
 {% block title %}Grade Exam Attempt{% endblock %}
+{% block page_icon %}clipboard-check{% endblock %}
+{% block page_title %}Grade Exam Attempt{% endblock %}
+{% block page_subtitle %}Review and grade student exam submissions{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -22,12 +25,23 @@
 
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-body text-center py-5">
-                    <img src="{% static 'img/icons/check-list.svg' %}" alt="Grading" style="width: 100px; opacity: 0.5">
-                    <h4 class="mt-4">{{ message }}</h4>
-                    <p class="text-muted">Attempt ID: {{ attempt_id }}</p>
-                    <a href="{% url 'online_exam:dashboard' school_slug=school_slug %}" class="btn btn-primary mt-3">Return to Dashboard</a>
+            <div class="modern-card">
+                <div class="text-center py-5">
+                    <i class="fas fa-clipboard-check fa-4x text-primary mb-4"></i>
+                    <h4 class="mt-4">{{ message|default:'Grading exam submission' }}</h4>
+                    <p class="text-muted">Attempt ID: {{ attempt.id|default:attempt_id }}</p>
+                    <p>Student: {{ attempt.student.get_full_name|default:'Student' }}</p>
+                    <p>Exam: {{ attempt.exam.title|default:'Exam' }}</p>
+                    <div class="mt-3">
+                        <a href="{% url 'online_exam:dashboard' school_slug=school_slug %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Return to Dashboard
+                        </a>
+                        {% if attempt and attempt.exam %}
+                        <a href="{% url 'online_exam:results' school_slug=school_slug exam_id=attempt.exam.id %}" class="btn btn-primary ms-2">
+                            <i class="fas fa-chart-bar me-2"></i>View All Results
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

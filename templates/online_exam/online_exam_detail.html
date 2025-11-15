@@ -1,7 +1,10 @@
-{% extends "base.html" %}
+{% extends "dashboards/base.html" %}
 {% load static %}
 
 {% block title %}{{ exam.title }} - Online Exam Detail{% endblock %}
+{% block page_icon %}clipboard-list{% endblock %}
+{% block page_title %}{{ exam.title }}{% endblock %}
+{% block page_subtitle %}Online Exam Details{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -9,18 +12,12 @@
     <div class="page-header">
         <div class="row align-items-center">
             <div class="col">
-                <h3 class="page-title">{{ exam.title }}</h3>
-                <ul class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' school_slug=school_slug %}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'online_exam:dashboard' school_slug=school_slug %}">Online Exams</a></li>
-                    <li class="breadcrumb-item active">Exam Detail</li>
-                </ul>
             </div>
             <div class="col-auto float-right ml-auto">
                 {% if perms.online_exam.change_onlineexam or user.is_school_admin or exam.created_by == user %}
-                <a href="{% url 'online_exam:update' school_slug=school_slug pk=exam.id %}" class="btn btn-info"><i class="fas fa-edit"></i> Edit</a>
+                <a href="{% url 'online_exam:update' school_slug=school_slug pk=exam.id %}" class="btn btn-info"><i class="fas fa-edit me-2"></i> Edit</a>
                 {% endif %}
-                <a href="{% url 'online_exam:results' school_slug=school_slug exam_id=exam.id %}" class="btn btn-primary"><i class="fas fa-chart-bar"></i> Results</a>
+                <a href="{% url 'online_exam:results' school_slug=school_slug exam_id=exam.id %}" class="btn btn-primary"><i class="fas fa-chart-bar me-2"></i> Results</a>
             </div>
         </div>
     </div>
@@ -28,7 +25,7 @@
     
     <div class="row">
         <div class="col-md-8">
-            <div class="card">
+            <div class="modern-card">
                 <div class="card-header">
                     <h4 class="card-title">Exam Information</h4>
                 </div>
@@ -115,7 +112,7 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card">
+            <div class="modern-card">
                 <div class="card-header">
                     <h4 class="card-title">Exam Stats</h4>
                 </div>
@@ -155,9 +152,9 @@
                     <div class="row mt-4">
                         <div class="col-12">
                             {% if can_attempt %}
-                            <a href="{% url 'online_exam:take_exam' school_slug=school_slug pk=exam.id %}" class="btn btn-primary btn-block">Take Exam Now</a>
+                            <a href="{% url 'online_exam:take_exam' school_slug=school_slug pk=exam.id %}" class="btn btn-primary w-100"><i class="fas fa-play-circle me-2"></i>Take Exam Now</a>
                             {% elif user.is_teacher or user.is_school_admin %}
-                            <a href="{% url 'online_exam:preview' school_slug=school_slug pk=exam.id %}" class="btn btn-info btn-block">Preview Exam</a>
+                            <a href="{% url 'online_exam:preview' school_slug=school_slug pk=exam.id %}" class="btn btn-info w-100"><i class="fas fa-eye me-2"></i>Preview Exam</a>
                             {% endif %}
                         </div>
                     </div>
@@ -172,28 +169,28 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-12 mb-2">
-                            <a href="{% url 'online_exam:manage_questions' school_slug=school_slug exam_id=exam.id %}" class="btn btn-info btn-block">Manage Questions</a>
+                            <a href="{% url 'online_exam:manage_questions' school_slug=school_slug exam_id=exam.id %}" class="btn btn-info w-100"><i class="fas fa-tasks me-2"></i>Manage Questions</a>
                         </div>
                         <div class="col-12 mb-2">
-                            <a href="{% url 'online_exam:results' school_slug=school_slug exam_id=exam.id %}" class="btn btn-success btn-block">View Results</a>
+                            <a href="{% url 'online_exam:results' school_slug=school_slug exam_id=exam.id %}" class="btn btn-success w-100"><i class="fas fa-chart-bar me-2"></i>View Results</a>
                         </div>
                         {% if exam.is_active %}
                         <div class="col-12 mb-2">
                             <form method="post" action="{% url 'online_exam:toggle_status' school_slug=school_slug pk=exam.id %}">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-warning btn-block">Deactivate Exam</button>
+                                <button type="submit" class="btn btn-warning w-100"><i class="fas fa-toggle-off me-2"></i>Deactivate Exam</button>
                             </form>
                         </div>
                         {% else %}
                         <div class="col-12 mb-2">
                             <form method="post" action="{% url 'online_exam:toggle_status' school_slug=school_slug pk=exam.id %}">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-success btn-block">Activate Exam</button>
+                                <button type="submit" class="btn btn-success w-100"><i class="fas fa-toggle-on me-2"></i>Activate Exam</button>
                             </form>
                         </div>
                         {% endif %}
                         <div class="col-12">
-                            <a href="{% url 'online_exam:delete' school_slug=school_slug pk=exam.id %}" class="btn btn-danger btn-block">Delete Exam</a>
+                            <a href="{% url 'online_exam:delete' school_slug=school_slug pk=exam.id %}" class="btn btn-danger w-100"><i class="fas fa-trash me-2"></i>Delete Exam</a>
                         </div>
                     </div>
                 </div>
@@ -206,10 +203,10 @@
     <!-- Questions Section -->
     <div class="row mt-4">
         <div class="col-md-12">
-            <div class="card">
+            <div class="modern-card">
                 <div class="card-header">
                     <h4 class="card-title">Questions</h4>
-                    <a href="{% url 'online_exam:add_question' school_slug=school_slug exam_id=exam.id %}" class="btn btn-sm btn-primary">Add Question</a>
+                    <a href="{% url 'online_exam:add_question' school_slug=school_slug exam_id=exam.id %}" class="btn btn-sm btn-primary"><i class="fas fa-plus-circle me-2"></i>Add Question</a>
                 </div>
                 <div class="card-body">
                     {% if questions %}
@@ -256,7 +253,7 @@
                     {% else %}
                     <div class="text-center py-4">
                         <p class="text-muted">No questions added yet.</p>
-                        <a href="{% url 'online_exam:add_question' school_slug=school_slug exam_id=exam.id %}" class="btn btn-primary">Add First Question</a>
+                        <a href="{% url 'online_exam:add_question' school_slug=school_slug exam_id=exam.id %}" class="btn btn-primary"><i class="fas fa-plus-circle me-2"></i>Add First Question</a>
                     </div>
                     {% endif %}
                 </div>
@@ -266,4 +263,29 @@
     <!-- /Questions Section -->
     {% endif %}
 </div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+    .modern-breadcrumb {
+        font-size: 1.05rem;
+        padding: 0.5rem 0;
+    }
+    .breadcrumb-link {
+        color: #6c757d;
+        text-decoration: none;
+        outline: none;
+        border: none;
+    }
+    .breadcrumb-link:hover {
+        color: #495057;
+    }
+    .breadcrumb-separator {
+        color: #6c757d;
+        padding: 0 0.25rem;
+    }
+    .breadcrumb-current {
+        color: #495057;
+    }
+</style>
 {% endblock %}

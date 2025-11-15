@@ -1,0 +1,85 @@
+{% extends 'dashboards/base.html' %}
+{% load i18n crispy_forms_tags %}
+
+{% block title %}{% if form.instance.pk %}{% trans 'Update Certificate' %}{% else %}{% trans 'Create Certificate' %}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            {% if form.instance.pk %}
+                {% trans 'Update Certificate' %}
+            {% else %}
+                {% trans 'Create New Certificate' %}
+            {% endif %}
+        </h1>
+        <a href="{% url 'certificates:list' school_slug=school_slug %}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left fa-sm"></i> {% trans 'Back to List' %}
+        </a>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                {% if form.instance.pk %}
+                    {% trans 'Update Certificate Details' %}
+                {% else %}
+                    {% trans 'Enter Certificate Details' %}
+                {% endif %}
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.certificate_type|as_crispy_field }}
+                        {{ form.student|as_crispy_field }}
+                        {{ form.title|as_crispy_field }}
+                        {{ form.issue_date|as_crispy_field }}
+                        {{ form.expiry_date|as_crispy_field }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.academic_year|as_crispy_field }}
+                        {{ form.class_name|as_crispy_field }}
+                        {{ form.description|as_crispy_field }}
+                        {{ form.remarks|as_crispy_field }}
+                    </div>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> {% if form.instance.pk %}{% trans 'Update' %}{% else %}{% trans 'Create' %}{% endif %}
+                    </button>
+                    <a href="{% url 'certificates:list' school_slug=school_slug %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> {% trans 'Cancel' %}
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize date picker
+        $('.datepicker').datepicker({
+            format: 'yyyy-mm-dd',
+            autoclose: true,
+            todayHighlight: true
+        });
+
+        // Set default issue date to today
+        if (!$('#id_issue_date').val()) {
+            var today = new Date();
+            var dd = String(today.getDate()).padStart(2, '0');
+            var mm = String(today.getMonth() + 1).padStart(2, '0');
+            var yyyy = today.getFullYear();
+            today = yyyy + '-' + mm + '-' + dd;
+            $('#id_issue_date').val(today);
+        }
+    });
+</script>
+{% endblock %}

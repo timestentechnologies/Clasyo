@@ -123,7 +123,7 @@ class CertificateCreateView(LoginRequiredMixin, CreateView):
     template_name = 'certificates/certificate_form.html'
     
     def get_success_url(self):
-        return reverse('certificates:certificate_list', kwargs={'school_slug': self.kwargs['school_slug']})
+        return reverse('certificates:list', kwargs={'school_slug': self.kwargs['school_slug']})
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -131,9 +131,31 @@ class CertificateCreateView(LoginRequiredMixin, CreateView):
         context['title'] = _('Issue Certificate')
         return context
     
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # Pass the school to the form
+        school_slug = self.kwargs.get('school_slug')
+        if school_slug:
+            from tenants.models import School
+            try:
+                kwargs['school'] = School.objects.get(slug=school_slug)
+            except School.DoesNotExist:
+                pass
+        return kwargs
+        
     def form_valid(self, form):
         # Set the creator
         form.instance.created_by = self.request.user
+        
+        # Set the school if not already set
+        if not hasattr(form.instance, 'school') or not form.instance.school:
+            school_slug = self.kwargs.get('school_slug')
+            if school_slug:
+                from tenants.models import School
+                try:
+                    form.instance.school = School.objects.get(slug=school_slug)
+                except School.DoesNotExist:
+                    pass
         
         # Create certificate
         response = super().form_valid(form)
@@ -151,21 +173,94 @@ class CertificateDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'certificate'
 
 
+from django.template.loader import render_to_string
+from io import BytesIO
+from django.conf import settings
+import os
+from xhtml2pdf import pisa
+
 class CertificateDownloadView(LoginRequiredMixin, View):
     """Download certificate as PDF"""
     
     def get(self, request, *args, **kwargs):
         certificate = get_object_or_404(Certificate, pk=kwargs.get('pk'))
         
-        # Create PDF response
+        # Set up the response
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{certificate.certificate_number}.pdf"'
         
-        # In a real implementation, generate PDF using a library like ReportLab
-        # For now, we'll return a simple message
-        response.write(f"Certificate {certificate.certificate_number} would be downloaded here.".encode())
+        # Add school to context
+        school = get_object_or_404(School, slug=kwargs.get('school_slug'))
         
+        # Prepare context
+        context = {
+            'certificate': certificate,
+            'school': school,
+            'request': request,  # Required for absolute URLs
+        }
+        
+        # Render the HTML template
+        html_string = render_to_string('certificates/certificate_pdf.html', context)
+        
+        # Create PDF
+        result = BytesIO()
+        
+        def link_callback(uri, rel):
+            """Convert HTML URIs to absolute system paths so xhtml2pdf can access resources"""
+            # Use short variable names
+            sUrl = settings.STATIC_URL        # Typically /static/
+            sRoot = settings.STATIC_ROOT      # Typically /some/path/project/static
+            mUrl = settings.MEDIA_URL         # Typically /media/
+            mRoot = settings.MEDIA_ROOT       # Typically /some/path/project/media
+
+            # Convert URIs to absolute system paths
+            if uri.startswith(mUrl):
+                path = os.path.join(mRoot, uri.replace(mUrl, ""))
+            elif uri.startswith(sUrl):
+                path = os.path.join(sRoot, uri.replace(sUrl, ""))
+            else:
+                return uri  # handle absolute URIs
+
+            # Make sure that file exists
+            if not os.path.isfile(path):
+                raise Exception('media URI must start with %s or %s' % (sUrl, mUrl))
+            return path
+        
+        # Generate PDF
+        pdf_status = pisa.CreatePDF(
+            BytesIO(html_string.encode("UTF-8")), 
+            dest=response,
+            encoding='UTF-8',
+            link_callback=link_callback
+        )
+        
+        if pdf_status.err:
+            return HttpResponse('Error generating PDF: %s' % pdf_status.err, status=500)
+            
         return response
+    
+    def link_callback(self, uri, rel):
+        """Convert HTML URIs to absolute system paths so xhtml2pdf can access resources"""
+        # Use short variable names
+        sUrl = settings.STATIC_URL        # Typically /static/
+        sRoot = settings.STATIC_ROOT      # Typically /some/path/project/static
+        mUrl = settings.MEDIA_URL         # Typically /media/
+        mRoot = settings.MEDIA_ROOT       # Typically /some/path/project/media
+
+        # Convert URIs to absolute system paths
+        if uri.startswith(mUrl):
+            path = os.path.join(mRoot, uri.replace(mUrl, ""))
+        elif uri.startswith(sUrl):
+            path = os.path.join(sRoot, uri.replace(sUrl, ""))
+        else:
+            return uri  # handle absolute URIs
+
+        # Make sure that file exists
+        if not os.path.isfile(path):
+            raise Exception(
+                'media URI must start with %s or %s' % (sUrl, mUrl)
+            )
+        return path
 
 
 class CertificateUpdateView(LoginRequiredMixin, UpdateView):
@@ -174,7 +269,7 @@ class CertificateUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'certificates/certificate_form.html'
     
     def get_success_url(self):
-        return reverse('certificates:certificate_list', kwargs={'school_slug': self.kwargs['school_slug']})
+        return reverse('certificates:list', kwargs={'school_slug': self.kwargs['school_slug']})
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -192,7 +287,7 @@ class CertificateDeleteView(LoginRequiredMixin, DeleteView):
     template_name = 'certificates/confirm_delete.html'
     
     def get_success_url(self):
-        return reverse('certificates:certificate_list', kwargs={'school_slug': self.kwargs['school_slug']})
+        return reverse('certificates:list', kwargs={'school_slug': self.kwargs['school_slug']})
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -212,7 +307,7 @@ class CertificateRevokeView(LoginRequiredMixin, UpdateView):
     fields = ['revocation_reason']
     
     def get_success_url(self):
-        return reverse('certificates:certificate_list', kwargs={'school_slug': self.kwargs['school_slug']})
+        return reverse('certificates:list', kwargs={'school_slug': self.kwargs['school_slug']})
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -295,7 +390,7 @@ class PrintBatchCertificatesView(LoginRequiredMixin, FormView):
         return super().form_valid(form)
     
     def get_success_url(self):
-        return reverse('certificates:certificate_list', kwargs={'school_slug': self.kwargs['school_slug']})
+        return reverse('certificates:list', kwargs={'school_slug': self.kwargs['school_slug']})
 
 
 # ID Card Template Views

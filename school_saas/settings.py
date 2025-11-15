@@ -13,8 +13,22 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = [host.strip() for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')]
 
-# CSRF trusted origins for HTTPS
-CSRF_TRUSTED_ORIGINS = [f'https://{host.strip()}' for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',') if host.strip() not in ['localhost', '127.0.0.1']]
+# CSRF trusted origins for both development and production
+# First add all HTTPS origins from ALLOWED_HOSTS
+CSRF_TRUSTED_ORIGINS = [f'https://{host.strip()}' for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')]
+
+# Add HTTP versions for all hosts (needed for development and some production scenarios)
+CSRF_TRUSTED_ORIGINS += [f'http://{host.strip()}' for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')]
+
+# Add development preview server origins
+CSRF_TRUSTED_ORIGINS += ['http://127.0.0.1:8000', 'http://localhost:8000']
+
+# Add any additional custom domains from environment variable
+ADDITIONAL_TRUSTED_ORIGINS = config('ADDITIONAL_TRUSTED_ORIGINS', default='').split(',')
+if ADDITIONAL_TRUSTED_ORIGINS and ADDITIONAL_TRUSTED_ORIGINS[0]:
+    for origin in ADDITIONAL_TRUSTED_ORIGINS:
+        if origin.strip():
+            CSRF_TRUSTED_ORIGINS += [f'https://{origin.strip()}', f'http://{origin.strip()}']
 
 # Application definition
 INSTALLED_APPS = [
@@ -238,9 +252,25 @@ REST_FRAMEWORK = {
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
+    # Development servers
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://127.0.0.1:62469",
+    "http://localhost:62469",
 ]
+
+# Add allowed hosts to CORS origins
+for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(','):
+    if host.strip() and host.strip() not in ['localhost', '127.0.0.1']:
+        CORS_ALLOWED_ORIGINS.extend([f'https://{host.strip()}', f'http://{host.strip()}'])
+
+# Add additional CORS origins from environment variable
+ADDITIONAL_CORS_ORIGINS = config('ADDITIONAL_CORS_ORIGINS', default='').split(',')
+if ADDITIONAL_CORS_ORIGINS and ADDITIONAL_CORS_ORIGINS[0]:
+    for origin in ADDITIONAL_CORS_ORIGINS:
+        if origin.strip():
+            CORS_ALLOWED_ORIGINS.extend([f'https://{origin.strip()}', f'http://{origin.strip()}'])
+
 
 # Tenant settings
 TENANT_SUBFOLDER_PREFIX = 'school'

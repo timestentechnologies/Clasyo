@@ -1,0 +1,139 @@
+{% extends 'dashboards/base.html' %}
+{% load i18n static %}
+
+{% block title %}{% trans 'Homework Assignments' %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">{% trans 'Homework Assignments' %}</h1>
+        <div>
+            {% if request.user.is_teacher or request.user.is_school_admin %}
+            <a href="{% url 'homework:create' school_slug=school_slug %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus fa-sm text-white-50"></i> {% trans 'New Assignment' %}
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Assignments List -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans 'My Assignments' %}</h6>
+        </div>
+        <div class="card-body">
+            {% if assignments %}
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>{% trans 'Title' %}</th>
+                            <th>{% trans 'Class' %}</th>
+                            <th>{% trans 'Subject' %}</th>
+                            <th>{% trans 'Due Date' %}</th>
+                            <th>{% trans 'Status' %}</th>
+                            <th>{% trans 'Actions' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for assignment in assignments %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'homework:detail' school_slug=school_slug pk=assignment.id %}">
+                                    {{ assignment.title }}
+                                </a>
+                            </td>
+                            <td>{{ assignment.class_ref.name|default:"-" }}</td>
+                            <td>{{ assignment.subject.name|default:"-" }}</td>
+                            <td>{{ assignment.due_date|date:"M d, Y H:i" }}</td>
+                            <td>
+                                <span class="badge {% if assignment.status == 'published' %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ assignment.get_status_display }}
+                                </span>
+                                {% if assignment.is_past_due %}
+                                <span class="badge bg-danger">{% trans 'Overdue' %}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'homework:detail' school_slug=school_slug pk=assignment.id %}" class="btn btn-sm btn-info" title="{% trans 'View' %}">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if request.user == assignment.created_by or request.user.is_school_admin %}
+                                    <a href="{% url 'homework:update' school_slug=school_slug pk=assignment.id %}" class="btn btn-sm btn-primary" title="{% trans 'Edit' %}">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" 
+                                            class="btn btn-sm btn-danger" 
+                                            onclick="confirmDelete('{{ assignment.id }}')" 
+                                            title="{% trans 'Delete' %}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                                
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-book-open fa-4x text-gray-300 mb-3"></i>
+                <p class="lead">{% trans 'No homework assignments found.' %}</p>
+                {% if request.user.is_teacher or request.user.is_school_admin %}
+                <p>{% trans 'Get started by creating a new assignment.' %}</p>
+                <a href="{% url 'homework:create' school_slug=school_slug %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> {% trans 'Create Assignment' %}
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<!-- Page level plugins -->
+<script src="{% static 'vendor/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'vendor/datatables/dataTables.bootstrap4.min.js' %}"></script>
+
+<!-- Page level custom scripts -->
+<script>
+    // Initialize DataTable
+    $(document).ready(function() {
+        $('#dataTable').DataTable({
+            "order": [[3, "desc"]], // Sort by due date by default
+            "language": {
+                "search": "{% trans 'Search:' %}",
+                "lengthMenu": "{% trans 'Show _MENU_ entries' %}",
+                "info": "{% trans 'Showing _START_ to _END_ of _TOTAL_ entries' %}",
+                "infoEmpty": "{% trans 'No entries found' %}",
+                "infoFiltered": "({% trans 'filtered from _MAX_ total entries' %})",
+                "paginate": {
+                    "first": "{% trans 'First' %}",
+                    "last": "{% trans 'Last' %}",
+                    "next": "{% trans 'Next' %}",
+                    "previous": "{% trans 'Previous' %}"
+                },
+            }
+        });
+    });
+
+    // Handle delete button click with browser confirmation
+    function confirmDelete(assignmentId) {
+        if (confirm('{% trans "Are you sure you want to delete this homework assignment? This action cannot be undone." %}')) {
+            const form = document.createElement('form');
+            form.method = 'post';
+            form.action = `/school/{{ school_slug }}/homework/${assignmentId}/delete/`;
+            form.innerHTML = `{% csrf_token %}`;
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+</script>
+{% endblock %}

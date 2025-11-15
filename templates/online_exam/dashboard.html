@@ -12,11 +12,6 @@
     <div class="page-header">
         <div class="row align-items-center">
             <div class="col">
-                <h3 class="page-title">Online Exams Dashboard</h3>
-                <ul class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' school_slug=school_slug %}">Dashboard</a></li>
-                    <li class="breadcrumb-item active">Online Exams</li>
-                </ul>
             </div>
             <div class="col-auto float-right ml-auto">
                 {% if perms.online_exam.add_onlineexam or user.is_school_admin %}
@@ -185,6 +180,31 @@
     {% endif %}
     <!-- /Grading Exams -->
 </div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+    .modern-breadcrumb {
+        font-size: 1.05rem;
+        padding: 0.5rem 0;
+    }
+    .breadcrumb-link {
+        color: #6c757d;
+        text-decoration: none;
+        outline: none;
+        border: none;
+    }
+    .breadcrumb-link:hover {
+        color: #495057;
+    }
+    .breadcrumb-separator {
+        color: #6c757d;
+        padding: 0 0.25rem;
+    }
+    .breadcrumb-current {
+        color: #495057;
+    }
+</style>
 {% endblock %}
 
 {% block custom_js %}

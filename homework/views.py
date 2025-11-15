@@ -274,7 +274,7 @@ class HomeworkAssignmentCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
     
     def get_success_url(self):
-        return reverse('homework:assignment_detail', kwargs={
+        return reverse('homework:detail', kwargs={
             'school_slug': self.kwargs.get('school_slug', ''),
             'pk': self.object.id
         })
@@ -397,7 +397,7 @@ class HomeworkAssignmentUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         return super().form_valid(form)
     
     def get_success_url(self):
-        return reverse('homework:assignment_detail', kwargs={
+        return reverse('homework:detail', kwargs={
             'school_slug': self.kwargs.get('school_slug', ''),
             'pk': self.object.id
         })
@@ -419,7 +419,7 @@ class HomeworkAssignmentDeleteView(LoginRequiredMixin, UserPassesTestMixin, Dele
         return self.request.user == assignment.created_by or self.request.user.is_school_admin
     
     def get_success_url(self):
-        return reverse('homework:assignment_list', kwargs={'school_slug': self.kwargs.get('school_slug', '')})
+        return reverse('homework:list', kwargs={'school_slug': self.kwargs.get('school_slug', '')})
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -440,7 +440,7 @@ class HomeworkSubmitView(LoginRequiredMixin, FormView):
     template_name = 'homework/submit_form.html'
     
     def get_success_url(self):
-        return reverse('homework:assignment_detail', kwargs={
+        return reverse('homework:detail', kwargs={
             'school_slug': self.kwargs.get('school_slug', ''),
             'pk': self.kwargs.get('assignment_id')
         })
@@ -472,7 +472,7 @@ class HomeworkSubmitView(LoginRequiredMixin, FormView):
         # Check if past due date and late submissions are not allowed
         if self.assignment.is_past_due and not self.assignment.allow_late_submissions:
             messages.error(request, _('The deadline for this assignment has passed'))
-            return redirect('homework:assignment_detail', 
+            return redirect('homework:detail', 
                          school_slug=self.kwargs.get('school_slug', ''), 
                          pk=self.assignment.id)
         
@@ -484,7 +484,7 @@ class HomeworkSubmitView(LoginRequiredMixin, FormView):
         
         if existing_submissions >= self.assignment.max_attempts and self.assignment.max_attempts > 0:
             messages.error(request, _('You have reached the maximum number of allowed attempts'))
-            return redirect('homework:assignment_detail', 
+            return redirect('homework:detail', 
                          school_slug=self.kwargs.get('school_slug', ''), 
                          pk=self.assignment.id)
         

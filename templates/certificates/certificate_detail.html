@@ -1,0 +1,238 @@
+{% extends "dashboards/base.html" %}
+{% load static %}
+
+{% block title %}{{ certificate.certificate_number }} - Certificate Details{% endblock %}
+{% block page_title %}{{ certificate.certificate_number }} - Certificate Details{% endblock %}
+{% block page_icon %}certificate{% endblock %}
+{% block page_subtitle %}View and manage certificate details{% endblock %}
+
+{% block page_actions %}
+    <a href="{% url 'certificates:list' school_slug=school_slug %}" class="btn btn-outline-primary">
+        <i class="fas fa-arrow-left"></i> Back to List
+    </a>
+    <a href="{% url 'certificates:download' school_slug=school_slug pk=certificate.id %}" class="btn btn-primary">
+        <i class="fas fa-download"></i> Download
+    </a>
+    {% if certificate.status == 'issued' %}
+    <a href="{% url 'certificates:revoke' school_slug=school_slug pk=certificate.id %}" class="btn btn-warning">
+        <i class="fas fa-ban"></i> Revoke
+    </a>
+    {% endif %}
+    <a href="{% url 'certificates:edit' school_slug=school_slug pk=certificate.id %}" class="btn btn-info">
+        <i class="fas fa-edit"></i> Edit
+    </a>
+    <a href="{% url 'certificates:delete' school_slug=school_slug pk=certificate.id %}" class="btn btn-danger">
+        <i class="fas fa-trash"></i> Delete
+    </a>
+{% endblock %}
+
+{% block content %}
+<div class="modern-card">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="about-info">
+                                <h4>Certificate Information</h4>
+                                <div class="media mt-3">
+                                    <div class="media-body">
+                                        <ul class="list-unstyled">
+                                            <li>
+                                                <span class="title-span">Certificate Number:</span>
+                                                <span class="info-span">{{ certificate.certificate_number }}</span>
+                                            </li>
+                                            <li>
+                                                <span class="title-span">Type:</span>
+                                                <span class="info-span">{{ certificate.certificate_type.name }}</span>
+                                            </li>
+                                            <li>
+                                                <span class="title-span">Title:</span>
+                                                <span class="info-span">{{ certificate.title }}</span>
+                                            </li>
+                                            <li>
+                                                <span class="title-span">Issue Date:</span>
+                                                <span class="info-span">{{ certificate.issue_date|date:"F d, Y" }}</span>
+                                            </li>
+                                            {% if certificate.expiry_date %}
+                                            <li>
+                                                <span class="title-span">Expiry Date:</span>
+                                                <span class="info-span">{{ certificate.expiry_date|date:"F d, Y" }}</span>
+                                            </li>
+                                            {% endif %}
+                                            <li>
+                                                <span class="title-span">Status:</span>
+                                                <span class="badge {% if certificate.is_verified %}bg-success{% else %}bg-warning{% endif %}">
+                                                    {% if certificate.is_verified %}Verified{% else %}Pending{% endif %}
+                                                </span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="about-info">
+                                <h4>Student Information</h4>
+                                <div class="media mt-3">
+                                    <div class="media-left">
+                                        {% if certificate.student.user.profile_pic %}
+                                            <img src="{{ certificate.student.user.profile_pic.url }}" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: cover;">
+                                        {% else %}
+                                            <img src="{% static 'img/profiles/avatar-placeholder.jpg' %}" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: cover;">
+                                        {% endif %}
+                                    </div>
+                                    <div class="media-body ml-3">
+                                        <h4>{{ certificate.student.get_full_name }}</h4>
+                                        <p class="text-muted mb-1">
+                                            <i class="fas fa-id-card"></i> {{ certificate.student.admission_number }}
+                                        </p>
+                                        <p class="text-muted mb-1">
+                                            <i class="fas fa-graduation-cap"></i> {{ certificate.class_name.name }}
+                                        </p>
+                                        <p class="text-muted mb-1">
+                                            <i class="fas fa-calendar-alt"></i> Academic Year: {{ certificate.academic_year }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="about-info">
+                                <h4>Additional Information</h4>
+                                <div class="mt-3">
+                                    {% if certificate.description %}
+                                    <div class="mb-3">
+                                        <h5>Description</h5>
+                                        <p>{{ certificate.description|linebreaks }}</p>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if certificate.remarks %}
+                                    <div class="mb-3">
+                                        <h5>Remarks</h5>
+                                        <p>{{ certificate.remarks|linebreaks }}</p>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div class="mt-4">
+                                        <h5>Verification</h5>
+                                        {% if certificate.verification_uuid %}
+                                        <p>This certificate can be verified using the following link:</p>
+                                        <div class="input-group mb-3">
+                                            <input type="text" class="form-control" id="verificationLink" 
+                                                   value="{{ request.scheme }}://{{ request.get_host }}{% url 'certificates:verify' certificate_uuid=certificate.verification_uuid %}">
+                                            <div class="input-group-append">
+                                                <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('verificationLink')">
+                                                    <i class="far fa-copy"></i> Copy
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">Share this link to allow others to verify this certificate.</small>
+                                        {% else %}
+                                        <div class="alert alert-warning">
+                                            <i class="fas fa-exclamation-triangle"></i> This certificate does not have a verification link.
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="about-info">
+                                <h4>Certificate Preview</h4>
+                                <div class="certificate-preview mt-3 text-center">
+                                    <div class="certificate-container" style="border: 2px solid #ddd; padding: 20px; max-width: 800px; margin: 0 auto; background-color: #fff9e6; position: relative;">
+                                        <div class="certificate-header" style="text-align: center; margin-bottom: 30px;">
+                                            <h1 style="color: #2c3e50; margin-bottom: 5px;">CERTIFICATE</h1>
+                                            <h3 style="color: #7f8c8d; margin-top: 0; font-weight: 400;">OF ACHIEVEMENT</h3>
+                                            <div style="height: 3px; background: linear-gradient(to right, #3498db, #2ecc71, #e74c3c); margin: 10px auto; width: 100px;"></div>
+                                        </div>
+                                        
+                                        <div class="certificate-body" style="padding: 20px 50px;">
+                                            <p style="font-size: 18px; line-height: 1.6; margin-bottom: 30px;">
+                                                This is to certify that
+                                            </p>
+                                            
+                                            <h2 style="color: #2c3e50; margin: 20px 0; font-size: 32px; font-weight: bold;">
+                                                {{ certificate.student.get_full_name }}
+                                            </h2>
+                                            
+                                            <p style="font-size: 18px; line-height: 1.6; margin-bottom: 30px;">
+                                                has successfully completed the requirements for
+                                            </p>
+                                            
+                                            <h3 style="color: #e74c3c; margin: 20px 0; font-size: 24px;">
+                                                {{ certificate.title }}
+                                            </h3>
+                                            
+                                            <p style="font-size: 16px; margin: 40px 0 20px 0;">
+                                                <strong>Issued on:</strong> {{ certificate.issue_date|date:"F d, Y" }}<br>
+                                                {% if certificate.expiry_date %}
+                                                <strong>Valid until:</strong> {{ certificate.expiry_date|date:"F d, Y" }}
+                                                {% endif %}
+                                            </p>
+                                            
+                                            <div style="margin: 40px 0 20px 0; display: flex; justify-content: space-between;">
+                                                <div style="text-align: center; flex: 1;">
+                                                    <div style="border-top: 1px solid #95a5a6; width: 150px; margin: 0 auto; padding-top: 10px;">
+                                                        <strong>School Administrator</strong>
+                                                    </div>
+                                                </div>
+                                                <div style="text-align: center; flex: 1;">
+                                                    <div style="border-top: 1px solid #95a5a6; width: 150px; margin: 0 auto; padding-top: 10px;">
+                                                        <strong>Principal</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="certificate-footer" style="margin-top: 30px; font-size: 12px; color: #95a5a6;">
+                                            <p>Certificate ID: {{ certificate.certificate_number }}</p>
+                                            {% if certificate.verification_uuid %}
+                                            <p>Verify at: {{ request.scheme }}://{{ request.get_host }}{% url 'certificates:verify' certificate_uuid=certificate.verification_uuid %}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function copyToClipboard(elementId) {
+        var copyText = document.getElementById(elementId);
+        copyText.select();
+        copyText.setSelectionRange(0, 99999); /* For mobile devices */
+        document.execCommand("copy");
+        
+        // Show a toast notification instead of alert
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification show';
+        toast.innerHTML = `
+            <div class="toast-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="toast-message">Link copied to clipboard!</div>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+</script>
+{% endblock %}

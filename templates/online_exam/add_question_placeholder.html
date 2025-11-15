@@ -1,7 +1,10 @@
-{% extends "base.html" %}
-{% load static %}
+{% extends "dashboards/base.html" %}
+{% load static widget_tweaks %}
 
-{% block title %}Add Question{% endblock %}
+{% block title %}Add Question - {{ exam.title }}{% endblock %}
+{% block page_icon %}question-circle{% endblock %}
+{% block page_title %}Add Question{% endblock %}
+{% block page_subtitle %}Add a new question to {{ exam.title }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -13,8 +16,14 @@
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{% url 'core:dashboard' school_slug=school_slug %}">Dashboard</a></li>
                     <li class="breadcrumb-item"><a href="{% url 'online_exam:dashboard' school_slug=school_slug %}">Online Exams</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'online_exam:detail' school_slug=school_slug pk=exam.id %}">{{ exam.title|truncatechars:20 }}</a></li>
                     <li class="breadcrumb-item active">Add Question</li>
                 </ul>
+            </div>
+            <div class="col-auto">
+                <a href="{% url 'online_exam:manage_questions' school_slug=school_slug exam_id=exam.id %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Questions
+                </a>
             </div>
         </div>
     </div>
@@ -22,15 +31,615 @@
 
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-body text-center py-5">
-                    <img src="{% static 'img/icons/plus-circle.svg' %}" alt="Add Question" style="width: 100px; opacity: 0.5">
-                    <h4 class="mt-4">{{ message }}</h4>
-                    <p class="text-muted">Exam ID: {{ exam_id }}</p>
-                    <a href="{% url 'online_exam:dashboard' school_slug=school_slug %}" class="btn btn-primary mt-3">Return to Dashboard</a>
+            <div class="modern-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Add New Question</h5>
+                    <p class="text-muted mb-0">Exam: {{ exam.title }}</p>
+                </div>
+                
+                <div class="card-body">
+                    {% if messages %}
+                    <div class="mb-4">
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post" id="questionForm" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Question Type Selection -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Question Type</label>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="form-check card p-3 h-100 question-type-option {% if form.question_type.value == 'multiple_choice' or not form.question_type.value %}active{% endif %}" data-type="multiple_choice">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="question_type" id="type_multiple_choice" value="multiple_choice" 
+                                                {% if form.question_type.value == 'multiple_choice' or not form.question_type.value %}checked{% endif %}>
+                                            <label class="form-check-label fw-bold" for="type_multiple_choice">
+                                                <i class="fas fa-list-ol text-primary me-2"></i>Multiple Choice
+                                            </label>
+                                        </div>
+                                        <p class="text-muted mt-2 mb-0 small">Questions with multiple predefined answers (select one correct answer).</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check card p-3 h-100 question-type-option {% if form.question_type.value == 'true_false' %}active{% endif %}" data-type="true_false">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="question_type" id="type_true_false" value="true_false" 
+                                                {% if form.question_type.value == 'true_false' %}checked{% endif %}>
+                                            <label class="form-check-label fw-bold" for="type_true_false">
+                                                <i class="fas fa-check-square text-success me-2"></i>True/False
+                                            </label>
+                                        </div>
+                                        <p class="text-muted mt-2 mb-0 small">Questions with only two options: True or False.</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check card p-3 h-100 question-type-option {% if form.question_type.value == 'short_answer' %}active{% endif %}" data-type="short_answer">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="question_type" id="type_short_answer" value="short_answer" 
+                                                {% if form.question_type.value == 'short_answer' %}checked{% endif %}>
+                                            <label class="form-check-label fw-bold" for="type_short_answer">
+                                                <i class="fas fa-font text-info me-2"></i>Short Answer
+                                            </label>
+                                        </div>
+                                        <p class="text-muted mt-2 mb-0 small">Questions requiring a short written response.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% if form.question_type.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.question_type.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Question Text -->
+                        <div class="mb-4">
+                            <label for="{{ form.text.id_for_label }}" class="form-label fw-bold">
+                                Question Text <span class="text-danger">*</span>
+                            </label>
+                            {% render_field form.text class="form-control rich-editor" id=form.text.id_for_label %}
+                            {% if form.text.help_text %}
+                                <small class="form-text text-muted">{{ form.text.help_text }}</small>
+                            {% endif %}
+                            {% if form.text.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.text.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Marks -->
+                        <div class="row">
+                            <div class="col-md-3 mb-4">
+                                <label for="{{ form.marks.id_for_label }}" class="form-label fw-bold">
+                                    Marks <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    {% render_field form.marks class="form-control" min="0.5" step="0.5" %}
+                                    <span class="input-group-text">points</span>
+                                </div>
+                                {% if form.marks.help_text %}
+                                    <small class="form-text text-muted">{{ form.marks.help_text }}</small>
+                                {% endif %}
+                                {% if form.marks.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.marks.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-3 mb-4">
+                                <label for="{{ form.difficulty.id_for_label }}" class="form-label fw-bold">
+                                    Difficulty
+                                </label>
+                                {% render_field form.difficulty class="form-select" %}
+                                {% if form.difficulty.help_text %}
+                                    <small class="form-text text-muted">{{ form.difficulty.help_text }}</small>
+                                {% endif %}
+                                {% if form.difficulty.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.difficulty.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-3 mb-4">
+                                <label for="{{ form.category.id_for_label }}" class="form-label fw-bold">
+                                    Category
+                                </label>
+                                {% render_field form.category class="form-select" %}
+                                {% if form.category.help_text %}
+                                    <small class="form-text text-muted">{{ form.category.help_text }}</small>
+                                {% endif %}
+                                {% if form.category.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.category.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Question Type Specific Fields -->
+                        <div id="question-type-fields">
+                            <!-- Multiple Choice Fields -->
+                            <div id="multiple-choice-fields" class="question-type-section" style="display: {% if form.question_type.value == 'multiple_choice' or not form.question_type.value %}block{% else %}none{% endif %};">
+                                <h5 class="border-bottom pb-2 mb-4">Multiple Choice Options</h5>
+                                
+                                <div id="choice-forms">
+                                    {{ choice_formset.management_form }}
+                                    {% for form in choice_formset %}
+                                    <div class="choice-form mb-3 p-3 border rounded" id="choice-{{ forloop.counter0 }}">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-1 text-center">
+                                                <div class="form-check">
+                                                {{ form.id }}
+                                                {{ form.DELETE }}
+                                                <input type="radio" name="correct_choice" value="{{ forloop.counter0 }}" class="form-check-input" {% if form.is_correct.value %}checked{% endif %}>
+                                                <label class="form-check-label">
+                                                    Correct Answer
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <div class="input-group">
+                                                <span class="input-group-text">{{ forloop.counter|stringformat:'c'|upper }}.</span>
+                                                {% render_field form.text class="form-control" placeholder="Enter option text" %}
+                                                <button type="button" class="btn btn-outline-danger remove-choice" data-choice-id="choice-{{ forloop.counter0 }}">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                            {% if form.text.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.text.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="input-group">
+                                                <span class="input-group-text">Explanation (optional)</span>
+                                                {% render_field form.explanation class="form-control" %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                </div>
+                                
+                                <div class="d-flex justify-content-between mt-3">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="add-choice">
+                                        <i class="fas fa-plus me-1"></i> Add Another Option
+                                    </button>
+                                    <div class="text-muted small">
+                                        <i class="fas fa-info-circle me-1"></i> Select the correct answer by clicking the radio button
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- True/False Fields -->
+                            <div id="true-false-fields" class="question-type-section" style="display: {% if form.question_type.value == 'true_false' %}block{% else %}none{% endif %};">
+                                <h5 class="border-bottom pb-2 mb-4">True/False Options</h5>
+                                
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="true_false_answer" id="true_answer" value="true" 
+                                        {% if form.true_false_answer.value == 'true' %}checked{% endif %}>
+                                    <label class="form-check-label fw-bold" for="true_answer">
+                                        <i class="fas fa-check text-success me-1"></i> True
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline mb-4">
+                                    <input class="form-check-input" type="radio" name="true_false_answer" id="false_answer" value="false"
+                                        {% if form.true_false_answer.value == 'false' %}checked{% endif %}>
+                                    <label class="form-check-label fw-bold" for="false_answer">
+                                        <i class="fas fa-times text-danger me-1"></i> False
+                                    </label>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="true_false_explanation" class="form-label fw-bold">Explanation (optional)</label>
+                                    <textarea class="form-control" id="true_false_explanation" name="true_false_explanation" rows="3" 
+                                        placeholder="Provide an explanation for the correct answer">{% if form.true_false_explanation.value %}{{ form.true_false_explanation.value }}{% endif %}</textarea>
+                                </div>
+                            </div>
+                            
+                            <!-- Short Answer Fields -->
+                            <div id="short-answer-fields" class="question-type-section" style="display: {% if form.question_type.value == 'short_answer' %}block{% else %}none{% endif %};">
+                                <h5 class="border-bottom pb-2 mb-4">Answer Details</h5>
+                                
+                                <div class="mb-3">
+                                    <label for="short_answer_keywords" class="form-label fw-bold">
+                                        Expected Keywords or Phrases <span class="text-muted small">(one per line)</span>
+                                    </label>
+                                    <textarea class="form-control" id="short_answer_keywords" name="short_answer_keywords" rows="4" 
+                                        placeholder="Enter keywords or phrases that should appear in the answer, one per line">{% if form.short_answer_keywords.value %}{{ form.short_answer_keywords.value }}{% endif %}</textarea>
+                                    <div class="form-text">The system will look for these keywords when auto-grading. Separate multiple acceptable answers with a new line.</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="short_answer_model" class="form-label fw-bold">Model Answer</label>
+                                    {% render_field form.model_answer class="form-control rich-editor" id="short_answer_model" rows="4" %}
+                                    <div class="form-text">Provide a complete model answer for reference when grading.</div>
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="case_sensitive" name="case_sensitive" 
+                                        {% if form.case_sensitive.value %}checked{% endif %}>
+                                    <label class="form-check-label" for="case_sensitive">
+                                        Case Sensitive
+                                    </label>
+                                    <div class="form-text">Check this if the answer should match the case exactly.</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Additional Fields -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">Additional Settings</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="is_required" name="is_required" 
+                                            {% if form.is_required.value %}checked{% endif %}>
+                                        <label class="form-check-label fw-bold" for="is_required">
+                                            Required Question
+                                        </label>
+                                        <div class="form-text">Students must answer this question to submit the exam.</div>
+                                    </div>
+                                    
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="show_feedback" name="show_feedback" 
+                                            {% if form.show_feedback.value %}checked{% endif %}>
+                                        <label class="form-check-label fw-bold" for="show_feedback">
+                                            Show Feedback After Submission
+                                        </label>
+                                        <div class="form-text">Students will see the correct answer and explanation after submitting.</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="hint" class="form-label fw-bold">Hint (optional)</label>
+                                        <input type="text" class="form-control" id="hint" name="hint" 
+                                            value="{% if form.hint.value %}{{ form.hint.value }}{% endif %}" 
+                                            placeholder="Provide a hint for students">
+                                        <div class="form-text">This hint will be shown to students if they request it during the exam.</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="tags" class="form-label fw-bold">Tags (optional)</label>
+                                        <input type="text" class="form-control" id="tags" name="tags" 
+                                            value="{% if form.tags.value %}{{ form.tags.value }}{% endif %}" 
+                                            placeholder="e.g., algebra, geometry, calculus">
+                                        <div class="form-text">Add tags to help organize and filter questions. Separate with commas.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between border-top pt-4 mt-4">
+                            <div>
+                                <a href="{% url 'online_exam:manage_questions' school_slug=school_slug exam_id=exam.id %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-2"></i>Cancel
+                                </a>
+                                <button type="reset" class="btn btn-outline-warning ms-2">
+                                    <i class="fas fa-undo me-2"></i>Reset
+                                </button>
+                            </div>
+                            <div>
+                                <button type="submit" name="save_and_add_another" class="btn btn-outline-primary me-2">
+                                    <i class="fas fa-save me-2"></i>Save & Add Another
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-check me-2"></i>Save Question
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
+
+{% block custom_js %}
+<script>
+$(document).ready(function() {
+    // Initialize rich text editors
+    if (typeof CKEDITOR !== 'undefined') {
+        CKEDITOR.replace('id_text', {
+            toolbar: [
+                { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript', '-', 'RemoveFormat'] },
+                { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote'] },
+                { name: 'links', items: ['Link', 'Unlink'] },
+                { name: 'insert', items: ['Image', 'Table', 'HorizontalRule', 'SpecialChar'] },
+                { name: 'styles', items: ['Styles', 'Format', 'Font', 'FontSize'] },
+                { name: 'colors', items: ['TextColor', 'BGColor'] },
+                { name: 'tools', items: ['Maximize', 'Source'] }
+            ],
+            height: 150,
+            removePlugins: 'elementspath',
+            resize_enabled: true
+        });
+        
+        CKEDITOR.replace('short_answer_model', {
+            toolbar: [
+                { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript', '-', 'RemoveFormat'] },
+                { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote'] },
+                { name: 'links', items: ['Link', 'Unlink'] },
+                { name: 'insert', items: ['Image', 'Table', 'HorizontalRule', 'SpecialChar'] },
+                { name: 'styles', items: ['Styles', 'Format', 'Font', 'FontSize'] },
+                { name: 'colors', items: ['TextColor', 'BGColor'] },
+                { name: 'tools', items: ['Maximize', 'Source'] }
+            ],
+            height: 150,
+            removePlugins: 'elementspath',
+            resize_enabled: true
+        });
+    }
+    
+    // Toggle question type sections
+    $('.question-type-option').click(function() {
+        const questionType = $(this).data('type');
+        $('.question-type-option').removeClass('active');
+        $(this).addClass('active');
+        $('.question-type-section').hide();
+        $(`#${questionType}-fields`).show();
+        $(`#id_question_type`).val(questionType);
+    });
+    
+    // Initialize choice formset
+    const choiceFormset = $('#choice-forms');
+    const totalForms = $('#id_choices-TOTAL_FORMS');
+    const emptyForm = $('#choice-0').clone(true);
+    
+    // Add new choice
+    $('#add-choice').click(function() {
+        const formIdx = parseInt(totalForms.val());
+        const newForm = emptyForm.clone(true);
+        
+        // Update IDs and names
+        newForm.attr('id', `choice-${formIdx}`);
+        newForm.find('input, textarea, select').each(function() {
+            const newId = $(this).attr('id').replace('-0-', `-${formIdx}-`);
+            const newName = $(this).attr('name').replace('-0-', `-${formIdx}-`);
+            $(this).attr('id', newId).attr('name', newName).val('');
+            
+            // Reset radio button
+            if ($(this).attr('type') === 'radio') {
+                $(this).prop('checked', false);
+            }
+        });
+        
+        // Update the choice letter
+        const choiceLetter = String.fromCharCode(65 + formIdx);
+        newForm.find('.input-group-text').text(choiceLetter + '.');
+        
+        // Update the radio button value
+        newForm.find('input[type="radio"]').val(formIdx);
+        
+        // Add the new form before the add button
+        newForm.insertBefore($(this).parent());
+        
+        // Update total forms count
+        totalForms.val(formIdx + 1);
+    });
+    
+    // Remove choice
+    $('.remove-choice').click(function() {
+        const choiceId = $(this).data('choice-id');
+        const $choiceForm = $(`#${choiceId}`);
+        
+        // If this is not the last choice, remove it
+        if ($('.choice-form').length > 1) {
+            // If this choice was marked as correct, mark the first remaining choice as correct
+            if ($choiceForm.find('input[type="radio"]').is(':checked')) {
+                $('.choice-form').not($choiceForm).first().find('input[type="radio"]').prop('checked', true);
+            }
+            
+            // Remove the form
+            $choiceForm.remove();
+            
+            // Update form indices and IDs
+            updateChoiceIndices();
+        } else {
+            alert('A question must have at least one option.');
+        }
+    });
+    
+    // Update choice indices after removal
+    function updateChoiceIndices() {
+        $('.choice-form').each(function(index) {
+            const $form = $(this);
+            const newId = `choice-${index}`;
+            
+            // Update form ID
+            $form.attr('id', newId);
+            
+            // Update remove button data attribute
+            $form.find('.remove-choice').data('choice-id', newId);
+            
+            // Update form fields
+            $form.find('input, textarea, select').each(function() {
+                const $field = $(this);
+                const name = $field.attr('name');
+                const id = $field.attr('id');
+                
+                if (name && name.includes('__prefix__')) {
+                    const newName = name.replace(/\d+/, index);
+                    $field.attr('name', newName);
+                }
+                
+                if (id && id.includes('__prefix__')) {
+                    const newId = id.replace(/\d+/, index);
+                    $field.attr('id', newId);
+                }
+                
+                // Update radio button value
+                if ($field.attr('type') === 'radio') {
+                    $field.val(index);
+                }
+            });
+            
+            // Update choice letter
+            const choiceLetter = String.fromCharCode(65 + index);
+            $form.find('.input-group-text').text(choiceLetter + '.');
+        });
+        
+        // Update total forms count
+        totalForms.val($('.choice-form').length);
+    }
+    
+    // Form validation
+    $('#questionForm').on('submit', function(e) {
+        let isValid = true;
+        const questionType = $('input[name="question_type"]:checked').val();
+        
+        // Validate question text
+        if (CKEDITOR.instances['id_text'].getData().trim() === '') {
+            alert('Please enter the question text.');
+            isValid = false;
+        }
+        
+        // Validate marks
+        const marks = parseFloat($('#id_marks').val());
+        if (isNaN(marks) || marks <= 0) {
+            alert('Please enter a valid number of marks (greater than 0).');
+            isValid = false;
+        }
+        
+        // Validate based on question type
+        if (questionType === 'multiple_choice') {
+            // Check at least 2 choices
+            if ($('.choice-form').length < 2) {
+                alert('Please add at least two answer choices.');
+                isValid = false;
+            } else {
+                // Check all choices have text
+                let allChoicesValid = true;
+                $('.choice-form').each(function() {
+                    const $choiceText = $(this).find('input[type="text"]');
+                    if ($choiceText.val().trim() === '') {
+                        allChoicesValid = false;
+                        $choiceText.addClass('is-invalid');
+                    } else {
+                        $choiceText.removeClass('is-invalid');
+                    }
+                });
+                
+                if (!allChoicesValid) {
+                    alert('Please provide text for all answer choices.');
+                    isValid = false;
+                }
+                
+                // Check a correct answer is selected
+                if ($('input[name="correct_choice"]:checked').length === 0) {
+                    alert('Please select the correct answer.');
+                    isValid = false;
+                }
+            }
+        } else if (questionType === 'true_false') {
+            // Check true/false is selected
+            if ($('input[name="true_false_answer"]:checked').length === 0) {
+                alert('Please select the correct answer (True or False).');
+                isValid = false;
+            }
+        } else if (questionType === 'short_answer') {
+            // Check at least one keyword is provided
+            if ($('#short_answer_keywords').val().trim() === '') {
+                alert('Please provide at least one expected keyword or phrase for the answer.');
+                isValid = false;
+            }
+            
+            // Check model answer is provided
+            if (CKEDITOR.instances['short_answer_model'].getData().trim() === '') {
+                alert('Please provide a model answer.');
+                isValid = false;
+            }
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    
+    // Initialize tooltips
+    $('[data-bs-toggle="tooltip"]').tooltip();
+});
+</script>
+
+<style>
+/* Custom styles for the question type selection */
+.question-type-option {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    border: 2px solid transparent;
+    border-radius: 0.5rem;
+}
+
+.question-type-option:hover {
+    border-color: rgba(13, 110, 253, 0.3);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
+}
+
+.question-type-option.active {
+    border-color: #0d6efd;
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* Style for choice forms */
+.choice-form {
+    background-color: #f8f9fa;
+    transition: all 0.2s ease-in-out;
+}
+
+.choice-form:hover {
+    background-color: #f1f3f5;
+}
+
+/* Style for form sections */
+.question-type-section {
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e9ecef;
+}
+
+/* Style for form labels */
+.form-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+/* Style for required field indicators */
+.required-field::after {
+    content: " *";
+    color: #dc3545;
+}
+
+/* Style for action buttons */
+.btn-action {
+    min-width: 100px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .btn-action {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+}
+</style>
+{% endblock %}
+```

@@ -82,6 +82,9 @@ class LessonPlan(models.Model):
     # Lesson details
     duration_minutes = models.PositiveIntegerField(_('Duration (minutes)'), default=60)
     planned_date = models.DateField(_('Planned Date'))
+    lesson_number = models.PositiveIntegerField(_('Lesson Number'), null=True, blank=True)
+    grade_level = models.CharField(_('Grade Level'), max_length=50, blank=True)
+    unit_title = models.CharField(_('Unit Title'), max_length=200, blank=True)
     learning_objectives = models.TextField(_('Learning Objectives'))
     materials_resources = models.TextField(_('Materials & Resources'), blank=True)
     

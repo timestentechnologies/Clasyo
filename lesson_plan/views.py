@@ -9,6 +9,7 @@ from django.db.models import Q
 from django.utils.translation import gettext as _
 
 from .models import LessonPlanTemplate, LessonPlan, LessonPlanStandard, LessonPlanFeedback, LessonPlanResource
+from .forms import LessonPlanForm, LessonPlanResourceFormSet
 from academics.models import Class, Section, Subject
 from core.models import AcademicYear
 
@@ -110,12 +111,8 @@ class LessonPlanListView(LoginRequiredMixin, ListView):
 class LessonPlanCreateView(LoginRequiredMixin, CreateView):
     """Create a new lesson plan"""
     model = LessonPlan
+    form_class = LessonPlanForm
     template_name = 'lesson_plan/lesson_plan_form.html'
-    fields = ['title', 'description', 'class_ref', 'section', 'subject', 'academic_year',
-             'template', 'duration_minutes', 'planned_date', 'learning_objectives',
-             'materials_resources', 'introduction', 'main_content', 'activities',
-             'assessment', 'differentiation', 'conclusion', 'homework', 'notes',
-             'attachments']
     
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -143,16 +140,35 @@ class LessonPlanCreateView(LoginRequiredMixin, CreateView):
         else:
             form.fields['subject'].queryset = Subject.objects.filter(is_active=True)
             
-        # Templates
-        form.fields['template'].queryset = LessonPlanTemplate.objects.filter(is_active=True)
+        # Templates - check if field exists
+        if 'template' in form.fields:
+            form.fields['template'].queryset = LessonPlanTemplate.objects.filter(is_active=True)
         
         return form
     
     def form_valid(self, form):
+        context = self.get_context_data()
+        resource_formset = context['resource_formset']
         form.instance.created_by = self.request.user
-        response = super().form_valid(form)
-        messages.success(self.request, _('Lesson plan created successfully'))
-        return response
+        
+        if resource_formset.is_valid():
+            self.object = form.save()
+            resource_formset.instance = self.object
+            resource_instances = resource_formset.save(commit=False)
+            
+            # Set created_by for each resource
+            for resource in resource_instances:
+                resource.created_by = self.request.user
+                resource.save()
+                
+            # Delete the marked for deletion
+            for obj in resource_formset.deleted_objects:
+                obj.delete()
+                
+            messages.success(self.request, _('Lesson plan created successfully'))
+            return super(LessonPlanCreateView, self).form_valid(form)
+        else:
+            return self.form_invalid(form)
     
     def get_success_url(self):
         return reverse('lesson_plan:detail', kwargs={
@@ -164,6 +180,12 @@ class LessonPlanCreateView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
         context['title'] = _('Create Lesson Plan')
+        
+        if self.request.POST:
+            context['resource_formset'] = LessonPlanResourceFormSet(self.request.POST, self.request.FILES)
+        else:
+            context['resource_formset'] = LessonPlanResourceFormSet()
+        
         return context
 
 
@@ -198,12 +220,8 @@ class LessonPlanDetailView(LoginRequiredMixin, DetailView):
 class LessonPlanUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """Update a lesson plan"""
     model = LessonPlan
+    form_class = LessonPlanForm
     template_name = 'lesson_plan/lesson_plan_form.html'
-    fields = ['title', 'description', 'class_ref', 'section', 'subject', 'academic_year',
-             'template', 'duration_minutes', 'planned_date', 'learning_objectives',
-             'materials_resources', 'introduction', 'main_content', 'activities',
-             'assessment', 'differentiation', 'conclusion', 'homework', 'notes',
-             'attachments']
     
     def test_func(self):
         # Only creator or admin can edit, and only if in draft or rejected status
@@ -238,31 +256,47 @@ class LessonPlanUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         else:
             form.fields['subject'].queryset = Subject.objects.filter(is_active=True)
             
-        # Templates
-        form.fields['template'].queryset = LessonPlanTemplate.objects.filter(is_active=True)
+        # Templates - check if field exists
+        if 'template' in form.fields:
+            form.fields['template'].queryset = LessonPlanTemplate.objects.filter(is_active=True)
         
         return form
-    
-    def form_valid(self, form):
-        # If status was 'rejected', set back to 'draft'
-        if self.object.status == 'rejected':
-            form.instance.status = 'draft'
-            
-        response = super().form_valid(form)
-        messages.success(self.request, _('Lesson plan updated successfully'))
-        return response
-    
-    def get_success_url(self):
-        return reverse('lesson_plan:detail', kwargs={
-            'school_slug': self.kwargs.get('school_slug', ''),
-            'pk': self.object.pk
-        })
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
         context['title'] = _('Update Lesson Plan')
+        
+        if self.request.POST:
+            context['resource_formset'] = LessonPlanResourceFormSet(self.request.POST, self.request.FILES, instance=self.object)
+        else:
+            context['resource_formset'] = LessonPlanResourceFormSet(instance=self.object)
+        
         return context
+        
+    def form_valid(self, form):
+        context = self.get_context_data()
+        resource_formset = context['resource_formset']
+        
+        if resource_formset.is_valid():
+            self.object = form.save()
+            resource_formset.instance = self.object
+            resource_instances = resource_formset.save(commit=False)
+            
+            # Set created_by for each new resource
+            for resource in resource_instances:
+                if not resource.created_by:
+                    resource.created_by = self.request.user
+                resource.save()
+                
+            # Delete the marked for deletion
+            for obj in resource_formset.deleted_objects:
+                obj.delete()
+                
+            messages.success(self.request, _('Lesson plan updated successfully'))
+            return super(LessonPlanUpdateView, self).form_valid(form)
+        else:
+            return self.form_invalid(form)
 
 
 class LessonPlanDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
@@ -359,12 +393,8 @@ class ClassLessonPlansView(LoginRequiredMixin, ListView):
 class LessonPlanCreateForClassView(LoginRequiredMixin, CreateView):
     """Create a new lesson plan for a specific class and subject"""
     model = LessonPlan
+    form_class = LessonPlanForm
     template_name = 'lesson_plan/lesson_plan_form.html'
-    fields = ['title', 'description', 'section', 'academic_year',
-             'template', 'duration_minutes', 'planned_date', 'learning_objectives',
-             'materials_resources', 'introduction', 'main_content', 'activities',
-             'assessment', 'differentiation', 'conclusion', 'homework', 'notes',
-             'attachments']
     
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -382,19 +412,37 @@ class LessonPlanCreateForClassView(LoginRequiredMixin, CreateView):
         # Filter sections based on selected class
         form.fields['section'].queryset = Section.objects.filter(class_name_id=class_id)
             
-        # Templates
-        form.fields['template'].queryset = LessonPlanTemplate.objects.filter(is_active=True)
+        # Templates - check if field exists
+        if 'template' in form.fields:
+            form.fields['template'].queryset = LessonPlanTemplate.objects.filter(is_active=True)
         
         return form
     
     def form_valid(self, form):
+        context = self.get_context_data()
+        resource_formset = context['resource_formset']
         form.instance.created_by = self.request.user
         form.instance.class_ref = self.class_obj
         form.instance.subject = self.subject_obj
         
-        response = super().form_valid(form)
-        messages.success(self.request, _('Lesson plan created successfully'))
-        return response
+        if resource_formset.is_valid():
+            self.object = form.save()
+            resource_formset.instance = self.object
+            resource_instances = resource_formset.save(commit=False)
+            
+            # Set created_by for each resource
+            for resource in resource_instances:
+                resource.created_by = self.request.user
+                resource.save()
+                
+            # Delete the marked for deletion
+            for obj in resource_formset.deleted_objects:
+                obj.delete()
+                
+            messages.success(self.request, _('Lesson plan created successfully'))
+            return super(LessonPlanCreateForClassView, self).form_valid(form)
+        else:
+            return self.form_invalid(form)
     
     def get_success_url(self):
         return reverse('lesson_plan:detail', kwargs={
@@ -408,4 +456,10 @@ class LessonPlanCreateForClassView(LoginRequiredMixin, CreateView):
         context['title'] = _('Create Lesson Plan')
         context['class_obj'] = self.class_obj
         context['subject_obj'] = self.subject_obj
+        
+        if self.request.POST:
+            context['resource_formset'] = LessonPlanResourceFormSet(self.request.POST, self.request.FILES)
+        else:
+            context['resource_formset'] = LessonPlanResourceFormSet()
+            
         return context

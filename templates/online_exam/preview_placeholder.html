@@ -1,7 +1,10 @@
-{% extends "base.html" %}
+{% extends "dashboards/base.html" %}
 {% load static %}
 
-{% block title %}Preview Exam{% endblock %}
+{% block title %}Preview Exam - {{ exam.title }}{% endblock %}
+{% block page_icon %}eye{% endblock %}
+{% block page_title %}Preview Exam{% endblock %}
+{% block page_subtitle %}Review your exam before publishing{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -9,12 +12,23 @@
     <div class="page-header">
         <div class="row align-items-center">
             <div class="col">
-                <h3 class="page-title">Preview Exam</h3>
+                <h3 class="page-title">Preview Exam: {{ exam.title }}</h3>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{% url 'core:dashboard' school_slug=school_slug %}">Dashboard</a></li>
                     <li class="breadcrumb-item"><a href="{% url 'online_exam:dashboard' school_slug=school_slug %}">Online Exams</a></li>
-                    <li class="breadcrumb-item active">Preview Exam</li>
+                    <li class="breadcrumb-item"><a href="{% url 'online_exam:detail' school_slug=school_slug pk=exam.id %}">{{ exam.title|truncatechars:20 }}</a></li>
+                    <li class="breadcrumb-item active">Preview</li>
                 </ul>
+            </div>
+            <div class="col-auto">
+                <a href="{% url 'online_exam:detail' school_slug=school_slug pk=exam.id %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Exam
+                </a>
+                {% if not exam.is_published %}
+                <a href="{% url 'online_exam:update' school_slug=school_slug pk=exam.id %}" class="btn btn-primary">
+                    <i class="fas fa-edit me-2"></i>Edit Exam
+                </a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -22,15 +36,184 @@
 
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-body text-center py-5">
-                    <img src="{% static 'img/icons/eye.svg' %}" alt="Preview" style="width: 100px; opacity: 0.5">
-                    <h4 class="mt-4">{{ message }}</h4>
-                    <p class="text-muted">Exam ID: {{ exam_id }}</p>
-                    <a href="{% url 'online_exam:dashboard' school_slug=school_slug %}" class="btn btn-primary mt-3">Return to Dashboard</a>
+            <div class="modern-card">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> This is a preview mode. Your answers won't be recorded.
+                </div>
+                
+                <!-- Exam Header -->
+                <div class="exam-header text-center mb-4">
+                    <h2 class="mb-3">{{ exam.title }}</h2>
+                    {% if exam.description %}
+                    <p class="lead">{{ exam.description }}</p>
+                    {% endif %}
+                    <div class="exam-meta mt-3">
+                        <span class="badge bg-primary me-2">{{ exam.subject.name }}</span>
+                        <span class="badge bg-secondary me-2">{{ exam.class_ref.name }}</span>
+                        {% if exam.section %}
+                        <span class="badge bg-info me-2">Section: {{ exam.section.name }}</span>
+                        {% endif %}
+                        <span class="badge bg-warning me-2">{{ exam.get_difficulty_level_display }}</span>
+                    </div>
+                </div>
+                
+                <!-- Exam Instructions -->
+                {% if exam.instructions %}
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Instructions</h5>
+                    </div>
+                    <div class="card-body">
+                        {{ exam.instructions|safe }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Exam Details -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="text-primary mb-2">
+                                    <i class="fas fa-clock fa-2x"></i>
+                                </div>
+                                <h5>Duration</h5>
+                                <p class="mb-0">
+                                    {% if duration_hours %}{{ duration_hours }} hour{{ duration_hours|pluralize }}{% endif %}
+                                    {% if duration_minutes %}{{ duration_minutes }} minute{{ duration_minutes|pluralize }}{% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="text-success mb-2">
+                                    <i class="fas fa-tasks fa-2x"></i>
+                                </div>
+                                <h5>Questions</h5>
+                                <p class="mb-0">{{ question_count }} question{{ question_count|pluralize }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="text-info mb-2">
+                                    <i class="fas fa-star fa-2x"></i>
+                                </div>
+                                <h5>Total Marks</h5>
+                                <p class="mb-0">{{ total_marks }} mark{{ total_marks|pluralize }}</p>
+                                <small class="text-muted">Passing: {{ exam.passing_percentage }}%</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Questions Section -->
+                <div class="questions-section">
+                    <h4 class="mb-4">Questions</h4>
+                    
+                    {% if questions %}
+                        <div class="list-group">
+                            {% for question in questions %}
+                            <div class="list-group-item mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5 class="mb-0">
+                                        <span class="badge bg-primary me-2">Q{{ forloop.counter }}</span>
+                                        {{ question.question_text|safe }}
+                                    </h5>
+                                    <span class="badge bg-secondary">{{ question.marks }} mark{{ question.marks|pluralize }}</span>
+                                </div>
+                                
+                                {% if question.image %}
+                                <div class="mb-3">
+                                    <img src="{{ question.image.url }}" alt="Question Image" class="img-fluid rounded" style="max-height: 200px;">
+                                </div>
+                                {% endif %}
+                                
+                                {% if question.choices.exists %}
+                                <div class="choices ms-4 mt-2">
+                                    {% for choice in question.choices.all %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="{% if question.question_type == 'mcq_single' or question.question_type == 'true_false' %}radio{% else %}checkbox{% endif %}" 
+                                               name="question_{{ question.id }}" 
+                                               id="choice_{{ choice.id }}" 
+                                               {% if choice.is_correct %}checked disabled{% endif %}>
+                                        <label class="form-check-label {% if choice.is_correct %}text-success fw-bold{% endif %}" for="choice_{{ choice.id }}">
+                                            {{ choice.choice_text }}
+                                            {% if choice.is_correct %}
+                                            <i class="fas fa-check-circle ms-1"></i>
+                                            {% endif %}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                
+                                {% if question.explanation %}
+                                <div class="alert alert-light mt-2 mb-0">
+                                    <strong>Explanation:</strong> {{ question.explanation }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            No questions have been added to this exam yet.
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Exam Footer -->
+                <div class="exam-footer mt-4 pt-3 border-top">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                {% if exam.start_time %}
+                                    {{ exam.start_time|date:"F j, Y" }} - {{ exam.end_time|date:"F j, Y" }}
+                                {% else %}
+                                    No date range set
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div>
+                            <a href="{% url 'online_exam:detail' school_slug=school_slug pk=exam.id %}" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Exam
+                            </a>
+                            {% if not exam.is_published %}
+                            <a href="{% url 'online_exam:update' school_slug=school_slug pk=exam.id %}" class="btn btn-primary">
+                                <i class="fas fa-edit me-2"></i>Edit Exam
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    // Disable form submission in preview mode
+    document.addEventListener('DOMContentLoaded', function() {
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                alert('This is a preview. No data will be saved.');
+                return false;
+            });
+        });
+    });
+</script>
 {% endblock %}

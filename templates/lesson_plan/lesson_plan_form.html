@@ -1,9 +1,12 @@
-{% extends "base.html" %}
+{% extends "dashboards/base.html" %}
 {% load static %}
 {% load crispy_forms_tags %}
 {% load widget_tweaks %}
 
 {% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Lesson Plan{% endblock %}
+{% block page_icon %}book{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Lesson Plan{% endblock %}
+{% block page_subtitle %}{% if form.instance.pk %}Modify an existing lesson plan{% else %}Create a new comprehensive lesson plan{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -11,12 +14,6 @@
     <div class="page-header">
         <div class="row align-items-center">
             <div class="col">
-                <h3 class="page-title">{% if form.instance.pk %}Edit{% else %}Create{% endif %} Lesson Plan</h3>
-                <ul class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' school_slug=school_slug %}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'lesson_plan:dashboard' school_slug=school_slug %}">Lesson Plans</a></li>
-                    <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}Create{% endif %} Lesson Plan</li>
-                </ul>
             </div>
         </div>
     </div>
@@ -26,7 +23,7 @@
         <div class="col-md-12">
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
-                <div class="card">
+                <div class="modern-card">
                     <div class="card-header">
                         <h4 class="card-title">Basic Information</h4>
                     </div>
@@ -83,10 +80,10 @@
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="{{ form.lesson_date.id_for_label }}">Lesson Date <span class="text-danger">*</span></label>
-                                    {{ form.lesson_date|attr:"type:date"|add_class:"form-control" }}
-                                    {% if form.lesson_date.errors %}
-                                    <div class="text-danger">{{ form.lesson_date.errors }}</div>
+                                    <label for="{{ form.planned_date.id_for_label }}">Lesson Date <span class="text-danger">*</span></label>
+                                    {{ form.planned_date|attr:"type:date"|add_class:"form-control" }}
+                                    {% if form.planned_date.errors %}
+                                    <div class="text-danger">{{ form.planned_date.errors }}</div>
                                     {% endif %}
                                 </div>
                             </div>
@@ -133,101 +130,119 @@
                 </div>
                 
                 <!-- Lesson Content -->
-                <div class="card">
+                <div class="modern-card">
                     <div class="card-header">
                         <h4 class="card-title">Lesson Content</h4>
                     </div>
                     <div class="card-body">
-                        <div class="form-group">
-                            <label for="{{ form.learning_objectives.id_for_label }}">Learning Objectives <span class="text-danger">*</span></label>
-                            {{ form.learning_objectives|add_class:"form-control rich-editor" }}
-                            {% if form.learning_objectives.errors %}
-                            <div class="text-danger">{{ form.learning_objectives.errors }}</div>
-                            {% endif %}
-                            <small class="form-text text-muted">What will students know and be able to do as a result of this lesson?</small>
-                        </div>
+                        <p class="text-muted mb-4">Complete the following sections to create a comprehensive lesson plan. Required fields are marked with <span class="text-danger">*</span></p>
                         
-                        <div class="form-group">
-                            <label for="{{ form.materials_needed.id_for_label }}">Materials Needed</label>
-                            {{ form.materials_needed|add_class:"form-control rich-editor" }}
-                            {% if form.materials_needed.errors %}
-                            <div class="text-danger">{{ form.materials_needed.errors }}</div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="{{ form.introduction.id_for_label }}">Introduction / Warm-up</label>
-                            {{ form.introduction|add_class:"form-control rich-editor" }}
-                            {% if form.introduction.errors %}
-                            <div class="text-danger">{{ form.introduction.errors }}</div>
-                            {% endif %}
-                            <small class="form-text text-muted">How will you engage students and activate prior knowledge?</small>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="{{ form.development.id_for_label }}">Lesson Development / Main Activity</label>
-                            {{ form.development|add_class:"form-control rich-editor" }}
-                            {% if form.development.errors %}
-                            <div class="text-danger">{{ form.development.errors }}</div>
-                            {% endif %}
-                            <small class="form-text text-muted">Step-by-step procedure, including questions to ask and anticipated responses</small>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="{{ form.guided_practice.id_for_label }}">Guided Practice</label>
-                            {{ form.guided_practice|add_class:"form-control rich-editor" }}
-                            {% if form.guided_practice.errors %}
-                            <div class="text-danger">{{ form.guided_practice.errors }}</div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="{{ form.independent_practice.id_for_label }}">Independent Practice</label>
-                            {{ form.independent_practice|add_class:"form-control rich-editor" }}
-                            {% if form.independent_practice.errors %}
-                            <div class="text-danger">{{ form.independent_practice.errors }}</div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="{{ form.assessment.id_for_label }}">Assessment / Evaluation</label>
-                            {{ form.assessment|add_class:"form-control rich-editor" }}
-                            {% if form.assessment.errors %}
-                            <div class="text-danger">{{ form.assessment.errors }}</div>
-                            {% endif %}
-                            <small class="form-text text-muted">How will you measure student understanding?</small>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="{{ form.closure.id_for_label }}">Closure</label>
-                            {{ form.closure|add_class:"form-control rich-editor" }}
-                            {% if form.closure.errors %}
-                            <div class="text-danger">{{ form.closure.errors }}</div>
-                            {% endif %}
-                            <small class="form-text text-muted">Summary and review of key points</small>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="{{ form.differentiation.id_for_label }}">Differentiation / Accommodations</label>
-                            {{ form.differentiation|add_class:"form-control rich-editor" }}
-                            {% if form.differentiation.errors %}
-                            <div class="text-danger">{{ form.differentiation.errors }}</div>
-                            {% endif %}
-                            <small class="form-text text-muted">How will you meet diverse student needs?</small>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="{{ form.notes.id_for_label }}">Additional Notes</label>
-                            {{ form.notes|add_class:"form-control rich-editor" }}
-                            {% if form.notes.errors %}
-                            <div class="text-danger">{{ form.notes.errors }}</div>
-                            {% endif %}
-                        </div>
+                        <div class="lesson-section-container">
+                            <div class="form-group lesson-section">
+                                <div class="section-number">1</div>
+                                <label for="{{ form.learning_objectives.id_for_label }}">Learning Objectives <span class="text-danger">*</span></label>
+                                <small class="form-text text-muted">What will students know and be able to do as a result of this lesson?</small>
+                                {{ form.learning_objectives|add_class:"form-control rich-editor" }}
+                                {% if form.learning_objectives.errors %}
+                                <div class="text-danger">{{ form.learning_objectives.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group lesson-section">
+                                <div class="section-number">2</div>
+                                <label for="{{ form.materials_resources.id_for_label }}">Materials Needed</label>
+                                <small class="form-text text-muted">List all materials, resources, and technology needed for this lesson.</small>
+                                {{ form.materials_resources|add_class:"form-control rich-editor" }}
+                                {% if form.materials_resources.errors %}
+                                <div class="text-danger">{{ form.materials_resources.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group lesson-section">
+                                <div class="section-number">3</div>
+                                <label for="{{ form.introduction.id_for_label }}">Introduction / Warm-up</label>
+                                <small class="form-text text-muted">How will you engage students and activate prior knowledge?</small>
+                                {{ form.introduction|add_class:"form-control rich-editor" }}
+                                {% if form.introduction.errors %}
+                                <div class="text-danger">{{ form.introduction.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group lesson-section">
+                                <div class="section-number">4</div>
+                                <label for="{{ form.main_content.id_for_label }}">Lesson Development / Main Activity</label>
+                                <small class="form-text text-muted">Step-by-step procedure, including questions to ask and anticipated responses</small>
+                                {{ form.main_content|add_class:"form-control rich-editor" }}
+                                {% if form.main_content.errors %}
+                                <div class="text-danger">{{ form.main_content.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group lesson-section">
+                                <div class="section-number">5</div>
+                                <label for="{{ form.activities.id_for_label }}">Activities / Guided Practice</label>
+                                <small class="form-text text-muted">Describe the activities students will do with your guidance during the lesson.</small>
+                                {{ form.activities|add_class:"form-control rich-editor" }}
+                                {% if form.activities.errors %}
+                                <div class="text-danger">{{ form.activities.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group lesson-section">
+                                <div class="section-number">6</div>
+                                <label for="{{ form.homework.id_for_label }}">Homework / Independent Practice</label>
+                                <small class="form-text text-muted">Describe independent work or homework students will complete to practice the skill.</small>
+                                {{ form.homework|add_class:"form-control rich-editor" }}
+                                {% if form.homework.errors %}
+                                <div class="text-danger">{{ form.homework.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group lesson-section">
+                                <div class="section-number">7</div>
+                                <label for="{{ form.assessment.id_for_label }}">Assessment / Evaluation</label>
+                                <small class="form-text text-muted">How will you measure student understanding?</small>
+                                {{ form.assessment|add_class:"form-control rich-editor" }}
+                                {% if form.assessment.errors %}
+                                <div class="text-danger">{{ form.assessment.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group lesson-section">
+                                <div class="section-number">8</div>
+                                <label for="{{ form.conclusion.id_for_label }}">Conclusion / Closure</label>
+                                <small class="form-text text-muted">Summary and review of key points</small>
+                                {{ form.conclusion|add_class:"form-control rich-editor" }}
+                                {% if form.conclusion.errors %}
+                                <div class="text-danger">{{ form.conclusion.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group lesson-section">
+                                <div class="section-number">9</div>
+                                <label for="{{ form.differentiation.id_for_label }}">Differentiation / Accommodations</label>
+                                <small class="form-text text-muted">How will you meet diverse student needs?</small>
+                                {{ form.differentiation|add_class:"form-control rich-editor" }}
+                                {% if form.differentiation.errors %}
+                                <div class="text-danger">{{ form.differentiation.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group lesson-section">
+                                <div class="section-number">10</div>
+                                <label for="{{ form.notes.id_for_label }}">Additional Notes</label>
+                                <small class="form-text text-muted">Record any additional information, reflections, or reminders for this lesson.</small>
+                                {{ form.notes|add_class:"form-control rich-editor" }}
+                                {% if form.notes.errors %}
+                                <div class="text-danger">{{ form.notes.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div> <!-- Close lesson-section-container -->
                     </div>
                 </div>
                 
                 <!-- Resource Files -->
-                <div class="card">
+                <div class="modern-card">
                     <div class="card-header">
                         <h4 class="card-title">Resources</h4>
                     </div>
@@ -240,19 +255,19 @@
                                 <div class="row">
                                     <div class="col-md-4">
                                         <div class="form-group">
-                                            <label>Resource Title</label>
+                                            <label for="{{ form.title.id_for_label }}">Resource Title</label>
                                             {{ form.title|add_class:"form-control" }}
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-group">
-                                            <label>Resource Type</label>
+                                            <label for="{{ form.resource_type.id_for_label }}">Resource Type</label>
                                             {{ form.resource_type|add_class:"form-control" }}
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-group">
-                                            <label>File Upload</label>
+                                            <label for="{{ form.file.id_for_label }}">File Upload</label>
                                             {{ form.file|add_class:"form-control" }}
                                         </div>
                                     </div>
@@ -260,31 +275,31 @@
                                 <div class="row">
                                     <div class="col-md-8">
                                         <div class="form-group">
-                                            <label>URL</label>
+                                            <label for="{{ form.url.id_for_label }}">URL</label>
                                             {{ form.url|add_class:"form-control" }}
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-group">
-                                            <label>Description</label>
+                                            <label for="{{ form.description.id_for_label }}">Description</label>
                                             {{ form.description|add_class:"form-control" }}
                                         </div>
                                     </div>
                                 </div>
                                 {{ form.DELETE }}
-                                <button type="button" class="btn btn-sm btn-danger remove-resource mt-2">Remove Resource</button>
+                                <button type="button" class="btn btn-sm btn-danger remove-resource mt-2"><i class="fas fa-trash me-2"></i>Remove Resource</button>
                             </div>
                             {% endfor %}
                         </div>
-                        <button type="button" id="add-resource" class="btn btn-success"><i class="fas fa-plus"></i> Add Resource</button>
+                        <button type="button" id="add-resource" class="btn btn-success"><i class="fas fa-plus me-2"></i>Add Resource</button>
                     </div>
                 </div>
                 
                 <!-- Submit Button -->
                 <div class="row">
                     <div class="col-12 text-center mb-4">
-                        <button type="submit" class="btn btn-primary btn-lg">{% if form.instance.pk %}Update{% else %}Create{% endif %} Lesson Plan</button>
-                        <a href="{% url 'lesson_plan:dashboard' school_slug=school_slug %}" class="btn btn-secondary btn-lg ml-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary btn-lg"><i class="fas {% if form.instance.pk %}fa-save{% else %}fa-plus-circle{% endif %} me-2"></i>{% if form.instance.pk %}Update{% else %}Create{% endif %} Lesson Plan</button>
+                        <a href="{% url 'lesson_plan:dashboard' school_slug=school_slug %}" class="btn btn-secondary btn-lg ms-2"><i class="fas fa-times me-2"></i>Cancel</a>
                     </div>
                 </div>
             </form>
@@ -293,10 +308,85 @@
 </div>
 {% endblock %}
 
+{% block custom_css %}
+<style>
+    .modern-breadcrumb {
+        font-size: 1.05rem;
+        padding: 0.5rem 0;
+    }
+    .breadcrumb-link {
+        color: #6c757d;
+        text-decoration: none;
+        outline: none;
+        border: none;
+    }
+    .breadcrumb-link:hover {
+        color: #495057;
+    }
+    .breadcrumb-separator {
+        color: #6c757d;
+        padding: 0 0.25rem;
+    }
+    .breadcrumb-current {
+        color: #495057;
+    }
+    
+    /* Lesson section styling */
+    .lesson-section-container {
+        counter-reset: section;
+    }
+    .lesson-section {
+        position: relative;
+        border-left: 3px solid #f0f0f0;
+        padding-left: 20px;
+        margin-bottom: 25px;
+        padding-top: 10px;
+        padding-bottom: 15px;
+    }
+    .lesson-section:hover {
+        border-left-color: #0d6efd;
+        background-color: #f8f9fa;
+    }
+    .section-number {
+        position: absolute;
+        left: -15px;
+        top: 10px;
+        width: 30px;
+        height: 30px;
+        background-color: #0d6efd;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    .lesson-section label {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: #444;
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
 {% block custom_js %}
 <script src="https://cdn.ckeditor.com/4.16.2/standard/ckeditor.js"></script>
 <script>
+    // Debug utility
+    function debug(msg) {
+        console.log("[DEBUG] " + msg);
+    }
+    
+    // Make sure jQuery is available
+    if (typeof jQuery === 'undefined') {
+        console.error('jQuery is not loaded! This page requires jQuery.');
+    } else {
+        debug('jQuery is loaded, version: ' + jQuery.fn.jquery);
+    }
+    
     $(document).ready(function() {
+        debug('Document ready fired');
         // Initialize rich text editors
         $('.rich-editor').each(function() {
             CKEDITOR.replace(this.id, {
@@ -311,22 +401,35 @@
         }
         
         // Handle dynamic formset for resources
-        var resourceFormPrefix = "{{ resource_formset.prefix }}";
-        var resourceFormCount = parseInt($("#id_" + resourceFormPrefix + "-TOTAL_FORMS").val());
-        var maxForms = parseInt($("#id_" + resourceFormPrefix + "-MAX_NUM_FORMS").val());
+        var resourceFormPrefix = "resources";
+        if ($("#id_" + resourceFormPrefix + "-TOTAL_FORMS").length) {
+            var resourceFormCount = parseInt($("#id_" + resourceFormPrefix + "-TOTAL_FORMS").val());
+            var maxForms = parseInt($("#id_" + resourceFormPrefix + "-MAX_NUM_FORMS").val() || 1000);
+        } else {
+            // Set defaults if management form not found
+            var resourceFormCount = $('.resource-form').length || 1;
+            var maxForms = 1000;
+        }
         
-        $("#add-resource").click(function() {
+        // Explicitly bind click handler to the Add Resource button
+        $(document).on('click', '#add-resource', function(e) {
+            e.preventDefault();
+            debug('Add Resource button clicked');
             if (resourceFormCount < maxForms) {
                 var template = $(".resource-form").last().clone();
                 template.find("input, select, textarea").each(function() {
-                    var name = $(this).attr("name").replace("-" + (resourceFormCount-1) + "-", "-" + resourceFormCount + "-");
-                    var id = "id_" + name;
-                    $(this).attr({"name": name, "id": id}).val("").removeAttr("checked");
+                    if($(this).attr("name")) {
+                        var name = $(this).attr("name").replace("-" + (resourceFormCount-1) + "-", "-" + resourceFormCount + "-");
+                        var id = "id_" + name;
+                        $(this).attr({"name": name, "id": id}).val("").removeAttr("checked");
+                    }
                 });
                 
                 template.find(".rich-editor").each(function() {
-                    var newID = $(this).attr("id").replace("-" + (resourceFormCount-1) + "-", "-" + resourceFormCount + "-");
-                    $(this).attr("id", newID);
+                    if($(this).attr("id")) {
+                        var newID = $(this).attr("id").replace("-" + (resourceFormCount-1) + "-", "-" + resourceFormCount + "-");
+                        $(this).attr("id", newID);
+                    }
                 });
                 
                 // Clear any errors
@@ -336,7 +439,19 @@
                 
                 // Increment form count
                 resourceFormCount++;
-                $("#id_" + resourceFormPrefix + "-TOTAL_FORMS").val(resourceFormCount);
+                
+                // Update management form
+                if ($("#id_" + resourceFormPrefix + "-TOTAL_FORMS").length) {
+                    $("#id_" + resourceFormPrefix + "-TOTAL_FORMS").val(resourceFormCount);
+                } else {
+                    // Create the management form if it doesn't exist
+                    $("#resource-container").prepend(
+                        '<input type="hidden" name="' + resourceFormPrefix + '-TOTAL_FORMS" value="' + resourceFormCount + '" id="id_' + resourceFormPrefix + '-TOTAL_FORMS">' +
+                        '<input type="hidden" name="' + resourceFormPrefix + '-INITIAL_FORMS" value="0" id="id_' + resourceFormPrefix + '-INITIAL_FORMS">' +
+                        '<input type="hidden" name="' + resourceFormPrefix + '-MIN_NUM_FORMS" value="0" id="id_' + resourceFormPrefix + '-MIN_NUM_FORMS">' +
+                        '<input type="hidden" name="' + resourceFormPrefix + '-MAX_NUM_FORMS" value="1000" id="id_' + resourceFormPrefix + '-MAX_NUM_FORMS">'
+                    );
+                }
                 
                 // Initialize new rich text editors if needed
                 template.find(".rich-editor").each(function() {
@@ -350,11 +465,39 @@
             }
         });
         
+        // Debug resource formset
+        debug('Resource formset elements: ' + $('#resource-container').children().length);
+        debug('Resource form elements: ' + $('.resource-form').length);
+        
         // Handle resource removal
-        $("#resource-container").on("click", ".remove-resource", function() {
+        $(document).on("click", ".remove-resource", function(e) {
+            e.preventDefault();
+            debug('Remove Resource button clicked');
             var form = $(this).closest(".resource-form");
-            form.find("input[id$='-DELETE']").prop('checked', true);
-            form.hide();
+            
+            // Check if this is a new form or an existing one
+            var deleteInput = form.find("input[id$='-DELETE']");
+            
+            if (deleteInput.length) {
+                // For existing forms, mark as deleted
+                deleteInput.prop('checked', true);
+                form.hide();
+            } else {
+                // For new forms, just remove them
+                form.remove();
+                resourceFormCount--;
+                $("#id_" + resourceFormPrefix + "-TOTAL_FORMS").val(resourceFormCount);
+            }
+        });
+        
+        // Ensure form submission works with CKEditor
+        $("form").submit(function() {
+            debug('Form submitted');
+            // Update CKEditor content before submitting
+            for (var instance in CKEDITOR.instances) {
+                CKEDITOR.instances[instance].updateElement();
+            }
+            return true;
         });
         
         // Class change should update section options

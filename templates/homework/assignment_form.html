@@ -1,0 +1,475 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_icon %}book{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}Manage and track student assignments{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 offset-lg-1">
+        <!-- Info Banner -->
+        <div class="alert alert-info mb-4">
+            <div class="d-flex align-items-start">
+                <i class="fas fa-info-circle fa-2x me-3"></i>
+                <div>
+                    <h6 class="mb-1">Creating a Homework Assignment</h6>
+                    <p class="mb-0">Fill out the form below to create a new homework assignment. Be sure to provide clear instructions 
+                    and set appropriate due dates to help students complete their work on time.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <!-- Basic Information -->
+                    <div class="form-section mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="section-icon bg-primary bg-opacity-10 text-primary rounded-circle p-3 me-3">
+                                <i class="fas fa-book fa-lg"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0 fw-bold text-primary">Assignment Information</h5>
+                                <small class="text-muted">Basic details about the assignment</small>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-heading text-primary me-2"></i>Assignment Title <span class="text-danger">*</span>
+                                </label>
+                                {{ form.title }}
+                                {% if form.title.errors %}
+                                <div class="invalid-feedback d-block">{{ form.title.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    A clear, descriptive title for the assignment
+                                </small>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-align-left text-primary me-2"></i>Short Description
+                                </label>
+                                {{ form.description }}
+                                {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">{{ form.description.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Brief overview of the assignment (optional)
+                                </small>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-tasks text-primary me-2"></i>Detailed Instructions <span class="text-danger">*</span>
+                                </label>
+                                {{ form.instructions }}
+                                {% if form.instructions.errors %}
+                                <div class="invalid-feedback d-block">{{ form.instructions.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Provide clear, detailed instructions for students
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" style="border-top: 2px dashed #e9ecef;">
+
+                    <!-- Class & Subject -->
+                    <div class="form-section mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="section-icon bg-success bg-opacity-10 text-success rounded-circle p-3 me-3">
+                                <i class="fas fa-users fa-lg"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0 fw-bold text-success">Class & Subject</h5>
+                                <small class="text-muted">Select the class, section and subject</small>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-school text-success me-2"></i>Class <span class="text-danger">*</span>
+                                </label>
+                                {{ form.class_ref }}
+                                {% if form.class_ref.errors %}
+                                <div class="invalid-feedback d-block">{{ form.class_ref.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-door-open text-success me-2"></i>Section
+                                </label>
+                                {{ form.section }}
+                                {% if form.section.errors %}
+                                <div class="invalid-feedback d-block">{{ form.section.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Optional - leave blank to assign to all sections
+                                </small>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-book-open text-success me-2"></i>Subject <span class="text-danger">*</span>
+                                </label>
+                                {{ form.subject }}
+                                {% if form.subject.errors %}
+                                <div class="invalid-feedback d-block">{{ form.subject.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-calendar-alt text-success me-2"></i>Academic Year <span class="text-danger">*</span>
+                                </label>
+                                {{ form.academic_year }}
+                                {% if form.academic_year.errors %}
+                                <div class="invalid-feedback d-block">{{ form.academic_year.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" style="border-top: 2px dashed #e9ecef;">
+
+                    <!-- Dates and Submission -->
+                    <div class="form-section mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="section-icon bg-warning bg-opacity-10 text-warning rounded-circle p-3 me-3">
+                                <i class="fas fa-calendar-alt fa-lg"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0 fw-bold text-warning">Schedule & Submission</h5>
+                                <small class="text-muted">Set deadlines and submission options</small>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-calendar-plus text-warning me-2"></i>Assigned Date <span class="text-danger">*</span>
+                                </label>
+                                {{ form.assigned_date }}
+                                {% if form.assigned_date.errors %}
+                                <div class="invalid-feedback d-block">{{ form.assigned_date.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    When the assignment becomes visible to students
+                                </small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-calendar-check text-warning me-2"></i>Due Date <span class="text-danger">*</span>
+                                </label>
+                                {{ form.due_date }}
+                                {% if form.due_date.errors %}
+                                <div class="invalid-feedback d-block">{{ form.due_date.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    When students must submit by
+                                </small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-file-upload text-warning me-2"></i>Submission Type <span class="text-danger">*</span>
+                                </label>
+                                {{ form.submission_type }}
+                                {% if form.submission_type.errors %}
+                                <div class="invalid-feedback d-block">{{ form.submission_type.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-redo-alt text-warning me-2"></i>Max Attempts
+                                </label>
+                                {{ form.max_attempts }}
+                                {% if form.max_attempts.errors %}
+                                <div class="invalid-feedback d-block">{{ form.max_attempts.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    How many times a student can submit (0 = unlimited)
+                                </small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <label class="form-check form-switch">
+                                        {{ form.allow_late_submissions }}
+                                        <span class="form-check-label">Allow Late Submissions</span>
+                                    </label>
+                                </div>
+                                {% if form.allow_late_submissions.errors %}
+                                <div class="invalid-feedback d-block">{{ form.allow_late_submissions.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-percent text-warning me-2"></i>Late Penalty (%)
+                                </label>
+                                {{ form.late_penalty_percentage }}
+                                {% if form.late_penalty_percentage.errors %}
+                                <div class="invalid-feedback d-block">{{ form.late_penalty_percentage.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Percentage to deduct for late submission
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" style="border-top: 2px dashed #e9ecef;">
+
+                    <!-- Grading -->
+                    <div class="form-section mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="section-icon bg-danger bg-opacity-10 text-danger rounded-circle p-3 me-3">
+                                <i class="fas fa-star fa-lg"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0 fw-bold text-danger">Grading Options</h5>
+                                <small class="text-muted">Set how the assignment will be graded</small>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <label class="form-check form-switch">
+                                        {{ form.is_graded }}
+                                        <span class="form-check-label">Assignment Is Graded</span>
+                                    </label>
+                                </div>
+                                {% if form.is_graded.errors %}
+                                <div class="invalid-feedback d-block">{{ form.is_graded.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-star-half-alt text-danger me-2"></i>Points Possible
+                                </label>
+                                {{ form.points }}
+                                {% if form.points.errors %}
+                                <div class="invalid-feedback d-block">{{ form.points.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-chart-bar text-danger me-2"></i>Grading Type
+                                </label>
+                                {{ form.grading_type }}
+                                {% if form.grading_type.errors %}
+                                <div class="invalid-feedback d-block">{{ form.grading_type.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" style="border-top: 2px dashed #e9ecef;">
+
+                    <!-- Attachments -->
+                    <div class="form-section mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="section-icon bg-info bg-opacity-10 text-info rounded-circle p-3 me-3">
+                                <i class="fas fa-paperclip fa-lg"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0 fw-bold text-info">Attachments</h5>
+                                <small class="text-muted">Add any files or resources needed for this assignment</small>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-file text-info me-2"></i>Attachment
+                                </label>
+                                {{ form.attachment }}
+                                {% if form.attachment.errors %}
+                                <div class="invalid-feedback d-block">{{ form.attachment.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Upload any files students will need (PDF, Word doc, etc.)
+                                </small>
+                            </div>
+
+                            {% if form.instance.attachment %}
+                            <div class="col-md-12">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-paperclip"></i> <strong>Current Attachment:</strong> 
+                                    <a href="{{ form.instance.attachment.url }}" target="_blank">
+                                        {{ form.instance.attachment.name }}
+                                    </a>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <hr class="my-4" style="border-top: 2px dashed #e9ecef;">
+
+                    <!-- Publication Options -->
+                    <div class="form-section mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="section-icon bg-purple bg-opacity-10 text-purple rounded-circle p-3 me-3" style="background-color: rgba(128, 0, 128, 0.1); color: purple;">
+                                <i class="fas fa-globe fa-lg"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0 fw-bold" style="color: purple;">Publish Options</h5>
+                                <small class="text-muted">Control when students can see this assignment</small>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="publishNow" name="publish_now" {% if form.instance.is_published %}checked{% endif %}>
+                                    <label class="form-check-label" for="publishNow">
+                                        Publish immediately
+                                    </label>
+                                </div>
+                                <small class="form-text text-muted">
+                                    If unchecked, the assignment will be saved as a draft
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between align-items-center mt-5 pt-4" style="border-top: 2px solid #e9ecef;">
+                        <a href="{% url 'homework:list' school_slug=school_slug %}" class="btn btn-lg btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to List
+                        </a>
+                        <button type="submit" class="btn btn-lg btn-primary px-5">
+                            <i class="fas fa-save me-2"></i>{% if form.instance.pk %}Update Assignment{% else %}Create Assignment{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.section-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.form-control, .form-select {
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.15);
+    background-color: #f8f9ff;
+}
+
+.form-label {
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+}
+
+.form-check-input {
+    width: 3rem;
+    height: 1.5rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.card {
+    border-radius: 12px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize rich text editor if available
+    if(typeof CKEDITOR !== 'undefined') {
+        CKEDITOR.replace('id_instructions', {
+            height: 300,
+            toolbar: 'Full'
+        });
+    }
+    
+    // Handle dynamic section loading based on class selection
+    const classField = document.querySelector('#id_class_ref');
+    const sectionField = document.querySelector('#id_section');
+    
+    if(classField && sectionField) {
+        classField.addEventListener('change', function() {
+            loadSections(this.value);
+        });
+        
+        // Load sections for initial value
+        if(classField.value) {
+            loadSections(classField.value);
+        }
+    }
+    
+    function loadSections(classId) {
+        if(!classId) {
+            // Clear sections if no class selected
+            sectionField.innerHTML = '<option value="">---------</option>';
+            return;
+        }
+        
+        const schoolSlug = '{{ school_slug }}';
+        fetch(`/school/${schoolSlug}/academics/api/sections/${classId}/`)
+            .then(response => response.json())
+            .then(data => {
+                // Clear current options
+                sectionField.innerHTML = '<option value="">All Sections</option>';
+                
+                // Add new options
+                data.sections.forEach(section => {
+                    const option = document.createElement('option');
+                    option.value = section.id;
+                    option.textContent = section.name;
+                    sectionField.appendChild(option);
+                });
+                
+                // Restore selected value if editing
+                const selectedSectionId = '{{ form.instance.section.id|default:"" }}';
+                if(selectedSectionId) {
+                    sectionField.value = selectedSectionId;
+                }
+            })
+            .catch(error => console.error('Error loading sections:', error));
+    }
+});
+</script>
+{% endblock %}

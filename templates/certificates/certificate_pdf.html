@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>Certificate - {{ certificate.certificate_number }}</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f5f5f5;
+        }
+        .certificate-container {
+            width: 100%;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            background: white;
+            position: relative;
+            box-sizing: border-box;
+            page-break-inside: avoid;
+            page-break-after: avoid;
+        }
+        .certificate-header {
+            text-align: center;
+            padding: 20px 0;
+        }
+        .certificate-header h1 {
+            color: #2c3e50;
+            margin-bottom: 0.5cm;
+            font-size: 36px;
+        }
+        .certificate-header h2 {
+            color: #7f8c8d;
+            margin-top: 0;
+            font-weight: 400;
+        }
+        .divider {
+            height: 3px;
+            background: linear-gradient(to right, #3498db, #2ecc71, #e74c3c);
+            margin: 20px auto;
+            width: 200px;
+        }
+        .certificate-body {
+            text-align: center;
+            padding: 0 3cm;
+        }
+        .student-name {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 20px 0;
+            padding: 10px 0;
+        }
+        .certificate-text {
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 40px;
+        }
+        .certificate-details {
+            margin: 20px auto;
+            max-width: 80%;
+            text-align: left;
+            padding: 20px;
+            border: 1px solid #eee;
+            background: #f9f9f9;
+        }
+        .signatures {
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-around;
+            padding: 0 20px;
+        }
+        .signature {
+            text-align: center;
+            width: 200px;
+            margin: 0 20px;
+        }
+        .signature-line {
+            border-top: 1px solid #333;
+            margin: 10px auto;
+            width: 150px;
+        }
+        .verification {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 10px;
+            color: #7f8c8d;
+            max-width: 200px;
+            word-wrap: break-word;
+        }
+        .qr-code {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 60px;
+            height: 60px;
+        }
+    </style>
+</head>
+<body>
+    <div class="certificate-container">
+        <div class="certificate-header">
+            <h1>CERTIFICATE</h1>
+            <h2>OF ACHIEVEMENT</h2>
+            <div class="divider"></div>
+        </div>
+        
+        <div class="certificate-body">
+            <p class="certificate-text">
+                This is to certify that
+            </p>
+            
+            <div class="student-name">
+                {{ certificate.student.get_full_name }}
+            </div>
+            
+            <p class="certificate-text">
+                has successfully completed the requirements for
+            </p>
+            
+            <h3 style="color: #e74c3c; font-size: 24px;">
+                {{ certificate.title }}
+            </h3>
+            
+            <div class="certificate-details">
+                <p><strong>Certificate Number:</strong> {{ certificate.certificate_number }}</p>
+                <p><strong>Issued On:</strong> {{ certificate.issue_date|date:"F d, Y" }}</p>
+                {% if certificate.expiry_date %}
+                <p><strong>Valid Until:</strong> {{ certificate.expiry_date|date:"F d, Y" }}</p>
+                {% endif %}
+                <p><strong>Certificate Type:</strong> {{ certificate.certificate_type.name }}</p>
+                <p><strong>Issued By:</strong> {{ certificate.school.name }}</p>
+            </div>
+            
+            <div class="signatures">
+                <div class="signature">
+                    <div class="signature-line"></div>
+                    <p>School Administrator</p>
+                </div>
+                <div class="signature">
+                    <div class="signature-line"></div>
+                    <p>Principal</p>
+                </div>
+            </div>
+        </div>
+        
+        {% if certificate.qr_code %}
+        <div class="qr-code">
+            <img src="{{ request.scheme }}://{{ request.get_host }}{{ certificate.qr_code.url }}" alt="QR Code" width="80" height="80">
+        </div>
+        {% endif %}
+        
+        <div class="verification">
+            {% if certificate.verification_uuid and certificate.verification_code %}
+            <p>Verify this certificate at: {{ request.scheme }}://{{ request.get_host }}{% url 'certificates:verify' school_slug=school.slug certificate_uuid=certificate.verification_uuid %}</p>
+            <p>Verification Code: {{ certificate.verification_code }}</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

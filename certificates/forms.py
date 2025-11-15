@@ -21,6 +21,18 @@ class CertificateTypeForm(forms.ModelForm):
 
 class CertificateForm(forms.ModelForm):
     """Form for Certificates"""
+    def __init__(self, *args, **kwargs):
+        self.school = kwargs.pop('school', None)
+        super().__init__(*args, **kwargs)
+        
+        # Filter certificate types by school
+        if self.school:
+            self.fields['certificate_type'].queryset = CertificateType.objects.filter(
+                school=self.school, 
+                is_active=True
+            )
+            self.fields['certificate_type'].widget.attrs.update({'class': 'select2'})
+    
     student = forms.ModelChoiceField(
         queryset=Student.objects.filter(is_active=True),
         label=_('Student'),
