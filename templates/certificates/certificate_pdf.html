@@ -7,105 +7,164 @@
         @page {
             size: A4 landscape;
             margin: 0;
+        }
+        * {
+            margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
         body {
-            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-family: 'Times New Roman', serif;
             margin: 0;
             padding: 0;
             width: 100%;
-            height: 100%;
-            background-color: #f5f5f5;
+            min-height: 100vh;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
         .certificate-container {
-            width: 100%;
-            height: 100vh;
-            margin: 0;
-            padding: 0;
-            background: white;
+            width: 297mm;
+            min-height: 210mm;
+            margin: 0 auto;
+            padding: 15mm 20mm;
             position: relative;
-            box-sizing: border-box;
+            background: white;
+            page-break-after: always;
             page-break-inside: avoid;
-            page-break-after: avoid;
         }
         .certificate-header {
             text-align: center;
-            padding: 20px 0;
+            margin-bottom: 15px;
+            padding-top: 10mm;
         }
         .certificate-header h1 {
-            color: #2c3e50;
-            margin-bottom: 0.5cm;
-            font-size: 36px;
+            color: #1a365d;
+            font-size: 42px;
+            margin: 0 0 5px 0;
+            letter-spacing: 2px;
         }
         .certificate-header h2 {
-            color: #7f8c8d;
-            margin-top: 0;
+            color: #4a5568;
+            font-size: 24px;
+            margin: 0;
             font-weight: 400;
+            font-style: italic;
         }
         .divider {
             height: 3px;
-            background: linear-gradient(to right, #3498db, #2ecc71, #e74c3c);
-            margin: 20px auto;
-            width: 200px;
+            background: linear-gradient(to right, #1a365d, #2b6cb0, #4299e1);
+            margin: 15px auto;
+            width: 250px;
+            border: none;
         }
         .certificate-body {
             text-align: center;
-            padding: 0 3cm;
+            padding: 10px 0;
+            position: relative;
+            min-height: 200px;
         }
         .student-name {
-            font-size: 32px;
+            font-size: 36px;
             font-weight: bold;
-            color: #2c3e50;
+            color: #1a365d;
             margin: 20px 0;
-            padding: 10px 0;
+            text-transform: uppercase;
+            padding: 10px 20px;
+            display: inline-block;
+            border-bottom: 2px solid #e2e8f0;
         }
         .certificate-text {
-            font-size: 18px;
+            font-size: 20px;
             line-height: 1.6;
-            margin-bottom: 40px;
+            margin: 15px 0;
+            color: #4a5568;
         }
         .certificate-details {
-            margin: 20px auto;
-            max-width: 80%;
-            text-align: left;
-            padding: 20px;
-            border: 1px solid #eee;
-            background: #f9f9f9;
+            margin: 30px auto;
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+            padding: 25px;
+            border: 2px solid #e2e8f0;
+            background: #f8fafc;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .signatures {
             position: absolute;
-            bottom: 50px;
+            bottom: 120px;
             left: 0;
             right: 0;
             display: flex;
             justify-content: space-around;
-            padding: 0 20px;
+            padding: 0 40px;
+            margin-top: 40px;
         }
         .signature {
             text-align: center;
-            width: 200px;
-            margin: 0 20px;
+            width: 220px;
+            margin: 0 10px;
         }
         .signature-line {
-            border-top: 1px solid #333;
+            border-top: 1px solid #4a5568;
             margin: 10px auto;
-            width: 150px;
+            width: 80%;
+            height: 1px;
+        }
+        .signature p {
+            margin-top: 5px;
+            color: #4a5568;
+            font-size: 14px;
         }
         .verification {
             position: absolute;
             bottom: 20px;
-            right: 20px;
+            right: 30px;
             font-size: 10px;
-            color: #7f8c8d;
+            color: #718096;
             max-width: 200px;
             word-wrap: break-word;
+            text-align: right;
+            line-height: 1.4;
         }
         .qr-code {
             position: absolute;
             bottom: 20px;
-            left: 20px;
-            width: 60px;
-            height: 60px;
+            left: 30px;
+            width: 70px;
+            height: 70px;
+            border: 1px solid #e2e8f0;
+            padding: 3px;
+            background: white;
+        }
+        .certificate-title {
+            color: #2b6cb0;
+            font-size: 32px;
+            margin: 20px 0;
+            font-weight: bold;
+            font-style: italic;
+            padding: 5px 0;
+            border-bottom: 2px solid #e2e8f0;
+            display: inline-block;
+        }
+        
+        /* Print-specific styles */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            .certificate-container {
+                border: none;
+                padding: 15mm 20mm;
+                margin: 0;
+                width: 100%;
+                height: 100%;
+                min-height: 100vh;
+            }
+            .no-print {
+                display: none !important;
+            }
         }
     </style>
 </head>
@@ -123,16 +182,16 @@
             </p>
             
             <div class="student-name">
-                {{ certificate.student.get_full_name }}
+                {{ certificate.student }}
             </div>
             
             <p class="certificate-text">
                 has successfully completed the requirements for
             </p>
             
-            <h3 style="color: #e74c3c; font-size: 24px;">
-                {{ certificate.title }}
-            </h3>
+            <div class="certificate-title">
+                {{ certificate.title|default:"Academic Achievement" }}
+            </div>
             
             <div class="certificate-details">
                 <p><strong>Certificate Number:</strong> {{ certificate.certificate_number }}</p>
@@ -140,8 +199,10 @@
                 {% if certificate.expiry_date %}
                 <p><strong>Valid Until:</strong> {{ certificate.expiry_date|date:"F d, Y" }}</p>
                 {% endif %}
+                {% if certificate.certificate_type %}
                 <p><strong>Certificate Type:</strong> {{ certificate.certificate_type.name }}</p>
-                <p><strong>Issued By:</strong> {{ certificate.school.name }}</p>
+                {% endif %}
+                <p><strong>Issued By:</strong> {{ certificate.school.name|default:"School Name" }}</p>
             </div>
             
             <div class="signatures">
@@ -164,8 +225,8 @@
         
         <div class="verification">
             {% if certificate.verification_uuid and certificate.verification_code %}
-            <p>Verify this certificate at: {{ request.scheme }}://{{ request.get_host }}{% url 'certificates:verify' school_slug=school.slug certificate_uuid=certificate.verification_uuid %}</p>
-            <p>Verification Code: {{ certificate.verification_code }}</p>
+            <p>Verify at: {{ request.scheme }}://{{ request.get_host }}{% url 'certificates:verify' school_slug=school.slug certificate_uuid=certificate.verification_uuid %}</p>
+            <p>Code: {{ certificate.verification_code }}</p>
             {% endif %}
         </div>
     </div>

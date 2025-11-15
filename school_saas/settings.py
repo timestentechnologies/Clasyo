@@ -291,3 +291,10 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+
+# PDF Generation Settings
+PDFKIT_CONFIG = {
+    'wkhtmltopdf': r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe',
+    'encoding': 'UTF-8',
+    'quiet': ''
+}

@@ -1,4 +1,6 @@
+import os
 from django.shortcuts import render, redirect, get_object_or_404
+from django.conf import settings
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, FormView, View, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.urls import reverse_lazy, reverse
@@ -174,20 +176,15 @@ class CertificateDetailView(LoginRequiredMixin, DetailView):
 
 
 from django.template.loader import render_to_string
-from io import BytesIO
 from django.conf import settings
+import pdfkit
 import os
-from xhtml2pdf import pisa
 
 class CertificateDownloadView(LoginRequiredMixin, View):
     """Download certificate as PDF"""
     
     def get(self, request, *args, **kwargs):
         certificate = get_object_or_404(Certificate, pk=kwargs.get('pk'))
-        
-        # Set up the response
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{certificate.certificate_number}.pdf"'
         
         # Add school to context
         school = get_object_or_404(School, slug=kwargs.get('school_slug'))
@@ -202,65 +199,49 @@ class CertificateDownloadView(LoginRequiredMixin, View):
         # Render the HTML template
         html_string = render_to_string('certificates/certificate_pdf.html', context)
         
-        # Create PDF
-        result = BytesIO()
+        # Configure pdfkit options for A4 landscape
+        options = {
+            'page-size': 'A4',
+            'orientation': 'Landscape',
+            'margin-top': '0mm',
+            'margin-right': '0mm',
+            'margin-bottom': '0mm',
+            'margin-left': '0mm',
+            'encoding': 'UTF-8',
+            'no-outline': None,
+            'quiet': '',
+            'enable-local-file-access': None,  # Allow access to local files
+            'disable-smart-shrinking': None,  # Prevent content from being shrunk
+            'dpi': 300,  # Higher DPI for better quality
+        }
         
-        def link_callback(uri, rel):
-            """Convert HTML URIs to absolute system paths so xhtml2pdf can access resources"""
-            # Use short variable names
-            sUrl = settings.STATIC_URL        # Typically /static/
-            sRoot = settings.STATIC_ROOT      # Typically /some/path/project/static
-            mUrl = settings.MEDIA_URL         # Typically /media/
-            mRoot = settings.MEDIA_ROOT       # Typically /some/path/project/media
-
-            # Convert URIs to absolute system paths
-            if uri.startswith(mUrl):
-                path = os.path.join(mRoot, uri.replace(mUrl, ""))
-            elif uri.startswith(sUrl):
-                path = os.path.join(sRoot, uri.replace(sUrl, ""))
-            else:
-                return uri  # handle absolute URIs
-
-            # Make sure that file exists
-            if not os.path.isfile(path):
-                raise Exception('media URI must start with %s or %s' % (sUrl, mUrl))
-            return path
-        
-        # Generate PDF
-        pdf_status = pisa.CreatePDF(
-            BytesIO(html_string.encode("UTF-8")), 
-            dest=response,
-            encoding='UTF-8',
-            link_callback=link_callback
-        )
-        
-        if pdf_status.err:
-            return HttpResponse('Error generating PDF: %s' % pdf_status.err, status=500)
+        try:
+            # Set the path to wkhtmltopdf with error handling
+            wkhtmltopdf_path = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
+            config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
             
-        return response
-    
-    def link_callback(self, uri, rel):
-        """Convert HTML URIs to absolute system paths so xhtml2pdf can access resources"""
-        # Use short variable names
-        sUrl = settings.STATIC_URL        # Typically /static/
-        sRoot = settings.STATIC_ROOT      # Typically /some/path/project/static
-        mUrl = settings.MEDIA_URL         # Typically /media/
-        mRoot = settings.MEDIA_ROOT       # Typically /some/path/project/media
-
-        # Convert URIs to absolute system paths
-        if uri.startswith(mUrl):
-            path = os.path.join(mRoot, uri.replace(mUrl, ""))
-        elif uri.startswith(sUrl):
-            path = os.path.join(sRoot, uri.replace(sUrl, ""))
-        else:
-            return uri  # handle absolute URIs
-
-        # Make sure that file exists
-        if not os.path.isfile(path):
-            raise Exception(
-                'media URI must start with %s or %s' % (sUrl, mUrl)
+            # Get the absolute path to the CSS file
+            css_path = os.path.join(settings.STATIC_ROOT, 'css', 'certificate.css')
+            if not os.path.exists(css_path):
+                # If not in production, try the development static files directory
+                css_path = os.path.join(settings.STATICFILES_DIRS[0], 'css', 'certificate.css')
+            
+            # Generate PDF with explicit configuration
+            pdf = pdfkit.from_string(
+                html_string, 
+                False, 
+                options=options, 
+                configuration=config,
+                css=css_path if os.path.exists(css_path) else None  # Only include CSS if file exists
             )
-        return path
+            
+            # Create response
+            response = HttpResponse(pdf, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{certificate.certificate_number}.pdf"'
+            return response
+            
+        except Exception as e:
+            return HttpResponse(f'Error generating PDF: {str(e)}\n\nPlease ensure wkhtmltopdf is installed at C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe', status=500)
 
 
 class CertificateUpdateView(LoginRequiredMixin, UpdateView):
