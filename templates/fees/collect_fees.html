@@ -112,6 +112,17 @@
                         </select>
                     </div>
                     <div class="mb-3">
+                        <label>Collected By *</label>
+                        <select name="collected_by_id" class="form-control" required>
+                            <option value="">Select Staff Member</option>
+                            {% for staff in fee_collectors %}
+                            <option value="{{ staff.id }}" {% if staff.id == request.user.id %}selected{% endif %}>
+                                {{ staff.get_full_name }} - {{ staff.get_role_display }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label>Transaction ID</label>
                         <input type="text" name="transaction_id" class="form-control">
                     </div>

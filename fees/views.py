@@ -4,6 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 from django.db import models
 from students.models import Student
+from accounts.models import User
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
@@ -58,6 +59,9 @@ class FeeStructureView(LoginRequiredMixin, ListView):
             return JsonResponse({'success': False, 'error': str(e)})
 
 
+STAFF_ROLES = ['admin', 'teacher', 'accountant', 'librarian', 'receptionist']
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class CollectFeesView(LoginRequiredMixin, ListView):
     template_name = 'fees/collect_fees.html'
@@ -76,6 +80,10 @@ class CollectFeesView(LoginRequiredMixin, ListView):
             context['fee_structures'] = FeeStructure.objects.filter(is_active=True)
         else:
             context['fee_structures'] = []
+        context['fee_collectors'] = User.objects.filter(
+            role__in=STAFF_ROLES,
+            is_active=True
+        ).order_by('first_name', 'last_name')
         return context
     
     def post(self, request, *args, **kwargs):
@@ -89,6 +97,16 @@ class CollectFeesView(LoginRequiredMixin, ListView):
             # Get the fee structure to determine the amount
             fee_structure = FeeStructure.objects.get(id=request.POST.get('fee_structure_id'))
             paid_amount = request.POST.get('amount_paid', 0)
+            collected_by = None
+            collected_by_id = request.POST.get('collected_by_id')
+            if collected_by_id:
+                collected_by = User.objects.filter(
+                    id=collected_by_id,
+                    role__in=STAFF_ROLES,
+                    is_active=True
+                ).first()
+            if not collected_by:
+                collected_by = request.user
             
             FeeCollection.objects.create(
                 student_id=request.POST.get('student_id'),
@@ -100,7 +118,7 @@ class CollectFeesView(LoginRequiredMixin, ListView):
                 due_date=request.POST.get('due_date'),
                 receipt_number=request.POST.get('transaction_id', ''),
                 notes=request.POST.get('note', ''),
-                collected_by=request.user,
+                collected_by=collected_by,
                 payment_status='paid' if float(paid_amount) >= float(fee_structure.amount) else 'partial'
             )
             return JsonResponse({'success': True})
@@ -123,7 +141,7 @@ class FeeTransactionView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
         if MODELS_EXIST:
-            total_collected = FeeCollection.objects.aggregate(total=models.Sum('amount_paid'))['total'] or 0
+            total_collected = FeeCollection.objects.aggregate(total=models.Sum('paid_amount'))['total'] or 0
         else:
             total_collected = 0
         context['total_collected'] = total_collected
@@ -167,7 +185,7 @@ class MyFeesView(LoginRequiredMixin, ListView):
             # Calculate fee statistics
             if MODELS_EXIST:
                 total_paid = FeeCollection.objects.filter(student=student).aggregate(
-                    total=models.Sum('amount_paid'))['total'] or 0
+                    total=models.Sum('paid_amount'))['total'] or 0
                 context['total_paid'] = total_paid
                 
                 # Get fee structures for the student's class (if available)

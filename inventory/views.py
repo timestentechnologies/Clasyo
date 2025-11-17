@@ -7,6 +7,8 @@ from django.utils.decorators import method_decorator
 from django.db.models import Sum, Q, F
 from datetime import datetime, date
 from decimal import Decimal
+from django.core.serializers.json import DjangoJSONEncoder
+import json
 from .models import (
     Item, ItemCategory, Supplier, PurchaseOrder, PurchaseOrderItem,
     ItemDistribution, Expense, StaffPayment
@@ -357,7 +359,6 @@ class StaffPaymentView(LoginRequiredMixin, ListView):
         
         # Import models
         from human_resource.models import Teacher, Staff
-        import json
         
         # Fetch teachers and staff with salary data
         teachers = Teacher.objects.filter(is_active=True).values(
@@ -368,8 +369,8 @@ class StaffPaymentView(LoginRequiredMixin, ListView):
         )
         
         # Convert to list and serialize for JavaScript
-        context['teachers_json'] = json.dumps(list(teachers))
-        context['staff_json'] = json.dumps(list(staff_members))
+        context['teachers_json'] = json.dumps(list(teachers), cls=DjangoJSONEncoder)
+        context['staff_json'] = json.dumps(list(staff_members), cls=DjangoJSONEncoder)
         context['teachers'] = Teacher.objects.filter(is_active=True)
         context['staff_members'] = Staff.objects.filter(is_active=True)
         

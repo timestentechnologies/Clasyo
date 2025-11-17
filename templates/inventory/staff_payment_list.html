@@ -196,66 +196,113 @@
     </div>
 </div>
 
+{{ teachers_json|json_script:"teachers-data" }}
+{{ staff_json|json_script:"staff-data" }}
+
 <script>
 // Parse JSON data from context
-const teachers = {{ teachers_json|safe }};
-const staffMembers = {{ staff_json|safe }};
+const teachers = JSON.parse(document.getElementById('teachers-data').textContent || '[]');
+const staffMembers = JSON.parse(document.getElementById('staff-data').textContent || '[]');
 
-document.getElementById('staff_type').addEventListener('change', function() {
-    const staffSelect = document.getElementById('staff_select');
-    staffSelect.innerHTML = '<option value="">Select Person</option>';
+const staffTypeSelect = document.getElementById('staff_type');
+const staffSelect = document.getElementById('staff_select');
+const staffNameHidden = document.getElementById('staff_name_hidden');
+const basicSalaryInput = document.getElementById('basic_salary');
+const allowancesInput = document.getElementById('allowances');
+const deductionsInput = document.getElementById('deductions');
+
+function resetSalaryFields() {
+    basicSalaryInput.value = '';
+    allowancesInput.value = '0';
+    deductionsInput.value = '0';
+    staffNameHidden.value = '';
+    calculateNetSalary();
+}
+
+function populateStaffOptions(type) {
+    staffSelect.innerHTML = '<option value=\"\">Select Staff/Teacher</option>';
+    let data = [];
     
-    const data = this.value === 'teacher' ? teachers : staffMembers;
-    
-    if (Array.isArray(data)) {
-        data.forEach(person => {
-            const option = document.createElement('option');
-            option.value = person.id;
-            option.textContent = person.first_name + ' ' + person.last_name + ' (' + person.employee_id + ')';
-            option.dataset.name = person.first_name + ' ' + person.last_name;
-            option.dataset.basicSalary = person.basic_salary;
-            option.dataset.allowances = person.allowances;
-            option.dataset.employeeId = person.employee_id;
-            staffSelect.appendChild(option);
-        });
+    if (type === 'teacher') {
+        data = Array.isArray(teachers) ? teachers : [];
+    } else if (type === 'staff') {
+        data = Array.isArray(staffMembers) ? staffMembers : [];
     }
     
-    // Clear salary fields when changing type
-    document.getElementById('basic_salary').value = '';
-    document.getElementById('allowances').value = '0';
-    document.getElementById('deductions').value = '0';
-    calculateNetSalary();
+    if (!data.length) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.disabled = true;
+        option.textContent = 'No records available';
+        staffSelect.appendChild(option);
+        resetSalaryFields();
+        return;
+    }
+    
+    data.forEach(person => {
+        const option = document.createElement('option');
+        const firstName = person.first_name || '';
+        const lastName = person.last_name || '';
+        const employeeId = person.employee_id || 'N/A';
+        const fullName = (firstName + ' ' + lastName).trim();
+        
+        option.value = person.id;
+        option.textContent = fullName + ' (' + employeeId + ')';
+        option.dataset.name = fullName;
+        option.dataset.basicSalary = person.basic_salary || 0;
+        option.dataset.allowances = person.allowances || 0;
+        staffSelect.appendChild(option);
+    });
+    
+    resetSalaryFields();
+}
+
+staffTypeSelect.addEventListener('change', function() {
+    populateStaffOptions(this.value);
 });
 
-document.getElementById('staff_select').addEventListener('change', function() {
+staffSelect.addEventListener('change', function() {
     const selected = this.options[this.selectedIndex];
     if (selected && selected.value) {
-        // Set name
-        document.getElementById('staff_name_hidden').value = selected.dataset.name || selected.textContent;
+        staffNameHidden.value = selected.dataset.name || selected.textContent;
         
-        // Auto-populate salary data from their account
         const basicSalary = parseFloat(selected.dataset.basicSalary) || 0;
         const allowances = parseFloat(selected.dataset.allowances) || 0;
         
-        document.getElementById('basic_salary').value = basicSalary.toFixed(2);
-        document.getElementById('allowances').value = allowances.toFixed(2);
+        basicSalaryInput.value = basicSalary.toFixed(2);
+        allowancesInput.value = allowances.toFixed(2);
         
-        // Recalculate net salary
         calculateNetSalary();
+    } else {
+        resetSalaryFields();
     }
 });
 
 function calculateNetSalary() {
-    const basic = parseFloat(document.getElementById('basic_salary').value) || 0;
-    const allowances = parseFloat(document.getElementById('allowances').value) || 0;
-    const deductions = parseFloat(document.getElementById('deductions').value) || 0;
+    const basic = parseFloat(basicSalaryInput.value) || 0;
+    const allowances = parseFloat(allowancesInput.value) || 0;
+    const deductions = parseFloat(deductionsInput.value) || 0;
     const net = basic + allowances - deductions;
     document.getElementById('net_salary_display').textContent = net.toFixed(2);
 }
 
-document.getElementById('basic_salary').addEventListener('input', calculateNetSalary);
-document.getElementById('allowances').addEventListener('input', calculateNetSalary);
-document.getElementById('deductions').addEventListener('input', calculateNetSalary);
+basicSalaryInput.addEventListener('input', calculateNetSalary);
+allowancesInput.addEventListener('input', calculateNetSalary);
+deductionsInput.addEventListener('input', calculateNetSalary);
+
+const addPaymentModal = document.getElementById('addPaymentModal');
+addPaymentModal.addEventListener('shown.bs.modal', function () {
+    if (!staffTypeSelect.value) {
+        if (Array.isArray(teachers) && teachers.length) {
+            staffTypeSelect.value = 'teacher';
+        } else if (Array.isArray(staffMembers) && staffMembers.length) {
+            staffTypeSelect.value = 'staff';
+        }
+    }
+    if (staffTypeSelect.value) {
+        staffTypeSelect.dispatchEvent(new Event('change'));
+    }
+});
 
 document.getElementById('addPaymentForm').addEventListener('submit', function(e) {
     e.preventDefault();

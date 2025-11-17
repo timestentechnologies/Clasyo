@@ -763,7 +763,7 @@ class ClassHomeworkListView(LoginRequiredMixin, ListView):
         
         # Available subjects for this class
         context['subjects'] = Subject.objects.filter(
-            subject_assignments__class_assigned=self.class_obj
+            subject_assignments__class_name=self.class_obj
         ).distinct()
         
         # Filter options
@@ -873,7 +873,7 @@ class ClassSubmissionsView(LoginRequiredMixin, ListView):
         
         # Available subjects
         context['subjects'] = Subject.objects.filter(
-            subject_assignments__class_assigned=self.class_obj
+            subject_assignments__class_name=self.class_obj
         ).distinct()
         
         # Available assignments
