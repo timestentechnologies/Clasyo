@@ -1,0 +1,836 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block title %}School SaaS Documentation{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h1 class="display-4">School SaaS Documentation</h1>
+        <p class="lead">Comprehensive guide to using the School Management System</p>
+        <div class="mt-3">
+            <a href="{% url 'frontend:documentation_pdf' %}" class="btn btn-primary me-2">
+                <i class="fas fa-download me-2"></i>Download as PDF
+            </a>
+            <a href="#api-documentation" class="btn btn-outline-primary">
+                <i class="fas fa-code me-2"></i>API Documentation
+            </a>
+        </div>
+    </div>
+
+    <!-- Introduction -->
+    <section class="mb-5">
+        <h2 class="mb-4">Introduction</h2>
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <p class="card-text">
+                    Welcome to the School SaaS documentation. This guide provides comprehensive information about the features,
+                    functionality, and usage of the School Management System. Whether you're an administrator, teacher, student,
+                    or parent, you'll find the information you need to effectively use the platform.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Core Features -->
+    <section class="mb-5">
+        <h2 class="mb-4">Core Features</h2>
+        <div class="row g-4">
+            {% for feature in core_features %}
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                            <i data-feather="{{ feature.icon }}" class="feather-24"></i>
+                        </div>
+                        <h5 class="card-title">{{ feature.title }}</h5>
+                        <p class="card-text">{{ feature.description }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- User Guides -->
+    <section class="mb-5">
+        <h2 class="mb-4">User Guides</h2>
+        <div class="row g-4">
+            <!-- Administrator Guide -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
+                                <i class="fas fa-user-shield text-primary"></i>
+                            </div>
+                            <h5 class="card-title mb-0">Administrator Guide</h5>
+                        </div>
+                        <p class="text-muted">Complete guide for system administrators to manage the school management system.</p>
+                        
+                        <h6 class="mt-4">User Management</h6>
+                        <ul class="small">
+                            <li class="mb-2">
+                                <i class="fas fa-user-plus text-success me-2"></i>
+                                <strong>Adding Users</strong>: Create accounts for staff, teachers, students, and parents
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-user-edit text-success me-2"></i>
+                                <strong>User Permissions</strong>: Configure role-based access control
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-users-cog text-success me-2"></i>
+                                <strong>Bulk Import</strong>: Import users via CSV/Excel
+                            </li>
+                        </ul>
+
+                        <h6 class="mt-4">System Configuration</h6>
+                        <ul class="small">
+                            <li class="mb-2">
+                                <i class="fas fa-calendar-alt text-success me-2"></i>
+                                Academic year and term setup
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-graduation-cap text-success me-2"></i>
+                                Class and section management
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-cog text-success me-2"></i>
+                                System settings and preferences
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teacher Guide -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-info bg-opacity-10 p-2 rounded-circle me-3">
+                                <i class="fas fa-chalkboard-teacher text-info"></i>
+                            </div>
+                            <h5 class="card-title mb-0">Teacher Guide</h5>
+                        </div>
+                        <p class="text-muted">Comprehensive guide for teachers to manage classes and student progress.</p>
+                        
+                        <h6 class="mt-4">Gradebook Management</h6>
+                        <ul class="small">
+                            <li class="mb-2">
+                                <i class="fas fa-tasks text-success me-2"></i>
+                                Create and manage assignments
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-percentage text-success me-2"></i>
+                                Set up grading scales and categories
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-chart-line text-success me-2"></i>
+                                Generate progress reports
+                            </li>
+                        </ul>
+
+                        <h6 class="mt-4">Class Management</h6>
+                        <ul class="small">
+                            <li class="mb-2">
+                                <i class="fas fa-user-clock text-success me-2"></i>
+                                Take attendance
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-comment-alt text-success me-2"></i>
+                                Send announcements
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-book-reader text-success me-2"></i>
+                                Share learning materials
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student & Parent Guide -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-warning bg-opacity-10 p-2 rounded-circle me-3">
+                                <i class="fas fa-user-graduate text-warning"></i>
+                            </div>
+                            <h5 class="card-title mb-0">Student & Parent Guide</h5>
+                        </div>
+                        <p class="text-muted">Guide for students and parents to access and use the portal effectively.</p>
+                        
+                        <h6 class="mt-4">For Students</h6>
+                        <ul class="small">
+                            <li class="mb-2">
+                                <i class="fas fa-calendar-check text-success me-2"></i>
+                                View class schedule
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-book text-success me-2"></i>
+                                Access course materials
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-tasks text-success me-2"></i>
+                                Submit assignments
+                            </li>
+                        </ul>
+
+                        <h6 class="mt-4">For Parents</h6>
+                        <ul class="small">
+                            <li class="mb-2">
+                                <i class="fas fa-user-friends text-success me-2"></i>
+                                Monitor student progress
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-envelope text-success me-2"></i>
+                                Communicate with teachers
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-file-invoice-dollar text-success me-2"></i>
+                                View fee statements
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- API Documentation -->
+    <section class="mb-5" id="api-documentation">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>API Documentation</h2>
+            <div>
+                <a href="#" class="btn btn-sm btn-outline-primary me-2">
+                    <i class="fas fa-download me-1"></i> Download Postman Collection
+                </a>
+                <a href="#" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-file-code me-1"></i> OpenAPI Schema
+                </a>
+            </div>
+        </div>
+
+        <!-- Authentication -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Authentication</h5>
+            </div>
+            <div class="card-body">
+                <p>All API requests require authentication using JWT (JSON Web Tokens). Include the token in the Authorization header.</p>
+                <div class="bg-dark text-light p-3 rounded mb-3">
+                    <code>Authorization: Bearer your_jwt_token_here</code>
+                </div>
+                <p>To obtain a token, make a POST request to the authentication endpoint:</p>
+                <div class="bg-dark text-light p-3 rounded mb-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">POST</span>
+                        <span>/api/auth/token/</span>
+                    </div>
+                    <div class="text-muted small mb-2">Request Body:</div>
+                    <pre class="mb-2">{
+  "username": "your_username",
+  "password": "your_password"
+}</pre>
+                    <div class="text-muted small mb-2">Response (200 OK):</div>
+                    <pre class="mb-0">{
+  "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}</pre>
+                </div>
+                <div class="alert alert-info">
+                    <strong>Note:</strong> The access token is valid for 60 minutes. Use the refresh token to obtain a new access token when it expires.
+                </div>
+            </div>
+        </div>
+
+        <!-- Refresh Token -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Refresh Token</h5>
+            </div>
+            <div class="card-body">
+                <p>To refresh an expired access token, make a POST request to the refresh endpoint:</p>
+                <div class="bg-dark text-light p-3 rounded mb-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">POST</span>
+                        <span>/api/auth/token/refresh/</span>
+                    </div>
+                    <div class="text-muted small mb-2">Request Body:</div>
+                    <pre class="mb-2">{
+  "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}</pre>
+                    <div class="text-muted small mb-2">Response (200 OK):</div>
+                    <pre class="mb-0">{
+  "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Response Format -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Response Format</h5>
+            </div>
+            <div class="card-body">
+                <p>All API responses are in JSON format and include the following standard fields:</p>
+                <ul>
+                    <li><code>data</code>: The response data (array or object)</li>
+                    <li><code>count</code>: Total number of items (for paginated responses)</li>
+                    <li><code>next</code>: URL to the next page of results (if available)</li>
+                    <li><code>previous</code>: URL to the previous page of results (if available)</li>
+                    <li><code>status</code>: HTTP status code</li>
+                    <li><code>message</code>: Human-readable message (for errors or success)</li>
+                </ul>
+                <div class="bg-dark text-light p-3 rounded mb-3">
+                    <div class="text-muted small mb-2">Example Response (200 OK):</div>
+                    <pre class="mb-0">{
+  "data": [
+    {
+      "id": 1,
+      "name": "John Doe",
+      "email": "john@example.com"
+    }
+  ],
+  "count": 1,
+  "next": null,
+  "previous": null,
+  "status": 200,
+  "message": "Success"
+}</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Codes -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Status Codes</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-success">200 OK</span>
+                            <span>Request was successful</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-success">201 Created</span>
+                            <span>Resource created successfully</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-warning text-dark">400 Bad Request</span>
+                            <span>Invalid request or validation error</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-danger">401 Unauthorized</span>
+                            <span>Authentication credentials were not provided or invalid</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-danger">403 Forbidden</span>
+                            <span>You don't have permission to perform this action</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-danger">404 Not Found</span>
+                            <span>The requested resource was not found</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-danger">429 Too Many Requests</span>
+                            <span>Rate limit exceeded</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-danger">500 Internal Server Error</span>
+                            <span>An unexpected error occurred on the server</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Pagination</h5>
+            </div>
+            <div class="card-body">
+                <p>List endpoints support pagination with the following query parameters:</p>
+                <ul>
+                    <li><code>page</code>: Page number (default: 1)</li>
+                    <li><code>page_size</code>: Number of items per page (default: 20, max: 100)</li>
+                </ul>
+                <p>Pagination metadata is included in the response:</p>
+                <div class="bg-dark text-light p-3 rounded">
+                    <pre class="mb-0">{
+  "count": 42,
+  "next": "https://api.example.com/endpoint/?page=2&page_size=20",
+  "previous": null,
+  "results": [
+    // items...
+  ]
+}</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rate Limiting -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Rate Limiting</h5>
+            </div>
+            <div class="card-body">
+                <p>API requests are rate limited to prevent abuse. The current limits are:</p>
+                <ul>
+                    <li><strong>100 requests per minute</strong> for authenticated users</li>
+                    <li><strong>10 requests per minute</strong> for unauthenticated requests</li>
+                </ul>
+                <p>Rate limit headers are included in all responses:</p>
+                <ul>
+                    <li><code>X-RateLimit-Limit</code>: The maximum number of requests allowed</li>
+                    <li><code>X-RateLimit-Remaining</code>: The number of requests remaining</li>
+                    <li><code>X-RateLimit-Reset</code>: The time at which the rate limit resets (UTC timestamp)</li>
+                </ul>
+                <div class="alert alert-warning">
+                    <strong>Note:</strong> Exceeding the rate limit will result in a <code>429 Too Many Requests</code> response.
+                </div>
+            </div>
+        </div>
+
+        <!-- Endpoints -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Available Endpoints</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    <!-- Students -->
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Students</h6>
+                            <span class="badge bg-primary">/api/students/</span>
+                        </div>
+                        
+                        <!-- List Students -->
+                        <div class="mt-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge bg-info text-dark me-2">GET</span>
+                                <span>/api/students/</span>
+                                <span class="badge bg-secondary ms-2">List all students (paginated)</span>
+                            </div>
+                            <div class="ms-4">
+                                <div class="mb-2">
+                                    <span class="badge bg-secondary">Query Params</span>
+                                    <ul class="mb-2">
+                                        <li><code>page</code>: Page number (default: 1)</li>
+                                        <li><code>page_size</code>: Items per page (default: 20, max: 100)</li>
+                                        <li><code>search</code>: Search by name or ID</li>
+                                        <li><code>status</code>: Filter by status (active, inactive, graduated)</li>
+                                        <li><code>class_id</code>: Filter by class ID</li>
+                                        <li><code>sort</code>: Sort field (name, created_at, etc.)</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-dark text-light p-3 rounded mb-2">
+                                    <div class="text-muted small mb-2">Example Request:</div>
+                                    <pre class="mb-2">GET /api/students/?status=active&page=1&page_size=10</pre>
+                                    <div class="text-muted small mb-2">Response (200 OK):</div>
+                                    <pre class="mb-0">{
+  "data": [
+    {
+      "id": 1,
+      "student_id": "STU001",
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john.doe@example.com",
+      "status": "active",
+      "class_id": 5,
+      "created_at": "2023-01-15T10:30:00Z"
+    }
+  ],
+  "count": 1,
+  "next": null,
+  "previous": null,
+  "status": 200,
+  "message": "Success"
+}</pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Create Student -->
+                        <div class="mt-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge bg-success text-white me-2">POST</span>
+                                <span>/api/students/</span>
+                                <span class="badge bg-secondary ms-2">Create a new student</span>
+                            </div>
+                            <div class="ms-4">
+                                <div class="bg-dark text-light p-3 rounded">
+                                    <div class="text-muted small mb-2">Request Body:</div>
+                                    <pre class="mb-2">{
+  "student_id": "STU002",
+  "first_name": "Jane",
+  "last_name": "Smith",
+  "email": "jane.smith@example.com",
+  "date_of_birth": "2010-05-15",
+  "gender": "F",
+  "address": "123 Main St, City",
+  "phone": "+1234567890",
+  "class_id": 5,
+  "parent_name": "John Smith",
+  "parent_email": "parent@example.com",
+  "parent_phone": "+1234567891"
+}</pre>
+                                    <div class="text-muted small mb-2">Response (201 Created):</div>
+                                    <pre class="mb-0">{
+  "data": {
+    "id": 2,
+    "student_id": "STU002",
+    "first_name": "Jane",
+    "last_name": "Smith",
+    "email": "jane.smith@example.com",
+    "status": "active",
+    "class_id": 5,
+    "created_at": "2023-01-16T14:20:00Z"
+  },
+  "status": 201,
+  "message": "Student created successfully"
+}</pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Get Student -->
+                        <div class="mt-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge bg-info text-dark me-2">GET</span>
+                                <span>/api/students/{id}/</span>
+                                <span class="badge bg-secondary ms-2">Get student details</span>
+                            </div>
+                            <div class="ms-4">
+                                <div class="bg-dark text-light p-3 rounded">
+                                    <div class="text-muted small mb-2">Example Request:</div>
+                                    <pre class="mb-2">GET /api/students/1/</pre>
+                                    <div class="text-muted small mb-2">Response (200 OK):</div>
+                                    <pre class="mb-0">{
+  "data": {
+    "id": 1,
+    "student_id": "STU001",
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john.doe@example.com",
+    "date_of_birth": "2010-03-15",
+    "gender": "M",
+    "address": "456 School St, City",
+    "phone": "+1234567890",
+    "status": "active",
+    "class_id": 5,
+    "class_name": "Class 5A",
+    "parent_name": "John Doe Sr.",
+    "parent_email": "parent@example.com",
+    "parent_phone": "+1234567891",
+    "created_at": "2023-01-15T10:30:00Z",
+    "updated_at": "2023-01-15T10:30:00Z"
+  },
+  "status": 200,
+  "message": "Success"
+}</pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Update Student -->
+                        <div class="mt-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge bg-warning text-dark me-2">PATCH</span>
+                                <span>/api/students/{id}/</span>
+                                <span class="badge bg-secondary ms-2">Update student</span>
+                            </div>
+                            <div class="ms-4">
+                                <div class="bg-dark text-light p-3 rounded">
+                                    <div class="text-muted small mb-2">Request Body:</div>
+                                    <pre class="mb-2">{
+  "phone": "+1987654321",
+  "address": "789 New St, City"
+}</pre>
+                                    <div class="text-muted small mb-2">Response (200 OK):</div>
+                                    <pre class="mb-0">{
+  "data": {
+    "id": 1,
+    "phone": "+1987654321",
+    "address": "789 New St, City"
+    // other fields...
+  },
+  "status": 200,
+  "message": "Student updated successfully"
+}</pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Delete Student -->
+                        <div class="mt-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge bg-danger text-white me-2">DELETE</span>
+                                <span>/api/students/{id}/</span>
+                                <span class="badge bg-secondary ms-2">Delete student</span>
+                            </div>
+                            <div class="ms-4">
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    This action is irreversible. The student record will be permanently deleted.
+                                </div>
+                                <div class="bg-dark text-light p-3 rounded">
+                                    <div class="text-muted small mb-2">Response (204 No Content):</div>
+                                    <pre class="mb-0">HTTP 204 No Content</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Teachers -->
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Teachers</h6>
+                            <span class="badge bg-primary">/api/teachers/</span>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-info text-dark me-2">GET</span>
+                            <code>/api/teachers/</code> - List all teachers (paginated)
+                            <div class="ms-4 mt-2">
+                                <span class="badge bg-secondary">Query Params</span>
+                                <ul class="mb-0">
+                                    <li><code>department</code>: Filter by department ID</li>
+                                    <li><code>status</code>: Filter by status (active, on_leave, inactive)</li>
+                                    <li><code>qualification</code>: Filter by qualification</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-success text-white me-2">POST</span>
+                            <code>/api/teachers/</code> - Create a new teacher
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-info text-dark me-2">GET</span>
+                            <code>/api/teachers/{id}/</code> - Get teacher details
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-warning text-dark me-2">PUT</span>
+                            <code>/api/teachers/{id}/</code> - Update teacher details
+                        </div>
+                    </div>
+
+                    <!-- Courses -->
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Courses</h6>
+                            <span class="badge bg-primary">/api/courses/</span>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-info text-dark me-2">GET</span>
+                            <code>/api/courses/</code> - List all courses (paginated)
+                            <div class="ms-4 mt-2">
+                                <span class="badge bg-secondary">Query Params</span>
+                                <ul class="mb-0">
+                                    <li><code>department</code>: Filter by department</li>
+                                    <li><code>level</code>: Filter by education level</li>
+                                    <li><code>teacher</code>: Filter by teacher ID</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-success text-white me-2">POST</span>
+                            <code>/api/courses/</code> - Create a new course
+                        </div>
+                    </div>
+
+                    <!-- Classes -->
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Classes</h6>
+                            <span class="badge bg-primary">/api/classes/</span>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-info text-dark me-2">GET</span>
+                            <code>/api/classes/</code> - List all classes
+                            <div class="ms-4 mt-2">
+                                <span class="badge bg-secondary">Query Params</span>
+                                <ul class="mb-0">
+                                    <li><code>grade</code>: Filter by grade level</li>
+                                    <li><code>section</code>: Filter by section</li>
+                                    <li><code>academic_year</code>: Filter by academic year</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance -->
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Attendance</h6>
+                            <span class="badge bg-primary">/api/attendance/</span>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-info text-dark me-2">GET</span>
+                            <code>/api/attendance/</code> - Get attendance records
+                            <div class="ms-4 mt-2">
+                                <span class="badge bg-secondary">Query Params</span>
+                                <ul class="mb-0">
+                                    <li><code>student</code>: Filter by student ID</li>
+                                    <li><code>class</code>: Filter by class ID</li>
+                                    <li><code>start_date</code>: Start date range (YYYY-MM-DD)</li>
+                                    <li><code>end_date</code>: End date range (YYYY-MM-DD)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-success text-white me-2">POST</span>
+                            <code>/api/attendance/bulk/</code> - Record multiple attendance entries
+                        </div>
+                    </div>
+
+                    <!-- Grades -->
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Grades</h6>
+                            <span class="badge bg-primary">/api/grades/</span>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-info text-dark me-2">GET</span>
+                            <code>/api/grades/</code> - Get grade records
+                            <div class="ms-4 mt-2">
+                                <span class="badge bg-secondary">Query Params</span>
+                                <ul class="mb-0">
+                                    <li><code>student</code>: Filter by student ID</li>
+                                    <li><code>course</code>: Filter by course ID</li>
+                                    <li><code>semester</code>: Filter by semester</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-success text-white me-2">POST</span>
+                            <code>/api/grades/</code> - Record new grades
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Handling -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Error Handling</h5>
+            </div>
+            <div class="card-body">
+                <p>The API uses standard HTTP response codes to indicate the success or failure of an API request.</p>
+                
+                <h6>Success Responses</h6>
+                <ul class="list-unstyled">
+                    <li><span class="badge bg-success">200</span> OK - Request was successful</li>
+                    <li><span class="badge bg-primary">201</span> Created - Resource created successfully</li>
+                    <li><span class="badge bg-info">204</span> No Content - Successfully processed the request</li>
+                </ul>
+
+                <h6 class="mt-4">Error Responses</h6>
+                <ul class="list-unstyled">
+                    <li><span class="badge bg-warning">400</span> Bad Request - Invalid request format or validation error</li>
+                    <li><span class="badge bg-danger">401</span> Unauthorized - Authentication failed</li>
+                    <li><span class="badge bg-danger">403</span> Forbidden - Insufficient permissions</li>
+                    <li><span class="badge bg-danger">404</span> Not Found - Resource not found</li>
+                    <li><span class="badge bg-danger">429</span> Too Many Requests - Rate limit exceeded</li>
+                    <li><span class="badge bg-danger">500</span> Server Error - Internal server error</li>
+                </ul>
+
+                <div class="alert alert-warning mt-4">
+                    <h6>Example Error Response</h6>
+                    <pre class="mb-0">{
+  "error": {
+    "code": "invalid_input",
+    "message": "Invalid input data",
+    "details": {
+      "email": ["Enter a valid email address."],
+      "password": ["This field is required."]
+    }
+  }
+}</pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Getting Started -->
+    <section class="mb-5">
+        <h2 class="mb-4">Getting Started</h2>
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5>For School Administrators</h5>
+                <ol class="mb-4">
+                    <li>Complete the school registration process</li>
+                    <li>Set up your school profile and academic calendar</li>
+                    <li>Add staff, teachers, and students to the system</li>
+                    <li>Configure academic terms, classes, and subjects</li>
+                    <li>Set up the fee structure and payment methods</li>
+                </ol>
+                
+                <h5>For Teachers</h5>
+                <ol class="mb-4">
+                    <li>Log in with your credentials</li>
+                    <li>Access your class schedule and student lists</li>
+                    <li>Record attendance and grades</li>
+                    <li>Create and grade assignments</li>
+                    <li>Communicate with students and parents</li>
+                </ol>
+                
+                <h5>For Students & Parents</h5>
+                <ol>
+                    <li>Log in with your provided credentials</li>
+                    <li>View your class schedule and assignments</li>
+                    <li>Check grades and attendance</li>
+                    <li>Access study materials and resources</li>
+                    <li>View fee statements and payment history</li>
+                </ol>
+            </div>
+        </div>
+    </section>
+
+    <!-- Support -->
+    <section class="mb-5">
+        <h2 class="mb-4">Need Help?</h2>
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <p>If you need further assistance, please don't hesitate to contact our support team:</p>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-envelope me-2 text-primary"></i> support@schoolsaas.com</li>
+                    <li><i class="fas fa-phone me-2 text-primary"></i> +1 (555) 123-4567</li>
+                    <li><i class="fas fa-comment me-2 text-primary"></i> Live Chat (available during business hours)</li>
+                </ul>
+                <p class="mt-3">Our support team is available Monday to Friday, 9:00 AM to 6:00 PM (EST).</p>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize Feather Icons
+    document.addEventListener('DOMContentLoaded', function() {
+        feather.replace();
+    });
+</script>
+{% endblock %}

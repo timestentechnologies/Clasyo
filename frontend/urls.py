@@ -12,5 +12,7 @@ urlpatterns = [
     path('privacy/', views.PrivacyPolicyView.as_view(), name='privacy'),
     path('terms/', views.TermsOfServiceView.as_view(), name='terms'),
     path('license/', views.LicenseView.as_view(), name='license'),
+    path('documentation/', views.DocumentationView.as_view(), name='documentation'),
+    path('documentation/pdf/', views.generate_pdf_documentation, name='documentation_pdf'),
     path('register/', views.SchoolRegistrationView.as_view(), name='register'),
 ]

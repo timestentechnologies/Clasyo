@@ -1,6 +1,11 @@
 from django.shortcuts import render, redirect
 from django.views.generic import TemplateView, View
 from django.contrib import messages
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from django.conf import settings
+import os
+import pdfkit
 from subscriptions.models import SubscriptionPlan
 from .models import PricingPlan, FAQ, PageContent, ContactMessage
 
@@ -100,6 +105,185 @@ class TermsOfServiceView(TemplateView):
 class LicenseView(TemplateView):
     """License page view"""
     template_name = 'frontend/license.html'
+
+
+class DocumentationView(TemplateView):
+    """Comprehensive documentation for the School SaaS system"""
+    template_name = 'frontend/documentation.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Core Features
+        context['core_features'] = [
+            {
+                'title': 'Multi-tenant Architecture',
+                'description': 'Each school gets its own isolated environment with separate database schema',
+                'icon': 'layers'
+            },
+            {
+                'title': 'Role-based Access Control',
+                'description': 'Different dashboards and permissions for admins, teachers, students, and parents',
+                'icon': 'shield'
+            },
+            {
+                'title': 'Academic Management',
+                'description': 'Manage academic years, terms, classes, sections, and subjects',
+                'icon': 'book-open'
+            },
+            {
+                'title': 'Student Information System',
+                'description': 'Comprehensive student profiles, attendance, and performance tracking',
+                'icon': 'users'
+            },
+            {
+                'title': 'Examination System',
+                'description': 'Create and manage exams, grades, and report cards',
+                'icon': 'file-text'
+            },
+            {
+                'title': 'Fee Management',
+                'description': 'Track fees, payments, and generate invoices',
+                'icon': 'dollar-sign'
+            },
+            {
+                'title': 'Library Management',
+                'description': 'Manage books, track issues, and returns',
+                'icon': 'book'
+            },
+            {
+                'title': 'Transport Management',
+                'description': 'Manage routes, vehicles, and track transportation',
+                'icon': 'truck'
+            },
+            {
+                'title': 'Dormitory Management',
+                'description': 'Manage hostels, rooms, and boarders',
+                'icon': 'home'
+            },
+            {
+                'title': 'Communication Tools',
+                'description': 'Messaging, notices, and announcements',
+                'icon': 'message-square'
+            },
+            {
+                'title': 'HR & Payroll',
+                'description': 'Staff management, attendance, and payroll processing',
+                'icon': 'briefcase'
+            },
+            {
+                'title': 'Reports & Analytics',
+                'description': 'Generate various reports and analytics',
+                'icon': 'bar-chart-2'
+            },
+        ]
+        
+        # User Guides
+        context['user_guides'] = [
+            {
+                'role': 'Administrator',
+                'description': 'Learn how to manage your school\'s complete setup',
+                'sections': [
+                    'School Profile Setup',
+                    'User Management',
+                    'Academic Configuration',
+                    'Fee Structure Setup',
+                    'System Settings'
+                ]
+            },
+            {
+                'role': 'Teacher',
+                'description': 'Guide for managing classes and student progress',
+                'sections': [
+                    'Class Management',
+                    'Attendance Recording',
+                    'Gradebook Management',
+                    'Lesson Planning',
+                    'Communication Tools'
+                ]
+            },
+            {
+                'role': 'Student',
+                'description': 'How to access your academic information',
+                'sections': [
+                    'Viewing Timetable',
+                    'Checking Grades',
+                    'Accessing Study Materials',
+                    'Submitting Assignments',
+                    'Viewing Attendance'
+                ]
+            },
+            {
+                'role': 'Parent',
+                'description': 'Monitoring your child\'s progress',
+                'sections': [
+                    'Viewing Child\'s Attendance',
+                    'Checking Grades',
+                    'Fee Payments',
+                    'Communication with Teachers',
+                    'Viewing School Notices'
+                ]
+            }
+        ]
+        
+        # API Documentation
+        context['api_endpoints'] = [
+            {
+                'endpoint': '/api/v1/students/',
+                'method': 'GET',
+                'description': 'List all students (requires authentication)'
+            },
+            {
+                'endpoint': '/api/v1/attendance/',
+                'method': 'POST',
+                'description': 'Submit attendance data'
+            },
+            {
+                'endpoint': '/api/v1/grades/',
+                'method': 'GET',
+                'description': 'Retrieve grade information'
+            },
+            {
+                'endpoint': '/api/v1/fees/',
+                'method': 'GET',
+                'description': 'Retrieve fee information'
+            }
+        ]
+        
+        return context
+
+
+def generate_pdf_documentation(request):
+    """Generate PDF version of the documentation using pdfkit"""
+    try:
+        # Get the context data
+        context = DocumentationView().get_context_data()
+        
+        # Render the HTML template
+        html_string = render_to_string('frontend/documentation_pdf.html', context)
+        
+        # Configure pdfkit options
+        options = {
+            'page-size': 'A4',
+            'margin-top': '20mm',
+            'margin-right': '20mm',
+            'margin-bottom': '20mm',
+            'margin-left': '20mm',
+            'encoding': 'UTF-8',
+            'no-outline': None,
+            'quiet': ''
+        }
+        
+        # Generate PDF
+        pdf = pdfkit.from_string(html_string, False, options=options)
+        
+        # Create HTTP response with PDF
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = 'filename="school_saas_documentation.pdf"'
+        return response
+        
+    except Exception as e:
+        return HttpResponse(f'Error generating PDF: {str(e)}', status=500)
 
 
 class SchoolRegistrationView(View):

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>School SaaS Documentation</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        h2 {
+            color: #3498db;
+            margin: 30px 0 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        h3 {
+            color: #2c3e50;
+            margin: 25px 0 10px;
+        }
+        .card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .feature-item {
+            padding: 15px;
+            border-left: 3px solid #3498db;
+            background-color: #f8f9fa;
+        }
+        .feature-item h4 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 7px;
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 1;
+            color: #fff;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 3px;
+        }
+        .badge-get {
+            background-color: #5bc0de;
+        }
+        .badge-post {
+            background-color: #5cb85c;
+        }
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            text-align: center;
+            color: #7f8c8d;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>School SaaS Documentation</h1>
+        <p>Comprehensive guide to using the School Management System</p>
+        <p><small>Generated on: {% now "F j, Y" %}</small></p>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="card">
+        <h2>Table of Contents</h2>
+        <ol>
+            <li><a href="#introduction">Introduction</a></li>
+            <li><a href="#core-features">Core Features</a></li>
+            <li><a href="#user-guides">User Guides</a></li>
+            <li><a href="#api-documentation">API Documentation</a></li>
+            <li><a href="#getting-started">Getting Started</a></li>
+            <li><a href="#support">Support</a></li>
+        </ol>
+    </div>
+
+    <!-- Introduction -->
+    <div id="introduction" class="card">
+        <h2>1. Introduction</h2>
+        <p>
+            Welcome to the School SaaS documentation. This guide provides comprehensive information about the features,
+            functionality, and usage of the School Management System. Whether you're an administrator, teacher, student,
+            or parent, you'll find the information you need to effectively use the platform.
+        </p>
+    </div>
+
+    <!-- Core Features -->
+    <div id="core-features" class="card">
+        <h2>2. Core Features</h2>
+        <div class="feature-grid">
+            {% for feature in core_features %}
+            <div class="feature-item">
+                <h4>{{ feature.title }}</h4>
+                <p>{{ feature.description }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- User Guides -->
+    <div id="user-guides" class="card">
+        <h2>3. User Guides</h2>
+        {% for guide in user_guides %}
+        <div style="margin-bottom: 20px;">
+            <h3>{{ guide.role }}</h3>
+            <p>{{ guide.description }}</p>
+            <ul>
+                {% for section in guide.sections %}
+                <li>{{ section }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- API Documentation -->
+    <div id="api-documentation" class="card">
+        <h2>4. API Documentation</h2>
+        <p>
+            Our API allows you to integrate with the School Management System programmatically.
+            Below are some of the available endpoints:
+        </p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Endpoint</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for endpoint in api_endpoints %}
+                <tr>
+                    <td><code>{{ endpoint.endpoint }}</code></td>
+                    <td><span class="badge badge-{{ endpoint.method|lower }}">
+                        {{ endpoint.method }}
+                    </span></td>
+                    <td>{{ endpoint.description }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p style="font-style: italic; margin-top: 15px;">
+            For complete API documentation including authentication and request/response formats,
+            please refer to the API Documentation at your school's domain.
+        </p>
+    </div>
+
+    <!-- Getting Started -->
+    <div id="getting-started" class="card">
+        <h2>5. Getting Started</h2>
+        
+        <h3>For School Administrators</h3>
+        <ol>
+            <li>Complete the school registration process</li>
+            <li>Set up your school profile and academic calendar</li>
+            <li>Add staff, teachers, and students to the system</li>
+            <li>Configure academic terms, classes, and subjects</li>
+            <li>Set up the fee structure and payment methods</li>
+        </ol>
+        
+        <h3>For Teachers</h3>
+        <ol>
+            <li>Log in with your credentials</li>
+            <li>Access your class schedule and student lists</li>
+            <li>Record attendance and grades</li>
+            <li>Create and grade assignments</li>
+            <li>Communicate with students and parents</li>
+        </ol>
+        
+        <h3>For Students & Parents</h3>
+        <ol>
+            <li>Log in with your provided credentials</li>
+            <li>View your class schedule and assignments</li>
+            <li>Check grades and attendance</li>
+            <li>Access study materials and resources</li>
+            <li>View fee statements and payment history</li>
+        </ol>
+    </div>
+
+    <!-- Support -->
+    <div id="support" class="card">
+        <h2>6. Need Help?</h2>
+        <p>If you need further assistance, please don't hesitate to contact our support team:</p>
+        <ul>
+            <li><strong>Email:</strong> support@schoolsaas.com</li>
+            <li><strong>Phone:</strong> +1 (555) 123-4567</li>
+            <li><strong>Live Chat:</strong> Available during business hours</li>
+        </ul>
+        <p>Our support team is available Monday to Friday, 9:00 AM to 6:00 PM (EST).</p>
+    </div>
+
+    <div class="footer">
+        <p>© {% now "Y" %} School SaaS. All rights reserved.</p>
+        <p>Documentation generated on {% now "F j, Y" %}</p>
+    </div>
+</body>
+</html>

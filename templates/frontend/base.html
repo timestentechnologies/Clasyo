@@ -234,11 +234,24 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
-                    <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'frontend:home' %}">Home</a></li>
-                    <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'about' %}active{% endif %}" href="{% url 'frontend:about' %}">About</a></li>
-                    <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'pricing' %}active{% endif %}" href="{% url 'frontend:pricing' %}">Pricing</a></li>
-                    <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'faq' %}active{% endif %}" href="{% url 'frontend:faq' %}">FAQ</a></li>
-                    <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'contact' %}active{% endif %}" href="{% url 'frontend:contact' %}">Contact</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'frontend:home' %}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'frontend:documentation' %}">Documentation</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'about' %}active{% endif %}" href="{% url 'frontend:about' %}">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'pricing' %}active{% endif %}" href="{% url 'frontend:pricing' %}">Pricing</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'faq' %}active{% endif %}" href="{% url 'frontend:faq' %}">FAQ</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'contact' %}active{% endif %}" href="{% url 'frontend:contact' %}">Contact</a>
+                    </li>
                     <li class="nav-item ms-2">
                         <button class="btn btn-nav-login" data-bs-toggle="modal" data-bs-target="#loginModal">
                             <i class="fas fa-sign-in-alt me-1"></i> Login
@@ -294,16 +307,18 @@
                     <h6 class="text-white mb-3">Company</h6>
                     <ul class="list-unstyled">
                         <li class="mb-2"><a href="{% url 'frontend:about' %}">About</a></li>
+                        <li class="mb-2"><a href="{% url 'frontend:documentation' %}">Documentation</a></li>
                         <li class="mb-2"><a href="{% url 'frontend:contact' %}">Contact</a></li>
                         <li class="mb-2"><a href="{% url 'frontend:faq' %}">FAQ</a></li>
                     </ul>
                 </div>
                 <div class="col-md-2 mb-4">
-                    <h6 class="text-white mb-3">Legal</h6>
+                    <h6 class="text-white mb-3">Quick Links</h6>
                     <ul class="list-unstyled">
-                        <li class="mb-2"><a href="{% url 'frontend:privacy' %}">Privacy</a></li>
-                        <li class="mb-2"><a href="{% url 'frontend:terms' %}">Terms</a></li>
+                        <li class="mb-2"><a href="{% url 'frontend:privacy' %}">Privacy Policy</a></li>
+                        <li class="mb-2"><a href="{% url 'frontend:terms' %}">Terms of Service</a></li>
                         <li class="mb-2"><a href="{% url 'frontend:license' %}">License</a></li>
+                        <li class="mb-2"><a href="{% url 'frontend:documentation_pdf' %}" target="_blank"><i class="fas fa-file-pdf me-1"></i>Download PDF Guide</a></li>
                     </ul>
                 </div>
                 <div class="col-md-3 mb-4">
