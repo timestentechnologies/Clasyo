@@ -56,5 +56,8 @@ urlpatterns = [
     
     # Impersonation (Login As)
     path('login-as/<int:user_id>/', views.LoginAsView.as_view(), name='login_as'),
-    path('stop-impersonation/', views.StopImpersonationView.as_view(), name='stop_impersonation'),
+    path('impersonate/stop/', views.StopImpersonationView.as_view(), name='stop_impersonation'),
+    
+    # Offline page
+    path('offline/', views.offline_view, name='offline'),
 ]

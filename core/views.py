@@ -3,10 +3,11 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView, D
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.db.models import Count, Q
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
+from django.views.decorators.http import require_GET
 from .models import (
     AcademicYear, Session, Holiday, SystemSetting,
     Notification, ToDoList, CalendarEvent
@@ -814,13 +815,22 @@ class LoginAsView(LoginRequiredMixin, View):
             return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
-class StopImpersonationView(LoginRequiredMixin, View):
+class StopImpersonationView(View):
     """Stop impersonating and return to original admin account"""
-    
+
     def get(self, request, *args, **kwargs):
-        if 'original_user_id' in request.session:
-            del request.session['impersonated_user_id']
-            del request.session['original_user_id']
-            messages.success(request, 'You have returned to your admin account.')
-        
-        return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        if hasattr(request, 'original_user') and request.original_user:
+            from django.contrib.auth import login
+            from django.contrib.auth.models import User
+
+            user = get_object_or_404(User, id=request.original_user)
+            login(request, user)
+            messages.success(request, f'Stopped impersonating {user.get_full_name() or user.username}')
+            return redirect('core:dashboard')
+        return redirect('core:dashboard')
+
+
+@require_GET
+def offline_view(request):
+    """View for offline page"""
+    return render(request, 'offline.html', status=200)

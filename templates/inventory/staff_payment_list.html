@@ -196,13 +196,91 @@
     </div>
 </div>
 
+<!-- JSON data for JavaScript -->
 {{ teachers_json|json_script:"teachers-data" }}
 {{ staff_json|json_script:"staff-data" }}
 
+<!-- Debug data (hidden by default) -->
+<div id="debug-data" style="display: none;">
+    <div>Teachers JSON: {{ teachers_json|safe }}</div>
+    <div>Staff JSON: {{ staff_json|safe }}</div>
+</div>
+
 <script>
+// Debug function to check data
+function debugData() {
+    console.log('=== DEBUG START ===');
+    console.log('Teachers element exists:', !!document.getElementById('teachers-data'));
+    console.log('Staff element exists:', !!document.getElementById('staff-data'));
+    
+    const teachersEl = document.getElementById('teachers-data');
+    const staffEl = document.getElementById('staff-data');
+    
+    if (teachersEl) {
+        console.log('Teachers element content:', teachersEl.textContent);
+        try {
+            const teachers = JSON.parse(teachersEl.textContent || '[]');
+            console.log('Parsed teachers:', teachers);
+            console.log('Number of teachers:', teachers.length);
+        } catch (e) {
+            console.error('Error parsing teachers JSON:', e);
+        }
+    }
+    
+    if (staffEl) {
+        console.log('Staff element content:', staffEl.textContent);
+        try {
+            const staff = JSON.parse(staffEl.textContent || '[]');
+            console.log('Parsed staff:', staff);
+            console.log('Number of staff:', staff.length);
+        } catch (e) {
+            console.error('Error parsing staff JSON:', e);
+        }
+    }
+    console.log('=== DEBUG END ===');
+}
+
+// Run debug on page load
+window.addEventListener('DOMContentLoaded', function() {
+    debugData();
+});
 // Parse JSON data from context
-const teachers = JSON.parse(document.getElementById('teachers-data').textContent || '[]');
-const staffMembers = JSON.parse(document.getElementById('staff-data').textContent || '[]');
+const teachersData = document.getElementById('teachers-data');
+const staffData = document.getElementById('staff-data');
+
+// Initialize with empty arrays
+let teachers = [];
+let staffMembers = [];
+
+// Function to safely parse JSON data
+function parseJsonData(element, defaultValue = []) {
+    if (!element || !element.textContent) {
+        console.warn('No data element found or empty');
+        return defaultValue;
+    }
+    
+    try {
+        const data = JSON.parse(element.textContent);
+        return Array.isArray(data) ? data : [data];
+    } catch (e) {
+        console.error('Error parsing JSON data:', e);
+        return defaultValue;
+    }
+}
+
+// Parse the data
+try {
+    teachers = parseJsonData(teachersData);
+    staffMembers = parseJsonData(staffData);
+    
+    console.log('Successfully parsed teachers data:', teachers);
+    console.log('Successfully parsed staff data:', staffMembers);
+} catch (e) {
+    console.error('Error initializing data:', e);
+}
+
+console.log('Teachers count:', teachers.length);
+console.log('Staff count:', staffMembers.length);
 
 const staffTypeSelect = document.getElementById('staff_type');
 const staffSelect = document.getElementById('staff_select');
@@ -220,46 +298,93 @@ function resetSalaryFields() {
 }
 
 function populateStaffOptions(type) {
-    staffSelect.innerHTML = '<option value=\"\">Select Staff/Teacher</option>';
-    let data = [];
-    
-    if (type === 'teacher') {
-        data = Array.isArray(teachers) ? teachers : [];
-    } else if (type === 'staff') {
-        data = Array.isArray(staffMembers) ? staffMembers : [];
+    console.log('Populating staff options for type:', type);
+    if (!staffSelect) {
+        console.error('staffSelect element not found!');
+        return;
     }
     
-    if (!data.length) {
+    staffSelect.innerHTML = '<option value="">Select ' + (type === 'teacher' ? 'Teacher' : 'Staff') + '</option>';
+    
+    // Get the appropriate data based on type
+    const data = type === 'teacher' ? teachers : 
+                (type === 'staff' ? staffMembers : []);
+    
+    console.log('Data for', type, ':', data);
+    
+    if (!data || data.length === 0) {
         const option = document.createElement('option');
         option.value = '';
         option.disabled = true;
-        option.textContent = 'No records available';
+        option.textContent = 'No ' + (type === 'teacher' ? 'teachers' : 'staff members') + ' found';
         staffSelect.appendChild(option);
+        console.warn('No data found for type:', type);
         resetSalaryFields();
         return;
     }
     
+    // Add each person to the dropdown
+    let addedCount = 0;
     data.forEach(person => {
-        const option = document.createElement('option');
-        const firstName = person.first_name || '';
-        const lastName = person.last_name || '';
-        const employeeId = person.employee_id || 'N/A';
-        const fullName = (firstName + ' ' + lastName).trim();
-        
-        option.value = person.id;
-        option.textContent = fullName + ' (' + employeeId + ')';
-        option.dataset.name = fullName;
-        option.dataset.basicSalary = person.basic_salary || 0;
-        option.dataset.allowances = person.allowances || 0;
-        staffSelect.appendChild(option);
+        try {
+            // Ensure required fields exist
+            if (!person || typeof person !== 'object') {
+                console.warn('Invalid person data:', person);
+                return;
+            }
+            
+            const option = document.createElement('option');
+            const firstName = person.first_name || '';
+            const lastName = person.last_name || '';
+            const employeeId = person.employee_id || '';
+            const fullName = (firstName + ' ' + lastName).trim();
+            const displayText = employeeId ? 
+                `${fullName} (${employeeId})` : 
+                fullName || 'Unknown';
+            
+            // Ensure we have a valid ID
+            if (!person.id && !person.pk) {
+                console.warn('Person missing ID:', person);
+                return;
+            }
+            
+            option.value = person.id || person.pk; // Handle both id and pk
+            option.textContent = displayText;
+            option.dataset.name = fullName;
+            option.dataset.basicSalary = person.basic_salary || 0;
+            option.dataset.allowances = person.allowances || 0;
+            
+            staffSelect.appendChild(option);
+            addedCount++;
+        } catch (error) {
+            console.error('Error processing staff/teacher:', person, error);
+        }
     });
+    
+    console.log(`Added ${addedCount} ${type} to dropdown`);
     
     resetSalaryFields();
 }
 
-staffTypeSelect.addEventListener('change', function() {
-    populateStaffOptions(this.value);
-});
+// Initialize the staff type dropdown
+if (staffTypeSelect) {
+    staffTypeSelect.addEventListener('change', function() {
+        const selectedType = this.value;
+        console.log('Staff type changed to:', selectedType);
+        populateStaffOptions(selectedType);
+    });
+    
+    // If there are teachers, select teacher by default
+    if (teachers && teachers.length > 0) {
+        staffTypeSelect.value = 'teacher';
+        staffTypeSelect.dispatchEvent(new Event('change'));
+    } 
+    // Otherwise, if there are staff members, select staff
+    else if (staffMembers && staffMembers.length > 0) {
+        staffTypeSelect.value = 'staff';
+        staffTypeSelect.dispatchEvent(new Event('change'));
+    }
+}
 
 staffSelect.addEventListener('change', function() {
     const selected = this.options[this.selectedIndex];
