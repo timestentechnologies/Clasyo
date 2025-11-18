@@ -7,6 +7,94 @@
 {% block page_subtitle %}Track all school expenses and payments{% endblock %}
 
 {% block content %}
+<style>
+    /* Expense type colors */
+    .bg-salary-light { background-color: rgba(46, 204, 113, 0.1) !important; }
+    .bg-supplies-light { background-color: rgba(52, 152, 219, 0.1) !important; }
+    .bg-maintenance-light { background-color: rgba(155, 89, 182, 0.1) !important; }
+    
+    [data-theme="dark"] .bg-salary-light,
+    .theme-dark .bg-salary-light { 
+        background-color: rgba(46, 204, 113, 0.15) !important; 
+    }
+    
+    [data-theme="dark"] .bg-supplies-light,
+    .theme-dark .bg-supplies-light { 
+        background-color: rgba(52, 152, 219, 0.15) !important; 
+    }
+    
+    [data-theme="dark"] .bg-maintenance-light,
+    .theme-dark .bg-maintenance-light { 
+        background-color: rgba(155, 89, 182, 0.15) !important; 
+    }
+    .text-salary { color: #2ecc71 !important; }
+    .text-supplies { color: #3498db !important; }
+    .text-maintenance { color: #9b59b6 !important; }
+    
+    /* Icon circle */
+    .icon-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Dark theme overrides */
+    [data-theme="dark"] .modern-card,
+    .theme-dark .modern-card {
+        background: var(--bg-dark-card);
+        border: 1px solid var(--border-dark);
+    }
+    
+    [data-theme="dark"] .modern-card .text-muted,
+    .theme-dark .modern-card .text-muted {
+        color: #a0aec0 !important; /* Lighter gray for better visibility */
+    }
+    
+    [data-theme="dark"] .table,
+    .theme-dark .table {
+        color: var(--text-primary);
+    }
+    
+    [data-theme="dark"] .table th,
+    .theme-dark .table th {
+        background-color: var(--primary-navy);
+        color: #fff;
+        border-color: var(--border-dark);
+    }
+    
+    [data-theme="dark"] .table td,
+    .theme-dark .table td {
+        border-color: var(--border-dark);
+        color: #e2e8f0; /* Lighter text for better contrast */
+    }
+    
+    [data-theme="dark"] .badge.bg-light,
+    .theme-dark .badge.bg-light {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        color: #e2e8f0 !important; /* Lighter text for badges */
+    }
+    
+    /* Ensure text is visible in both themes */
+    .modern-card {
+        color: var(--text-primary);
+    }
+    
+    .modern-card h1, 
+    .modern-card h2, 
+    .modern-card h3, 
+    .modern-card h4, 
+    .modern-card h5, 
+    .modern-card h6 {
+        color: var(--text-primary);
+    }
+    
+    .modern-card .text-muted {
+        color: var(--text-muted) !important;
+    }
+</style>
 <div class="d-flex justify-content-end mb-3">
     <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
         <i class="fas fa-plus"></i> Add Expense
@@ -20,21 +108,45 @@
 </div>
 
     <!-- Expense Summary Cards -->
-    <div class="row mb-4">
+    <div class="row mb-4 g-3">
         <div class="col-md-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h5>Total Expenses</h5>
-                    <h2>${{ total_expenses|floatformat:2 }}</h2>
+            <div class="modern-card h-100">
+                <div class="p-4 d-flex flex-column h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0 text-muted">Total Expenses</h5>
+                        <div class="icon-circle bg-primary-light">
+                            <i class="fas fa-receipt text-primary"></i>
+                        </div>
+                    </div>
+                    <h2 class="mb-0">Ksh{{ total_expenses|floatformat:2 }}</h2>
+                    <div class="mt-auto pt-3 text-muted small">
+                        <i class="fas fa-calendar-alt me-1"></i> All time
+                    </div>
                 </div>
             </div>
         </div>
         {% for summary in expense_summary %}
         <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h6 class="text-muted">{{ summary.expense_type|title }}</h6>
-                    <h4>${{ summary.total|floatformat:2 }}</h4>
+            <div class="modern-card h-100">
+                <div class="p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0 text-muted">{{ summary.expense_type|title }}</h6>
+                        <span class="badge bg-{{ summary.expense_type|lower }}-light text-{{ summary.expense_type|lower }}">
+                            {% if summary.expense_type == 'salary' %}
+                                <i class="fas fa-users"></i>
+                            {% elif summary.expense_type == 'supplies' %}
+                                <i class="fas fa-box"></i>
+                            {% elif summary.expense_type == 'maintenance' %}
+                                <i class="fas fa-tools"></i>
+                            {% else %}
+                                <i class="fas fa-receipt"></i>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <h4 class="mb-0">Ksh{{ summary.total|floatformat:2 }}</h4>
+                    <div class="mt-2">
+                        <span class="badge bg-light text-muted">{{ summary.count }} transactions</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -43,7 +155,7 @@
 
 <div class="modern-card">
     <div class="table-responsive">
-            <table class="table table-hover">
+        <table class="table table-hover align-middle">
                 <thead>
                     <tr>
                         <th>Expense #</th>
@@ -79,7 +191,7 @@
                         <td>{{ expense.description }}</td>
                         <td>{{ expense.payee_name }}</td>
                         <td>{{ expense.get_payment_method_display }}</td>
-                        <td><strong>${{ expense.amount }}</strong></td>
+                        <td><strong>Ksh{{ expense.amount|floatformat:2 }}</strong></td>
                         <td>{{ expense.reference_number|default:"-" }}</td>
                     </tr>
                     {% empty %}
@@ -91,7 +203,7 @@
                 <tfoot>
                     <tr class="table-primary">
                         <th colspan="6" class="text-end">Total:</th>
-                        <th colspan="2">${{ total_expenses|floatformat:2 }}</th>
+                        <th colspan="2">Ksh{{ total_expenses|floatformat:2 }}</th>
                     </tr>
                 </tfoot>
             </table>

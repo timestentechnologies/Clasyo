@@ -105,13 +105,13 @@
         {% if user.role in 'admin,teacher' %}
         <div class="menu-section-title">Academic</div>
         
-        <li class="{% if '/students/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/students/">
+        <li class="{% if '/students/' in request.path and '/parents/' not in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/students/">
             <i class="fas fa-user-graduate"></i>
             <span>Students</span>
         </a></li>
 
         {% if user.role == 'admin' %}
-        <li class="{% if '/parents/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/students/parents/">
+        <li class="{% if '/students/parents/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/students/parents/">
             <i class="fas fa-users"></i>
             <span>Parents</span>
         </a></li>

@@ -1,5 +1,6 @@
 /* Modern School Management System - Cool & Calm Design */
 
+/* Light Theme (Default) */
 :root {
     --primary-navy: #1E3A5F;
     --secondary-navy: #2C5282;
@@ -10,13 +11,94 @@
     --accent-green: #4CAF50;
     --bg-light: #F5F7FA;
     --bg-white: #FFFFFF;
-    --text-dark: #2D3748;
+    --card-bg: #FFFFFF;
+    --text-primary: #2D3748;
+    --text-secondary: #4A5568;
     --text-muted: #718096;
     --border-light: #E2E8F0;
     --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
     --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
     --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
     --shadow-xl: 0 20px 25px rgba(0,0,0,0.15);
+}
+
+/* Dark Theme */
+[data-theme="dark"],
+.theme-dark {
+    --primary-navy: #2C5282;
+    --secondary-navy: #1E3A5F;
+    --bg-light: #1A202C;
+    --bg-white: #2D3748;
+    --card-bg: #2D3748;
+    --text-primary: #F7FAFC;
+    --text-secondary: #E2E8F0;
+    --text-muted: #A0AEC0;
+    --border-light: #4A5568;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.2);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.25);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.3);
+    --shadow-xl: 0 20px 25px rgba(0,0,0,0.35);
+    
+    /* Ensure text is visible in dark mode */
+    color: var(--text-primary);
+    
+    /* Modern card styling for dark theme */
+    .modern-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-light);
+        color: var(--text-primary);
+    }
+    
+    /* List group items in dark theme */
+    .list-group-item {
+        background-color: var(--bg-white);
+        border-color: var(--border-light);
+        color: var(--text-primary);
+        
+        &:hover, &:focus {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        &.active {
+            background-color: var(--primary-navy);
+            border-color: var(--primary-navy);
+        }
+    }
+    
+    /* Text colors for dark theme */
+    .text-body {
+        color: var(--text-primary) !important;
+    }
+    
+    .text-body-secondary {
+        color: var(--text-muted) !important;
+    }
+    
+    .text-body-tertiary {
+        color: var(--text-muted) !important;
+        opacity: 0.7;
+    }
+    
+    /* Quick tasks styling */
+    .quick-tasks .list-group-item {
+        background: transparent;
+        border: none;
+        border-left: 3px solid transparent;
+        transition: all 0.2s ease;
+        
+        &:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-left-color: var(--accent-cyan);
+        }
+        
+        i {
+            transition: transform 0.2s ease;
+        }
+        
+        &:hover i {
+            transform: scale(1.1);
+        }
+    }
 }
 
 * {
@@ -28,8 +110,9 @@
 body {
     font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
     background: var(--bg-light);
-    color: var(--text-dark);
+    color: var(--text-primary);
     line-height: 1.6;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Modern Sidebar */
@@ -201,6 +284,44 @@ body {
     gap: 16px;
 }
 
+/* Theme Toggle Button */
+#theme-toggle {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: none;
+    background: var(--bg-white);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+#theme-toggle:hover {
+    background: var(--primary-navy);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+#theme-toggle i {
+    font-size: 1.1rem;
+    transition: transform 0.3s ease;
+}
+
+[data-theme="dark"] #theme-toggle {
+    background: var(--card-bg);
+    color: var(--accent-cyan);
+}
+
+[data-theme="dark"] #theme-toggle:hover {
+    background: var(--primary-navy);
+    color: white;
+}
+
 .nav-icon-btn {
     width: 40px;
     height: 40px;
@@ -239,6 +360,44 @@ body {
     font-size: 10px;
     font-weight: 600;
     transition: all 0.3s ease;
+}
+
+/* Theme Toggle */
+.theme-toggle {
+    position: relative;
+    display: inline-block;
+}
+
+.theme-checkbox {
+    display: none;
+}
+
+.theme-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    color: var(--text-primary);
+}
+
+.theme-label:hover {
+    background-color: var(--border-light);
+}
+
+[data-theme="dark"] .theme-label {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .theme-label:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.theme-icon {
+    font-size: 1.1rem;
 }
 
 .user-profile-nav {
@@ -306,18 +465,85 @@ body {
 }
 
 .page-subtitle {
-    color: var(--text-muted);
-    font-size: 14px;
+color: var(--text-muted);
+font-size: 14px;
+}
+
+/* Admin Dashboard Styles */
+/* Card Headers */
+.card-title-modern {
+display: flex;
+align-items: center;
+gap: 0.75rem;
+font-size: 1.25rem;
+font-weight: 600;
+color: var(--text-primary);
+margin: 0 0 1.5rem 0;
+padding-bottom: 0.75rem;
+border-bottom: 1px solid var(--border-light);
+}
+
+.card-title-modern i {
+font-size: 1.1em;
+color: var(--accent-cyan);
+}
+
+/* Event List Items */
+.event-time {
+min-width: 100px;
+flex-shrink: 0;
+text-align: center;
+}
+
+.event-time .badge {
+padding: 0.4em 0.8em;
+font-size: 0.85em;
+font-weight: 500;
+border-radius: 6px;
+}
+
+.event-details h6 {
+font-weight: 500;
+color: var(--text-primary);
+margin: 0 0 0.25rem 0;
+}
+
+.event-details small {
+font-size: 0.85em;
+color: var(--text-muted);
+display: block;
+line-height: 1.4;
+}
+
+/* Dark Theme Adjustments */
+[data-theme="dark"] .card-title-modern,
+.theme-dark .card-title-modern {
+color: #ffffff;
+border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .event-details h6,
+.theme-dark .event-details h6 {
+color: #ffffff;
+}
+
+[data-theme="dark"] .event-details small,
+.theme-dark .event-details small {
+color: rgba(255, 255, 255, 0.7);
 }
 
 /* Modern Cards */
 .modern-card {
-    background: var(--bg-white);
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: var(--shadow-sm);
-    transition: all 0.3s ease;
-    border: 1px solid var(--border-light);
+background: var(--card-bg);
+border: 1px solid var(--border-light);
+border-radius: 12px;
+box-shadow: var(--shadow-sm);
+transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s ease, border-color 0.3s ease;
+overflow: hidden;
+color: var(--text-primary);
+    transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s ease, border-color 0.3s ease;
+    overflow: hidden;
+    color: var(--text-primary);
 }
 
 .modern-card:hover {
@@ -341,6 +567,33 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+.modern-card h4 {
+    color: var(--text-primary) !important;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+[data-theme="dark"] .modern-card h4,
+.theme-dark .modern-card h4 {
+    color: #ffffff !important;
+}
+
+.modern-card > h4 {
+    color: var(--text-primary);
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+[data-theme="dark"] .modern-card > h4,
+.theme-dark .modern-card > h4 {
+    color: #ffffff !important;
+    border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Stats Cards - Simplified Colors */
@@ -417,14 +670,159 @@ body {
     border-radius: 12px;
     overflow: hidden;
     box-shadow: var(--shadow-sm);
-    background: white;
+    background: var(--bg-white);
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    /* Force table to respect theme colors */
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--text-primary);
+    --bs-table-striped-bg: var(--bg-light);
+    --bs-table-hover-bg: rgba(77, 208, 225, 0.1);
+}
+
+/* Ensure table cells inherit the correct colors */
+.table td,
+.table th {
+    color: inherit;
+    background-color: inherit;
+}
+
+/* Table cells and headers */
+.table > :not(caption) > * > * {
+    padding: 0.75rem;
+    background-color: transparent;
+    border-bottom-width: 1px;
+    box-shadow: inset 0 0 0 9999px transparent;
+}
+
+/* Table striped rows */
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+    --bs-table-accent-bg: var(--bg-light);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > * {
+    --bs-table-accent-bg: rgba(255, 255, 255, 0.05);
+}
+
+/* Table hover effect */
+.table-hover > tbody > tr:hover > * {
+    --bs-table-accent-bg: rgba(77, 208, 225, 0.1);
+    color: var(--text-primary);
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"],
+.theme-dark {
+    --table-bg: var(--card-bg);
+    --table-color: var(--text-primary);
+    --table-border-color: var(--border-light);
+    --table-striped-bg: rgba(255, 255, 255, 0.05);
+    --table-hover-bg: rgba(255, 255, 255, 0.1);
+    
+    /* Override Bootstrap's table variables */
+    --bs-table-bg: var(--card-bg);
+    --bs-table-color: var(--text-primary);
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.05);
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.1);
+    --bs-table-border-color: var(--border-light);
+}
+
+/* Apply dark theme to tables */
+[data-theme="dark"] .table,
+.theme-dark .table,
+[data-theme="dark"] .table-striped,
+.theme-dark .table-striped,
+[data-theme="dark"] .table-hover,
+.theme-dark .table-hover {
+    background: var(--table-bg);
+    color: var(--table-color);
+}
+
+/* Table cells and data */
+[data-theme="dark"] .table td,
+.theme-dark .table td,
+[data-theme="dark"] .table th:not(thead th),
+.theme-dark .table th:not(thead th) {
+    color: var(--table-color) !important;
+    border-color: var(--table-border-color) !important;
+    background-color: transparent !important;
+}
+
+/* Table rows */
+[data-theme="dark"] .table tbody tr,
+.theme-dark .table tbody tr {
+    --bs-table-bg: transparent;
+    background-color: transparent !important;
+}
+
+/* Striped rows in dark mode */
+[data-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > *,
+.theme-dark .table-striped > tbody > tr:nth-of-type(odd) > * {
+    --bs-table-accent-bg: var(--table-striped-bg) !important;
+    background-color: var(--table-striped-bg) !important;
+}
+
+/* Hover effect in dark mode */
+[data-theme="dark"] .table-hover > tbody > tr:hover > *,
+.theme-dark .table-hover > tbody > tr:hover > * {
+    --bs-table-accent-bg: var(--table-hover-bg) !important;
+    background-color: var(--table-hover-bg) !important;
+}
+
+/* Table header - Force dark theme */
+[data-theme="dark"] .table thead th,
+.theme-dark .table thead th,
+[data-theme="dark"] .table thead tr th,
+.theme-dark .table thead tr th,
+[data-theme="dark"] .table thead > tr > th,
+.theme-dark .table thead > tr > th {
+    background-color: var(--table-bg) !important;
+    color: var(--table-color) !important;
+    border-bottom: 2px solid var(--table-border-color) !important;
+}
+
+/* Override Bootstrap's default thead styles */
+[data-theme="dark"] .table thead,
+.theme-dark .table thead {
+    background-color: var(--table-bg) !important;
+}
+
+/* Ensure all th elements in dark theme */
+[data-theme="dark"] th,
+.theme-dark th {
+    background-color: var(--table-bg) !important;
+    color: var(--table-color) !important;
+}
+
+/* Table body */
+[data-theme="dark"] .table tbody td,
+.theme-dark .table tbody td,
+[data-theme="dark"] .table tbody tr td,
+.theme-dark .table tbody tr td {
+    background-color: transparent !important;
+    color: var(--table-color) !important;
+}
+
+/* Striped rows */
+[data-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > *,
+.theme-dark .table-striped > tbody > tr:nth-of-type(odd) > * {
+    --bs-table-accent-bg: var(--table-striped-bg);
+    color: var(--table-color);
+}
+
+/* Hover effect */
+[data-theme="dark"] .table-hover > tbody > tr:hover > *,
+.theme-dark .table-hover > tbody > tr:hover > * {
+    --bs-table-accent-bg: var(--table-hover-bg);
+    color: var(--table-color);
 }
 
 .modern-table thead th,
 .table thead th,
 .table-dark {
-    background: var(--bg-white) !important;
-    color: var(--text-dark) !important;
+    background: var(--bg-white);
+    color: var(--text-dark);
     font-weight: 600;
     font-size: 13px;
     text-transform: uppercase;
@@ -435,6 +833,25 @@ body {
     position: relative;
     cursor: pointer;
     user-select: none;
+    /* Force header colors in light theme */
+    --bs-table-bg: var(--bg-white) !important;
+    --bs-table-color: var(--text-dark) !important;
+}
+
+/* Dark theme table headers */
+[data-theme="dark"] .table thead th,
+.theme-dark .table thead th {
+    background: var(--table-bg) !important;
+    color: var(--table-color) !important;
+    --bs-table-bg: var(--table-bg) !important;
+    --bs-table-color: var(--table-color) !important;
+}
+
+/* Ensure light theme headers are properly colored */
+[data-theme="light"] .table thead th,
+.theme-light .table thead th {
+    background: var(--bg-white);
+    color: var(--text-dark);
 }
 
 .modern-table thead th:hover,

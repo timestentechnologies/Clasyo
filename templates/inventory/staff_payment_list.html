@@ -7,6 +7,79 @@
 {% block page_subtitle %}Process and manage salary payments{% endblock %}
 
 {% block content %}
+<style>
+    /* Payment Summary Styles */
+    .payment-summary {
+        background: var(--bg-white);
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s ease;
+        border: 1px solid var(--border-light);
+        height: 100%;
+    }
+    
+    .payment-summary-title {
+        color: var(--text-secondary);
+        font-size: 1rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+    
+    .payment-summary-amount {
+        color: var(--primary-navy);
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.2;
+    }
+    
+    .payment-summary-icon {
+        color: var(--accent-cyan);
+        opacity: 0.8;
+    }
+    
+    /* Dark mode overrides */
+    [data-theme="dark"] .payment-summary,
+    .theme-dark .payment-summary {
+        background: var(--bg-white);
+        border-color: var(--border-light);
+    }
+    
+    [data-theme="dark"] .payment-summary-title,
+    .theme-dark .payment-summary-title {
+        color: var(--text-muted);
+    }
+    
+    [data-theme="dark"] .payment-summary-amount,
+    .theme-dark .payment-summary-amount {
+        color: var(--accent-cyan);
+    }
+    
+    /* Table styles */
+    .table th {
+        background-color: var(--primary-navy);
+        color: white;
+        font-weight: 500;
+        border: none;
+    }
+    
+    .table td {
+        color: var(--text-primary);
+        vertical-align: middle;
+    }
+    
+    /* Status badges */
+    .badge {
+        font-weight: 500;
+        padding: 0.4em 0.8em;
+    }
+    
+    /* Action buttons */
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+</style>
 <div class="d-flex justify-content-end mb-3">
     <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addPaymentModal">
         <i class="fas fa-plus"></i> Process Payment
@@ -19,13 +92,16 @@
     </a>
 </div>
 
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="alert alert-success">
-                        <h5>Total Paid</h5>
-                        <h2>${{ total_payments|floatformat:2 }}</h2>
+    <div class="modern-card mb-4">
+        <div class="p-3">
+            <div class="payment-summary">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="payment-summary-title mb-1">Total Paid</h5>
+                        <h2 class="payment-summary-amount mb-0">Ksh{{ total_payments|floatformat:2 }}</h2>
+                    </div>
+                    <div class="payment-summary-icon">
+                        <i class="fas fa-wallet fa-2x"></i>
                     </div>
                 </div>
             </div>
@@ -63,10 +139,10 @@
                             {% endif %}
                         </td>
                         <td>{{ payment.payment_month|date:"M Y" }}</td>
-                        <td>${{ payment.basic_salary }}</td>
-                        <td>${{ payment.allowances }}</td>
-                        <td>${{ payment.deductions }}</td>
-                        <td><strong>${{ payment.net_salary }}</strong></td>
+                        <td>Ksh{{ payment.basic_salary|floatformat:2 }}</td>
+                        <td>Ksh{{ payment.allowances|floatformat:2 }}</td>
+                        <td>Ksh{{ payment.deductions|floatformat:2 }}</td>
+                        <td><strong>Ksh{{ payment.net_salary|floatformat:2 }}</strong></td>
                         <td>{{ payment.payment_date }}</td>
                         <td>
                             {% if payment.status == 'paid' %}

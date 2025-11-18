@@ -6,10 +6,124 @@
 {% block page_title %}Dormitory Management{% endblock %}
 {% block page_subtitle %}Manage dormitories and rooms{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Dormitory card styles */
+    .dormitory-card {
+        transition: all 0.3s ease;
+        height: 100%;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+    
+    [data-theme="dark"] .dormitory-card,
+    .theme-dark .dormitory-card {
+        background: #2d3748;
+        border-color: #4a5568;
+    }
+    
+    .dormitory-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border-color: var(--primary);
+    }
+    
+    .dormitory-card .card-body {
+        color: #4a5568;
+        padding: 1.25rem;
+    }
+    
+    [data-theme="dark"] .dormitory-card .card-body,
+    .theme-dark .dormitory-card .card-body {
+        color: #e2e8f0;
+    }
+    
+    .dormitory-card .card-title {
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+    
+    [data-theme="dark"] .dormitory-card .card-title,
+    .theme-dark .dormitory-card .card-title {
+        color: #f7fafc;
+    }
+    
+    /* Quick links section */
+    .modern-card .card-body {
+        background: transparent;
+    }
+    
+    /* Quick links styling */
+    .quick-links .list-group-item {
+        background: #fff;
+        border: none;
+        border-bottom: 1px solid #e2e8f0;
+        color: #4a5568;
+        transition: all 0.2s ease;
+        padding: 0.75rem 1.25rem;
+        border-radius: 0;
+    }
+    
+    [data-theme="dark"] .quick-links .list-group-item,
+    .theme-dark .quick-links .list-group-item {
+        background: #2d3748;
+        border-color: #4a5568 !important;
+        color: #e2e8f0;
+    }
+    
+    [data-theme="dark"] .modern-card .card-body,
+    .theme-dark .modern-card .card-body {
+        background: #2d3748;
+    }
+    
+    .quick-links .list-group-item:hover {
+        background: #f7fafc;
+        color: var(--primary);
+    }
+    
+    [data-theme="dark"] .quick-links .list-group-item:hover,
+    .theme-dark .quick-links .list-group-item:hover {
+        background: #4a5568;
+    }
+    
+    /* Empty state */
+    .empty-state {
+        color: #a0aec0;
+        padding: 2rem 1rem;
+    }
+    
+    [data-theme="dark"] .empty-state,
+    .theme-dark .empty-state {
+        color: #a0aec0;
+    }
+    
+    /* Modern card styling */
+    .modern-card {
+        background: #fff;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+    
+    [data-theme="dark"] .modern-card,
+    .theme-dark .modern-card {
+        background: #2d3748;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.25);
+    }
+    
+    .modern-card .card-body {
+        padding: 1.5rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-lg-12">
-        <div class="card border-0 shadow-sm">
+        <div class="modern-card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="mb-0 fw-bold"><i class="fas fa-building text-primary me-2"></i>Dormitories</h5>
@@ -22,7 +136,7 @@
                 <div class="row g-4">
                     {% for dormitory in dormitories %}
                     <div class="col-lg-4 col-md-6">
-                        <div class="card border h-100">
+                        <div class="card h-100 dormitory-card">
                             <div class="card-body">
                                 <h5 class="card-title">{{ dormitory.name }}</h5>
                                 <p class="text-muted small">{{ dormitory.dormitory_type }}</p>
@@ -39,7 +153,7 @@
                     {% endfor %}
                 </div>
                 {% else %}
-                <div class="text-center py-5">
+                <div class="text-center py-5 empty-state">
                     <i class="fas fa-bed fa-4x text-muted mb-3"></i>
                     <h5 class="text-muted">No dormitories found</h5>
                     <p>Add your first dormitory to get started</p>
@@ -48,10 +162,12 @@
             </div>
         </div>
 
-        <div class="card border-0 shadow-sm mt-4">
-            <div class="card-body">
-                <h5 class="mb-3 fw-bold"><i class="fas fa-door-open text-success me-2"></i>Quick Links</h5>
-                <div class="list-group list-group-flush">
+        <div class="modern-card mt-4">
+            <div class="card-body p-0">
+                <div class="p-4 border-bottom" style="border-color: var(--border-color) !important;">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-door-open text-success me-2"></i>Quick Links</h5>
+                </div>
+                <div class="list-group list-group-flush quick-links">
                     <a href="{% url 'dormitory:rooms' school_slug=school_slug %}" class="list-group-item list-group-item-action">
                         <i class="fas fa-door-open me-2"></i> Manage Rooms
                     </a>

@@ -163,23 +163,23 @@
         <table>
             <tr>
                 <td class="label">Basic Salary</td>
-                <td class="value">${{ payment.basic_salary }}</td>
+                <td class="value">Ksh{{ payment.basic_salary|floatformat:2 }}</td>
             </tr>
             <tr>
                 <td class="label">Allowances</td>
-                <td class="value">+${{ payment.allowances }}</td>
+                <td class="value">+Ksh{{ payment.allowances|floatformat:2 }}</td>
             </tr>
             <tr>
                 <td class="label">Gross Salary</td>
-                <td class="value"><strong>${{ payment.basic_salary|add:payment.allowances }}</strong></td>
+                <td class="value"><strong>Ksh{{ payment.basic_salary|add:payment.allowances|floatformat:2 }}</strong></td>
             </tr>
             <tr>
                 <td class="label">Deductions</td>
-                <td class="value">-${{ payment.deductions }}</td>
+                <td class="value">-Ksh{{ payment.deductions|floatformat:2 }}</td>
             </tr>
             <tr class="total-row">
                 <td class="label">NET SALARY</td>
-                <td class="value">${{ payment.net_salary }}</td>
+                <td class="value">Ksh{{ payment.net_salary|floatformat:2 }}</td>
             </tr>
         </table>
     </div>

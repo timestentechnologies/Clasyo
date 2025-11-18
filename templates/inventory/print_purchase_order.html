@@ -180,8 +180,8 @@
                 <td>{{ item.item.name }}</td>
                 <td>{{ item.item.unit }}</td>
                 <td class="text-right">{{ item.quantity }}</td>
-                <td class="text-right">${{ item.unit_price }}</td>
-                <td class="text-right">${{ item.total }}</td>
+                <td class="text-right">Ksh{{ item.unit_price|floatformat:2 }}</td>
+                <td class="text-right">Ksh{{ item.total|floatformat:2 }}</td>
             </tr>
             {% empty %}
             <tr>
@@ -195,17 +195,17 @@
         <table>
             <tr>
                 <td>Subtotal:</td>
-                <td class="text-right">${{ purchase_order.subtotal }}</td>
+                <td class="text-right">Ksh{{ purchase_order.subtotal|floatformat:2 }}</td>
             </tr>
             {% if purchase_order.tax_amount > 0 %}
             <tr>
                 <td>Tax:</td>
-                <td class="text-right">${{ purchase_order.tax_amount }}</td>
+                <td class="text-right">Ksh{{ purchase_order.tax_amount|floatformat:2 }}</td>
             </tr>
             {% endif %}
             <tr class="total-row">
                 <td>TOTAL:</td>
-                <td class="text-right">${{ purchase_order.total_amount }}</td>
+                <td class="text-right">Ksh{{ purchase_order.total_amount|floatformat:2 }}</td>
             </tr>
         </table>
     </div>
