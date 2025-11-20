@@ -7,10 +7,82 @@ from django.http import HttpResponse, JsonResponse, Http404
 from django.utils import timezone
 from django.db.models import Q, Count, Sum, Avg
 from django.utils.translation import gettext as _
+from django.views.decorators.http import require_http_methods, require_GET
+from django.db.models.functions import Concat
+from django.db.models import Value as V
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 from .models import BookCategory, Publisher, Author, Book, BookCopy, BookIssue
 from students.models import Student
 from django import forms
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class GetAvailableCopiesView(LoginRequiredMixin, View):
+    """View to get available copies of a book"""
+    
+    def get(self, request, school_slug, *args, **kwargs):
+        book_id = request.GET.get('book')
+        if not book_id:
+            return JsonResponse({'error': 'Book ID is required'}, status=400)
+            
+        try:
+            book = Book.objects.get(id=book_id, school=request.school)
+            available_copies = book.copies.filter(status='available')
+            
+            copies_data = [{
+                'id': copy.id,
+                'accession_number': copy.accession_number,
+                'condition': copy.get_condition_display(),
+                'status': copy.get_status_display()
+            } for copy in available_copies]
+            
+            return JsonResponse({
+                'success': True,
+                'book': {
+                    'id': book.id,
+                    'title': book.title,
+                    'available_quantity': book.available_quantity,
+                    'total_quantity': book.quantity
+                },
+                'copies': copies_data
+            })
+            
+        except Book.DoesNotExist:
+            return JsonResponse({'error': 'Book not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+class BookAutocompleteView(LoginRequiredMixin, View):
+    """View for book autocomplete search"""
+    
+    def get(self, request, *args, **kwargs):
+        school_slug = self.kwargs.get('school_slug')
+        query = request.GET.get('q', '').strip()
+        
+        if not query:
+            return JsonResponse({'results': []})
+            
+        # Search in title, author, or ISBN
+        books = Book.objects.filter(
+            Q(title__icontains=query) |
+            Q(authors__name__icontains=query) |
+            Q(isbn__iexact=query),
+            school__slug=school_slug
+        ).distinct()[:10]  # Limit to 10 results
+        
+        results = [{
+            'id': book.id,
+            'text': f"{book.title} - {', '.join([str(a) for a in book.authors.all()])} ({book.isbn})",
+            'title': book.title,
+            'authors': ', '.join([str(a) for a in book.authors.all()]),
+            'isbn': book.isbn,
+            'available': book.available_quantity > 0
+        } for book in books]
+        
+        return JsonResponse({'results': results})
 
 
 class LibraryDashboardView(LoginRequiredMixin, TemplateView):

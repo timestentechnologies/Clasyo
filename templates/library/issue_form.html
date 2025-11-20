@@ -1,0 +1,282 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static crispy_forms_tags %}
+
+{% block title %}{{ title }} - {{ school.name }}{% endblock %}
+{% block page_icon %}book-open{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}{% if form.instance.pk %}Update book issue details{% else %}Issue a new book to a student{% endif %}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<style>
+    .modern-card {
+        background: var(--bs-card-bg);
+        border-radius: 8px;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-section {
+        background: var(--bs-card-bg);
+        border: 1px solid var(--bs-border-color);
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-section h5 {
+        color: var(--bs-heading-color);
+        border-bottom: 1px solid var(--bs-border-color);
+        padding-bottom: 0.75rem;
+        margin-bottom: 1.25rem;
+    }
+    
+    .form-control, .form-select, .form-control:focus, .form-select:focus {
+        background-color: var(--bs-body-bg);
+        color: var(--bs-body-color);
+        border-color: var(--bs-border-color);
+    }
+    
+    .form-text {
+        color: var(--bs-secondary-color) !important;
+    }
+    
+    .select2-container--bootstrap-5 .select2-selection {
+        min-height: 38px;
+        background-color: var(--bs-body-bg) !important;
+        border-color: var(--bs-border-color) !important;
+        color: var(--bs-body-color) !important;
+    }
+    
+    .select2-dropdown {
+        background-color: var(--bs-body-bg) !important;
+        border-color: var(--bs-border-color) !important;
+    }
+    
+    .select2-results__option {
+        color: var(--bs-body-color) !important;
+        padding: 0.5rem 1rem;
+    }
+    
+    .select2-results__option--highlighted {
+        background-color: var(--bs-primary) !important;
+        color: white !important;
+    }
+    
+    .select2-search__field {
+        color: var(--bs-body-color) !important;
+    }
+    
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        color: var(--bs-body-color) !important;
+    }
+    
+    .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice {
+        background-color: var(--bs-primary);
+        border: 1px solid var(--bs-primary);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="modern-card">
+    <form method="post" enctype="multipart/form-data" id="issueForm" class="needs-validation" novalidate>
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <h5><i class="fas fa-book me-2"></i>Book Details</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        {{ form.book|as_crispy_field }}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        {{ form.book_copy|as_crispy_field }}
+                        <div class="form-text text-muted">Book copy will be automatically filtered based on the selected book.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h5><i class="fas fa-user me-2"></i>Borrower Information</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        {{ form.user|as_crispy_field }}
+                        <div class="form-text text-muted">Staff member processing this issue.</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        {{ form.student|as_crispy_field }}
+                        <div class="form-text text-muted">Start typing to search for a student.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h5><i class="fas fa-calendar-alt me-2"></i>Issue Details</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        {{ form.due_date|as_crispy_field }}
+                        <div class="form-text text-muted">Default is 14 days from today.</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        {{ form.condition_on_issue|as_crispy_field }}
+                        <div class="form-text text-muted">Condition of the book when issued.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="d-flex justify-content-between mt-4">
+            <a href="{% url 'library:issue_list' school_slug=school_slug %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to List
+            </a>
+            <div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i> Save Issue
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Initialize Select2 with theme support
+    function initializeSelect2() {
+        $('.select2:not([id^="select2-"])').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Select an option',
+            allowClear: true,
+            dropdownParent: $('body')
+        });
+    }
+    
+    // Initialize all select2 elements
+    initializeSelect2();
+    
+    // Update Select2 theme when dark mode changes
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'data-theme') {
+                // Destroy existing select2 instances
+                $('.select2-hidden-accessible').select2('destroy');
+                // Reinitialize
+                initializeSelect2();
+            }
+        });
+    });
+    
+    observer.observe(document.documentElement, {
+        attributes: true
+    });
+    
+    // Initialize date picker
+    $('#id_due_date').flatpickr({
+        dateFormat: 'Y-m-d',
+        allowInput: true,
+        theme: 'bootstrap',
+        appendTo: document.body
+    });
+    
+    // Filter book copies based on selected book
+    $('#id_book').change(function() {
+        var bookId = $(this).val();
+        var $bookCopySelect = $('#id_book_copy');
+        
+        if (bookId) {
+            $bookCopySelect.prop('disabled', true);
+            $bookCopySelect.next('.select2-container').addClass('select2-container--disabled');
+            
+            $.ajax({
+                url: '{% url "library:get_available_copies" school_slug=school_slug %}',
+                data: { 'book': bookId },
+                dataType: 'json',
+                success: function(data) {
+                    $bookCopySelect.empty().append('<option value="">---------</option>');
+                    
+                    if (data.copies && data.copies.length > 0) {
+                        $.each(data.copies, function(index, copy) {
+                            $bookCopySelect.append(
+                                $('<option>', {
+                                    value: copy.id,
+                                    text: copy.accession_number + ' - ' + (copy.condition || 'N/A')
+                                })
+                            );
+                        });
+                    } else {
+                        $bookCopySelect.append(
+                            $('<option>', {
+                                value: '',
+                                text: 'No available copies',
+                                disabled: true
+                            })
+                        );
+                    }
+                    
+                    $bookCopySelect.prop('disabled', false);
+                    $bookCopySelect.next('.select2-container').removeClass('select2-container--disabled');
+                    $bookCopySelect.trigger('change');
+                },
+                error: function() {
+                    $bookCopySelect.prop('disabled', false);
+                    $bookCopySelect.next('.select2-container').removeClass('select2-container--disabled');
+                    console.error('Error loading book copies');
+                }
+            });
+        } else {
+            $bookCopySelect.empty().append('<option value="">---------</option>');
+            $bookCopySelect.trigger('change');
+        }
+    });
+    
+    // Set default due date to 14 days from now
+    var today = new Date();
+    var defaultDueDate = new Date();
+    defaultDueDate.setDate(defaultDueDate.getDate() + 14);
+    
+    // Only set default date if the field is empty
+    if (!$('#id_due_date').val()) {
+        $('#id_due_date').val(defaultDueDate.toISOString().split('T')[0]);
+    }
+    
+    // Form validation
+    (function () {
+        'use strict'
+        
+        // Fetch all the forms we want to apply custom Bootstrap validation styles to
+        const forms = document.querySelectorAll('.needs-validation')
+        
+        // Loop over them and prevent submission
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+});
+</script>
+{% endblock %}

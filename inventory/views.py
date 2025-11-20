@@ -494,15 +494,25 @@ class StaffPaymentView(LoginRequiredMixin, ListView):
             else:
                 payment_number = f"PAY-{datetime.now().strftime('%Y%m%d%H%M%S')}"
             
+            # Convert string values to Decimal for calculations
+            basic_salary = Decimal(request.POST.get('basic_salary', 0) or 0)
+            allowances = Decimal(request.POST.get('allowances', 0) or 0)
+            deductions = Decimal(request.POST.get('deductions', 0) or 0)
+            
+            # Format payment_month to ensure it's a valid date (YYYY-MM-DD)
+            payment_month = request.POST.get('payment_month')
+            if payment_month and len(payment_month) == 7 and payment_month[4] == '-':  # Format: YYYY-MM
+                payment_month = f"{payment_month}-01"  # Convert to YYYY-MM-01
+            
             payment = StaffPayment.objects.create(
                 payment_number=payment_number,
                 staff_type=request.POST.get('staff_type'),
                 staff_id=request.POST.get('staff_id'),
                 staff_name=request.POST.get('staff_name'),
-                payment_month=request.POST.get('payment_month'),
-                basic_salary=request.POST.get('basic_salary'),
-                allowances=request.POST.get('allowances', 0),
-                deductions=request.POST.get('deductions', 0),
+                payment_month=payment_month,
+                basic_salary=basic_salary,
+                allowances=allowances,
+                deductions=deductions,
                 payment_date=request.POST.get('payment_date'),
                 payment_method=request.POST.get('payment_method'),
                 reference_number=request.POST.get('reference_number', ''),

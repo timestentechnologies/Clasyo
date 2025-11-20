@@ -14,6 +14,9 @@
             <div class="col">
             </div>
             <div class="col-auto float-right ml-auto">
+            <a style="color:white"class="btn btn-info" href="/school/{{ school_slug }}/online-exam/"><i class="fas fa-laptop-code"></i> Exam Dasboard</a>
+            </div>
+            <div class="col-auto float-right ml-auto">
                 {% if perms.online_exam.change_onlineexam or user.is_school_admin or exam.created_by == user %}
                 <a href="{% url 'online_exam:update' school_slug=school_slug pk=exam.id %}" class="btn btn-info"><i class="fas fa-edit me-2"></i> Edit</a>
                 {% endif %}

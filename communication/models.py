@@ -38,14 +38,22 @@ class Notice(models.Model):
 class Message(models.Model):
     """Model for internal messaging"""
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
-    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
     subject = models.CharField(max_length=200)
     message = models.TextField()
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    parent_message = models.ForeignKey('self', on_delete=models.CASCADE, 
+                                     null=True, blank=True, 
+                                     related_name='replies')
     
     class Meta:
         ordering = ['-created_at']
     
     def __str__(self):
+        return f"{self.subject} - {self.sender} to {self.recipient}"
+        
+    @property
+    def has_replies(self):
+        return self.replies.exists()
         return f"{self.subject} - From {self.sender} to {self.receiver}"

@@ -1,0 +1,421 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static humanize %}
+
+{% block title %}Book Issues - Library{% endblock %}
+{% block page_icon %}book-open{% endblock %}
+{% block page_title %}Book Issues{% endblock %}
+{% block page_subtitle %}Manage book issues and returns{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<style>
+    .modern-card {
+        background: var(--bs-card-bg);
+        border-radius: 8px;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .badge {
+        font-size: 0.8rem;
+        font-weight: 500;
+        padding: 0.4em 0.8em;
+    }
+    .status-issued { background-color: var(--bs-primary); }
+    .status-returned { background-color: var(--bs-success); }
+    .status-overdue { background-color: var(--bs-danger); }
+    .status-lost { background-color: var(--bs-secondary); }
+    .status-damaged { background-color: var(--bs-warning); color: #000; }
+    .filter-section {
+        background: var(--bs-card-bg);
+        border: 1px solid var(--bs-border-color);
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    .sort-link {
+        text-decoration: none;
+        color: var(--bs-body-color);
+    }
+    .sort-link:hover {
+        color: var(--bs-primary);
+    }
+    .sort-link.active {
+        color: var(--bs-primary);
+        font-weight: 600;
+    }
+    .table {
+        --bs-table-bg: transparent;
+        --bs-table-color: var(--bs-body-color);
+    }
+    .table thead th {
+        border-bottom-width: 1px;
+        border-color: var(--bs-border-color);
+        color: var(--bs-body-color);
+    }
+    .table td {
+        color: var(--bs-body-color);
+    }
+    .table-hover > tbody > tr:hover > * {
+        --bs-table-accent-bg: var(--bs-table-hover-bg);
+        color: var(--bs-body-color);
+    }
+    .text-muted {
+        color: var(--bs-secondary-color) !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+    <a href="{% url 'library:issue_create' school_slug=school_slug %}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i> New Issue
+    </a>
+</div>
+
+<div class="modern-card">
+    <!-- Filter Form -->
+    <div class="filter-section mb-4">
+        <form method="get" class="row g-3" id="filterForm">
+            <div class="col-md-3">
+                <label for="status" class="form-label">Status</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="">All Status</option>
+                                    {% for value, label in status_choices %}
+                                        <option value="{{ value }}" {% if current_filters.status == value %}selected{% endif %}>
+                                            {{ label }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="book" class="form-label">Book</label>
+                                <select class="form-select select2" id="book" name="book" data-theme="bootstrap-5">
+                                    <option value="">All Books</option>
+                                    {% for book in books %}
+                                    <option value="{{ book.id }}" {% if request.GET.book == book.id|stringformat:'s' %}selected{% endif %}>
+                                        {{ book.title }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="student" class="form-label">Student</label>
+                                <select class="form-select select2" id="student" name="student" data-theme="bootstrap-5">
+                                    <option value="">All Students</option>
+                                    {% for student in students %}
+                                    <option value="{{ student.id }}" {% if request.GET.student == student.id|stringformat:'s' %}selected{% endif %}>
+                                        {{ student.get_full_name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <div class="btn-group w-100">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-filter me-1"></i> Filter
+                                    </button>
+                                    <a href="{% url 'library:issue_list' school_slug=school_slug %}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-undo me-1"></i> Reset
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Sorting -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="text-muted">
+                Showing {{ issues.start_index }} - {{ issues.end_index }} of {{ issues.paginator.count|default:0 }} issues
+            </div>
+            <div class="d-flex gap-2">
+                            <span class="text-muted">Sort by:</span>
+                            <a href="?{% if current_filters %}{{ current_filters|urlencode }}&{% endif %}sort=issue_date" 
+                               class="sort-link {% if current_filters.sort == 'issue_date' or not current_filters.sort %}active{% endif %}">
+                                Issue Date <i class="fas fa-arrow-down"></i>
+                            </a>
+                            <span class="text-muted">|</span>
+                            <a href="?{% if current_filters %}{{ current_filters|urlencode }}&{% endif %}sort=-issue_date" 
+                               class="sort-link {% if current_filters.sort == '-issue_date' %}active{% endif %}">
+                                Issue Date <i class="fas fa-arrow-up"></i>
+                            </a>
+                            <span class="text-muted">|</span>
+                            <a href="?{% if current_filters %}{{ current_filters|urlencode }}&{% endif %}sort=due_date" 
+                               class="sort-link {% if current_filters.sort == 'due_date' %}active{% endif %}">
+                                Due Date <i class="fas fa-arrow-down"></i>
+                            </a>
+                            <span class="text-muted">|</span>
+                            <a href="?{% if current_filters %}{{ current_filters|urlencode }}&{% endif %}sort=-due_date" 
+                               class="sort-link {% if current_filters.sort == '-due_date' %}active{% endif %}">
+                                Due Date <i class="fas fa-arrow-up"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Issues Table -->
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                                <tr>
+                                    <th>Book</th>
+                                    <th>Student</th>
+                                    <th>Issued By</th>
+                                    <th>Issue Date</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for issue in issues %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if issue.book.cover_image %}
+                                            <img src="{{ issue.book.cover_image.url }}" alt="{{ issue.book.title }}" 
+                                                 class="img-thumbnail me-2" style="width: 40px; height: 60px; object-fit: cover;">
+                                            {% else %}
+                                            <div class="bg-light d-flex align-items-center justify-content-center me-2" 
+                                                 style="width: 40px; height: 60px;">
+                                                <i class="fas fa-book text-muted"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div>
+                                                <div class="fw-bold">{{ issue.book.title }}</div>
+                                                <small class="text-muted">{{ issue.book.isbn|default:"No ISBN" }}</small>
+                                                {% if issue.book_copy %}
+                                                <div class="text-muted small">Copy #{{ issue.book_copy.accession_number }}</div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if issue.student %}
+                                            <a href="{% url 'students:student_detail' school_slug=school_slug pk=issue.student.id %}">
+                                                {{ issue.student.get_full_name }}
+                                            </a>
+                                            <div class="text-muted small">{{ issue.student.admission_number }}</div>
+                                        {% else %}
+                                            {{ issue.user.get_full_name|default:issue.user.username }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ issue.issued_by.get_full_name|default:issue.issued_by.username }}</td>
+                                    <td>{{ issue.issue_date|date:"M d, Y" }}</td>
+                                    <td>
+                                        <span class="{% if issue.is_overdue and issue.status == 'issued' %}text-danger fw-bold{% endif %}">
+                                            {{ issue.due_date|date:"M d, Y" }}
+                                        </span>
+                                        {% if issue.is_overdue and issue.status == 'issued' %}
+                                            <div class="text-danger small">Overdue by {{ issue.days_overdue }} days</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if issue.status == 'issued' %}bg-warning text-dark{% elif issue.status == 'returned' %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ issue.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'library:issue_detail' school_slug=school_slug pk=issue.id %}" 
+                                               class="btn btn-outline-primary" title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if issue.status == 'issued' %}
+                                            <a href="{% url 'library:return_book' school_slug=school_slug pk=issue.id %}" 
+                                               class="btn btn-outline-success" title="Return Book">
+                                                <i class="fas fa-undo"></i>
+                                            </a>
+                                            <a href="{% url 'library:renew_book' school_slug=school_slug pk=issue.id %}" 
+                                               class="btn btn-outline-warning" title="Renew Loan">
+                                                <i class="fas fa-sync"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="fas fa-inbox fa-3x mb-3"></i>
+                                            <p class="mb-0">No book issues found.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if issues.has_other_pages %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if issues.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
+                                    <span aria-hidden="true">&laquo;&laquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ issues.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for i in issues.paginator.page_range %}
+                                {% if issues.number == i %}
+                                <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                                {% elif i > issues.number|add:'-3' and i < issues.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ i }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                        {{ i }}
+                                    </a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if issues.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ issues.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ issues.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Last">
+                                    <span aria-hidden="true">&raquo;&raquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Initialize Select2 with theme support
+    function initializeSelect2() {
+        $('.select2:not([id^="select2-"])').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Select an option',
+            allowClear: true,
+            dropdownParent: $('body')
+        });
+    }
+    
+    // Initialize all select2 elements
+    initializeSelect2();
+    
+    // Update Select2 theme when dark mode changes
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'data-theme') {
+                // Destroy existing select2 instances
+                $('.select2-hidden-accessible').select2('destroy');
+                // Reinitialize
+                initializeSelect2();
+            }
+        });
+    });
+    
+    observer.observe(document.documentElement, {
+        attributes: true
+    });
+
+    // Book autocomplete
+    $('#book').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search for a book',
+        allowClear: true,
+        dropdownParent: $('body'),
+        ajax: {
+            url: '{% url "library:book_autocomplete" school_slug=school_slug %}',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return {
+                    q: params.term,
+                    page: params.page || 1
+                };
+            },
+            processResults: function (data, params) {
+                params.page = params.page || 1;
+                return {
+                    results: data.results || [],
+                    pagination: {
+                        more: (params.page * 30) < (data.count || 0)
+                    }
+                };
+            },
+            cache: true
+        }
+    });
+
+    // Student autocomplete
+    $('#student').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search for a student',
+        allowClear: true,
+        dropdownParent: $('body'),
+        ajax: {
+            url: '{% url "students:student_autocomplete" school_slug=school_slug %}',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return {
+                    q: params.term,
+                    page: params.page || 1
+                };
+            },
+            processResults: function (data, params) {
+                params.page = params.page || 1;
+                return {
+                    results: data.results || [],
+                    pagination: {
+                        more: (params.page * 30) < (data.count || 0)
+                    }
+                };
+            },
+            cache: true
+        }
+    });
+
+    // Set initial values if any
+    {% if request.GET.book %}
+    var bookData = {
+        id: '{{ request.GET.book|escapejs }}',
+        text: '{{ request.GET.book_text|default:request.GET.book|escapejs }}'
+    };
+    var bookOption = new Option(bookData.text, bookData.id, true, true);
+    $('#book').append(bookOption).trigger('change');
+    {% endif %}
+
+    {% if request.GET.student %}
+    var studentData = {
+        id: '{{ request.GET.student|escapejs }}',
+        text: '{{ request.GET.student_text|default:request.GET.student|escapejs }}'
+    };
+    var studentOption = new Option(studentData.text, studentData.id, true, true);
+    $('#student').append(studentOption).trigger('change');
+    {% endif %}
+
+    // Reset form
+    $('#resetFilters').on('click', function(e) {
+        e.preventDefault();
+        window.location.href = '{% url "library:issue_list" school_slug=school_slug %}';
+    });
+});
+</script>
+{% endblock %}

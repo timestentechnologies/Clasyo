@@ -228,7 +228,7 @@
                     </div>
                     
                     <div class="alert alert-info">
-                        <strong>Net Salary:</strong> $<span id="net_salary_display">0.00</span>
+                        <strong>Net Salary:</strong> Ksh<span id="net_salary_display">0.00</span>
                     </div>
                     
                     <div class="row">
@@ -268,6 +268,24 @@
                     <button type="submit" class="btn btn-primary">Process Payment</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Status Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statusModalTitle">Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="statusModalBody">
+                <!-- Message will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
         </div>
     </div>
 </div>
@@ -507,7 +525,15 @@ addPaymentModal.addEventListener('shown.bs.modal', function () {
 
 document.getElementById('addPaymentForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    const formData = new FormData(this);
+    const form = this;
+    const submitButton = form.querySelector('button[type="submit"]');
+    const originalButtonText = submitButton.innerHTML;
+    
+    // Show loading state
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+    
+    const formData = new FormData(form);
     
     fetch(window.location.pathname, {
         method: 'POST',
@@ -516,14 +542,28 @@ document.getElementById('addPaymentForm').addEventListener('submit', function(e)
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('Payment processed successfully!');
-            location.reload();
+            // Show success message in modal
+            showStatusModal('Success', 'Payment processed successfully!', false);
+            // Close the add payment modal
+            const addPaymentModal = bootstrap.Modal.getInstance(document.getElementById('addPaymentModal'));
+            if (addPaymentModal) {
+                addPaymentModal.hide();
+            }
+            // Reload the page after a short delay
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
         } else {
-            alert('Error: ' + data.error);
+            showStatusModal('Error', data.error || 'An error occurred while processing the payment.', true);
         }
     })
     .catch(error => {
-        alert('Error: ' + error.message);
+        showStatusModal('Error', error.message || 'An unexpected error occurred.', true);
+    })
+    .finally(() => {
+        // Reset button state
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalButtonText;
     });
 });
 </script>
