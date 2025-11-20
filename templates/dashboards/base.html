@@ -4,13 +4,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Dashboard{% endblock %} - Clasyo</title>
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="description" content="School Management System - A comprehensive solution for educational institutions">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <link rel="apple-touch-icon" href="{% static 'images/icon-192x192.png' %}">
+    <title>{% block title %}Dashboard{% endblock %} - SchoolSaaS</title>
     <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
     <link rel="alternate icon" href="{% static 'images/favicon.ico' %}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}">
+    <style>
+        /* Direct dark theme styles for sidebar */
+        body.dark-theme .modern-sidebar,
+        body.theme-dark .modern-sidebar,
+        [data-theme="dark"] .modern-sidebar {
+            background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%) !important;
+            color: #e2e8f0 !important;
+        }
+        
+        body.dark-theme .modern-sidebar a,
+        body.theme-dark .modern-sidebar a,
+        [data-theme="dark"] .modern-sidebar a {
+            color: #e2e8f0 !important;
+        }
+        
+        body.dark-theme .modern-sidebar a:hover,
+        body.theme-dark .modern-sidebar a:hover,
+        [data-theme="dark"] .modern-sidebar a:hover {
+            color: #ffffff !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+        }
+        
+        body.dark-theme .modern-sidebar .active,
+        body.theme-dark .modern-sidebar .active,
+        [data-theme="dark"] .modern-sidebar .active {
+            background: rgba(66, 153, 225, 0.2) !important;
+            border-left: 3px solid #4299e1 !important;
+        }
+        
+        /* Make sure sidebar text is visible in dark mode */
+        body.dark-theme .modern-sidebar .brand-text h3,
+        body.theme-dark .modern-sidebar .brand-text h3,
+        [data-theme="dark"] .modern-sidebar .brand-text h3 {
+            color: #ffffff !important;
+        }
+        
+        body.dark-theme .modern-sidebar .brand-text p,
+        body.theme-dark .modern-sidebar .brand-text p,
+        [data-theme="dark"] .modern-sidebar .brand-text p {
+            color: #cbd5e0 !important;
+        }
+        
+        /* Icons in dark mode */
+        body.dark-theme .modern-sidebar i,
+        body.theme-dark .modern-sidebar i,
+        [data-theme="dark"] .modern-sidebar i {
+            color: #a0aec0 !important;
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -58,9 +113,15 @@
 
     <!-- Global Message Modal -->
     {% include 'includes/message_modal.html' %}
-    
+
+    <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{% static 'js/global-messages.js' %}"></script>
+    <!-- PWA Installation -->
+    <script src="{% static 'js/pwa-install.js' %}" defer></script>
+    
+    <!-- Dashboard Scripts -->
+    <script src="{% static 'js/dashboard.js' %}"></script>
     
     {% block extra_js %}{% endblock %}
 </body>

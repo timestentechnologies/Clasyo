@@ -6,13 +6,137 @@
 {% block page_title %}Dormitory Rooms{% endblock %}
 {% block page_subtitle %}Manage all dormitory rooms{% endblock %}
 
+{% block extra_js %}
+<script>
+// Function to show status modal
+function showStatusModal(title, message, isError = false) {
+    const modal = new bootstrap.Modal(document.getElementById('statusModal'));
+    const modalTitle = document.getElementById('statusModalTitle');
+    const modalBody = document.getElementById('statusModalBody');
+    
+    modalTitle.textContent = title;
+    modalBody.innerHTML = message;
+    
+    // Add appropriate styling for error/success
+    if (isError) {
+        modalTitle.className = 'modal-title text-danger';
+    } else {
+        modalTitle.className = 'modal-title text-success';
+    }
+    
+    modal.show();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const addRoomForm = document.getElementById('addRoomForm');
+    if (addRoomForm) {
+        addRoomForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            
+            // Clear any previous error messages
+            const errorElements = form.querySelectorAll('.invalid-feedback');
+            errorElements.forEach(el => el.remove());
+            
+            const formInputs = form.querySelectorAll('.is-invalid');
+            formInputs.forEach(el => el.classList.remove('is-invalid'));
+            
+            const submitButton = form.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.innerHTML;
+            
+            // Show loading state
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+            
+            const formData = new FormData(form);
+            
+            fetch(window.location.pathname, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw err; });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Show success message in modal
+                    showStatusModal('Success', 'Room added successfully!', false);
+                    // Close the add room modal
+                    const addRoomModal = bootstrap.Modal.getInstance(document.getElementById('addRoomModal'));
+                    if (addRoomModal) {
+                        addRoomModal.hide();
+                    }
+                    // Reload the page after a short delay
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    // Handle form field errors
+                    if (data.errors) {
+                        Object.entries(data.errors).forEach(([field, messages]) => {
+                            const input = form.querySelector(`[name="${field}"]`);
+                            if (input) {
+                                input.classList.add('is-invalid');
+                                const errorDiv = document.createElement('div');
+                                errorDiv.className = 'invalid-feedback';
+                                errorDiv.textContent = Array.isArray(messages) ? messages[0] : messages;
+                                input.parentNode.appendChild(errorDiv);
+                            }
+                        });
+                    }
+                    // Show error message in modal
+                    showStatusModal('Error', data.message || 'An error occurred while saving the room.', true);
+                }
+            })
+            .catch(error => {
+                showStatusModal('Error', 'An unexpected error occurred: ' + (error.message || 'Please try again.'), true);
+            })
+            .finally(() => {
+                // Reset button state
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+            });
+        });
+    }
+});
+</script>
+{% endblock %}
+
 {% block content %}
+<!-- Status Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statusModalTitle">Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="statusModalBody">
+                <!-- Message will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-lg-12">
         <div class="card border-0 shadow-sm">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="mb-0 fw-bold"><i class="fas fa-door-open text-primary me-2"></i>All Rooms</h5>
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-door-open" style="color:rgb(23, 187, 187)"></i>All Rooms</h5>
+                   <a href="/school/{{ school_slug }}/dormitory/" class="btn btn-primary">
+                                        <i class="fas fa-door-open"></i> Back To Dormitories
+                                    </a>
                     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRoomModal">
                         <i class="fas fa-plus-circle"></i> Add Room
                     </button>
@@ -73,7 +197,7 @@
                 <h5 class="modal-title">Add New Room</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="post">
+            <form id="addRoomForm" method="post">
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="mb-3">

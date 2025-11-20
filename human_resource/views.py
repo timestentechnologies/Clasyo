@@ -133,7 +133,7 @@ class StaffListView(LoginRequiredMixin, ListView):
     context_object_name = 'staff'
     
     def get_queryset(self):
-        return User.objects.filter(role__in=['staff', 'accountant', 'librarian'], is_active=True)
+        return User.objects.filter(role__in=['staff', 'accountant', 'librarian', 'driver'], is_active=True)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

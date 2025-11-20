@@ -34,4 +34,8 @@ urlpatterns = [
     
     # My Books (for students/users)
     path('my-books/', views.MyBooksView.as_view(), name='my_books'),
+    
+    # Autocomplete endpoints
+    path('autocomplete/books/', views.BookAutocompleteView.as_view(), name='book_autocomplete'),
+    path('get-available-copies/', views.GetAvailableCopiesView.as_view(), name='get_available_copies'),
 ]

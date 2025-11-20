@@ -1,6 +1,74 @@
 {% extends 'core/admin_dashboard.html' %}
 {% load static %}
 
+{% block extra_css %}
+<style>
+    /* Table styles for both light and dark modes */
+    .table {
+        margin-bottom: 0;
+    }
+    
+    .table thead th {
+        background-color: var(--primary-navy);
+        color: white;
+        font-weight: 500;
+        border: none;
+        padding: 12px 16px;
+    }
+    
+    .table tbody td {
+        padding: 12px 16px;
+        vertical-align: middle;
+        border-color: var(--border-light);
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+    
+    /* Dark mode overrides */
+    [data-theme="dark"] .table thead th,
+    .theme-dark .table thead th {
+        background-color: var(--primary-navy) !important;
+        color: white;
+    }
+    
+    [data-theme="dark"] .table tbody td,
+    .theme-dark .table tbody td {
+        background-color: var(--bg-white);
+        color: var(--text-primary);
+        border-color: var(--border-light);
+    }
+    
+    [data-theme="dark"] .table-hover tbody tr:hover,
+    .theme-dark .table-hover tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    /* Card styling */
+    .modern-card {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    [data-theme="dark"] .modern-card,
+    .theme-dark .modern-card {
+        background: var(--bg-white);
+        border: 1px solid var(--border-light);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Ensure text is visible in dark mode */
+    [data-theme="dark"],
+    .theme-dark {
+        --text-primary: #F7FAFC;
+        --text-secondary: #E2E8F0;
+        --text-muted: #A0AEC0;
+    }
+</style>
+{% endblock %}
+
 {% block title %}Class Routine - School Management{% endblock %}
 {% block page_icon %}clock{% endblock %}
 {% block page_title %}Class Routine / Timetable{% endblock %}
@@ -77,8 +145,8 @@
 </div>
 
 <!-- Routine Entries -->
-<div class="card border-0 shadow-sm">
-    <div class="card-body">
+<div class="modern-card">
+    <div class="card-body p-0">
         {% if routines %}
         <div class="table-responsive">
             <table class="table table-hover">

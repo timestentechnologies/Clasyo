@@ -71,7 +71,7 @@ class MessageListView(LoginRequiredMixin, ListView):
         user = self.request.user
         # Return messages sent to or from the user
         return Message.objects.filter(
-            models.Q(sender=user) | models.Q(receiver=user)
+            models.Q(sender=user) | models.Q(recipient=user)
         ).order_by('-created_at')
     
     def get_context_data(self, **kwargs):
@@ -85,7 +85,7 @@ class MessageListView(LoginRequiredMixin, ListView):
                 return JsonResponse({'success': False, 'error': 'Models not available'})
             Message.objects.create(
                 sender=request.user,
-                receiver_id=request.POST.get('recipient'),
+                recipient_id=request.POST.get('recipient'),
                 subject=request.POST.get('subject'),
                 message=request.POST.get('message')
             )
@@ -193,3 +193,56 @@ class MessageDeleteView(LoginRequiredMixin, DeleteView):
             return JsonResponse({'success': True})
         except Message.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Message not found'})
+
+
+class MessageReplyView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        if not MODELS_EXIST:
+            return JsonResponse({'success': False, 'error': 'Models not available'})
+            
+        message_id = kwargs.get('pk')
+        try:
+            original_message = Message.objects.get(id=message_id)
+            
+            # Create a new message as a reply
+            reply = Message.objects.create(
+                sender=request.user,
+                recipient=original_message.sender if request.user == original_message.recipient else original_message.recipient,
+                subject=f"Re: {original_message.subject}",
+                message=request.POST.get('message'),
+                parent_message=original_message
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Reply sent successfully',
+                'reply': {
+                    'id': reply.id,
+                    'sender': str(reply.sender),
+                    'message': reply.message,
+                    'created_at': reply.created_at.isoformat(),
+                }
+            })
+            
+        except Message.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Original message not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+class MessageReadView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        if not MODELS_EXIST:
+            return JsonResponse({'success': False, 'error': 'Models not available'})
+            
+        message_id = kwargs.get('pk')
+        try:
+            message = Message.objects.get(id=message_id, recipient=request.user)
+            if not message.is_read:
+                message.is_read = True
+                message.save(update_fields=['is_read'])
+            return JsonResponse({'success': True})
+        except Message.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Message not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)

@@ -7,6 +7,79 @@
 {% block page_subtitle %}Process and manage salary payments{% endblock %}
 
 {% block content %}
+<style>
+    /* Payment Summary Styles */
+    .payment-summary {
+        background: var(--bg-white);
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s ease;
+        border: 1px solid var(--border-light);
+        height: 100%;
+    }
+    
+    .payment-summary-title {
+        color: var(--text-secondary);
+        font-size: 1rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+    
+    .payment-summary-amount {
+        color: var(--primary-navy);
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.2;
+    }
+    
+    .payment-summary-icon {
+        color: var(--accent-cyan);
+        opacity: 0.8;
+    }
+    
+    /* Dark mode overrides */
+    [data-theme="dark"] .payment-summary,
+    .theme-dark .payment-summary {
+        background: var(--bg-white);
+        border-color: var(--border-light);
+    }
+    
+    [data-theme="dark"] .payment-summary-title,
+    .theme-dark .payment-summary-title {
+        color: var(--text-muted);
+    }
+    
+    [data-theme="dark"] .payment-summary-amount,
+    .theme-dark .payment-summary-amount {
+        color: var(--accent-cyan);
+    }
+    
+    /* Table styles */
+    .table th {
+        background-color: var(--primary-navy);
+        color: white;
+        font-weight: 500;
+        border: none;
+    }
+    
+    .table td {
+        color: var(--text-primary);
+        vertical-align: middle;
+    }
+    
+    /* Status badges */
+    .badge {
+        font-weight: 500;
+        padding: 0.4em 0.8em;
+    }
+    
+    /* Action buttons */
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+</style>
 <div class="d-flex justify-content-end mb-3">
     <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addPaymentModal">
         <i class="fas fa-plus"></i> Process Payment
@@ -19,13 +92,16 @@
     </a>
 </div>
 
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="alert alert-success">
-                        <h5>Total Paid</h5>
-                        <h2>${{ total_payments|floatformat:2 }}</h2>
+    <div class="modern-card mb-4">
+        <div class="p-3">
+            <div class="payment-summary">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="payment-summary-title mb-1">Total Paid</h5>
+                        <h2 class="payment-summary-amount mb-0">Ksh{{ total_payments|floatformat:2 }}</h2>
+                    </div>
+                    <div class="payment-summary-icon">
+                        <i class="fas fa-wallet fa-2x"></i>
                     </div>
                 </div>
             </div>
@@ -63,10 +139,10 @@
                             {% endif %}
                         </td>
                         <td>{{ payment.payment_month|date:"M Y" }}</td>
-                        <td>${{ payment.basic_salary }}</td>
-                        <td>${{ payment.allowances }}</td>
-                        <td>${{ payment.deductions }}</td>
-                        <td><strong>${{ payment.net_salary }}</strong></td>
+                        <td>Ksh{{ payment.basic_salary|floatformat:2 }}</td>
+                        <td>Ksh{{ payment.allowances|floatformat:2 }}</td>
+                        <td>Ksh{{ payment.deductions|floatformat:2 }}</td>
+                        <td><strong>Ksh{{ payment.net_salary|floatformat:2 }}</strong></td>
                         <td>{{ payment.payment_date }}</td>
                         <td>
                             {% if payment.status == 'paid' %}
@@ -152,7 +228,7 @@
                     </div>
                     
                     <div class="alert alert-info">
-                        <strong>Net Salary:</strong> $<span id="net_salary_display">0.00</span>
+                        <strong>Net Salary:</strong> Ksh<span id="net_salary_display">0.00</span>
                     </div>
                     
                     <div class="row">
@@ -196,13 +272,109 @@
     </div>
 </div>
 
+<!-- Status Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statusModalTitle">Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="statusModalBody">
+                <!-- Message will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JSON data for JavaScript -->
 {{ teachers_json|json_script:"teachers-data" }}
 {{ staff_json|json_script:"staff-data" }}
 
+<!-- Debug data (hidden by default) -->
+<div id="debug-data" style="display: none;">
+    <div>Teachers JSON: {{ teachers_json|safe }}</div>
+    <div>Staff JSON: {{ staff_json|safe }}</div>
+</div>
+
 <script>
+// Debug function to check data
+function debugData() {
+    console.log('=== DEBUG START ===');
+    console.log('Teachers element exists:', !!document.getElementById('teachers-data'));
+    console.log('Staff element exists:', !!document.getElementById('staff-data'));
+    
+    const teachersEl = document.getElementById('teachers-data');
+    const staffEl = document.getElementById('staff-data');
+    
+    if (teachersEl) {
+        console.log('Teachers element content:', teachersEl.textContent);
+        try {
+            const teachers = JSON.parse(teachersEl.textContent || '[]');
+            console.log('Parsed teachers:', teachers);
+            console.log('Number of teachers:', teachers.length);
+        } catch (e) {
+            console.error('Error parsing teachers JSON:', e);
+        }
+    }
+    
+    if (staffEl) {
+        console.log('Staff element content:', staffEl.textContent);
+        try {
+            const staff = JSON.parse(staffEl.textContent || '[]');
+            console.log('Parsed staff:', staff);
+            console.log('Number of staff:', staff.length);
+        } catch (e) {
+            console.error('Error parsing staff JSON:', e);
+        }
+    }
+    console.log('=== DEBUG END ===');
+}
+
+// Run debug on page load
+window.addEventListener('DOMContentLoaded', function() {
+    debugData();
+});
 // Parse JSON data from context
-const teachers = JSON.parse(document.getElementById('teachers-data').textContent || '[]');
-const staffMembers = JSON.parse(document.getElementById('staff-data').textContent || '[]');
+const teachersData = document.getElementById('teachers-data');
+const staffData = document.getElementById('staff-data');
+
+// Initialize with empty arrays
+let teachers = [];
+let staffMembers = [];
+
+// Function to safely parse JSON data
+function parseJsonData(element, defaultValue = []) {
+    if (!element || !element.textContent) {
+        console.warn('No data element found or empty');
+        return defaultValue;
+    }
+    
+    try {
+        const data = JSON.parse(element.textContent);
+        return Array.isArray(data) ? data : [data];
+    } catch (e) {
+        console.error('Error parsing JSON data:', e);
+        return defaultValue;
+    }
+}
+
+// Parse the data
+try {
+    teachers = parseJsonData(teachersData);
+    staffMembers = parseJsonData(staffData);
+    
+    console.log('Successfully parsed teachers data:', teachers);
+    console.log('Successfully parsed staff data:', staffMembers);
+} catch (e) {
+    console.error('Error initializing data:', e);
+}
+
+console.log('Teachers count:', teachers.length);
+console.log('Staff count:', staffMembers.length);
 
 const staffTypeSelect = document.getElementById('staff_type');
 const staffSelect = document.getElementById('staff_select');
@@ -220,46 +392,93 @@ function resetSalaryFields() {
 }
 
 function populateStaffOptions(type) {
-    staffSelect.innerHTML = '<option value=\"\">Select Staff/Teacher</option>';
-    let data = [];
-    
-    if (type === 'teacher') {
-        data = Array.isArray(teachers) ? teachers : [];
-    } else if (type === 'staff') {
-        data = Array.isArray(staffMembers) ? staffMembers : [];
+    console.log('Populating staff options for type:', type);
+    if (!staffSelect) {
+        console.error('staffSelect element not found!');
+        return;
     }
     
-    if (!data.length) {
+    staffSelect.innerHTML = '<option value="">Select ' + (type === 'teacher' ? 'Teacher' : 'Staff') + '</option>';
+    
+    // Get the appropriate data based on type
+    const data = type === 'teacher' ? teachers : 
+                (type === 'staff' ? staffMembers : []);
+    
+    console.log('Data for', type, ':', data);
+    
+    if (!data || data.length === 0) {
         const option = document.createElement('option');
         option.value = '';
         option.disabled = true;
-        option.textContent = 'No records available';
+        option.textContent = 'No ' + (type === 'teacher' ? 'teachers' : 'staff members') + ' found';
         staffSelect.appendChild(option);
+        console.warn('No data found for type:', type);
         resetSalaryFields();
         return;
     }
     
+    // Add each person to the dropdown
+    let addedCount = 0;
     data.forEach(person => {
-        const option = document.createElement('option');
-        const firstName = person.first_name || '';
-        const lastName = person.last_name || '';
-        const employeeId = person.employee_id || 'N/A';
-        const fullName = (firstName + ' ' + lastName).trim();
-        
-        option.value = person.id;
-        option.textContent = fullName + ' (' + employeeId + ')';
-        option.dataset.name = fullName;
-        option.dataset.basicSalary = person.basic_salary || 0;
-        option.dataset.allowances = person.allowances || 0;
-        staffSelect.appendChild(option);
+        try {
+            // Ensure required fields exist
+            if (!person || typeof person !== 'object') {
+                console.warn('Invalid person data:', person);
+                return;
+            }
+            
+            const option = document.createElement('option');
+            const firstName = person.first_name || '';
+            const lastName = person.last_name || '';
+            const employeeId = person.employee_id || '';
+            const fullName = (firstName + ' ' + lastName).trim();
+            const displayText = employeeId ? 
+                `${fullName} (${employeeId})` : 
+                fullName || 'Unknown';
+            
+            // Ensure we have a valid ID
+            if (!person.id && !person.pk) {
+                console.warn('Person missing ID:', person);
+                return;
+            }
+            
+            option.value = person.id || person.pk; // Handle both id and pk
+            option.textContent = displayText;
+            option.dataset.name = fullName;
+            option.dataset.basicSalary = person.basic_salary || 0;
+            option.dataset.allowances = person.allowances || 0;
+            
+            staffSelect.appendChild(option);
+            addedCount++;
+        } catch (error) {
+            console.error('Error processing staff/teacher:', person, error);
+        }
     });
+    
+    console.log(`Added ${addedCount} ${type} to dropdown`);
     
     resetSalaryFields();
 }
 
-staffTypeSelect.addEventListener('change', function() {
-    populateStaffOptions(this.value);
-});
+// Initialize the staff type dropdown
+if (staffTypeSelect) {
+    staffTypeSelect.addEventListener('change', function() {
+        const selectedType = this.value;
+        console.log('Staff type changed to:', selectedType);
+        populateStaffOptions(selectedType);
+    });
+    
+    // If there are teachers, select teacher by default
+    if (teachers && teachers.length > 0) {
+        staffTypeSelect.value = 'teacher';
+        staffTypeSelect.dispatchEvent(new Event('change'));
+    } 
+    // Otherwise, if there are staff members, select staff
+    else if (staffMembers && staffMembers.length > 0) {
+        staffTypeSelect.value = 'staff';
+        staffTypeSelect.dispatchEvent(new Event('change'));
+    }
+}
 
 staffSelect.addEventListener('change', function() {
     const selected = this.options[this.selectedIndex];
@@ -306,7 +525,15 @@ addPaymentModal.addEventListener('shown.bs.modal', function () {
 
 document.getElementById('addPaymentForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    const formData = new FormData(this);
+    const form = this;
+    const submitButton = form.querySelector('button[type="submit"]');
+    const originalButtonText = submitButton.innerHTML;
+    
+    // Show loading state
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+    
+    const formData = new FormData(form);
     
     fetch(window.location.pathname, {
         method: 'POST',
@@ -315,14 +542,28 @@ document.getElementById('addPaymentForm').addEventListener('submit', function(e)
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('Payment processed successfully!');
-            location.reload();
+            // Show success message in modal
+            showStatusModal('Success', 'Payment processed successfully!', false);
+            // Close the add payment modal
+            const addPaymentModal = bootstrap.Modal.getInstance(document.getElementById('addPaymentModal'));
+            if (addPaymentModal) {
+                addPaymentModal.hide();
+            }
+            // Reload the page after a short delay
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
         } else {
-            alert('Error: ' + data.error);
+            showStatusModal('Error', data.error || 'An error occurred while processing the payment.', true);
         }
     })
     .catch(error => {
-        alert('Error: ' + error.message);
+        showStatusModal('Error', error.message || 'An unexpected error occurred.', true);
+    })
+    .finally(() => {
+        // Reset button state
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalButtonText;
     });
 });
 </script>

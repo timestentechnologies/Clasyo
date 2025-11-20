@@ -359,25 +359,122 @@ class StaffPaymentView(LoginRequiredMixin, ListView):
         
         # Import models
         from human_resource.models import Teacher, Staff
+        from accounts.models import User
         
-        # Fetch teachers and staff with salary data
-        teachers = Teacher.objects.filter(is_active=True).values(
-            'id', 'first_name', 'last_name', 'basic_salary', 'allowances', 'employee_id'
-        )
-        staff_members = Staff.objects.filter(is_active=True).values(
-            'id', 'first_name', 'last_name', 'basic_salary', 'allowances', 'employee_id'
-        )
+        # Initialize empty lists
+        teachers = []
+        staff_members = []
         
-        # Convert to list and serialize for JavaScript
-        context['teachers_json'] = json.dumps(list(teachers), cls=DjangoJSONEncoder)
-        context['staff_json'] = json.dumps(list(staff_members), cls=DjangoJSONEncoder)
-        context['teachers'] = Teacher.objects.filter(is_active=True)
-        context['staff_members'] = Staff.objects.filter(is_active=True)
+        try:
+            # Get the current tenant (school) from the request
+            current_tenant = getattr(self.request, 'tenant', None)
+            print(f"Current tenant: {current_tenant}")
+            
+            if current_tenant:
+                # Get all active users in the current tenant
+                school_users = User.objects.filter(is_active=True)
+                print(f"Active users in tenant: {school_users.count()}")
+                
+                if school_users.exists():
+                    # Print all users and their roles for debugging
+                    print("All users and their roles:")
+                    for user in school_users:
+                        print(f"- {user.get_full_name()} (ID: {user.id}): Role={getattr(user, 'role', 'N/A')}, is_staff={user.is_staff}, is_superuser={user.is_superuser}")
+                    
+                    # Get all active users with teacher or staff role
+                    teachers = []
+                    staff_members = []
+                    
+                    # Try different role field names that might be used
+                    possible_teacher_roles = ['teacher', 'staff', 'is_teacher', 'is_staff']
+                    possible_staff_roles = ['staff', 'employee', 'is_staff', 'is_employee']
+                    
+                    # Check which role fields exist on the User model
+                    user_fields = [f.name for f in school_users.model._meta.get_fields()]
+                    print(f"Available user fields: {user_fields}")
+                    
+                    # Find which role field to use
+                    role_field = None
+                    for field in ['role', 'user_type', 'type']:
+                        if field in user_fields:
+                            role_field = field
+                            break
+                    
+                    if role_field:
+                        print(f"Using role field: {role_field}")
+                        # Get users with teacher role
+                        teacher_users = school_users.filter(**{f"{role_field}__in": ['teacher', 'is_teacher']})
+                        # Get users with staff role (excluding teachers)
+                        staff_users = school_users.filter(**{f"{role_field}__in": ['staff', 'is_staff', 'employee']})
+                    else:
+                        print("No explicit role field found, falling back to is_staff")
+                        teacher_users = school_users.filter(is_staff=True)
+                        staff_users = school_users.filter(is_staff=True)  # Same as teachers for now
+                    
+                    print(f"Found {teacher_users.count()} teachers and {staff_users.count()} staff users")
+                    
+                    # Format teacher data
+                    for user in teacher_users:
+                        teachers.append({
+                            'id': user.id,
+                            'first_name': user.first_name,
+                            'last_name': user.last_name or '',
+                            'basic_salary': '0',  # Default value
+                            'allowances': '0',    # Default value
+                            'employee_id': getattr(user, 'employee_id', f'TEACH-{user.id}'),
+                            'user_id': user.id
+                        })
+                    
+                    # Format staff data
+                    for user in staff_users:
+                        # Skip if already in teachers to avoid duplicates
+                        if user.id not in [t['user_id'] for t in teachers]:
+                            staff_members.append({
+                                'id': user.id,
+                                'first_name': user.first_name,
+                                'last_name': user.last_name or '',
+                                'basic_salary': '0',  # Default value
+                                'allowances': '0',    # Default value
+                                'employee_id': getattr(user, 'employee_id', f'STAFF-{user.id}'),
+                                'user_id': user.id
+                            })
+                    
+                    print(f"Found {len(teachers)} teachers and {len(staff_members)} staff in tenant")
+                else:
+                    print("No active users found in the current tenant")
+            else:
+                print("No tenant found in the request")
+                
+        except Exception as e:
+            import traceback
+            print("Error in get_context_data:")
+            print(str(e))
+            print(traceback.format_exc())
         
-        # Calculate totals
-        context['total_payments'] = StaffPayment.objects.filter(
-            status='paid'
-        ).aggregate(Sum('net_salary'))['net_salary__sum'] or 0
+        # Don't convert to JSON string here - the json_script template filter will handle it
+        context['teachers_json'] = teachers
+        context['staff_json'] = staff_members
+        
+        # Debug output
+        print("Teachers data being sent to template:", teachers)
+        print("Staff data being sent to template:", staff_members)
+        
+        # Add debug info to template
+        context['debug_info'] = {
+            'teachers_count': len(teachers),
+            'staff_count': len(staff_members),
+            'school': str(current_tenant) if current_tenant else 'None'
+        }
+        
+        # Calculate totals for the current tenant
+        context['total_payments'] = 0  # Default value
+        if current_tenant:
+            try:
+                context['total_payments'] = StaffPayment.objects.filter(
+                    status='paid'
+                ).aggregate(Sum('net_salary'))['net_salary__sum'] or 0
+            except Exception as e:
+                print(f"Error calculating total payments: {e}")
         
         return context
     
@@ -397,15 +494,25 @@ class StaffPaymentView(LoginRequiredMixin, ListView):
             else:
                 payment_number = f"PAY-{datetime.now().strftime('%Y%m%d%H%M%S')}"
             
+            # Convert string values to Decimal for calculations
+            basic_salary = Decimal(request.POST.get('basic_salary', 0) or 0)
+            allowances = Decimal(request.POST.get('allowances', 0) or 0)
+            deductions = Decimal(request.POST.get('deductions', 0) or 0)
+            
+            # Format payment_month to ensure it's a valid date (YYYY-MM-DD)
+            payment_month = request.POST.get('payment_month')
+            if payment_month and len(payment_month) == 7 and payment_month[4] == '-':  # Format: YYYY-MM
+                payment_month = f"{payment_month}-01"  # Convert to YYYY-MM-01
+            
             payment = StaffPayment.objects.create(
                 payment_number=payment_number,
                 staff_type=request.POST.get('staff_type'),
                 staff_id=request.POST.get('staff_id'),
                 staff_name=request.POST.get('staff_name'),
-                payment_month=request.POST.get('payment_month'),
-                basic_salary=request.POST.get('basic_salary'),
-                allowances=request.POST.get('allowances', 0),
-                deductions=request.POST.get('deductions', 0),
+                payment_month=payment_month,
+                basic_salary=basic_salary,
+                allowances=allowances,
+                deductions=deductions,
                 payment_date=request.POST.get('payment_date'),
                 payment_method=request.POST.get('payment_method'),
                 reference_number=request.POST.get('reference_number', ''),

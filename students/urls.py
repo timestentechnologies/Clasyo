@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views_autocomplete import StudentAutocompleteView
 
 app_name = 'students'
 
@@ -11,4 +12,7 @@ urlpatterns = [
     path('<int:pk>/', views.StudentDetailView.as_view(), name='detail'),
     path('<int:pk>/edit/', views.StudentUpdateView.as_view(), name='edit'),
     path('<int:pk>/delete/', views.StudentDeleteView.as_view(), name='delete'),
+    
+    # Autocomplete endpoints
+    path('autocomplete/', StudentAutocompleteView.as_view(), name='student_autocomplete'),
 ]

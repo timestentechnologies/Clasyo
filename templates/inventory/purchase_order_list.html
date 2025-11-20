@@ -37,7 +37,7 @@
                         <td>{{ po.supplier.name }}</td>
                         <td>{{ po.order_date }}</td>
                         <td>{{ po.expected_delivery_date|default:"-" }}</td>
-                        <td>${{ po.total_amount }}</td>
+                        <td>Ksh{{ po.total_amount|floatformat:2 }}</td>
                         <td>
                             {% if po.status == 'draft' %}
                             <span class="badge bg-secondary">Draft</span>
@@ -152,7 +152,7 @@
                             <option value="">Select Item</option>
                             {% for item in items %}
                             <option value="{{ item.id }}" data-price="{{ item.unit_price }}" data-unit="{{ item.unit }}">
-                                {{ item.name }} ({{ item.code }}) - ${{ item.unit_price }}/{{ item.unit }}
+                                {{ item.name }} ({{ item.code }}) - Ksh{{ item.unit_price }}/{{ item.unit }}
                             </option>
                             {% endfor %}
                         </select>

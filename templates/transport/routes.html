@@ -6,10 +6,317 @@
 {% block page_title %}Transport Routes{% endblock %}
 {% block page_subtitle %}Manage school transport routes{% endblock %}
 
+{% block extra_js %}
+<script>
+// Function to show status modal
+function showStatusModal(title, message, isError = false) {
+    const modal = new bootstrap.Modal(document.getElementById('statusModal'));
+    const modalTitle = document.getElementById('statusModalTitle');
+    const modalBody = document.getElementById('statusModalBody');
+    
+    modalTitle.textContent = title;
+    modalBody.innerHTML = message;
+    
+    // Add appropriate styling for error/success
+    if (isError) {
+        modalTitle.className = 'modal-title text-danger';
+    } else {
+        modalTitle.className = 'modal-title text-success';
+    }
+    
+    modal.show();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const addRouteForm = document.getElementById('addRouteForm');
+    if (addRouteForm) {
+        addRouteForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            
+            // Clear any previous error messages
+            const errorElements = form.querySelectorAll('.invalid-feedback');
+            errorElements.forEach(el => el.remove());
+            
+            const formInputs = form.querySelectorAll('.is-invalid');
+            formInputs.forEach(el => el.classList.remove('is-invalid'));
+            
+            const submitButton = form.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.innerHTML;
+            
+            // Show loading state
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+            
+            const formData = new FormData(form);
+            
+            fetch(window.location.pathname, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFTToken': formData.get('csrfmiddlewaretoken')
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw err; });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Show success message in modal
+                    showStatusModal('Success', 'Route added successfully!', false);
+                    // Close the add route modal
+                    const addRouteModal = bootstrap.Modal.getInstance(document.getElementById('addRouteModal'));
+                    if (addRouteModal) {
+                        addRouteModal.hide();
+                    }
+                    // Reload the page after a short delay
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    // Handle form field errors
+                    if (data.errors) {
+                        Object.entries(data.errors).forEach(([field, messages]) => {
+                            const input = form.querySelector(`[name="${field}"]`);
+                            if (input) {
+                                input.classList.add('is-invalid');
+                                const errorDiv = document.createElement('div');
+                                errorDiv.className = 'invalid-feedback';
+                                errorDiv.textContent = Array.isArray(messages) ? messages[0] : messages;
+                                input.parentNode.appendChild(errorDiv);
+                            }
+                        });
+                    }
+                    // Show error message in modal
+                    showStatusModal('Error', data.message || 'An error occurred while saving the route.', true);
+                }
+            })
+            .catch(error => {
+                showStatusModal('Error', 'An unexpected error occurred: ' + (error.message || 'Please try again.'), true);
+            })
+            .finally(() => {
+                // Reset button state
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+            });
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Transport routes table styles */
+    .route-table {
+        width: 100%;
+        background: #fff;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    
+    [data-theme="dark"] .route-table,
+    .theme-dark .route-table {
+        background: #2d3748;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.25);
+    }
+    
+    .route-table th {
+        background-color: #4a6cf7;
+        color: white;
+        border: none;
+        font-weight: 500;
+        padding: 1rem 1.25rem;
+        text-align: left;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .route-table td {
+        vertical-align: middle;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #e2e8f0;
+        color: #4a5568;
+        font-size: 0.9375rem;
+    }
+    
+    [data-theme="dark"] .route-table td,
+    .theme-dark .route-table td {
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .route-table tbody tr {
+        transition: all 0.2s ease;
+        background: #fff;
+    }
+    
+    [data-theme="dark"] .route-table tbody tr,
+    .theme-dark .route-table tbody tr {
+        background: #2d3748;
+    }
+    
+    .route-table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+    
+    [data-theme="dark"] .route-table tbody tr:hover,
+    .theme-dark .route-table tbody tr:hover {
+        background-color: #4a5568;
+    }
+    
+    /* Action buttons */
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .action-buttons .btn {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        padding: 0;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+    }
+    
+    /* Quick links section */
+    .modern-card .card-body {
+        background: transparent;
+    }
+    
+    /* Quick links */
+    .quick-links {
+        border-radius: 0;
+        overflow: hidden;
+    }
+    
+    .quick-links .list-group-item {
+        background: #fff;
+        border: none;
+        border-bottom: 1px solid #e2e8f0;
+        color: #4a5568;
+        transition: all 0.2s ease;
+        padding: 0.75rem 1.25rem;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        border-radius: 0;
+    }
+    
+    [data-theme="dark"] .quick-links .list-group-item,
+    .theme-dark .quick-links .list-group-item {
+        background: #2d3748;
+        border-color: #4a5568 !important;
+        color: #e2e8f0;
+    }
+    
+    [data-theme="dark"] .modern-card .card-body,
+    .theme-dark .modern-card .card-body {
+        background: #2d3748;
+    }
+    
+    .quick-links .list-group-item:hover {
+        background: #f8fafc;
+        color: #4a6cf7;
+    }
+    
+    [data-theme="dark"] .quick-links .list-group-item:hover,
+    .theme-dark .quick-links .list-group-item:hover {
+        background: #4a5568;
+        color: #7c93ff;
+    }
+    
+    .quick-links .list-group-item i {
+        width: 20px;
+        margin-right: 0.75rem;
+        text-align: center;
+    }
+    
+    /* Empty state */
+    .empty-state {
+        color: #a0aec0;
+        padding: 3rem 1rem;
+        text-align: center;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        display: block;
+    }
+    
+    .empty-state h5 {
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+        color: #4a5568;
+    }
+    
+    [data-theme="dark"] .empty-state h5,
+    .theme-dark .empty-state h5 {
+        color: #e2e8f0;
+    }
+    
+    /* Modern card styling */
+    .modern-card {
+        background: #fff;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+    
+    [data-theme="dark"] .modern-card,
+    .theme-dark .modern-card {
+        background: #2d3748;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.25);
+    }
+    
+    .modern-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    /* Badges */
+    .badge {
+        font-weight: 500;
+        padding: 0.35em 0.65em;
+        border-radius: 0.25rem;
+        font-size: 0.75em;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
+<!-- Status Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statusModalTitle">Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="statusModalBody">
+                <!-- Message will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-lg-12">
-        <div class="card border-0 shadow-sm">
+        <div class="modern-card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="mb-0 fw-bold"><i class="fas fa-route text-primary me-2"></i>All Routes</h5>
@@ -20,7 +327,7 @@
 
                 {% if routes %}
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover route-table">
                         <thead>
                             <tr>
                                 <th>Route Name</th>
@@ -38,13 +345,16 @@
                                 <td>{{ route.start_place }}</td>
                                 <td>{{ route.end_place }}</td>
                                 <td>{{ route.distance }}</td>
-                                <td>${{ route.fare }}</td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary">
+                                <td>Ksh{{ route.fare|floatformat:2 }}</td>
+                                <td class="action-buttons">
+                                    <button class="btn btn-sm btn-outline-primary" title="Edit Route">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-danger">
+                                    <button class="btn btn-sm btn-outline-danger" title="Delete Route">
                                         <i class="fas fa-trash"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-info" title="View Stops">
+                                        <i class="fas fa-map-marker-alt"></i>
                                     </button>
                                 </td>
                             </tr>
@@ -53,7 +363,7 @@
                     </table>
                 </div>
                 {% else %}
-                <div class="text-center py-5">
+                <div class="text-center py-5 empty-state">
                     <i class="fas fa-route fa-4x text-muted mb-3"></i>
                     <h5 class="text-muted">No routes found</h5>
                     <p>Add your first transport route to get started</p>
@@ -62,10 +372,12 @@
             </div>
         </div>
 
-        <div class="card border-0 shadow-sm mt-4">
-            <div class="card-body">
-                <h5 class="mb-3 fw-bold"><i class="fas fa-bus text-success me-2"></i>Quick Links</h5>
-                <div class="list-group list-group-flush">
+        <div class="modern-card mt-4">
+            <div class="card-body p-0">
+                <div class="p-4 border-bottom" style="border-color: var(--border-color) !important;">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-link text-primary me-2"></i>Quick Links</h5>
+                </div>
+                <div class="list-group list-group-flush quick-links">
                     <a href="{% url 'transport:vehicles' school_slug=school_slug %}" class="list-group-item list-group-item-action">
                         <i class="fas fa-bus me-2"></i> Manage Vehicles
                     </a>
@@ -95,7 +407,7 @@
                 <h5 class="modal-title">Add New Route</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="post">
+            <form id="addRouteForm" method="post">
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="mb-3">
