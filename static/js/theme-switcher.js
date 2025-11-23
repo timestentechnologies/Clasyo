@@ -88,21 +88,20 @@ function initializeTheme() {
         themeIcon.title = iconType === 'sun' ? 'Switch to Dark Mode' : 'Switch to Light Mode';
     }
 
-    // Set initial theme
-    const initialTheme = currentTheme || (prefersDarkScheme.matches ? 'dark' : 'light');
+    // Always default to light theme
+    const initialTheme = 'light';
     applyTheme(initialTheme);
-    
-    // If no theme was set, use system preference
-    if (!currentTheme) {
-        localStorage.setItem('theme', initialTheme);
-    }
+    localStorage.setItem('theme', 'light');
 
     // Toggle theme when switch is clicked
     if (themeToggle) {
         themeToggle.addEventListener('change', function() {
             const newTheme = this.checked ? 'dark' : 'light';
-            localStorage.setItem('theme', newTheme);
             applyTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            // Force a reload to ensure all styles are properly applied
+            window.location.reload();
         });
     }
 
