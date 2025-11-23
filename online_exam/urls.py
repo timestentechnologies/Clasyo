@@ -28,4 +28,5 @@ urlpatterns = [
     path('<int:exam_id>/questions/add/', views.AddQuestionView.as_view(), name='add_question'),
     path('<int:exam_id>/questions/<int:question_id>/edit/', views.EditQuestionView.as_view(), name='edit_question'),
     path('<int:exam_id>/questions/<int:question_id>/delete/', views.DeleteQuestionView.as_view(), name='delete_question'),
+    path('<int:exam_id>/questions/update-order/', views.UpdateQuestionOrderView.as_view(), name='update_question_order'),
 ]

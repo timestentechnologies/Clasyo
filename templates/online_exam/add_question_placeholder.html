@@ -49,10 +49,10 @@
                             <label class="form-label fw-bold">Question Type</label>
                             <div class="row g-3">
                                 <div class="col-md-4">
-                                    <div class="form-check card p-3 h-100 question-type-option {% if form.question_type.value == 'multiple_choice' or not form.question_type.value %}active{% endif %}" data-type="multiple_choice">
+                                    <div class="form-check card p-3 h-100 question-type-option {% if form.question_type.value == 'mcq_single' or not form.question_type.value %}active{% endif %}" data-type="mcq_single">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="question_type" id="type_multiple_choice" value="multiple_choice" 
-                                                {% if form.question_type.value == 'multiple_choice' or not form.question_type.value %}checked{% endif %}>
+                                            <input class="form-check-input" type="radio" name="question_type" id="type_multiple_choice" value="mcq_single" 
+                                                {% if form.question_type.value == 'mcq_single' or not form.question_type.value %}checked{% endif %}>
                                             <label class="form-check-label fw-bold" for="type_multiple_choice">
                                                 <i class="fas fa-list-ol text-primary me-2"></i>Multiple Choice
                                             </label>
@@ -94,21 +94,21 @@
                         
                         <!-- Question Text -->
                         <div class="mb-4">
-                            <label for="{{ form.text.id_for_label }}" class="form-label fw-bold">
+                            <label for="{{ form.question_text.id_for_label }}" class="form-label fw-bold">
                                 Question Text <span class="text-danger">*</span>
                             </label>
-                            {% render_field form.text class="form-control rich-editor" id=form.text.id_for_label %}
-                            {% if form.text.help_text %}
-                                <small class="form-text text-muted">{{ form.text.help_text }}</small>
+                            {% render_field form.question_text class="form-control rich-editor" id=form.question_text.id_for_label %}
+                            {% if form.question_text.help_text %}
+                                <small class="form-text text-muted">{{ form.question_text.help_text }}</small>
                             {% endif %}
-                            {% if form.text.errors %}
+                            {% if form.question_text.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {{ form.text.errors }}
+                                    {{ form.question_text.errors }}
                                 </div>
                             {% endif %}
                         </div>
                         
-                        <!-- Marks -->
+                        <!-- Marks and Order -->
                         <div class="row">
                             <div class="col-md-3 mb-4">
                                 <label for="{{ form.marks.id_for_label }}" class="form-label fw-bold">
@@ -129,31 +129,51 @@
                             </div>
                             
                             <div class="col-md-3 mb-4">
-                                <label for="{{ form.difficulty.id_for_label }}" class="form-label fw-bold">
-                                    Difficulty
+                                <label for="{{ form.order.id_for_label }}" class="form-label fw-bold">
+                                    Order
                                 </label>
-                                {% render_field form.difficulty class="form-select" %}
-                                {% if form.difficulty.help_text %}
-                                    <small class="form-text text-muted">{{ form.difficulty.help_text }}</small>
+                                {% render_field form.order class="form-control" min="0" %}
+                                {% if form.order.help_text %}
+                                    <small class="form-text text-muted">{{ form.order.help_text }}</small>
                                 {% endif %}
-                                {% if form.difficulty.errors %}
+                                {% if form.order.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {{ form.difficulty.errors }}
+                                        {{ form.order.errors }}
                                     </div>
                                 {% endif %}
                             </div>
                             
                             <div class="col-md-3 mb-4">
-                                <label for="{{ form.category.id_for_label }}" class="form-label fw-bold">
-                                    Category
+                                <label for="{{ form.image.id_for_label }}" class="form-label fw-bold">
+                                    Question Image
                                 </label>
-                                {% render_field form.category class="form-select" %}
-                                {% if form.category.help_text %}
-                                    <small class="form-text text-muted">{{ form.category.help_text }}</small>
+                                {% render_field form.image class="form-control" %}
+                                {% if form.image.help_text %}
+                                    <small class="form-text text-muted">{{ form.image.help_text }}</small>
                                 {% endif %}
-                                {% if form.category.errors %}
+                                {% if form.image.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {{ form.category.errors }}
+                                        {{ form.image.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-3 mb-4">
+                                <label for="{{ form.is_required.id_for_label }}" class="form-label fw-bold">
+                                    Required Question
+                                </label>
+                                <div class="form-check mt-2">
+                                    {% render_field form.is_required class="form-check-input" %}
+                                    <label class="form-check-label" for="{{ form.is_required.id_for_label }}">
+                                        Students must answer this question
+                                    </label>
+                                </div>
+                                {% if form.is_required.help_text %}
+                                    <small class="form-text text-muted">{{ form.is_required.help_text }}</small>
+                                {% endif %}
+                                {% if form.is_required.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.is_required.errors }}
                                     </div>
                                 {% endif %}
                             </div>
@@ -162,7 +182,7 @@
                         <!-- Question Type Specific Fields -->
                         <div id="question-type-fields">
                             <!-- Multiple Choice Fields -->
-                            <div id="multiple-choice-fields" class="question-type-section" style="display: {% if form.question_type.value == 'multiple_choice' or not form.question_type.value %}block{% else %}none{% endif %};">
+                            <div id="multiple-choice-fields" class="question-type-section" style="display: {% if form.question_type.value == 'mcq_single' or not form.question_type.value %}block{% else %}none{% endif %};">
                                 <h5 class="border-bottom pb-2 mb-4">Multiple Choice Options</h5>
                                 
                                 <div id="choice-forms">
@@ -174,30 +194,30 @@
                                                 <div class="form-check">
                                                 {{ form.id }}
                                                 {{ form.DELETE }}
-                                                <input type="radio" name="correct_choice" value="{{ forloop.counter0 }}" class="form-check-input" {% if form.is_correct.value %}checked{% endif %}>
+                                                {% render_field form.is_correct class="form-check-input" %}
                                                 <label class="form-check-label">
-                                                    Correct Answer
+                                                    Correct
                                                 </label>
                                             </div>
                                         </div>
                                         <div class="col-md-8">
                                             <div class="input-group">
                                                 <span class="input-group-text">{{ forloop.counter|stringformat:'c'|upper }}.</span>
-                                                {% render_field form.text class="form-control" placeholder="Enter option text" %}
+                                                {% render_field form.choice_text class="form-control" placeholder="Enter option text" %}
                                                 <button type="button" class="btn btn-outline-danger remove-choice" data-choice-id="choice-{{ forloop.counter0 }}">
                                                     <i class="fas fa-times"></i>
                                                 </button>
                                             </div>
-                                            {% if form.text.errors %}
+                                            {% if form.choice_text.errors %}
                                                 <div class="invalid-feedback d-block">
-                                                    {{ form.text.errors }}
+                                                    {{ form.choice_text.errors }}
                                                 </div>
                                             {% endif %}
                                         </div>
                                         <div class="col-md-3">
                                             <div class="input-group">
-                                                <span class="input-group-text">Explanation (optional)</span>
-                                                {% render_field form.explanation class="form-control" %}
+                                                <span class="input-group-text">Order</span>
+                                                {% render_field form.order class="form-control" min="0" %}
                                             </div>
                                         </div>
                                     </div>
@@ -276,41 +296,16 @@
                             <h5 class="border-bottom pb-2 mb-3">Additional Settings</h5>
                             
                             <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-check form-switch mb-3">
-                                        <input class="form-check-input" type="checkbox" id="is_required" name="is_required" 
-                                            {% if form.is_required.value %}checked{% endif %}>
-                                        <label class="form-check-label fw-bold" for="is_required">
-                                            Required Question
-                                        </label>
-                                        <div class="form-text">Students must answer this question to submit the exam.</div>
-                                    </div>
-                                    
-                                    <div class="form-check form-switch mb-3">
-                                        <input class="form-check-input" type="checkbox" id="show_feedback" name="show_feedback" 
-                                            {% if form.show_feedback.value %}checked{% endif %}>
-                                        <label class="form-check-label fw-bold" for="show_feedback">
-                                            Show Feedback After Submission
-                                        </label>
-                                        <div class="form-text">Students will see the correct answer and explanation after submitting.</div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <div class="mb-3">
-                                        <label for="hint" class="form-label fw-bold">Hint (optional)</label>
-                                        <input type="text" class="form-control" id="hint" name="hint" 
-                                            value="{% if form.hint.value %}{{ form.hint.value }}{% endif %}" 
-                                            placeholder="Provide a hint for students">
-                                        <div class="form-text">This hint will be shown to students if they request it during the exam.</div>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label for="tags" class="form-label fw-bold">Tags (optional)</label>
-                                        <input type="text" class="form-control" id="tags" name="tags" 
-                                            value="{% if form.tags.value %}{{ form.tags.value }}{% endif %}" 
-                                            placeholder="e.g., algebra, geometry, calculus">
-                                        <div class="form-text">Add tags to help organize and filter questions. Separate with commas.</div>
+                                        <label for="{{ form.explanation.id_for_label }}" class="form-label fw-bold">Explanation (optional)</label>
+                                        {% render_field form.explanation class="form-control" rows="3" placeholder="Provide an explanation for the correct answer" %}
+                                        <div class="form-text">This explanation will be shown to students after they submit the exam (if enabled).</div>
+                                        {% if form.explanation.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.explanation.errors }}
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -346,9 +341,9 @@
 {% block custom_js %}
 <script>
 $(document).ready(function() {
-    // Initialize rich text editors
+    // Initialize rich text editor for question text
     if (typeof CKEDITOR !== 'undefined') {
-        CKEDITOR.replace('id_text', {
+        CKEDITOR.replace('id_question_text', {
             toolbar: [
                 { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript', '-', 'RemoveFormat'] },
                 { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote'] },
@@ -358,7 +353,7 @@ $(document).ready(function() {
                 { name: 'colors', items: ['TextColor', 'BGColor'] },
                 { name: 'tools', items: ['Maximize', 'Source'] }
             ],
-            height: 150,
+            height: 120,
             removePlugins: 'elementspath',
             resize_enabled: true
         });
@@ -385,41 +380,82 @@ $(document).ready(function() {
         $('.question-type-option').removeClass('active');
         $(this).addClass('active');
         $('.question-type-section').hide();
-        $(`#${questionType}-fields`).show();
+        
+        // Map the type to the correct field ID
+        const fieldMap = {
+            'mcq_single': 'multiple-choice-fields',
+            'true_false': 'true-false-fields', 
+            'short_answer': 'short-answer-fields'
+        };
+        
+        const targetField = fieldMap[questionType];
+        if (targetField) {
+            $(`#${targetField}`).show();
+        }
+        
+        // Update the hidden form field
         $(`#id_question_type`).val(questionType);
     });
     
     // Initialize choice formset
     const choiceFormset = $('#choice-forms');
-    const totalForms = $('#id_choices-TOTAL_FORMS');
-    const emptyForm = $('#choice-0').clone(true);
+    // Management field for the formset (handle any prefix, e.g. form-, choices-)
+    const totalForms = $('input[id$="-TOTAL_FORMS"]');
+    
+    // Make sure emptyForm is defined after the page loads
+    const emptyForm = $('#choice-0').length ? $('#choice-0').clone(true) : null;
     
     // Add new choice
-    $('#add-choice').click(function() {
+    $('#add-choice').click(function(e) {
+        e.preventDefault();
+        
+        if (!emptyForm) {
+            console.error('Cannot find choice form template');
+            return;
+        }
+        
         const formIdx = parseInt(totalForms.val());
         const newForm = emptyForm.clone(true);
         
-        // Update IDs and names
+        // Update form attributes
         newForm.attr('id', `choice-${formIdx}`);
-        newForm.find('input, textarea, select').each(function() {
-            const newId = $(this).attr('id').replace('-0-', `-${formIdx}-`);
-            const newName = $(this).attr('name').replace('-0-', `-${formIdx}-`);
-            $(this).attr('id', newId).attr('name', newName).val('');
+        newForm.find(':input').each(function() {
+            const $field = $(this);
+            const name = $field.attr('name');
+            const id = $field.attr('id');
             
-            // Reset radio button
-            if ($(this).attr('type') === 'radio') {
-                $(this).prop('checked', false);
+            if (name) {
+                const newName = name.replace('0', formIdx);
+                $field.attr('name', newName);
+            }
+            if (id) {
+                const newId = id.replace('0', formIdx);
+                $field.attr('id', newId);
+            }
+            
+            // Clear values and reset checkbox
+            if ($field.attr('type') === 'checkbox') {
+                $field.prop('checked', false);
+            } else if ($field.attr('type') !== 'hidden') {
+                $field.val('');
             }
         });
         
-        // Update the choice letter
-        const choiceLetter = String.fromCharCode(65 + formIdx);
-        newForm.find('.input-group-text').text(choiceLetter + '.');
+        // Update labels
+        newForm.find('label').each(function() {
+            const forAttr = $(this).attr('for');
+            if (forAttr) {
+                $(this).attr('for', forAttr.replace('0', formIdx));
+            }
+        });
         
-        // Update the radio button value
-        newForm.find('input[type="radio"]').val(formIdx);
+        // Update button data attribute
+        newForm.find('.remove-choice').attr('data-choice-id', `choice-${formIdx}`);
         
-        // Add the new form before the add button
+        // Update choice letter
+        newForm.find('.input-group-text').first().text(String.fromCharCode(65 + formIdx) + '.');
+        
+        // Add the new form before the add button parent
         newForm.insertBefore($(this).parent());
         
         // Update total forms count
@@ -497,7 +533,7 @@ $(document).ready(function() {
         const questionType = $('input[name="question_type"]:checked').val();
         
         // Validate question text
-        if (CKEDITOR.instances['id_text'].getData().trim() === '') {
+        if (CKEDITOR.instances['id_question_text'].getData().trim() === '') {
             alert('Please enter the question text.');
             isValid = false;
         }
@@ -510,7 +546,7 @@ $(document).ready(function() {
         }
         
         // Validate based on question type
-        if (questionType === 'multiple_choice') {
+        if (questionType === 'mcq_single') {
             // Check at least 2 choices
             if ($('.choice-form').length < 2) {
                 alert('Please add at least two answer choices.');
@@ -533,8 +569,8 @@ $(document).ready(function() {
                     isValid = false;
                 }
                 
-                // Check a correct answer is selected
-                if ($('input[name="correct_choice"]:checked').length === 0) {
+                // Check a correct answer is selected (any prefix, just end with -is_correct)
+                if ($('input[name$="-is_correct"]:checked').length === 0) {
                     alert('Please select the correct answer.');
                     isValid = false;
                 }
@@ -601,10 +637,10 @@ $(document).ready(function() {
 
 /* Style for form sections */
 .question-type-section {
-    padding: 1.5rem;
+    padding: 1.25rem;
     background-color: #f8f9fa;
     border-radius: 0.5rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
     border: 1px solid #e9ecef;
 }
 
@@ -612,6 +648,82 @@ $(document).ready(function() {
 .form-label {
     font-weight: 600;
     color: #495057;
+}
+
+/* Dark mode overrides for add question page */
+[data-theme="dark"] .question-type-option,
+.theme-dark .question-type-option {
+    background-color: #020617;
+    border-color: #1f2937;
+    color: #e5e7eb;
+}
+
+[data-theme="dark"] .question-type-option:hover,
+.theme-dark .question-type-option:hover {
+    border-color: rgba(56, 189, 248, 0.6);
+    box-shadow: 0 0.5rem 1rem rgba(15, 23, 42, 0.7);
+}
+
+[data-theme="dark"] .question-type-option.active,
+.theme-dark .question-type-option.active {
+    border-color: #38bdf8;
+    background-color: rgba(56, 189, 248, 0.12);
+}
+
+[data-theme="dark"] .choice-form,
+.theme-dark .choice-form {
+    background-color: #020617;
+    border-color: #1f2937;
+}
+
+[data-theme="dark"] .question-type-section,
+.theme-dark .question-type-section {
+    background-color: #020617;
+    border-color: #1f2937;
+}
+
+[data-theme="dark"] .form-label,
+.theme-dark .form-label {
+    color: #e5e7eb;
+}
+
+/* Dark mode card header text (Add New Question / Exam: ...) */
+[data-theme="dark"] .modern-card .card-header .card-title,
+.theme-dark .modern-card .card-header .card-title {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .modern-card .card-header .text-muted,
+.theme-dark .modern-card .card-header .text-muted {
+    color: #e5e7eb;
+}
+
+/* Dark mode text colors inside question-type cards */
+[data-theme="dark"] .question-type-option .form-check-label,
+.theme-dark .question-type-option .form-check-label {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .question-type-option p,
+.theme-dark .question-type-option p,
+[data-theme="dark"] .question-type-option .text-muted,
+.theme-dark .question-type-option .text-muted,
+[data-theme="dark"] .question-type-option small,
+.theme-dark .question-type-option small {
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .form-control,
+.theme-dark .form-control {
+    background-color: #020617;
+    color: #e5e7eb;
+    border-color: #1f2937;
+}
+
+[data-theme="dark"] .form-control:focus,
+.theme-dark .form-control:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 0.15rem rgba(56, 189, 248, 0.35);
 }
 
 /* Style for required field indicators */
@@ -634,4 +746,3 @@ $(document).ready(function() {
 }
 </style>
 {% endblock %}
-```

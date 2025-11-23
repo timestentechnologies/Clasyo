@@ -1,10 +1,5 @@
 {% load static %}
 
-<!-- Mobile Menu Toggle -->
-<button class="mobile-menu-toggle" id="menuToggle">
-    <i class="fas fa-bars"></i>
-</button>
-
 <!-- Sidebar Overlay for Mobile -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
@@ -104,7 +99,10 @@
         
         {% if user.role in 'admin,teacher' %}
         <div class="menu-section-title">Academic</div>
-        
+        <li class="{% if '/todos/' in request.path %}active{% endif %}"><a href="{% url 'core:todos' school_slug=school_slug %}">
+            <i class="fas fa-tasks"></i>
+            <span>To Do</span>
+        </a></li>
         <li class="{% if '/students/' in request.path and '/parents/' not in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/students/">
             <i class="fas fa-user-graduate"></i>
             <span>Students</span>

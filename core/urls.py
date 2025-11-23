@@ -28,6 +28,7 @@ urlpatterns = [
     path('calendar/', views.CalendarView.as_view(), name='calendar'),
     path('calendar/events/', views.CalendarEventListView.as_view(), name='calendar_events'),
     path('calendar/events/add/', views.CalendarEventCreateView.as_view(), name='calendar_event_create'),
+    path('calendar/events/<int:pk>/', views.CalendarEventDetailView.as_view(), name='calendar_event_detail'),
     path('calendar/events/<int:pk>/delete/', views.CalendarEventDeleteView.as_view(), name='calendar_event_delete'),
     
     # Events
