@@ -11,7 +11,7 @@ function initializeTheme() {
     function applyTheme(theme) {
         console.log('Applying theme:', theme);
         
-        // Get the html element
+        // Get the html and body elements
         const html = document.documentElement;
         const body = document.body;
         
@@ -22,55 +22,40 @@ function initializeTheme() {
         
         // Apply the selected theme
         if (theme === 'dark') {
+            // Set attributes on both html and body for maximum compatibility
             html.setAttribute('data-theme', 'dark');
             html.classList.add('theme-dark');
             body.classList.add('dark-theme');
+            body.setAttribute('data-theme', 'dark');
+            
+            // Update the theme toggle if it exists
             if (themeToggle) themeToggle.checked = true;
             updateThemeIcon('moon');
             
-            // Directly set sidebar styles for dark theme
-            if (sidebar) {
-                sidebar.style.background = 'linear-gradient(180deg, #1a202c 0%, #2d3748 100%)';
-                sidebar.style.color = '#e2e8f0';
-                
-                // Update all links in sidebar
-                const links = sidebar.querySelectorAll('a');
-                links.forEach(link => {
-                    link.style.color = '#e2e8f0';
-                });
-                
-                // Update active state
-                const activeItems = sidebar.querySelectorAll('.active');
-                activeItems.forEach(item => {
-                    item.style.background = 'rgba(66, 153, 225, 0.2)';
-                    item.style.borderLeft = '3px solid #4299e1';
-                });
+            // Set the theme color meta tag for mobile browsers
+            const themeColor = document.querySelector('meta[name="theme-color"]');
+            if (themeColor) {
+                themeColor.setAttribute('content', '#1A202C');
             }
         } else {
+            // Light theme
             html.setAttribute('data-theme', 'light');
             html.classList.add('theme-light');
+            body.removeAttribute('data-theme');
+            
+            // Update the theme toggle if it exists
             if (themeToggle) themeToggle.checked = false;
             updateThemeIcon('sun');
             
-            // Reset sidebar styles for light theme
-            if (sidebar) {
-                sidebar.style.background = 'linear-gradient(180deg, var(--primary-navy) 0%, var(--secondary-navy) 100%)';
-                sidebar.style.color = '';
-                
-                // Reset all links in sidebar
-                const links = sidebar.querySelectorAll('a');
-                links.forEach(link => {
-                    link.style.color = '';
-                });
-                
-                // Reset active state
-                const activeItems = sidebar.querySelectorAll('.active');
-                activeItems.forEach(item => {
-                    item.style.background = '';
-                    item.style.borderLeft = '';
-                });
+            // Reset the theme color meta tag for mobile browsers
+            const themeColor = document.querySelector('meta[name="theme-color"]');
+            if (themeColor) {
+                themeColor.setAttribute('content', '#4f46e5');
             }
         }
+        
+        // Force a reflow to ensure styles are applied
+        document.body.offsetHeight;
         
         // Force a reflow/repaint to ensure styles are applied
         document.body.offsetHeight;
@@ -94,10 +79,16 @@ function initializeTheme() {
         themeIcon.title = iconType === 'sun' ? 'Switch to Dark Mode' : 'Switch to Light Mode';
     }
 
-    // Always default to light theme
-    const initialTheme = 'light';
+    // Check for saved theme preference or default to light
+    let initialTheme = localStorage.getItem('theme') || 'light';
+    
+    // Apply the theme
     applyTheme(initialTheme);
-    localStorage.setItem('theme', 'light');
+    
+    // Update the toggle state
+    if (themeToggle) {
+        themeToggle.checked = initialTheme === 'dark';
+    }
 
     // Toggle theme when switch is clicked
     if (themeToggle) {
