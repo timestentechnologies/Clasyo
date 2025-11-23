@@ -112,16 +112,31 @@ let promptShownInSession = false;
 
 // Function to check if the app is already installed
 const isAppInstalled = () => {
-    const isInstalled = window.matchMedia('(display-mode: standalone)').matches || 
-                       window.navigator.standalone || 
-                       document.referrer.includes('android-app://') ||
-                       localStorage.getItem('pwaInstalled') === 'true';
+    // Check various indicators that the app is installed
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const isInWebApp = window.navigator.standalone === true;
+    const isAndroidApp = document.referrer.includes('android-app://');
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isManuallyMarkedInstalled = localStorage.getItem('pwaInstalled') === 'true';
+    
+    // For iOS, check if in standalone mode or if the app was previously marked as installed
+    if (isIOS) {
+        if (window.navigator.standalone || isManuallyMarkedInstalled) {
+            pwaFloatingBtn.style.display = 'none';
+            return true;
+        }
+        return false;
+    }
+    
+    // For other platforms
+    const isInstalled = isStandalone || isInWebApp || isAndroidApp || isManuallyMarkedInstalled;
     
     if (isInstalled) {
         // Hide the floating button if app is installed
         pwaFloatingBtn.style.display = 'none';
         return true;
     }
+    
     return false;
 };
 
@@ -129,21 +144,19 @@ const isAppInstalled = () => {
 const isPromptDismissed = () => {
     // Check if dismissed in this session
     const sessionDismissed = sessionStorage.getItem('pwaDismissed') === 'true';
-    const localDismissed = localStorage.getItem('pwaDismissed') === 'true';
     
-    console.log('Prompt dismissal status:', {
-        sessionDismissed,
-        localDismissed,
-        sessionStorage: sessionStorage.getItem('pwaDismissed'),
-        localStorage: localStorage.getItem('pwaDismissed')
-    });
+    // Check if dismissed in local storage and when
+    const dismissedAt = localStorage.getItem('pwaDismissedAt');
+    const dismissalExpired = dismissedAt ? 
+        (Date.now() - parseInt(dismissedAt, 10)) > (30 * 24 * 60 * 60 * 1000) : // 30 days
+        true;
     
-    if (sessionDismissed || localDismissed) {
-        console.log('Prompt was dismissed');
+    // If dismissed in session or locally within the last 30 days
+    if (sessionDismissed || (!dismissalExpired && localStorage.getItem('pwaDismissed') === 'true')) {
+        console.log('Install prompt was previously dismissed');
         return true;
     }
     
-    console.log('Prompt was not dismissed');
     return false;
 };
 
@@ -212,29 +225,43 @@ function setupEventListeners() {
     // Handle install button click in modal
     pwaInstallBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (deferredPrompt) {
-            try {
-                console.log('Showing install prompt');
-                // Show the browser's install prompt
-                const { outcome } = await deferredPrompt.prompt();
-                
-                if (outcome === 'accepted') {
-                    console.log('User accepted the install prompt');
-                    localStorage.setItem('pwaInstalled', 'true');
-                } else {
-                    console.log('User dismissed the install prompt');
-                    // Mark as dismissed in both session and local storage
-                    sessionStorage.setItem('pwaDismissed', 'true');
-                    localStorage.setItem('pwaDismissed', 'true');
-                }
-            } catch (error) {
-                console.error('Error showing install prompt:', error);
-            } finally {
-                hideModal();
-                pwaFloatingBtn.style.display = 'none';
-                deferredPrompt = null;
-            }
+        
+        if (!deferredPrompt) {
+            console.log('No deferred prompt available');
+            return;
         }
+        
+        try {
+            // Show the install prompt
+            deferredPrompt.prompt();
+            
+            // Wait for the user to respond to the prompt
+            const { outcome } = await deferredPrompt.userChoice;
+            
+            console.log(`User response to the install prompt: ${outcome}`);
+            
+            // Mark as installed if user accepted
+            if (outcome === 'accepted') {
+                localStorage.setItem('pwaInstalled', 'true');
+                localStorage.setItem('pwaInstalledAt', Date.now().toString());
+                console.log('User accepted the install prompt');
+                
+                // Also set as dismissed to prevent further prompts
+                sessionStorage.setItem('pwaDismissed', 'true');
+                localStorage.setItem('pwaDismissed', 'true');
+                localStorage.setItem('pwaDismissedAt', Date.now().toString());
+            }
+            
+            // Hide the install button and modal
+            pwaFloatingBtn.style.display = 'none';
+            hideModal();
+            
+        } catch (err) {
+            console.error('Error showing install prompt:', err);
+        }
+        
+        // Clear the deferredPrompt variable
+        deferredPrompt = null;
     });
 }
 
@@ -243,22 +270,14 @@ setupEventListeners();
 
 // Listen for the beforeinstallprompt event
 window.addEventListener('beforeinstallprompt', (e) => {
-    console.group('=== beforeinstallprompt Event ===');
-    console.log('Event details:', e);
+    console.log('beforeinstallprompt event received', e);
     
-    // Store the event for later use
-    deferredPrompt = e;
-    
-    // Always prevent the default prompt
+    // Prevent the default browser install prompt
     e.preventDefault();
     
-    console.log('Checking prompt conditions:');
-    
-    // Debug storage state
-    console.log('Storage state:', {
-        sessionDismissed: sessionStorage.getItem('pwaDismissed'),
-        localDismissed: localStorage.getItem('pwaDismissed'),
-        dismissedAt: localStorage.getItem('pwaDismissedAt'),
+    // Check if we should show the prompt
+    if (isAppInstalled() || isPromptDismissed()) {
+        console.log('Not showing install prompt - app is installed or prompt was dismissed');
         isInstalled: localStorage.getItem('pwaInstalled')
     });
     
