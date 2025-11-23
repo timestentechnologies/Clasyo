@@ -1,4 +1,11 @@
 // pwa-install.js
+// Prevent multiple script loads
+if (window.pwaInstallInitialized) {
+    console.log('PWA Install script already loaded, skipping re-initialization');
+    throw new Error('PWA Install script already loaded');
+}
+window.pwaInstallInitialized = true;
+
 console.log('PWA Install Script Loaded - Debug Version');
 
 // Debug info
@@ -50,38 +57,62 @@ const modalHTML = `
 </button>
 `;
 
-// Create modal container
-const modalContainer = document.createElement('div');
-modalContainer.innerHTML = modalHTML;
-document.body.appendChild(modalContainer);
+// Create modal container if it doesn't exist
+let modalContainer = document.getElementById('pwa-install-container');
+let pwaModal, pwaInstallBtn, pwaDismissBtn, pwaFloatingBtn;
 
-// Get modal elements
-const pwaModal = document.getElementById('pwa-install-modal');
-const pwaInstallBtn = document.getElementById('pwa-install-btn');
-const pwaDismissBtn = document.getElementById('pwa-dismiss-btn');
-const pwaFloatingBtn = document.getElementById('pwa-floating-btn');
+if (!modalContainer) {
+    modalContainer = document.createElement('div');
+    modalContainer.id = 'pwa-install-container';
+    modalContainer.innerHTML = modalHTML;
+    document.body.appendChild(modalContainer);
+    
+    // Get modal elements
+    pwaModal = document.getElementById('pwa-install-modal');
+    pwaInstallBtn = document.getElementById('pwa-install-btn');
+    pwaDismissBtn = document.getElementById('pwa-dismiss-btn');
+    pwaFloatingBtn = document.getElementById('pwa-floating-btn');
+    
+    // Store references in window object for future access
+    window.pwaElements = {
+        modal: pwaModal,
+        installBtn: pwaInstallBtn,
+        dismissBtn: pwaDismissBtn,
+        floatingBtn: pwaFloatingBtn
+    };
+} else {
+    // Use existing elements
+    const elements = window.pwaElements || {};
+    pwaModal = elements.modal;
+    pwaInstallBtn = elements.installBtn;
+    pwaDismissBtn = elements.dismissBtn;
+    pwaFloatingBtn = elements.floatingBtn;
+}
 
-// Add styles
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes pulse {
-        0% { transform: scale(1); box-shadow: 0 4px 14px rgba(0, 180, 216, 0.4); }
-        50% { transform: scale(1.05); box-shadow: 0 8px 20px rgba(0, 180, 216, 0.6); }
-        100% { transform: scale(1); box-shadow: 0 4px 14px rgba(0, 180, 216, 0.4); }
-    }
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    #pwa-install-btn:hover, #pwa-floating-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(0, 116, 217, 0.5);
-    }
-    #pwa-dismiss-btn:hover {
-        background: #e0e0e0;
-    }
-`;
-document.head.appendChild(style);
+// Add styles only if they don't exist
+if (!document.getElementById('pwa-install-styles')) {
+    const style = document.createElement('style');
+    style.id = 'pwa-install-styles';
+    style.textContent = `
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 4px 14px rgba(0, 180, 216, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 8px 20px rgba(0, 180, 216, 0.6); }
+            100% { transform: scale(1); box-shadow: 0 4px 14px rgba(0, 180, 216, 0.4); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        #pwa-install-btn:hover, #pwa-floating-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 116, 217, 0.5);
+        }
+        #pwa-dismiss-btn:hover {
+            background: #e0e0e0;
+        }
+    `;
+    document.head.appendChild(style);
+}
 
 // Show/hide modal
 const showModal = () => {
@@ -269,37 +300,36 @@ function setupEventListeners() {
 setupEventListeners();
 
 // Listen for the beforeinstallprompt event
-window.addEventListener('beforeinstallprompt', (e) => {
+const handleBeforeInstallPrompt = (e) => {
     console.log('beforeinstallprompt event received', e);
     
     // Prevent the default browser install prompt
     e.preventDefault();
     
+    // Store the event for later use
+    window.deferredPrompt = e;
+    
     // Check if we should show the prompt
     if (isAppInstalled() || isPromptDismissed()) {
         console.log('Not showing install prompt - app is installed or prompt was dismissed');
-        isInstalled: localStorage.getItem('pwaInstalled')
-    });
-    
-    // Check if we should show our custom prompt
-    if (isPromptDismissed()) {
-        console.log('Not showing prompt - already dismissed');
-        pwaFloatingBtn.style.display = 'none';
-        console.groupEnd();
         return;
     }
     
-    if (isAppInstalled()) {
-        console.log('Not showing prompt - app is installed');
-        pwaFloatingBtn.style.display = 'none';
-        console.groupEnd();
-        return;
-    }
-    
-    console.log('All conditions met, showing install prompt');
-    showInstallPrompt();
-    console.groupEnd();
-});
+    // Show the install prompt after a short delay
+    setTimeout(() => {
+        if (isPromptDismissed() || isAppInstalled()) {
+            console.log('Not showing prompt - already dismissed or installed');
+            return;
+        }
+        
+        console.log('All conditions met, showing install prompt');
+        showInstallPrompt();
+    }, 3000); // 3 second delay
+};
+
+// Remove any existing event listeners to prevent duplicates
+window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
 // Check if the app is already installed
 if (isAppInstalled()) {
