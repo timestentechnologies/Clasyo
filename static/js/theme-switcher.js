@@ -11,14 +11,20 @@ function initializeTheme() {
     function applyTheme(theme) {
         console.log('Applying theme:', theme);
         
+        // Get the html element
+        const html = document.documentElement;
+        const body = document.body;
+        
         // Remove all theme classes first
+        html.classList.remove('theme-light', 'theme-dark');
         body.classList.remove('theme-light', 'theme-dark', 'dark-theme');
         html.removeAttribute('data-theme');
         
         // Apply the selected theme
         if (theme === 'dark') {
             html.setAttribute('data-theme', 'dark');
-            body.classList.add('theme-dark', 'dark-theme');
+            html.classList.add('theme-dark');
+            body.classList.add('dark-theme');
             if (themeToggle) themeToggle.checked = true;
             updateThemeIcon('moon');
             
@@ -42,7 +48,7 @@ function initializeTheme() {
             }
         } else {
             html.setAttribute('data-theme', 'light');
-            body.classList.add('theme-light');
+            html.classList.add('theme-light');
             if (themeToggle) themeToggle.checked = false;
             updateThemeIcon('sun');
             
@@ -97,11 +103,8 @@ function initializeTheme() {
     if (themeToggle) {
         themeToggle.addEventListener('change', function() {
             const newTheme = this.checked ? 'dark' : 'light';
-            applyTheme(newTheme);
             localStorage.setItem('theme', newTheme);
-            
-            // Force a reload to ensure all styles are properly applied
-            window.location.reload();
+            applyTheme(newTheme);
         });
     }
 
