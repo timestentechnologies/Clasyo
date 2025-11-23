@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.http import HttpResponse, JsonResponse, Http404
 from django.utils import timezone
 from django.db.models import Q, Count, Sum, Avg
+from django.core.paginator import Paginator
 from django.utils.translation import gettext as _
 import random
 
@@ -13,6 +14,8 @@ from .models import OnlineExam, ExamQuestion, QuestionChoice, ExamAttempt, Stude
 from students.models import Student
 from academics.models import Class, Section, Subject
 from django import forms
+from django.forms import modelformset_factory
+from .forms import ExamQuestionForm, QuestionChoiceForm, QuestionChoiceFormSet
 
 
 class OnlineExamDashboardView(LoginRequiredMixin, TemplateView):
@@ -507,12 +510,30 @@ class ManageQuestionsView(LoginRequiredMixin, UserPassesTestMixin, View):
         exam_id = self.kwargs.get('exam_id')
         exam = get_object_or_404(OnlineExam, pk=exam_id)
         
-        # This is a placeholder view
+        # Load questions for this exam, ordered by "order" then id
+        question_list = exam.questions.all().order_by('order', 'id')
+
+        # Update total marks on the exam based on current questions
+        total_marks = question_list.aggregate(total=Sum('marks'))['total'] or 0
+        try:
+            total_marks_int = int(total_marks)
+        except (TypeError, ValueError):
+            total_marks_int = 0
+
+        if exam.total_marks != total_marks_int:
+            exam.total_marks = total_marks_int
+            exam.save(update_fields=['total_marks'])
+
+        # Paginate questions for the table (10 per page)
+        paginator = Paginator(question_list, 10)
+        page_number = request.GET.get('page')
+        questions_page = paginator.get_page(page_number)
+
         return render(request, 'online_exam/manage_questions_placeholder.html', {
             'school_slug': school_slug,
             'exam_id': exam_id,
             'exam': exam,
-            'message': 'Question management interface would be shown here.'
+            'questions': questions_page,
         })
 
 
@@ -529,13 +550,59 @@ class AddQuestionView(LoginRequiredMixin, UserPassesTestMixin, View):
         exam_id = self.kwargs.get('exam_id')
         exam = get_object_or_404(OnlineExam, pk=exam_id)
         
-        # This is a placeholder view
+        form = ExamQuestionForm()
+        choice_formset = QuestionChoiceFormSet(queryset=QuestionChoice.objects.none())
+        
         return render(request, 'online_exam/add_question_placeholder.html', {
             'school_slug': school_slug,
             'exam_id': exam_id,
             'exam': exam,
-            'message': 'Add question form would be shown here.'
+            'form': form,
+            'choice_formset': choice_formset,
         })
+    
+    def post(self, request, *args, **kwargs):
+        school_slug = self.kwargs.get('school_slug')
+        exam_id = self.kwargs.get('exam_id')
+        exam = get_object_or_404(OnlineExam, pk=exam_id)
+        
+        form = ExamQuestionForm(request.POST)
+        choice_formset = QuestionChoiceFormSet(request.POST, request.FILES)
+        
+        if form.is_valid():
+            question = form.save(commit=False)
+            question.exam = exam
+            question.created_by = request.user
+            question.save()
+            
+            # Handle choices for multiple choice questions
+            if form.cleaned_data.get('question_type') == 'mcq_single':
+                if choice_formset.is_valid():
+                    choices = choice_formset.save(commit=False)
+                    for choice in choices:
+                        choice.question = question
+                        choice.save()
+                    
+                    # Handle deleted choices
+                    for choice in choice_formset.deleted_objects:
+                        choice.delete()
+            
+            messages.success(request, 'Question added successfully!')
+            
+            # Check if user wants to add another question
+            if 'save_and_add_another' in request.POST:
+                return redirect('online_exam:add_question', school_slug=school_slug, exam_id=exam_id)
+            else:
+                return redirect('online_exam:manage_questions', school_slug=school_slug, exam_id=exam_id)
+        else:
+            # If form is not valid, re-render the page with errors
+            return render(request, 'online_exam/add_question_placeholder.html', {
+                'school_slug': school_slug,
+                'exam_id': exam_id,
+                'exam': exam,
+                'form': form,
+                'choice_formset': choice_formset,
+            })
 
 
 class EditQuestionView(LoginRequiredMixin, UserPassesTestMixin, View):
@@ -550,13 +617,79 @@ class EditQuestionView(LoginRequiredMixin, UserPassesTestMixin, View):
         school_slug = self.kwargs.get('school_slug')
         exam_id = self.kwargs.get('exam_id')
         question_id = self.kwargs.get('question_id')
-        
-        # This is a placeholder view
-        return render(request, 'online_exam/edit_question_placeholder.html', {
+
+        exam = get_object_or_404(OnlineExam, pk=exam_id)
+        question = get_object_or_404(ExamQuestion, pk=question_id, exam=exam)
+
+        form = ExamQuestionForm(instance=question)
+        choice_qs = QuestionChoice.objects.filter(question=question)
+
+        # For editing, do not show extra blank choice rows by default
+        EditChoiceFormSet = modelformset_factory(
+            QuestionChoice,
+            form=QuestionChoiceForm,
+            extra=0,
+            can_delete=True,
+        )
+        choice_formset = EditChoiceFormSet(queryset=choice_qs)
+
+        return render(request, 'online_exam/add_question_placeholder.html', {
             'school_slug': school_slug,
-            'exam_id': exam_id,
-            'question_id': question_id,
-            'message': 'Edit question form would be shown here.'
+            'exam_id': exam.id,
+            'exam': exam,
+            'form': form,
+            'choice_formset': choice_formset,
+            'is_edit': True,
+            'question': question,
+        })
+
+    def post(self, request, *args, **kwargs):
+        school_slug = self.kwargs.get('school_slug')
+        exam_id = self.kwargs.get('exam_id')
+        question_id = self.kwargs.get('question_id')
+
+        exam = get_object_or_404(OnlineExam, pk=exam_id)
+        question = get_object_or_404(ExamQuestion, pk=question_id, exam=exam)
+
+        form = ExamQuestionForm(request.POST, instance=question)
+        choice_qs = QuestionChoice.objects.filter(question=question)
+
+        EditChoiceFormSet = modelformset_factory(
+            QuestionChoice,
+            form=QuestionChoiceForm,
+            extra=0,
+            can_delete=True,
+        )
+        choice_formset = EditChoiceFormSet(request.POST, request.FILES, queryset=choice_qs)
+
+        if form.is_valid():
+            question = form.save(commit=False)
+            question.exam = exam
+            question.save()
+
+            # Handle choices for multiple choice questions (single answer)
+            if form.cleaned_data.get('question_type') == 'mcq_single':
+                if choice_formset.is_valid():
+                    choices = choice_formset.save(commit=False)
+                    for choice in choices:
+                        choice.question = question
+                        choice.save()
+
+                    # Handle deleted choices
+                    for choice in choice_formset.deleted_objects:
+                        choice.delete()
+
+            messages.success(request, 'Question updated successfully!')
+            return redirect('online_exam:manage_questions', school_slug=school_slug, exam_id=exam.id)
+
+        return render(request, 'online_exam/add_question_placeholder.html', {
+            'school_slug': school_slug,
+            'exam_id': exam.id,
+            'exam': exam,
+            'form': form,
+            'choice_formset': choice_formset,
+            'is_edit': True,
+            'question': question,
         })
 
 
@@ -568,15 +701,51 @@ class DeleteQuestionView(LoginRequiredMixin, UserPassesTestMixin, View):
         exam = get_object_or_404(OnlineExam, pk=exam_id)
         return self.request.user == exam.created_by or self.request.user.is_school_admin
     
-    def get(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         school_slug = self.kwargs.get('school_slug')
         exam_id = self.kwargs.get('exam_id')
         question_id = self.kwargs.get('question_id')
-        
-        # This is a placeholder view
-        return render(request, 'online_exam/delete_question_placeholder.html', {
-            'school_slug': school_slug,
-            'exam_id': exam_id,
-            'question_id': question_id,
-            'message': 'Confirm delete question would be shown here.'
-        })
+
+        exam = get_object_or_404(OnlineExam, pk=exam_id)
+        question = get_object_or_404(ExamQuestion, pk=question_id, exam=exam)
+
+        question.delete()
+        messages.success(request, 'Question deleted successfully.')
+
+        return redirect('online_exam:manage_questions', school_slug=school_slug, exam_id=exam.id)
+
+
+class UpdateQuestionOrderView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """Update ordering of questions within an exam via AJAX"""
+
+    def test_func(self):
+        exam_id = self.kwargs.get('exam_id')
+        exam = get_object_or_404(OnlineExam, pk=exam_id)
+        return self.request.user == exam.created_by or self.request.user.is_school_admin
+
+    def post(self, request, *args, **kwargs):
+        exam_id = self.kwargs.get('exam_id')
+        exam = get_object_or_404(OnlineExam, pk=exam_id)
+
+        order_string = request.POST.get('order', '')
+        if not order_string:
+            return JsonResponse({'status': 'error', 'message': 'No order data provided'}, status=400)
+
+        try:
+            id_list = [int(pk) for pk in order_string.split(',') if pk.strip()]
+        except ValueError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid order data'}, status=400)
+
+        # Fetch all questions for this exam to avoid touching others
+        questions = ExamQuestion.objects.filter(exam=exam, id__in=id_list)
+        # Map id -> question for quick lookup
+        question_map = {q.id: q for q in questions}
+
+        # Update order based on the list position
+        for index, question_id in enumerate(id_list, start=1):
+            question = question_map.get(question_id)
+            if question:
+                question.order = index
+                question.save(update_fields=['order'])
+
+        return JsonResponse({'status': 'success'})

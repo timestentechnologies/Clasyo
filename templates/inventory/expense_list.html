@@ -94,12 +94,27 @@
     .modern-card .text-muted {
         color: var(--text-muted) !important;
     }
+    
+    .expense-actions {
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    
+    @media (max-width: 768px) {
+        .expense-actions {
+            justify-content: flex-start;
+        }
+        .expense-actions .btn {
+            flex: 1 1 100%;
+        }
+    }
 </style>
-<div class="d-flex justify-content-end mb-3">
-    <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+<div class="d-flex mb-3 expense-actions">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
         <i class="fas fa-plus"></i> Add Expense
     </button>
-    <button class="btn btn-success me-2" onclick="window.print()">
+    <button class="btn btn-success" onclick="window.print()">
         <i class="fas fa-print"></i> Print Report
     </button>
     <a href="{% url 'inventory:inventory_list' school_slug %}" class="btn btn-secondary">

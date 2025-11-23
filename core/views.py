@@ -8,6 +8,7 @@ from django.db.models import Count, Q
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_GET
+from datetime import datetime, time
 from .models import (
     AcademicYear, Session, Holiday, SystemSetting,
     Notification, ToDoList, CalendarEvent
@@ -295,18 +296,24 @@ class NotificationListView(LoginRequiredMixin, ListView):
 
 
 class MarkNotificationReadView(LoginRequiredMixin, View):
-    """Mark notification as read"""
-    def post(self, request, pk):
+    """Mark single notification as read"""
+    def post(self, request, pk, *args, **kwargs):
         notification = get_object_or_404(Notification, pk=pk, user=request.user)
         notification.mark_as_read()
+        school_slug = kwargs.get('school_slug')
+        if school_slug:
+            return redirect('core:notifications', school_slug=school_slug)
         return redirect('core:notifications')
 
 
 class MarkAllNotificationsReadView(LoginRequiredMixin, View):
     """Mark all notifications as read"""
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
         messages.success(request, 'All notifications marked as read.')
+        school_slug = kwargs.get('school_slug')
+        if school_slug:
+            return redirect('core:notifications', school_slug=school_slug)
         return redirect('core:notifications')
 
 
@@ -330,17 +337,23 @@ class ToDoCreateView(LoginRequiredMixin, CreateView):
     model = ToDoList
     template_name = 'core/todo_form.html'
     fields = ['title', 'description', 'priority', 'due_date']
-    success_url = reverse_lazy('core:todos')
+    success_url = None
     
     def form_valid(self, form):
         form.instance.user = self.request.user
         messages.success(self.request, 'To-do item created successfully!')
         return super().form_valid(form)
 
+    def get_success_url(self):
+        school_slug = self.kwargs.get('school_slug', '')
+        if school_slug:
+            return reverse_lazy('core:todos', kwargs={'school_slug': school_slug})
+        return reverse_lazy('core:todos')
+
 
 class ToDoToggleView(LoginRequiredMixin, View):
     """Toggle to-do completion status"""
-    def post(self, request, pk):
+    def post(self, request, pk, *args, **kwargs):
         todo = get_object_or_404(ToDoList, pk=pk, user=request.user)
         todo.is_completed = not todo.is_completed
         if todo.is_completed:
@@ -349,15 +362,22 @@ class ToDoToggleView(LoginRequiredMixin, View):
         else:
             todo.completed_at = None
         todo.save()
+
+        school_slug = kwargs.get('school_slug')
+        if school_slug:
+            return redirect('core:todos', school_slug=school_slug)
         return redirect('core:todos')
 
 
 class ToDoDeleteView(LoginRequiredMixin, View):
     """Delete to-do"""
-    def post(self, request, pk):
+    def post(self, request, pk, *args, **kwargs):
         todo = get_object_or_404(ToDoList, pk=pk, user=request.user)
         todo.delete()
         messages.success(request, 'To-do item deleted successfully!')
+        school_slug = kwargs.get('school_slug')
+        if school_slug:
+            return redirect('core:todos', school_slug=school_slug)
         return redirect('core:todos')
 
 
@@ -401,19 +421,46 @@ class CalendarView(LoginRequiredMixin, TemplateView):
 
 
 class CalendarEventListView(LoginRequiredMixin, ListView):
-    """List calendar events (for AJAX)"""
+    """List calendar events as JSON (for AJAX)"""
     model = CalendarEvent
-    
+
     def get_queryset(self):
         user = self.request.user
         return CalendarEvent.objects.filter(
             Q(is_public=True) | Q(participants=user) | Q(created_by=user)
         )
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['school_slug'] = self.kwargs.get('school_slug', '')
-        return context
+
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({'success': False, 'error': 'Not authenticated'}, status=401)
+
+        queryset = self.get_queryset()
+
+        # Optional filter by specific date (YYYY-MM-DD)
+        date_str = request.GET.get('date')
+        if date_str:
+            try:
+                target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                start_dt = datetime.combine(target_date, time.min)
+                end_dt = datetime.combine(target_date, time.max)
+                queryset = queryset.filter(start_date__lte=end_dt, end_date__gte=start_dt)
+            except ValueError:
+                pass
+
+        events_data = []
+        for event in queryset.order_by('start_date'):
+            events_data.append({
+                'id': event.id,
+                'title': event.title,
+                'event_type': event.get_event_type_display(),
+                'start': event.start_date.isoformat() if event.start_date else '',
+                'end': event.end_date.isoformat() if event.end_date else '',
+                'location': event.location,
+                'description': event.description,
+                'start_date_display': event.start_date.strftime('%b %d, %Y %I:%M %p') if event.start_date else '',
+            })
+
+        return JsonResponse({'success': True, 'events': events_data})
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -423,13 +470,24 @@ class CalendarEventCreateView(View):
         try:
             if not request.user.is_authenticated:
                 return JsonResponse({'success': False, 'error': 'Not authenticated'})
-            
+
+            start_date_str = request.POST.get('start_date')
+            end_date_str = request.POST.get('end_date')
+            start_time_str = request.POST.get('start_time') or '00:00'
+            end_time_str = request.POST.get('end_time') or start_time_str
+
+            try:
+                start_dt = datetime.strptime(f"{start_date_str} {start_time_str}", "%Y-%m-%d %H:%M") if start_date_str else None
+                end_dt = datetime.strptime(f"{end_date_str} {end_time_str}", "%Y-%m-%d %H:%M") if end_date_str else None
+            except ValueError:
+                return JsonResponse({'success': False, 'error': 'Invalid date or time format'}, status=400)
+
             CalendarEvent.objects.create(
                 title=request.POST.get('title'),
                 description=request.POST.get('description', ''),
                 event_type=request.POST.get('event_type', 'other'),
-                start_date=request.POST.get('start_date'),
-                end_date=request.POST.get('end_date'),
+                start_date=start_dt,
+                end_date=end_dt,
                 location=request.POST.get('location', ''),
                 created_by=request.user
             )
@@ -457,6 +515,38 @@ class CalendarEventDeleteView(View):
             import traceback
             traceback.print_exc()
             return JsonResponse({'success': False, 'error': str(e)})
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CalendarEventDetailView(View):
+    """Return a single event as JSON"""
+    def get(self, request, pk, *args, **kwargs):
+        try:
+            if not request.user.is_authenticated:
+                return JsonResponse({'success': False, 'error': 'Not authenticated'}, status=401)
+            
+            event = get_object_or_404(
+                CalendarEvent.objects.filter(
+                    Q(is_public=True) | Q(participants=request.user) | Q(created_by=request.user)
+                ),
+                pk=pk
+            )
+            return JsonResponse({
+                'success': True,
+                'event': {
+                    'id': event.id,
+                    'title': event.title,
+                    'type': event.get_event_type_display(),
+                    'start_date': event.start_date.strftime('%b %d, %Y %I:%M %p') if event.start_date else '',
+                    'end_date': event.end_date.strftime('%b %d, %Y %I:%M %p') if event.end_date else '',
+                    'location': event.location,
+                    'description': event.description,
+                }
+            })
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 class SystemSettingsView(LoginRequiredMixin, TemplateView):

@@ -64,10 +64,10 @@
                     <span class="badge bg-info">Upcoming</span>
                 </td>
                 <td>
-                    <button class="btn btn-sm btn-primary" onclick="viewEvent({{ event.pk }})">
+                    <button class="btn btn-sm btn-primary btn-view-event" data-event-id="{{ event.pk }}">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteEvent({{ event.pk }})">
+                    <button class="btn btn-sm btn-danger btn-delete-event" data-event-id="{{ event.pk }}">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -109,12 +109,26 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="start_date" class="form-label">Start Date</label>
-                        <input type="date" class="form-control" id="start_date" name="start_date" required>
+                        <label for="start_date" class="form-label">Start Date &amp; Time</label>
+                        <div class="row g-2">
+                            <div class="col-7 col-md-8">
+                                <input type="date" class="form-control" id="start_date" name="start_date" required>
+                            </div>
+                            <div class="col-5 col-md-4">
+                                <input type="time" class="form-control" id="start_time" name="start_time">
+                            </div>
+                        </div>
                     </div>
                     <div class="mb-3">
-                        <label for="end_date" class="form-label">End Date</label>
-                        <input type="date" class="form-control" id="end_date" name="end_date" required>
+                        <label for="end_date" class="form-label">End Date &amp; Time</label>
+                        <div class="row g-2">
+                            <div class="col-7 col-md-8">
+                                <input type="date" class="form-control" id="end_date" name="end_date" required>
+                            </div>
+                            <div class="col-5 col-md-4">
+                                <input type="time" class="form-control" id="end_time" name="end_time">
+                            </div>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="location" class="form-label">Location</label>
@@ -125,6 +139,10 @@
                         <textarea class="form-control" id="description" name="description" rows="3"></textarea>
                     </div>
                 </form>
+                <div id="selected-date-events" class="mt-3" style="display: none;">
+                    <h6 class="mb-2">Events on <span id="selected-date-label"></span></h6>
+                    <ul id="selected-date-events-list" class="list-unstyled small mb-0"></ul>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -135,6 +153,9 @@
 </div>
 
 <style>
+#events-calendar {
+    width: 100%;
+}
 .calendar-header {
     display: flex;
     justify-content: space-between;
@@ -182,6 +203,159 @@
     border-radius: 50%;
     display: inline-block;
 }
+.calendar-events-container {
+    margin-top: 4px;
+}
+.calendar-event-item {
+    background: var(--accent-cyan);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    margin-top: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+@media (max-width: 768px) {
+    .calendar-header {
+        flex-wrap: nowrap;
+        gap: 8px;
+    }
+    .calendar-header h4 {
+        font-size: 16px;
+    }
+    .calendar-header .btn {
+        padding: 6px 10px;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+    .calendar-grid {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+    .calendar-weekday {
+        padding: 8px 4px;
+        font-size: 11px;
+    }
+    .calendar-day {
+        padding: 6px;
+        min-height: 80px;
+    }
+}
+
+/* Dark mode adjustments for events mini calendar */
+[data-theme="dark"] #events-calendar .calendar-grid,
+.theme-dark #events-calendar .calendar-grid {
+    background: rgba(15, 23, 42, 0.9);
+}
+
+[data-theme="dark"] #events-calendar .calendar-day,
+.theme-dark #events-calendar .calendar-day {
+    background: rgba(15, 23, 42, 0.9);
+    border-color: rgba(148, 163, 184, 0.3);
+}
+
+[data-theme="dark"] #events-calendar .calendar-day.other-month,
+.theme-dark #events-calendar .calendar-day.other-month {
+    background: transparent;
+    color: rgba(148, 163, 184, 0.5);
+}
+
+[data-theme="dark"] #events-calendar .calendar-day-number,
+.theme-dark #events-calendar .calendar-day-number {
+    color: #e5e7eb;
+}
+
+[data-theme="dark"] #events-calendar .calendar-weekday,
+.theme-dark #events-calendar .calendar-weekday {
+    background: linear-gradient(135deg, #020617, #0f172a);
+}
+
+[data-theme="dark"] #events-calendar .calendar-day.today,
+.theme-dark #events-calendar .calendar-day.today {
+    background: rgba(56, 189, 248, 0.12);
+    border-color: rgba(56, 189, 248, 0.8) !important;
+}
+
+/* Dark mode adjustments for Add Event modal */
+[data-theme="dark"] #addEventModal .modal-content,
+.theme-dark #addEventModal .modal-content {
+    background-color: #020617;
+    color: #e5e7eb;
+    border-color: rgba(148, 163, 184, 0.4);
+}
+
+[data-theme="dark"] #addEventModal .modal-header,
+.theme-dark #addEventModal .modal-header {
+    border-bottom-color: rgba(148, 163, 184, 0.4);
+}
+
+[data-theme="dark"] #addEventModal .modal-footer,
+.theme-dark #addEventModal .modal-footer {
+    border-top-color: rgba(148, 163, 184, 0.4);
+}
+
+[data-theme="dark"] #addEventModal .form-label,
+.theme-dark #addEventModal .form-label {
+    color: #e5e7eb;
+}
+
+[data-theme="dark"] #addEventModal .form-control,
+[data-theme="dark"] #addEventModal .form-select,
+.theme-dark #addEventModal .form-control,
+.theme-dark #addEventModal .form-select {
+    background-color: #020617;
+    border-color: rgba(148, 163, 184, 0.5);
+    color: #e5e7eb;
+}
+
+[data-theme="dark"] #addEventModal .form-control::placeholder,
+.theme-dark #addEventModal .form-control::placeholder {
+    color: rgba(148, 163, 184, 0.7);
+}
+
+[data-theme="dark"] #addEventModal .btn-primary,
+.theme-dark #addEventModal .btn-primary {
+    background-color: #22d3ee;
+    border-color: #22d3ee;
+    color: #020617;
+}
+
+[data-theme="dark"] #addEventModal .btn-secondary,
+.theme-dark #addEventModal .btn-secondary {
+    background-color: #1f2937;
+    border-color: #4b5563;
+}
+
+/* Dark mode for generic showMessage modal (used by viewEvent) */
+[data-theme="dark"] .modal-content,
+.theme-dark .modal-content {
+    background-color: #020617;
+    color: #e5e7eb;
+    border-color: rgba(148, 163, 184, 0.4);
+}
+
+[data-theme="dark"] .modal-header,
+.theme-dark .modal-header {
+    background-color: #0f172a;
+    border-bottom-color: rgba(148, 163, 184, 0.4);
+}
+
+[data-theme="dark"] .modal-footer,
+.theme-dark .modal-footer {
+    border-top-color: rgba(148, 163, 184, 0.4);
+}
+
+[data-theme="dark"] .modal-title,
+.theme-dark .modal-title {
+    color: #e5e7eb;
+}
+
+[data-theme="dark"] .btn-close,
+.theme-dark .btn-close {
+    filter: invert(1);
+}
 </style>
 
 <script>
@@ -212,7 +386,7 @@ function submitEvent() {
 
 function viewEvent(id) {
     // Fetch and display event details
-    fetch(`/school/{{ school_slug }}/events/${id}/`)
+    fetch("{% url 'core:calendar_event_detail' school_slug=school_slug pk=0 %}".replace('0', id))
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -223,9 +397,14 @@ function viewEvent(id) {
                 <strong>Location:</strong> ${data.event.location || 'TBD'}<br>
                 <strong>Description:</strong> ${data.event.description || 'No description'}
             `, true);
+        } else {
+            showError(data.error || 'Failed to load event details');
         }
     })
-    .catch(error => showError('Failed to load event details'));
+    .catch(error => {
+        console.error('Error:', error);
+        showError('Failed to load event details');
+    });
 }
 
 function deleteEvent(id) {
@@ -234,7 +413,7 @@ function deleteEvent(id) {
         'Are you sure you want to delete this event? This action cannot be undone.',
         function() {
             // User confirmed - proceed with delete
-            fetch(`/school/{{ school_slug }}/calendar/events/${id}/delete/`, {
+            fetch("{% url 'core:calendar_event_delete' school_slug=school_slug pk=0 %}".replace('0', id), {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
@@ -256,12 +435,56 @@ function deleteEvent(id) {
     );
 }
 
-// Mini calendar for events
+// Event delegation for view/delete buttons
 document.addEventListener('DOMContentLoaded', function() {
+    const eventsTable = document.querySelector('table');
+    if (eventsTable) {
+        eventsTable.addEventListener('click', function(e) {
+            const viewBtn = e.target.closest('.btn-view-event');
+            const deleteBtn = e.target.closest('.btn-delete-event');
+            if (viewBtn) {
+                const eventId = viewBtn.getAttribute('data-event-id');
+                viewEvent(eventId);
+            } else if (deleteBtn) {
+                const eventId = deleteBtn.getAttribute('data-event-id');
+                deleteEvent(eventId);
+            }
+        });
+    }
+
     const calendarEl = document.getElementById('events-calendar');
+    if (!calendarEl) return;
+
     const today = new Date();
-    generateMiniCalendar(today.getMonth(), today.getFullYear());
-    
+    let eventMonth = today.getMonth();
+    let eventYear = today.getFullYear();
+    let calendarEvents = [];
+
+    function pad2(num) {
+        return num.toString().padStart(2, '0');
+    }
+
+    function formatDate(year, monthIndex, day) {
+        return `${year}-${pad2(monthIndex + 1)}-${pad2(day)}`;
+    }
+
+    function loadAllEventsAndRender() {
+        fetch("{% url 'core:calendar_events' school_slug=school_slug %}")
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && Array.isArray(data.events)) {
+                    calendarEvents = data.events;
+                } else {
+                    calendarEvents = [];
+                }
+                generateMiniCalendar(eventMonth, eventYear);
+            })
+            .catch(error => {
+                console.error('Failed to load calendar events', error);
+                generateMiniCalendar(eventMonth, eventYear);
+            });
+    }
+
     function generateMiniCalendar(month, year) {
         const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                            'July', 'August', 'September', 'October', 'November', 'December'];
@@ -287,15 +510,23 @@ document.addEventListener('DOMContentLoaded', function() {
         const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+        const prevMonthIndex = month === 0 ? 11 : month - 1;
+        const prevYear = month === 0 ? year - 1 : year;
+        const nextMonthIndex = month === 11 ? 0 : month + 1;
+        const nextYear = month === 11 ? year + 1 : year;
         
         for (let i = firstDay - 1; i >= 0; i--) {
-            html += `<div class="calendar-day other-month"><div class="calendar-day-number">${daysInPrevMonth - i}</div></div>`;
+            const day = daysInPrevMonth - i;
+            const dateStr = formatDate(prevYear, prevMonthIndex, day);
+            html += `<div class="calendar-day other-month" data-date="${dateStr}"><div class="calendar-day-number">${day}</div></div>`;
         }
         
         for (let day = 1; day <= daysInMonth; day++) {
             const isToday = (day === today.getDate() && month === today.getMonth() && year === today.getFullYear());
+            const dateStr = formatDate(year, month, day);
             html += `
-                <div class="calendar-day ${isToday ? 'today' : ''}">
+                <div class="calendar-day ${isToday ? 'today' : ''}" data-date="${dateStr}">
                     <div class="calendar-day-number">${day}</div>
                     ${isToday ? '<div class="calendar-event-indicator"></div>' : ''}
                 </div>
@@ -305,27 +536,155 @@ document.addEventListener('DOMContentLoaded', function() {
         const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
         const remainingCells = totalCells - (firstDay + daysInMonth);
         for (let day = 1; day <= remainingCells; day++) {
-            html += `<div class="calendar-day other-month"><div class="calendar-day-number">${day}</div></div>`;
+            const dateStr = formatDate(nextYear, nextMonthIndex, day);
+            html += `<div class="calendar-day other-month" data-date="${dateStr}"><div class="calendar-day-number">${day}</div></div>`;
         }
         
         html += '</div>';
         calendarEl.innerHTML = html;
+        bindEventDayClickHandlers();
+        applyEventsToMiniCalendar();
     }
-    
-    window.eventMonth = today.getMonth();
-    window.eventYear = today.getFullYear();
+
+    function applyEventsToMiniCalendar() {
+        if (!Array.isArray(calendarEvents) || !calendarEvents.length) {
+            return;
+        }
+
+        calendarEvents.forEach(ev => {
+            if (!ev.start) return;
+            const dateKey = ev.start.substring(0, 10);
+            const cell = calendarEl.querySelector('.calendar-day[data-date="' + dateKey + '"]');
+            if (!cell) return;
+
+            let container = cell.querySelector('.calendar-events-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'calendar-events-container mt-1';
+                cell.appendChild(container);
+            }
+
+            const item = document.createElement('div');
+            item.className = 'calendar-event-item';
+            item.textContent = ev.title;
+            item.addEventListener('click', function(e) {
+                e.stopPropagation();
+                showCalendarEventDetails(ev);
+            });
+            container.appendChild(item);
+        });
+    }
+
+    function showCalendarEventDetails(ev) {
+        let html = '';
+        html += '<strong>Title:</strong> ' + (ev.title || '') + '<br>';
+        html += '<strong>Type:</strong> ' + (ev.event_type || '') + '<br>';
+        html += '<strong>Date:</strong> ' + (ev.start_date_display || '') + '<br>';
+        if (ev.location) {
+            html += '<strong>Location:</strong> ' + ev.location + '<br>';
+        }
+        if (ev.description) {
+            html += '<strong>Description:</strong> ' + ev.description;
+        }
+
+        if (typeof showMessage === 'function') {
+            showMessage('Event Details', html, true);
+        } else {
+            let fallback = (ev.title || 'Event');
+            if (ev.start_date_display) {
+                fallback += '\n' + ev.start_date_display;
+            }
+            if (ev.location) {
+                fallback += '\nLocation: ' + ev.location;
+            }
+            if (ev.description) {
+                fallback += '\n' + ev.description;
+            }
+            alert(fallback);
+        }
+    }
+
+    function bindEventDayClickHandlers() {
+        const cells = calendarEl.querySelectorAll('.calendar-day');
+        cells.forEach(cell => {
+            const dateStr = cell.getAttribute('data-date');
+            if (!dateStr) return;
+            cell.addEventListener('click', function() {
+                loadEventsForDate(dateStr);
+            });
+        });
+    }
+
+    function loadEventsForDate(dateStr) {
+        const startDateInput = document.getElementById('start_date');
+        const endDateInput = document.getElementById('end_date');
+        if (startDateInput) startDateInput.value = dateStr;
+        if (endDateInput) endDateInput.value = dateStr;
+
+        fetch("{% url 'core:calendar_events' school_slug=school_slug %}?date=" + encodeURIComponent(dateStr))
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('selected-date-events');
+                const label = document.getElementById('selected-date-label');
+                const list = document.getElementById('selected-date-events-list');
+                if (container && label && list) {
+                    label.textContent = dateStr;
+                    list.innerHTML = '';
+
+                    if (data.success && Array.isArray(data.events) && data.events.length) {
+                        data.events.forEach(ev => {
+                            const li = document.createElement('li');
+                            li.innerHTML = `<strong>${ev.title}</strong> <small class="text-muted">${ev.start_date_display}</small>`;
+                            list.appendChild(li);
+                        });
+                    } else {
+                        const li = document.createElement('li');
+                        li.className = 'text-muted';
+                        li.textContent = 'No events for this day.';
+                        list.appendChild(li);
+                    }
+
+                    container.style.display = 'block';
+                }
+
+                showAddEventModal();
+            })
+            .catch(error => {
+                console.error('Failed to load events for date', error);
+                showAddEventModal();
+            });
+    }
+
+    function showAddEventModal() {
+        const modalEl = document.getElementById('addEventModal');
+        if (!modalEl) return;
+
+        if (window.bootstrap && window.bootstrap.Modal) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        } else if (typeof $ !== 'undefined' && typeof $(modalEl).modal === 'function') {
+            $(modalEl).modal('show');
+        }
+    }
+
+    window.eventMonth = eventMonth;
+    window.eventYear = eventYear;
     
     window.changeEventMonth = function(delta) {
-        window.eventMonth += delta;
-        if (window.eventMonth > 11) {
-            window.eventMonth = 0;
-            window.eventYear++;
-        } else if (window.eventMonth < 0) {
-            window.eventMonth = 11;
-            window.eventYear--;
+        eventMonth += delta;
+        if (eventMonth > 11) {
+            eventMonth = 0;
+            eventYear++;
+        } else if (eventMonth < 0) {
+            eventMonth = 11;
+            eventYear--;
         }
-        generateMiniCalendar(window.eventMonth, window.eventYear);
+        window.eventMonth = eventMonth;
+        window.eventYear = eventYear;
+        generateMiniCalendar(eventMonth, eventYear);
     };
+
+    loadAllEventsAndRender();
 });
 </script>
 {% endblock %}
