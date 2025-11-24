@@ -50,7 +50,15 @@ class ClassCreateView(LoginRequiredMixin, CreateView):
                     class_teacher_id=section_teachers[i] if i < len(section_teachers) and section_teachers[i] else None
                 )
         
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'id': self.object.pk})
+        
         return super().form_valid(form)
+
+    def form_invalid(self, form):
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+        return super().form_invalid(form)
 
 
 class ClassUpdateView(LoginRequiredMixin, UpdateView):
@@ -87,7 +95,15 @@ class ClassUpdateView(LoginRequiredMixin, UpdateView):
                     class_teacher_id=section_teachers[i] if i < len(section_teachers) and section_teachers[i] else None
                 )
         
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'id': self.object.pk})
+        
         return super().form_valid(form)
+
+    def form_invalid(self, form):
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+        return super().form_invalid(form)
 
 
 class ClassDeleteView(LoginRequiredMixin, DeleteView):
@@ -100,6 +116,33 @@ class ClassDeleteView(LoginRequiredMixin, DeleteView):
             return JsonResponse({'success': True, 'message': 'Class deleted successfully'})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
+
+
+def get_class_api(request, pk, school_slug=None):
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Authentication required'}, status=401)
+    try:
+        class_obj = Class.objects.get(pk=pk)
+        sections = [
+            {
+                'id': section.id,
+                'name': section.name,
+                'max_students': section.max_students,
+            }
+            for section in class_obj.sections.all()
+        ]
+        return JsonResponse({
+            'success': True,
+            'id': class_obj.id,
+            'name': class_obj.name,
+            'numeric_name': class_obj.numeric_name,
+            'description': class_obj.description,
+            'order': class_obj.order,
+            'is_active': class_obj.is_active,
+            'sections': sections,
+        })
+    except Class.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Class not found'}, status=404)
 
 
 class SectionListView(LoginRequiredMixin, ListView):

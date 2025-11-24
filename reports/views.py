@@ -24,7 +24,7 @@ try:
     from openpyxl import Workbook
     from openpyxl.styles import Font, Alignment, PatternFill
     EXCEL_AVAILABLE = True
-except ImportError:
+except Exception:
     EXCEL_AVAILABLE = False
 
 try:
@@ -34,7 +34,7 @@ try:
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import inch
     PDF_AVAILABLE = True
-except ImportError:
+except Exception:
     PDF_AVAILABLE = False
 
 

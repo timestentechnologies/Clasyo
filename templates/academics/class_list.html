@@ -260,9 +260,105 @@
 </template>
 
 <style>
+/* Section Card Styling */
 .section-card {
     transition: all 0.3s ease;
     animation: slideIn 0.3s ease;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Dark mode overrides for section cards */
+[data-theme="dark"] .section-card,
+.theme-dark .section-card {
+    background-color: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #f3f4f6 !important;
+}
+
+/* Form controls within section cards */
+.section-card .form-control,
+.section-card .form-select {
+    background-color: #ffffff;
+    color: #1f2937;
+    border: 1px solid #d1d5db;
+    transition: all 0.2s ease;
+}
+
+.section-card .form-control:focus,
+.section-card .form-select:focus {
+    background-color: #ffffff;
+    color: #1f2937;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+}
+
+/* Dark mode form controls within section cards */
+[data-theme="dark"] .section-card .form-control,
+[data-theme="dark"] .section-card .form-select,
+.theme-dark .section-card .form-control,
+.theme-dark .section-card .form-select {
+    background-color: #374151 !important;
+    color: #f9fafb !important;
+    border-color: #4b5563 !important;
+}
+
+[data-theme="dark"] .section-card .form-control:focus,
+[data-theme="dark"] .section-card .form-select:focus,
+.theme-dark .section-card .form-control:focus,
+.theme-dark .section-card .form-select:focus {
+    background-color: #4b5563 !important;
+    color: #ffffff !important;
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25) !important;
+}
+
+/* Placeholder text in dark mode */
+[data-theme="dark"] .section-card .form-control::placeholder,
+.theme-dark .section-card .form-control::placeholder {
+    color: #9ca3af !important;
+    opacity: 1;
+}
+
+/* Labels and text within section cards */
+[data-theme="dark"] .section-card .form-label,
+.theme-dark .section-card .form-label,
+[data-theme="dark"] .section-card,
+.theme-dark .section-card {
+    color: #e5e7eb !important;
+}
+
+/* Buttons within section cards */
+.section-card .btn {
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .section-card .btn,
+.theme-dark .section-card .btn {
+    color: #f9fafb !important;
+    border-color: #4b5563 !important;
+}
+
+[data-theme="dark"] .section-card .btn-danger,
+.theme-dark .section-card .btn-danger {
+    background-color: #dc2626 !important;
+    border-color: #dc2626 !important;
+}
+
+[data-theme="dark"] .section-card .btn-danger:hover,
+.theme-dark .section-card .btn-danger:hover {
+    background-color: #b91c1c !important;
+    border-color: #b91c1c !important;
+}
+
+[data-theme="dark"] .section-card .btn:hover,
+.theme-dark .section-card .btn:hover {
+    background-color: #4b5563 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 @keyframes slideIn {
@@ -279,6 +375,58 @@
 .form-check-input {
     width: 3rem;
     height: 1.5rem;
+}
+
+/* Dark mode adjustments for form fields in modals */
+[data-theme="dark"] #addClassModal .form-control,
+[data-theme="dark"] #addClassModal .form-select,
+[data-theme="dark"] #addClassModal textarea,
+[data-theme="dark"] #editClassModal .form-control,
+[data-theme="dark"] #editClassModal .form-select,
+[data-theme="dark"] #editClassModal textarea,
+.theme-dark #addClassModal .form-control,
+.theme-dark #addClassModal .form-select,
+.theme-dark #addClassModal textarea,
+.theme-dark #editClassModal .form-control,
+.theme-dark #editClassModal .form-select,
+.theme-dark #editClassModal textarea {
+    background-color: #1f2937 !important;
+    color: #f3f4f6 !important;
+    border-color: #4b5563 !important;
+}
+
+/* Focus states for form fields in dark mode */
+[data-theme="dark"] #addClassModal .form-control:focus,
+[data-theme="dark"] #addClassModal .form-select:focus,
+[data-theme="dark"] #addClassModal textarea:focus,
+[data-theme="dark"] #editClassModal .form-control:focus,
+[data-theme="dark"] #editClassModal .form-select:focus,
+[data-theme="dark"] #editClassModal textarea:focus,
+.theme-dark #addClassModal .form-control:focus,
+.theme-dark #addClassModal .form-select:focus,
+.theme-dark #addClassModal textarea:focus,
+.theme-dark #editClassModal .form-control:focus,
+.theme-dark #editClassModal .form-select:focus,
+.theme-dark #editClassModal textarea:focus {
+    background-color: #1f2937 !important;
+    color: #ffffff !important;
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25) !important;
+}
+
+/* Placeholder text in dark mode for modal inputs */
+[data-theme="dark"] #addClassModal .form-control::placeholder,
+[data-theme="dark"] #editClassModal .form-control::placeholder,
+.theme-dark #addClassModal .form-control::placeholder,
+.theme-dark #editClassModal .form-control::placeholder {
+    color: #9ca3af !important;
+    opacity: 1;
+}
+
+[data-theme="dark"] .modal-content,
+.theme-dark .modal-content {
+    background-color: #111827 !important;
+    color: #f9fafb !important;
 }
 </style>
 
@@ -337,19 +485,20 @@ function submitAddClass() {
         method: 'POST',
         body: formData,
         headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest'
         }
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            location.reload();
+            showSuccessAndReload('Class added successfully!');
         } else {
-            alert('Error: ' + (data.error || 'Failed to add class'));
+            showError(data.error || 'Failed to add class');
         }
     })
     .catch(error => {
-        alert('Error: ' + error.message);
+        showError('Error: ' + error.message);
         console.error(error);
     });
 }
@@ -400,19 +549,20 @@ function submitEditClass() {
         method: 'POST',
         body: formData,
         headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest'
         }
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            location.reload();
+            showSuccessAndReload('Class updated successfully!');
         } else {
-            alert('Error: ' + (data.error || 'Failed to update class'));
+            showError(data.error || 'Failed to update class');
         }
     })
     .catch(error => {
-        alert('Error: ' + error.message);
+        showError('Error: ' + error.message);
     });
 }
 
@@ -425,19 +575,20 @@ function deleteClass(id, name) {
         fetch(window.location.pathname + id + '/delete/', {
             method: 'POST',
             headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest'
             }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                location.reload();
+                showSuccessAndReload('Class deleted successfully!');
             } else {
-                alert('Failed to delete class');
+                showError(data.error || 'Failed to delete class');
             }
         })
         .catch(error => {
-            alert('Error: ' + error.message);
+            showError('Error: ' + error.message);
         });
     };
 }
