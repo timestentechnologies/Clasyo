@@ -5,7 +5,60 @@
 {% block page_title %}Collect Fees{% endblock %}
 {% block page_subtitle %}Record student fee payments{% endblock %}
 
-{% block extra_css %}{% endblock %}
+{% block extra_css %}
+<style>
+/* Dark mode styles for fee collection form */
+[data-theme="dark"] #collectFeeModal .form-control,
+[data-theme="dark"] #collectFeeModal .form-select,
+[data-theme="dark"] #collectFeeModal textarea,
+.theme-dark #collectFeeModal .form-control,
+.theme-dark #collectFeeModal .form-select,
+.theme-dark #collectFeeModal textarea {
+    background-color: #1f2937 !important;
+    color: #f3f4f6 !important;
+    border-color: #4b5563 !important;
+}
+
+[data-theme="dark"] #collectFeeModal .form-control:focus,
+[data-theme="dark"] #collectFeeModal .form-select:focus,
+[data-theme="dark"] #collectFeeModal textarea:focus,
+.theme-dark #collectFeeModal .form-control:focus,
+.theme-dark #collectFeeModal .form-select:focus,
+.theme-dark #collectFeeModal textarea:focus {
+    background-color: #1f2937 !important;
+    color: #ffffff !important;
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25) !important;
+}
+
+[data-theme="dark"] #collectFeeModal .form-control::placeholder,
+[data-theme="dark"] #collectFeeModal textarea::placeholder,
+.theme-dark #collectFeeModal .form-control::placeholder,
+.theme-dark #collectFeeModal textarea::placeholder {
+    color: #9ca3af !important;
+    opacity: 1;
+}
+
+[data-theme="dark"] #collectFeeModal label,
+.theme-dark #collectFeeModal label {
+    color: #e5e7eb !important;
+}
+
+/* Ensure dropdown options are visible in dark mode */
+[data-theme="dark"] #collectFeeModal option,
+.theme-dark #collectFeeModal option {
+    background-color: #1f2937;
+    color: #f3f4f6;
+}
+
+/* Make sure the modal content has proper dark mode background */
+[data-theme="dark"] #collectFeeModal .modal-content,
+.theme-dark #collectFeeModal .modal-content {
+    background-color: #111827 !important;
+    color: #f9fafb !important;
+}
+</style>
+{% endblock %}
 
 {% block page_actions %}
 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#collectFeeModal">
