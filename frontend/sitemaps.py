@@ -15,7 +15,8 @@ class StaticViewSitemap(Sitemap):
     limit = 1000  # Max number of URLs per sitemap page
     template_name = 'sitemap.xml'  # Explicitly set the template name
     
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         # Get the current site's domain
         current_site = Site.objects.get_current()
         self.domain = current_site.domain
@@ -68,23 +69,15 @@ class StaticViewSitemap(Sitemap):
     def get_urls(self, *args, **kwargs):
         logger.debug("Generating sitemap URLs...")
         try:
-            # Ensure we're not getting duplicates by using a set
-            seen = set()
-            unique_urls = []
-            
             # Get all URLs from parent class
             urls = super().get_urls(*args, **kwargs)
             
-            # Filter out duplicates while preserving order
-            for url in urls:
-                # The URL is an object, we'll use the location as the unique identifier
-                location = url.location
-                if location not in seen:
-                    seen.add(location)
-                    unique_urls.append(url)
+            # Log the first few URLs for debugging
+            logger.debug(f"Generated {len(urls)} URLs in sitemap")
+            for i, url in enumerate(urls[:5]):  # Log first 5 URLs for debugging
+                logger.debug(f"URL {i+1}: {getattr(url, 'location', str(url))}")
             
-            logger.debug(f"Generated {len(unique_urls)} unique sitemap URLs (filtered from {len(urls)})")
-            return unique_urls
+            return urls
             
         except Exception as e:
             logger.exception("Error generating sitemap URLs")
