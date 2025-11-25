@@ -21,7 +21,8 @@ class StaticViewSitemap(Sitemap):
         self.domain = current_site.domain
 
     def items(self):
-        urls = [
+        # Define URLs with their metadata
+        url_configs = [
             {'viewname': 'frontend:home', 'priority': 1.0, 'changefreq': 'daily'},
             {'viewname': 'frontend:about', 'priority': 0.8, 'changefreq': 'weekly'},
             {'viewname': 'frontend:pricing', 'priority': 0.7, 'changefreq': 'weekly'},
@@ -32,8 +33,18 @@ class StaticViewSitemap(Sitemap):
             {'viewname': 'frontend:license', 'priority': 0.3, 'changefreq': 'monthly'},
             {'viewname': 'frontend:documentation', 'priority': 0.7, 'changefreq': 'weekly'},
         ]
-        logger.debug(f"Sitemap will include {len(urls)} URLs")
-        return urls
+        
+        # Ensure unique viewnames to prevent duplicates
+        unique_urls = []
+        seen = set()
+        
+        for url in url_configs:
+            if url['viewname'] not in seen:
+                seen.add(url['viewname'])
+                unique_urls.append(url)
+                
+        logger.debug(f"Sitemap will include {len(unique_urls)} unique URLs")
+        return unique_urls
 
     def location(self, item):
         try:
@@ -57,9 +68,24 @@ class StaticViewSitemap(Sitemap):
     def get_urls(self, *args, **kwargs):
         logger.debug("Generating sitemap URLs...")
         try:
+            # Ensure we're not getting duplicates by using a set
+            seen = set()
+            unique_urls = []
+            
+            # Get all URLs from parent class
             urls = super().get_urls(*args, **kwargs)
-            logger.debug(f"Successfully generated {len(urls)} sitemap URLs")
-            return urls
+            
+            # Filter out duplicates while preserving order
+            for url in urls:
+                # The URL is an object, we'll use the location as the unique identifier
+                location = url.location
+                if location not in seen:
+                    seen.add(location)
+                    unique_urls.append(url)
+            
+            logger.debug(f"Generated {len(unique_urls)} unique sitemap URLs (filtered from {len(urls)})")
+            return unique_urls
+            
         except Exception as e:
             logger.exception("Error generating sitemap URLs")
             raise
