@@ -54,9 +54,72 @@ class Invocation(object):
             )
         return 0
 
+    # Positional values for application-defined call arguments.
+    # Invocation
+    def Args(self, j):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
+        if o != 0:
+            a = self._tab.Vector(o)
+            return self._tab.Get(
+                flatbuffers.number_types.Uint8Flags,
+                a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 1),
+            )
+        return 0
+
+    # Invocation
+    def ArgsAsNumpy(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
+        if o != 0:
+            return self._tab.GetVectorAsNumpy(flatbuffers.number_types.Uint8Flags, o)
+        return 0
+
+    # Invocation
+    def ArgsLength(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
+        if o != 0:
+            return self._tab.VectorLen(o)
+        return 0
+
+    # Invocation
+    def ArgsIsNone(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
+        return o == 0
+
+    # Keyword values for application-defined call arguments.
+    # Invocation
+    def Kwargs(self, j):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
+        if o != 0:
+            a = self._tab.Vector(o)
+            return self._tab.Get(
+                flatbuffers.number_types.Uint8Flags,
+                a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 1),
+            )
+        return 0
+
+    # Invocation
+    def KwargsAsNumpy(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
+        if o != 0:
+            return self._tab.GetVectorAsNumpy(flatbuffers.number_types.Uint8Flags, o)
+        return 0
+
+    # Invocation
+    def KwargsLength(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
+        if o != 0:
+            return self._tab.VectorLen(o)
+        return 0
+
+    # Invocation
+    def KwargsIsNone(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
+        return o == 0
+
+    # Alternative, transparent payload. If given, ``args`` and ``kwargs`` must be left unset.
     # Invocation
     def Payload(self, j):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
         if o != 0:
             a = self._tab.Vector(o)
             return self._tab.Get(
@@ -67,77 +130,65 @@ class Invocation(object):
 
     # Invocation
     def PayloadAsNumpy(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
         if o != 0:
             return self._tab.GetVectorAsNumpy(flatbuffers.number_types.Uint8Flags, o)
         return 0
 
     # Invocation
     def PayloadLength(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
         if o != 0:
             return self._tab.VectorLen(o)
         return 0
 
     # Invocation
     def PayloadIsNone(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
-        return o == 0
-
-    # Invocation
-    def EncAlgo(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
-        if o != 0:
-            return self._tab.Get(flatbuffers.number_types.Uint8Flags, o + self._tab.Pos)
-        return 0
-
-    # Invocation
-    def EncSerializer(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
+        return o == 0
+
+    # The specific scheme in use with Payload Passthru (PPT) mode for the application payload.
+    # Invocation
+    def PptScheme(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(16))
         if o != 0:
             return self._tab.Get(flatbuffers.number_types.Uint8Flags, o + self._tab.Pos)
         return 0
 
+    # The specific serializer encoding the application payload with the Payload Passthru (PPT) scheme in use.
     # Invocation
-    def EncKey(self, j):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(16))
+    def PptSerializer(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(18))
         if o != 0:
-            a = self._tab.Vector(o)
-            return self._tab.Get(
-                flatbuffers.number_types.Uint8Flags,
-                a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 1),
-            )
+            return self._tab.Get(flatbuffers.number_types.Uint8Flags, o + self._tab.Pos)
         return 0
 
+    # The cryptographic algorithm ("cipher") encrypting the application payload with the Payload Passthru (PPT) scheme in use.
     # Invocation
-    def EncKeyAsNumpy(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(16))
+    def PptCipher(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(20))
         if o != 0:
-            return self._tab.GetVectorAsNumpy(flatbuffers.number_types.Uint8Flags, o)
+            return self._tab.Get(flatbuffers.number_types.Uint8Flags, o + self._tab.Pos)
         return 0
 
+    # The identifier or reference to the encryption key that was used to encrypt the payload with the Payload Passthru (PPT) scheme and cipher in use.
     # Invocation
-    def EncKeyLength(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(16))
+    def PptKeyid(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(22))
         if o != 0:
-            return self._tab.VectorLen(o)
-        return 0
-
-    # Invocation
-    def EncKeyIsNone(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(16))
-        return o == 0
+            return self._tab.String(o + self._tab.Pos)
+        return None
 
     # Invocation
     def Procedure(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(18))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(24))
         if o != 0:
             return self._tab.String(o + self._tab.Pos)
         return None
 
     # Invocation
     def Timeout(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(20))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(26))
         if o != 0:
             return self._tab.Get(
                 flatbuffers.number_types.Uint32Flags, o + self._tab.Pos
@@ -146,7 +197,7 @@ class Invocation(object):
 
     # Invocation
     def ReceiveProgress(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(22))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(28))
         if o != 0:
             return bool(
                 self._tab.Get(flatbuffers.number_types.BoolFlags, o + self._tab.Pos)
@@ -155,14 +206,14 @@ class Invocation(object):
 
     # Invocation
     def TransactionHash(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(24))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(30))
         if o != 0:
             return self._tab.String(o + self._tab.Pos)
         return None
 
     # Invocation
     def Caller(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(26))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(32))
         if o != 0:
             return self._tab.Get(
                 flatbuffers.number_types.Uint64Flags, o + self._tab.Pos
@@ -171,25 +222,26 @@ class Invocation(object):
 
     # Invocation
     def CallerAuthid(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(28))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(34))
         if o != 0:
             return self._tab.String(o + self._tab.Pos)
         return None
 
     # Invocation
     def CallerAuthrole(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(30))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(36))
         if o != 0:
             return self._tab.String(o + self._tab.Pos)
         return None
 
     # Invocation
     def ForwardFor(self, j):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(32))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(38))
         if o != 0:
             x = self._tab.Vector(o)
-            x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 8
-            from wamp.proto.Principal import Principal
+            x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
+            x = self._tab.Indirect(x)
+            from autobahn.wamp.gen.wamp.proto.Principal import Principal
 
             obj = Principal()
             obj.Init(self._tab.Bytes, x)
@@ -198,19 +250,19 @@ class Invocation(object):
 
     # Invocation
     def ForwardForLength(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(32))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(38))
         if o != 0:
             return self._tab.VectorLen(o)
         return 0
 
     # Invocation
     def ForwardForIsNone(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(32))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(38))
         return o == 0
 
 
 def InvocationStart(builder):
-    builder.StartObject(15)
+    builder.StartObject(18)
 
 
 def Start(builder):
@@ -241,9 +293,45 @@ def AddRegistration(builder, registration):
     InvocationAddRegistration(builder, registration)
 
 
+def InvocationAddArgs(builder, args):
+    builder.PrependUOffsetTRelativeSlot(
+        3, flatbuffers.number_types.UOffsetTFlags.py_type(args), 0
+    )
+
+
+def AddArgs(builder, args):
+    InvocationAddArgs(builder, args)
+
+
+def InvocationStartArgsVector(builder, numElems):
+    return builder.StartVector(1, numElems, 1)
+
+
+def StartArgsVector(builder, numElems):
+    return InvocationStartArgsVector(builder, numElems)
+
+
+def InvocationAddKwargs(builder, kwargs):
+    builder.PrependUOffsetTRelativeSlot(
+        4, flatbuffers.number_types.UOffsetTFlags.py_type(kwargs), 0
+    )
+
+
+def AddKwargs(builder, kwargs):
+    InvocationAddKwargs(builder, kwargs)
+
+
+def InvocationStartKwargsVector(builder, numElems):
+    return builder.StartVector(1, numElems, 1)
+
+
+def StartKwargsVector(builder, numElems):
+    return InvocationStartKwargsVector(builder, numElems)
+
+
 def InvocationAddPayload(builder, payload):
     builder.PrependUOffsetTRelativeSlot(
-        3, flatbuffers.number_types.UOffsetTFlags.py_type(payload), 0
+        5, flatbuffers.number_types.UOffsetTFlags.py_type(payload), 0
     )
 
 
@@ -259,43 +347,43 @@ def StartPayloadVector(builder, numElems):
     return InvocationStartPayloadVector(builder, numElems)
 
 
-def InvocationAddEncAlgo(builder, encAlgo):
-    builder.PrependUint8Slot(4, encAlgo, 0)
+def InvocationAddPptScheme(builder, pptScheme):
+    builder.PrependUint8Slot(6, pptScheme, 0)
 
 
-def AddEncAlgo(builder, encAlgo):
-    InvocationAddEncAlgo(builder, encAlgo)
+def AddPptScheme(builder, pptScheme):
+    InvocationAddPptScheme(builder, pptScheme)
 
 
-def InvocationAddEncSerializer(builder, encSerializer):
-    builder.PrependUint8Slot(5, encSerializer, 0)
+def InvocationAddPptSerializer(builder, pptSerializer):
+    builder.PrependUint8Slot(7, pptSerializer, 0)
 
 
-def AddEncSerializer(builder, encSerializer):
-    InvocationAddEncSerializer(builder, encSerializer)
+def AddPptSerializer(builder, pptSerializer):
+    InvocationAddPptSerializer(builder, pptSerializer)
 
 
-def InvocationAddEncKey(builder, encKey):
+def InvocationAddPptCipher(builder, pptCipher):
+    builder.PrependUint8Slot(8, pptCipher, 0)
+
+
+def AddPptCipher(builder, pptCipher):
+    InvocationAddPptCipher(builder, pptCipher)
+
+
+def InvocationAddPptKeyid(builder, pptKeyid):
     builder.PrependUOffsetTRelativeSlot(
-        6, flatbuffers.number_types.UOffsetTFlags.py_type(encKey), 0
+        9, flatbuffers.number_types.UOffsetTFlags.py_type(pptKeyid), 0
     )
 
 
-def AddEncKey(builder, encKey):
-    InvocationAddEncKey(builder, encKey)
-
-
-def InvocationStartEncKeyVector(builder, numElems):
-    return builder.StartVector(1, numElems, 1)
-
-
-def StartEncKeyVector(builder, numElems):
-    return InvocationStartEncKeyVector(builder, numElems)
+def AddPptKeyid(builder, pptKeyid):
+    InvocationAddPptKeyid(builder, pptKeyid)
 
 
 def InvocationAddProcedure(builder, procedure):
     builder.PrependUOffsetTRelativeSlot(
-        7, flatbuffers.number_types.UOffsetTFlags.py_type(procedure), 0
+        10, flatbuffers.number_types.UOffsetTFlags.py_type(procedure), 0
     )
 
 
@@ -304,7 +392,7 @@ def AddProcedure(builder, procedure):
 
 
 def InvocationAddTimeout(builder, timeout):
-    builder.PrependUint32Slot(8, timeout, 0)
+    builder.PrependUint32Slot(11, timeout, 0)
 
 
 def AddTimeout(builder, timeout):
@@ -312,7 +400,7 @@ def AddTimeout(builder, timeout):
 
 
 def InvocationAddReceiveProgress(builder, receiveProgress):
-    builder.PrependBoolSlot(9, receiveProgress, 0)
+    builder.PrependBoolSlot(12, receiveProgress, 0)
 
 
 def AddReceiveProgress(builder, receiveProgress):
@@ -321,7 +409,7 @@ def AddReceiveProgress(builder, receiveProgress):
 
 def InvocationAddTransactionHash(builder, transactionHash):
     builder.PrependUOffsetTRelativeSlot(
-        10, flatbuffers.number_types.UOffsetTFlags.py_type(transactionHash), 0
+        13, flatbuffers.number_types.UOffsetTFlags.py_type(transactionHash), 0
     )
 
 
@@ -330,7 +418,7 @@ def AddTransactionHash(builder, transactionHash):
 
 
 def InvocationAddCaller(builder, caller):
-    builder.PrependUint64Slot(11, caller, 0)
+    builder.PrependUint64Slot(14, caller, 0)
 
 
 def AddCaller(builder, caller):
@@ -339,7 +427,7 @@ def AddCaller(builder, caller):
 
 def InvocationAddCallerAuthid(builder, callerAuthid):
     builder.PrependUOffsetTRelativeSlot(
-        12, flatbuffers.number_types.UOffsetTFlags.py_type(callerAuthid), 0
+        15, flatbuffers.number_types.UOffsetTFlags.py_type(callerAuthid), 0
     )
 
 
@@ -349,7 +437,7 @@ def AddCallerAuthid(builder, callerAuthid):
 
 def InvocationAddCallerAuthrole(builder, callerAuthrole):
     builder.PrependUOffsetTRelativeSlot(
-        13, flatbuffers.number_types.UOffsetTFlags.py_type(callerAuthrole), 0
+        16, flatbuffers.number_types.UOffsetTFlags.py_type(callerAuthrole), 0
     )
 
 
@@ -359,7 +447,7 @@ def AddCallerAuthrole(builder, callerAuthrole):
 
 def InvocationAddForwardFor(builder, forwardFor):
     builder.PrependUOffsetTRelativeSlot(
-        14, flatbuffers.number_types.UOffsetTFlags.py_type(forwardFor), 0
+        17, flatbuffers.number_types.UOffsetTFlags.py_type(forwardFor), 0
     )
 
 
@@ -368,7 +456,7 @@ def AddForwardFor(builder, forwardFor):
 
 
 def InvocationStartForwardForVector(builder, numElems):
-    return builder.StartVector(8, numElems, 8)
+    return builder.StartVector(4, numElems, 4)
 
 
 def StartForwardForVector(builder, numElems):

@@ -45,9 +45,72 @@ class Yield(object):
             )
         return 0
 
+    # Positional values for application-defined invocation result.
+    # Yield
+    def Args(self, j):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        if o != 0:
+            a = self._tab.Vector(o)
+            return self._tab.Get(
+                flatbuffers.number_types.Uint8Flags,
+                a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 1),
+            )
+        return 0
+
+    # Yield
+    def ArgsAsNumpy(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        if o != 0:
+            return self._tab.GetVectorAsNumpy(flatbuffers.number_types.Uint8Flags, o)
+        return 0
+
+    # Yield
+    def ArgsLength(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        if o != 0:
+            return self._tab.VectorLen(o)
+        return 0
+
+    # Yield
+    def ArgsIsNone(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        return o == 0
+
+    # Keyword values for application-defined invocation result.
+    # Yield
+    def Kwargs(self, j):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
+        if o != 0:
+            a = self._tab.Vector(o)
+            return self._tab.Get(
+                flatbuffers.number_types.Uint8Flags,
+                a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 1),
+            )
+        return 0
+
+    # Yield
+    def KwargsAsNumpy(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
+        if o != 0:
+            return self._tab.GetVectorAsNumpy(flatbuffers.number_types.Uint8Flags, o)
+        return 0
+
+    # Yield
+    def KwargsLength(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
+        if o != 0:
+            return self._tab.VectorLen(o)
+        return 0
+
+    # Yield
+    def KwargsIsNone(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
+        return o == 0
+
+    # Alternative, transparent payload. If given, ``args`` and ``kwargs`` must be left unset.
     # Yield
     def Payload(self, j):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
         if o != 0:
             a = self._tab.Vector(o)
             return self._tab.Get(
@@ -58,70 +121,58 @@ class Yield(object):
 
     # Yield
     def PayloadAsNumpy(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
         if o != 0:
             return self._tab.GetVectorAsNumpy(flatbuffers.number_types.Uint8Flags, o)
         return 0
 
     # Yield
     def PayloadLength(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
         if o != 0:
             return self._tab.VectorLen(o)
         return 0
 
     # Yield
     def PayloadIsNone(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
-        return o == 0
-
-    # Yield
-    def EncAlgo(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
-        if o != 0:
-            return self._tab.Get(flatbuffers.number_types.Uint8Flags, o + self._tab.Pos)
-        return 0
-
-    # Yield
-    def EncSerializer(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
+        return o == 0
+
+    # The specific scheme in use with Payload Passthru (PPT) mode for the application payload.
+    # Yield
+    def PptScheme(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
         if o != 0:
             return self._tab.Get(flatbuffers.number_types.Uint8Flags, o + self._tab.Pos)
         return 0
 
+    # The specific serializer encoding the application payload with the Payload Passthru (PPT) scheme in use.
     # Yield
-    def EncKey(self, j):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
+    def PptSerializer(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(16))
         if o != 0:
-            a = self._tab.Vector(o)
-            return self._tab.Get(
-                flatbuffers.number_types.Uint8Flags,
-                a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 1),
-            )
+            return self._tab.Get(flatbuffers.number_types.Uint8Flags, o + self._tab.Pos)
         return 0
 
+    # The cryptographic algorithm ("cipher") encrypting the application payload with the Payload Passthru (PPT) scheme in use.
     # Yield
-    def EncKeyAsNumpy(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
+    def PptCipher(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(18))
         if o != 0:
-            return self._tab.GetVectorAsNumpy(flatbuffers.number_types.Uint8Flags, o)
+            return self._tab.Get(flatbuffers.number_types.Uint8Flags, o + self._tab.Pos)
         return 0
 
+    # The identifier or reference to the encryption key that was used to encrypt the payload with the Payload Passthru (PPT) scheme and cipher in use.
     # Yield
-    def EncKeyLength(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
+    def PptKeyid(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(20))
         if o != 0:
-            return self._tab.VectorLen(o)
-        return 0
-
-    # Yield
-    def EncKeyIsNone(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
-        return o == 0
+            return self._tab.String(o + self._tab.Pos)
+        return None
 
     # Yield
     def Progress(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(16))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(22))
         if o != 0:
             return bool(
                 self._tab.Get(flatbuffers.number_types.BoolFlags, o + self._tab.Pos)
@@ -130,7 +181,7 @@ class Yield(object):
 
     # Yield
     def Callee(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(18))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(24))
         if o != 0:
             return self._tab.Get(
                 flatbuffers.number_types.Uint64Flags, o + self._tab.Pos
@@ -139,25 +190,26 @@ class Yield(object):
 
     # Yield
     def CalleeAuthid(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(20))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(26))
         if o != 0:
             return self._tab.String(o + self._tab.Pos)
         return None
 
     # Yield
     def CalleeAuthrole(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(22))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(28))
         if o != 0:
             return self._tab.String(o + self._tab.Pos)
         return None
 
     # Yield
     def ForwardFor(self, j):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(24))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(30))
         if o != 0:
             x = self._tab.Vector(o)
-            x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 8
-            from wamp.proto.Principal import Principal
+            x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
+            x = self._tab.Indirect(x)
+            from autobahn.wamp.gen.wamp.proto.Principal import Principal
 
             obj = Principal()
             obj.Init(self._tab.Bytes, x)
@@ -166,19 +218,19 @@ class Yield(object):
 
     # Yield
     def ForwardForLength(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(24))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(30))
         if o != 0:
             return self._tab.VectorLen(o)
         return 0
 
     # Yield
     def ForwardForIsNone(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(24))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(30))
         return o == 0
 
 
 def YieldStart(builder):
-    builder.StartObject(11)
+    builder.StartObject(14)
 
 
 def Start(builder):
@@ -201,9 +253,45 @@ def AddRequest(builder, request):
     YieldAddRequest(builder, request)
 
 
+def YieldAddArgs(builder, args):
+    builder.PrependUOffsetTRelativeSlot(
+        2, flatbuffers.number_types.UOffsetTFlags.py_type(args), 0
+    )
+
+
+def AddArgs(builder, args):
+    YieldAddArgs(builder, args)
+
+
+def YieldStartArgsVector(builder, numElems):
+    return builder.StartVector(1, numElems, 1)
+
+
+def StartArgsVector(builder, numElems):
+    return YieldStartArgsVector(builder, numElems)
+
+
+def YieldAddKwargs(builder, kwargs):
+    builder.PrependUOffsetTRelativeSlot(
+        3, flatbuffers.number_types.UOffsetTFlags.py_type(kwargs), 0
+    )
+
+
+def AddKwargs(builder, kwargs):
+    YieldAddKwargs(builder, kwargs)
+
+
+def YieldStartKwargsVector(builder, numElems):
+    return builder.StartVector(1, numElems, 1)
+
+
+def StartKwargsVector(builder, numElems):
+    return YieldStartKwargsVector(builder, numElems)
+
+
 def YieldAddPayload(builder, payload):
     builder.PrependUOffsetTRelativeSlot(
-        2, flatbuffers.number_types.UOffsetTFlags.py_type(payload), 0
+        4, flatbuffers.number_types.UOffsetTFlags.py_type(payload), 0
     )
 
 
@@ -219,42 +307,42 @@ def StartPayloadVector(builder, numElems):
     return YieldStartPayloadVector(builder, numElems)
 
 
-def YieldAddEncAlgo(builder, encAlgo):
-    builder.PrependUint8Slot(3, encAlgo, 0)
+def YieldAddPptScheme(builder, pptScheme):
+    builder.PrependUint8Slot(5, pptScheme, 0)
 
 
-def AddEncAlgo(builder, encAlgo):
-    YieldAddEncAlgo(builder, encAlgo)
+def AddPptScheme(builder, pptScheme):
+    YieldAddPptScheme(builder, pptScheme)
 
 
-def YieldAddEncSerializer(builder, encSerializer):
-    builder.PrependUint8Slot(4, encSerializer, 0)
+def YieldAddPptSerializer(builder, pptSerializer):
+    builder.PrependUint8Slot(6, pptSerializer, 0)
 
 
-def AddEncSerializer(builder, encSerializer):
-    YieldAddEncSerializer(builder, encSerializer)
+def AddPptSerializer(builder, pptSerializer):
+    YieldAddPptSerializer(builder, pptSerializer)
 
 
-def YieldAddEncKey(builder, encKey):
+def YieldAddPptCipher(builder, pptCipher):
+    builder.PrependUint8Slot(7, pptCipher, 0)
+
+
+def AddPptCipher(builder, pptCipher):
+    YieldAddPptCipher(builder, pptCipher)
+
+
+def YieldAddPptKeyid(builder, pptKeyid):
     builder.PrependUOffsetTRelativeSlot(
-        5, flatbuffers.number_types.UOffsetTFlags.py_type(encKey), 0
+        8, flatbuffers.number_types.UOffsetTFlags.py_type(pptKeyid), 0
     )
 
 
-def AddEncKey(builder, encKey):
-    YieldAddEncKey(builder, encKey)
-
-
-def YieldStartEncKeyVector(builder, numElems):
-    return builder.StartVector(1, numElems, 1)
-
-
-def StartEncKeyVector(builder, numElems):
-    return YieldStartEncKeyVector(builder, numElems)
+def AddPptKeyid(builder, pptKeyid):
+    YieldAddPptKeyid(builder, pptKeyid)
 
 
 def YieldAddProgress(builder, progress):
-    builder.PrependBoolSlot(6, progress, 0)
+    builder.PrependBoolSlot(9, progress, 0)
 
 
 def AddProgress(builder, progress):
@@ -262,7 +350,7 @@ def AddProgress(builder, progress):
 
 
 def YieldAddCallee(builder, callee):
-    builder.PrependUint64Slot(7, callee, 0)
+    builder.PrependUint64Slot(10, callee, 0)
 
 
 def AddCallee(builder, callee):
@@ -271,7 +359,7 @@ def AddCallee(builder, callee):
 
 def YieldAddCalleeAuthid(builder, calleeAuthid):
     builder.PrependUOffsetTRelativeSlot(
-        8, flatbuffers.number_types.UOffsetTFlags.py_type(calleeAuthid), 0
+        11, flatbuffers.number_types.UOffsetTFlags.py_type(calleeAuthid), 0
     )
 
 
@@ -281,7 +369,7 @@ def AddCalleeAuthid(builder, calleeAuthid):
 
 def YieldAddCalleeAuthrole(builder, calleeAuthrole):
     builder.PrependUOffsetTRelativeSlot(
-        9, flatbuffers.number_types.UOffsetTFlags.py_type(calleeAuthrole), 0
+        12, flatbuffers.number_types.UOffsetTFlags.py_type(calleeAuthrole), 0
     )
 
 
@@ -291,7 +379,7 @@ def AddCalleeAuthrole(builder, calleeAuthrole):
 
 def YieldAddForwardFor(builder, forwardFor):
     builder.PrependUOffsetTRelativeSlot(
-        10, flatbuffers.number_types.UOffsetTFlags.py_type(forwardFor), 0
+        13, flatbuffers.number_types.UOffsetTFlags.py_type(forwardFor), 0
     )
 
 
@@ -300,7 +388,7 @@ def AddForwardFor(builder, forwardFor):
 
 
 def YieldStartForwardForVector(builder, numElems):
-    return builder.StartVector(8, numElems, 8)
+    return builder.StartVector(4, numElems, 4)
 
 
 def StartForwardForVector(builder, numElems):

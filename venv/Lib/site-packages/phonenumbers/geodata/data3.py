@@ -2575,6 +2575,7 @@ data = {
  '2095':{'en': 'Luxor'},
  '2096':{'en': 'Qena'},
  '2097':{'en': 'Aswan'},
+ '21251':{'en': u('Rabat/Tanger/F\u00e8s/Mekn\u00e8s'), 'fr': u('Rabat/Tanger/F\u00e8s/Mekn\u00e8s')},
  '212520':{'en': 'Casablanca', 'fr': 'Casablanca'},
  '212521':{'en': 'Casablanca/Central Morocco', 'fr': 'Casablanca/Maroc Central'},
  '2125220':{'en': 'Casablanca', 'fr': 'Casablanca'},
@@ -2650,6 +2651,7 @@ data = {
  '2125397':{'en': u('T\u00e9touan'), 'fr': u('T\u00e9touan')},
  '2125398':{'en': 'Al Hoceima/Chefchaouen', 'fr': 'Al Hoceima/Chefchaouen'},
  '2125399':{'en': 'Al Hoceima/Larache/Tangier', 'fr': 'Tanger/Larache/Al Hoceima'},
+ '212549':{'en': 'Casablanca/Marrakech/Agadir', 'fr': 'Casablanca/Marrakech/Agadir'},
  '21321':{'en': 'Algiers'},
  '21327':{'en': 'Chlef'},
  '21329':{'en': 'Ghardaia/Illizi/Tamanrasset'},
@@ -10017,6 +10019,4 @@ data = {
  '3323564':{'en': 'Oissel', 'fr': 'Oissel'},
  '3323565':{'en': u('Saint-\u00c9tienne-du-Rouvray'), 'fr': u('Saint-\u00c9tienne-du-Rouvray')},
  '3323566':{'en': u('Saint-\u00c9tienne-du-Rouvray'), 'fr': u('Saint-\u00c9tienne-du-Rouvray')},
- '3323567':{'en': 'Grand-Couronne', 'fr': 'Grand-Couronne'},
- '3323568':{'en': 'Petit-Couronne', 'fr': 'Petit-Couronne'},
 }

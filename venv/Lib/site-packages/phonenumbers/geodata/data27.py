@@ -19,6 +19,9 @@ from ..util import u
 # limitations under the License.
 
 data = {
+ '86188379':{'en': 'Luoyang, Henan', 'zh': u('\u6cb3\u5357\u7701\u6d1b\u9633\u5e02')},
+ '86188380':{'en': 'Zhengzhou, Henan', 'zh': u('\u6cb3\u5357\u7701\u90d1\u5dde\u5e02')},
+ '86188381':{'en': 'Zhengzhou, Henan', 'zh': u('\u6cb3\u5357\u7701\u90d1\u5dde\u5e02')},
  '86188382':{'en': 'Zhengzhou, Henan', 'zh': u('\u6cb3\u5357\u7701\u90d1\u5dde\u5e02')},
  '86188383':{'en': 'Zhoukou, Henan', 'zh': u('\u6cb3\u5357\u7701\u5468\u53e3\u5e02')},
  '861883840':{'en': 'Anyang, Henan', 'zh': u('\u6cb3\u5357\u7701\u5b89\u9633\u5e02')},
@@ -10016,7 +10019,4 @@ data = {
  '9171806':{'en': 'Salekasa, Maharashtra'},
  '9171807':{'en': 'Salekasa, Maharashtra'},
  '9171812':{'en': 'Lakhandur, Maharashtra'},
- '9171813':{'en': 'Lakhandur, Maharashtra'},
- '9171814':{'en': 'Lakhandur, Maharashtra'},
- '9171815':{'en': 'Lakhandur, Maharashtra'},
 }

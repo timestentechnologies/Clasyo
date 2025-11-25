@@ -19,6 +19,8 @@ from ..util import u
 # limitations under the License.
 
 data = {
+ '61752935':{'en': 'Caloundra'},
+ '61752936':{'en': 'Caloundra'},
  '61752937':{'en': 'Nambour'},
  '61752938':{'en': 'Nambour'},
  '61752939':{'en': 'Nambour'},
@@ -1466,6 +1468,7 @@ data = {
  '61756482':{'en': 'Tweed Heads'},
  '61756483':{'en': 'Southport'},
  '61756484':{'en': 'Southport'},
+ '6175651':{'en': 'Southport'},
  '61756550':{'en': 'Southport'},
  '61756551':{'en': 'Southport'},
  '61756552':{'en': 'Southport'},
@@ -1506,7 +1509,7 @@ data = {
  '61756662':{'en': 'Jimboomba'},
  '61756663':{'en': 'Kerry'},
  '61756664':{'en': 'Ormeau'},
- '61756665':{'en': 'Rathdowney'},
+ '61756665':{'en': 'Southport'},
  '61756666':{'en': 'Southport'},
  '61756667':{'en': 'Tamborine Mountain'},
  '61756668':{'en': 'Tweed Heads'},
@@ -10016,7 +10019,4 @@ data = {
  '61885873':{'en': 'Paruna'},
  '61885874':{'en': 'Wanbi'},
  '61885875':{'en': 'Wanbi'},
- '61885876':{'en': 'Wunkar'},
- '61885877':{'en': 'Wunkar'},
- '61885878':{'en': 'Paruna'},
 }

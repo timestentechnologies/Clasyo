@@ -19,6 +19,8 @@ from ..util import u
 # limitations under the License.
 
 data = {
+ '3358673':{'en': 'Saint-Jean-dAngely', 'fr': 'Saint-Jean-dAngely'},
+ '3358674':{'en': 'Poitiers', 'fr': 'Poitiers'},
  '3358675':{'en': u('Angoul\u00eame'), 'fr': u('Angoul\u00eame')},
  '3358676':{'en': 'Rochefort', 'fr': 'Rochefort'},
  '3358677':{'en': 'La Rochelle', 'fr': 'La Rochelle'},
@@ -10017,6 +10019,4 @@ data = {
  '494764':{'de': 'Gnarrenburg-Klenkendorf', 'en': 'Gnarrenburg-Klenkendorf'},
  '494765':{'de': u('Ebersdorf bei Bremerv\u00f6rde'), 'en': u('Ebersdorf bei Bremerv\u00f6rde')},
  '494766':{'de': 'Basdahl', 'en': 'Basdahl'},
- '494767':{'de': u('Bremerv\u00f6rde-Bevern'), 'en': u('Bremerv\u00f6rde-Bevern')},
- '494768':{'de': 'Hipstedt', 'en': 'Hipstedt'},
 }
