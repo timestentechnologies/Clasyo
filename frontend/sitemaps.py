@@ -1,7 +1,9 @@
 import logging
 from django.contrib.sitemaps import Sitemap
+from django.contrib.sites.models import Site
 from django.urls import reverse, NoReverseMatch
 from django.utils import timezone
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +14,11 @@ class StaticViewSitemap(Sitemap):
     i18n = True
     limit = 1000  # Max number of URLs per sitemap page
     template_name = 'sitemap.xml'  # Explicitly set the template name
+    
+    def __init__(self):
+        # Get the current site's domain
+        current_site = Site.objects.get_current()
+        self.domain = current_site.domain
 
     def items(self):
         urls = [
