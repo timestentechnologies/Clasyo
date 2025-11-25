@@ -14,7 +14,13 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     
     # Sitemap
-    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
+    path('sitemap.xml', sitemap, 
+        {
+            'sitemaps': sitemaps, 
+            'template_name': 'sitemap.xml',
+            'content_type': 'application/xml'
+        }, 
+        name='django.contrib.sitemaps.views.sitemap'),
     
     # Super Admin
     path('superadmin/', include('superadmin.urls', namespace='superadmin')),

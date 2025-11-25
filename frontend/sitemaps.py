@@ -1,41 +1,58 @@
+import logging
 from django.contrib.sitemaps import Sitemap
 from django.urls import reverse, NoReverseMatch
 from django.utils import timezone
-from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 class StaticViewSitemap(Sitemap):
     changefreq = "weekly"
     priority = 0.8
     protocol = 'https'
     i18n = True
+    limit = 1000  # Max number of URLs per sitemap page
+    template_name = 'sitemap.xml'  # Explicitly set the template name
 
     def items(self):
-        return [
-            {'viewname': 'frontend:home', 'priority': 1.0},
-            {'viewname': 'frontend:about', 'priority': 0.8},
-            {'viewname': 'frontend:pricing', 'priority': 0.7},
-            {'viewname': 'frontend:contact', 'priority': 0.5},
-            {'viewname': 'frontend:faq', 'priority': 0.6},
-            {'viewname': 'frontend:privacy', 'priority': 0.3},
-            {'viewname': 'frontend:terms', 'priority': 0.3},
-            {'viewname': 'frontend:license', 'priority': 0.3},
-            {'viewname': 'frontend:documentation', 'priority': 0.7},
+        urls = [
+            {'viewname': 'frontend:home', 'priority': 1.0, 'changefreq': 'daily'},
+            {'viewname': 'frontend:about', 'priority': 0.8, 'changefreq': 'weekly'},
+            {'viewname': 'frontend:pricing', 'priority': 0.7, 'changefreq': 'weekly'},
+            {'viewname': 'frontend:contact', 'priority': 0.5, 'changefreq': 'monthly'},
+            {'viewname': 'frontend:faq', 'priority': 0.6, 'changefreq': 'weekly'},
+            {'viewname': 'frontend:privacy', 'priority': 0.3, 'changefreq': 'monthly'},
+            {'viewname': 'frontend:terms', 'priority': 0.3, 'changefreq': 'monthly'},
+            {'viewname': 'frontend:license', 'priority': 0.3, 'changefreq': 'monthly'},
+            {'viewname': 'frontend:documentation', 'priority': 0.7, 'changefreq': 'weekly'},
         ]
+        logger.debug(f"Sitemap will include {len(urls)} URLs")
+        return urls
 
     def location(self, item):
         try:
-            return reverse(item['viewname'])
-        except NoReverseMatch:
+            url = reverse(item['viewname'])
+            logger.debug(f"Generated URL for {item['viewname']}: {url}")
+            return url
+        except NoReverseMatch as e:
+            logger.error(f"Failed to reverse URL for {item['viewname']}: {str(e)}")
             return ''
             
     def priority(self, item):
         return item.get('priority', 0.5)
         
+    def changefreq(self, item):
+        return item.get('changefreq', 'weekly')
+        
     def lastmod(self, item):
         # Return the current time for all pages
         return timezone.now()
-
-    def lastmod(self, item):
-        # Return the last modified date of each page
-        # For now, return current date since we don't track modifications
-        return datetime.now()
+        
+    def get_urls(self, *args, **kwargs):
+        logger.debug("Generating sitemap URLs...")
+        try:
+            urls = super().get_urls(*args, **kwargs)
+            logger.debug(f"Successfully generated {len(urls)} sitemap URLs")
+            return urls
+        except Exception as e:
+            logger.exception("Error generating sitemap URLs")
+            raise
