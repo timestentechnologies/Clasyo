@@ -1,15 +1,19 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import Count, Sum, Q
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.views.generic import ListView, CreateView, UpdateView, DetailView, DeleteView, View, TemplateView
 from django.urls import reverse_lazy
-from django.core.mail import send_mail
+from django.db.models import Count, Q, Sum
+from django.utils import timezone
+from django.http import JsonResponse
 from django.conf import settings
 from django.utils.crypto import get_random_string
+from django import forms
+from .models import PaymentConfiguration, SchoolPaymentConfiguration, GlobalSMSConfiguration, GlobalEmailConfiguration, GlobalDatabaseConfiguration, SchoolSMSConfiguration, SchoolEmailConfiguration
+from .forms import PaymentConfigurationForm, SchoolPaymentConfigurationForm
 from tenants.models import School
-from subscriptions.models import Subscription, Payment, SubscriptionPlan
 from accounts.models import User
+from subscriptions.models import SubscriptionPlan, Subscription, Payment
 
 
 class SuperAdminRequiredMixin(UserPassesTestMixin):
@@ -108,6 +112,18 @@ class SubscriptionListView(SuperAdminRequiredMixin, ListView):
     context_object_name = 'subscriptions'
     paginate_by = 20
     ordering = ['-created_at']
+    
+    def get_queryset(self):
+        queryset = super().get_queryset().select_related('school', 'plan')
+        status_filter = self.request.GET.get('status')
+        
+        if status_filter and status_filter != 'all':
+            if status_filter == 'trial':
+                queryset = queryset.filter(is_trial=True)
+            else:
+                queryset = queryset.filter(status=status_filter)
+        
+        return queryset
 
 
 class SchoolCreateView(SuperAdminRequiredMixin, CreateView):
@@ -443,7 +459,7 @@ class AdminUserUpdateView(SuperAdminRequiredMixin, UpdateView):
 
 
 # Content Management Views
-from frontend.models import PricingPlan, FAQ, PageContent, ContactMessage
+from frontend.models import FAQ, PageContent, ContactMessage
 from django.views import View
 from django import forms
 
@@ -451,7 +467,7 @@ from django import forms
 class PricingPlanForm(forms.ModelForm):
     """Form for pricing plans"""
     class Meta:
-        model = PricingPlan
+        model = SubscriptionPlan
         fields = '__all__'
         widgets = {
             'features': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Enter each feature on a new line'}),
@@ -488,13 +504,13 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
     template_name = 'superadmin/pricing_management.html'
     
     def get(self, request):
-        plans = PricingPlan.objects.all().order_by('order', 'price')
+        plans = SubscriptionPlan.objects.all().order_by('display_order', 'price')
         form = PricingPlanForm()
         edit_id = request.GET.get('edit')
         edit_plan = None
         
         if edit_id:
-            edit_plan = get_object_or_404(PricingPlan, id=edit_id)
+            edit_plan = get_object_or_404(SubscriptionPlan, id=edit_id)
             form = PricingPlanForm(instance=edit_plan)
         
         return render(request, self.template_name, {
@@ -508,14 +524,14 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
         action = request.POST.get('action')
         
         if action == 'delete' and plan_id:
-            plan = get_object_or_404(PricingPlan, id=plan_id)
+            plan = get_object_or_404(SubscriptionPlan, id=plan_id)
             plan_name = plan.name
             plan.delete()
             messages.success(request, f'Pricing plan "{plan_name}" deleted successfully!')
             return redirect('superadmin:pricing_management')
         
         if plan_id:
-            plan = get_object_or_404(PricingPlan, id=plan_id)
+            plan = get_object_or_404(SubscriptionPlan, id=plan_id)
             form = PricingPlanForm(request.POST, instance=plan)
             success_msg = 'Pricing plan updated successfully!'
         else:
@@ -527,7 +543,7 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
             messages.success(request, success_msg)
             return redirect('superadmin:pricing_management')
         else:
-            plans = PricingPlan.objects.all().order_by('order', 'price')
+            plans = SubscriptionPlan.objects.all().order_by('display_order', 'price')
             return render(request, self.template_name, {
                 'pricing_plans': plans,
                 'form': form
@@ -802,3 +818,692 @@ class SuperAdminProfileView(SuperAdminRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['user'] = self.request.user
         return context
+
+
+# Payment Configuration Views
+
+class PaymentConfigurationListView(SuperAdminRequiredMixin, ListView):
+    """List all payment configurations"""
+    model = PaymentConfiguration
+    template_name = 'superadmin/payment_config_list.html'
+    context_object_name = 'configs'
+    paginate_by = 10
+    
+    def get_queryset(self):
+        return PaymentConfiguration.objects.all().order_by('gateway', 'environment')
+
+
+class PaymentConfigurationCreateView(SuperAdminRequiredMixin, CreateView):
+    """Create a new payment configuration"""
+    model = PaymentConfiguration
+    form_class = PaymentConfigurationForm
+    template_name = 'superadmin/payment_config_form.html'
+    success_url = reverse_lazy('superadmin:payment_config_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, f'{form.instance.get_gateway_display()} configuration created successfully.')
+        return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, 'Please correct the errors below.')
+        return super().form_invalid(form)
+
+
+class PaymentConfigurationUpdateView(SuperAdminRequiredMixin, UpdateView):
+    """Update a payment configuration"""
+    model = PaymentConfiguration
+    form_class = PaymentConfigurationForm
+    template_name = 'superadmin/payment_config_form.html'
+    success_url = reverse_lazy('superadmin:payment_config_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, f'{form.instance.get_gateway_display()} configuration updated successfully.')
+        return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, 'Please correct the errors below.')
+        return super().form_invalid(form)
+
+
+class PaymentConfigurationDetailView(SuperAdminRequiredMixin, DetailView):
+    """View payment configuration details"""
+    model = PaymentConfiguration
+    template_name = 'superadmin/payment_config_detail.html'
+    context_object_name = 'config'
+
+
+class PaymentConfigurationDeleteView(SuperAdminRequiredMixin, DeleteView):
+    """Delete a payment configuration"""
+    model = PaymentConfiguration
+    template_name = 'superadmin/payment_config_confirm_delete.html'
+    success_url = reverse_lazy('superadmin:payment_config_list')
+    
+    def delete(self, request, *args, **kwargs):
+        config = self.get_object()
+        messages.success(request, f'{config.get_gateway_display()} configuration deleted successfully.')
+        return super().delete(request, *args, **kwargs)
+
+
+# Payment Approval Views
+
+class PaymentApprovalListView(SuperAdminRequiredMixin, ListView):
+    """List payments pending approval"""
+    model = Payment
+    template_name = 'superadmin/payment_approval_list.html'
+    context_object_name = 'payments'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        return Payment.objects.filter(
+            status__in=['pending_verification', 'pending', 'verified']
+        ).select_related('subscription__school', 'verified_by', 'approved_by').order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['pending_count'] = Payment.objects.filter(
+            status__in=['pending_verification', 'pending']
+        ).count()
+        context['verified_count'] = Payment.objects.filter(status='verified').count()
+        return context
+
+
+class PaymentDetailView(SuperAdminRequiredMixin, DetailView):
+    """View payment details for approval"""
+    model = Payment
+    template_name = 'superadmin/payment_detail.html'
+    context_object_name = 'payment'
+    
+    def get_queryset(self):
+        return Payment.objects.select_related(
+            'subscription__school', 'subscription__plan', 
+            'verified_by', 'approved_by'
+        )
+
+
+class PaymentVerifyView(SuperAdminRequiredMixin, View):
+    """Verify a payment"""
+    
+    def post(self, request, payment_id):
+        payment = get_object_or_404(Payment, payment_id=payment_id)
+        
+        if payment.status not in ['pending_verification', 'pending']:
+            messages.error(request, 'This payment cannot be verified.')
+            return redirect('superadmin:payment_approval_list')
+        
+        payment.verify_payment(request.user)
+        messages.success(request, f'Payment {payment.payment_id} has been verified.')
+        return redirect('superadmin:payment_approval_list')
+
+
+class PaymentApproveView(SuperAdminRequiredMixin, View):
+    """Approve a payment"""
+    
+    def post(self, request, payment_id):
+        payment = get_object_or_404(Payment, payment_id=payment_id)
+        
+        if payment.status not in ['verified']:
+            messages.error(request, 'This payment must be verified before approval.')
+            return redirect('superadmin:payment_approval_list')
+        
+        payment.approve_payment(request.user)
+        messages.success(request, f'Payment {payment.payment_id} has been approved and subscription activated.')
+        return redirect('superadmin:payment_approval_list')
+
+
+class PaymentRejectView(SuperAdminRequiredMixin, View):
+    """Reject a payment"""
+    
+    def post(self, request, payment_id):
+        payment = get_object_or_404(Payment, payment_id=payment_id)
+        rejection_reason = request.POST.get('rejection_reason', '')
+        
+        if not rejection_reason.strip():
+            messages.error(request, 'Please provide a reason for rejection.')
+            return redirect('superadmin:payment_detail', pk=payment_id)
+        
+        payment.reject_payment(request.user, rejection_reason)
+        messages.success(request, f'Payment {payment.payment_id} has been rejected.')
+        return redirect('superadmin:payment_approval_list')
+
+
+class PaymentHistoryListView(SuperAdminRequiredMixin, ListView):
+    """List all payment history"""
+    model = Payment
+    template_name = 'superadmin/payment_history_list.html'
+    context_object_name = 'payments'
+    paginate_by = 25
+    
+    def get_queryset(self):
+        return Payment.objects.select_related(
+            'subscription__school', 'subscription__plan',
+            'verified_by', 'approved_by'
+        ).order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['status_choices'] = Payment.STATUS_CHOICES
+        context['payment_method_choices'] = Payment.PAYMENT_METHOD_CHOICES
+        return context
+
+
+# School Admin Payment Configuration Views
+class SchoolAdminRequiredMixin(UserPassesTestMixin):
+    """Mixin to require school admin access"""
+    def test_func(self):
+        return self.request.user.is_authenticated and self.request.user.role == 'admin'
+    
+    def handle_no_permission(self):
+        messages.error(self.request, 'You do not have permission to access this page.')
+        return redirect('frontend:home')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Get school from context or URL
+        if hasattr(self, 'school'):
+            context['school'] = self.school
+        else:
+            # Try to get school from URL kwargs
+            school_slug = self.kwargs.get('school_slug')
+            if school_slug:
+                context['school'] = get_object_or_404(School, slug=school_slug)
+        return context
+
+
+class SchoolPaymentConfigurationListView(SchoolAdminRequiredMixin, ListView):
+    """List payment configurations for a school"""
+    model = SchoolPaymentConfiguration
+    template_name = 'superadmin/school_payment_config_list.html'
+    context_object_name = 'configs'
+    paginate_by = 10
+    
+    def get_queryset(self):
+        school_slug = self.kwargs.get('school_slug')
+        self.school = get_object_or_404(School, slug=school_slug)
+        return SchoolPaymentConfiguration.objects.filter(school=self.school).order_by('gateway')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school'] = self.school
+        return context
+
+
+class SchoolPaymentConfigurationCreateView(SchoolAdminRequiredMixin, CreateView):
+    """Create a new payment configuration for a school"""
+    model = SchoolPaymentConfiguration
+    form_class = SchoolPaymentConfigurationForm
+    template_name = 'superadmin/school_payment_config_form.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        school_slug = self.kwargs.get('school_slug')
+        context['school'] = get_object_or_404(School, slug=school_slug)
+        return context
+    
+    def form_valid(self, form):
+        school_slug = self.kwargs.get('school_slug')
+        school = get_object_or_404(School, slug=school_slug)
+        form.instance.school = school
+        
+        # Check if configuration already exists for this gateway
+        if SchoolPaymentConfiguration.objects.filter(school=school, gateway=form.instance.gateway).exists():
+            messages.error(self.request, f'A configuration for {form.instance.get_gateway_display()} already exists.')
+            return self.form_invalid(form)
+        
+        messages.success(self.request, f'Payment configuration for {form.instance.get_gateway_display()} created successfully.')
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        school_slug = self.kwargs.get('school_slug')
+        return reverse_lazy('superadmin:school_payment_config_list', kwargs={'school_slug': school_slug})
+
+
+class SchoolPaymentConfigurationUpdateView(SchoolAdminRequiredMixin, UpdateView):
+    """Update a payment configuration for a school"""
+    model = SchoolPaymentConfiguration
+    form_class = SchoolPaymentConfigurationForm
+    template_name = 'superadmin/school_payment_config_form.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school'] = self.object.school
+        return context
+    
+    def get(self, request, *args, **kwargs):
+        # Handle toggle status request
+        if request.GET.get('toggle_status') == 'true':
+            obj = self.get_object()
+            obj.is_active = not obj.is_active
+            obj.save()
+            status_text = 'activated' if obj.is_active else 'deactivated'
+            messages.success(request, f'Payment configuration for {obj.get_gateway_display()} {status_text} successfully.')
+            return redirect('superadmin:school_payment_config_detail', school_slug=obj.school.slug, pk=obj.pk)
+        
+        return super().get(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        messages.success(self.request, f'Payment configuration for {form.instance.get_gateway_display()} updated successfully.')
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse_lazy('superadmin:school_payment_config_list', kwargs={'school_slug': self.object.school.slug})
+
+
+class SchoolPaymentConfigurationDetailView(SchoolAdminRequiredMixin, DetailView):
+    """View payment configuration details for a school"""
+    model = SchoolPaymentConfiguration
+    template_name = 'superadmin/school_payment_config_detail.html'
+    context_object_name = 'config'
+
+
+class SchoolPaymentConfigurationDeleteView(SchoolAdminRequiredMixin, DeleteView):
+    """Delete a payment configuration for a school"""
+    model = SchoolPaymentConfiguration
+    template_name = 'superadmin/school_payment_config_confirm_delete.html'
+    context_object_name = 'config'
+    
+    def delete(self, request, *args, **kwargs):
+        config = self.get_object()
+        messages.success(request, f'Payment configuration for {config.get_gateway_display()} deleted successfully.')
+        return super().delete(request, *args, **kwargs)
+    
+    def get_success_url(self):
+        return reverse_lazy('superadmin:school_payment_config_list', kwargs={'school_slug': self.object.school.slug})
+
+
+# ============== GLOBAL SETTINGS VIEWS ==============
+
+class GlobalSettingsView(SuperAdminRequiredMixin, TemplateView):
+    """Global settings dashboard"""
+    template_name = 'superadmin/global_settings.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        from .models import GlobalSMSConfiguration, GlobalEmailConfiguration, GlobalDatabaseConfiguration
+        
+        context['sms_configs'] = GlobalSMSConfiguration.objects.all()
+        context['email_configs'] = GlobalEmailConfiguration.objects.all()
+        context['db_configs'] = GlobalDatabaseConfiguration.objects.all()
+        
+        return context
+
+
+class GlobalSMSConfigurationListView(SuperAdminRequiredMixin, ListView):
+    """List all global SMS configurations"""
+    model = GlobalSMSConfiguration
+    template_name = 'superadmin/sms_config_list.html'
+    context_object_name = 'configs'
+    
+    def get_queryset(self):
+        return GlobalSMSConfiguration.objects.all().order_by('provider')
+
+
+class GlobalSMSConfigurationCreateView(SuperAdminRequiredMixin, CreateView):
+    """Create a new global SMS configuration"""
+    model = GlobalSMSConfiguration
+    template_name = 'superadmin/sms_config_form.html'
+    fields = '__all__'
+    success_url = reverse_lazy('superadmin:sms_config_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'SMS configuration created successfully.')
+        return super().form_valid(form)
+
+
+class GlobalSMSConfigurationUpdateView(SuperAdminRequiredMixin, UpdateView):
+    """Update a global SMS configuration"""
+    model = GlobalSMSConfiguration
+    template_name = 'superadmin/sms_config_form.html'
+    fields = '__all__'
+    success_url = reverse_lazy('superadmin:sms_config_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'SMS configuration updated successfully.')
+        return super().form_valid(form)
+
+
+class GlobalSMSConfigurationDeleteView(SuperAdminRequiredMixin, DeleteView):
+    """Delete a global SMS configuration"""
+    model = GlobalSMSConfiguration
+    template_name = 'superadmin/sms_config_confirm_delete.html'
+    context_object_name = 'config'
+    success_url = reverse_lazy('superadmin:sms_config_list')
+    
+    def delete(self, request, *args, **kwargs):
+        config = self.get_object()
+        messages.success(request, f'SMS configuration for {config.get_provider_display()} deleted successfully.')
+        return super().delete(request, *args, **kwargs)
+
+
+class GlobalEmailConfigurationListView(SuperAdminRequiredMixin, ListView):
+    """List all global email configurations"""
+    model = GlobalEmailConfiguration
+    template_name = 'superadmin/email_config_list.html'
+    context_object_name = 'configs'
+    
+    def get_queryset(self):
+        return GlobalEmailConfiguration.objects.all().order_by('provider')
+
+
+class GlobalEmailConfigurationCreateView(SuperAdminRequiredMixin, CreateView):
+    """Create a new global email configuration"""
+    model = GlobalEmailConfiguration
+    template_name = 'superadmin/email_config_form.html'
+    fields = '__all__'
+    success_url = reverse_lazy('superadmin:email_config_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Email configuration created successfully.')
+        return super().form_valid(form)
+
+
+class GlobalEmailConfigurationUpdateView(SuperAdminRequiredMixin, UpdateView):
+    """Update a global email configuration"""
+    model = GlobalEmailConfiguration
+    template_name = 'superadmin/email_config_form.html'
+    fields = '__all__'
+    success_url = reverse_lazy('superadmin:email_config_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Email configuration updated successfully.')
+        return super().form_valid(form)
+
+
+class GlobalEmailConfigurationDeleteView(SuperAdminRequiredMixin, DeleteView):
+    """Delete a global email configuration"""
+    model = GlobalEmailConfiguration
+    template_name = 'superadmin/email_config_confirm_delete.html'
+    context_object_name = 'config'
+    success_url = reverse_lazy('superadmin:email_config_list')
+    
+    def delete(self, request, *args, **kwargs):
+        config = self.get_object()
+        messages.success(request, f'Email configuration for {config.get_provider_display()} deleted successfully.')
+        return super().delete(request, *args, **kwargs)
+
+
+class GlobalDatabaseConfigurationListView(SuperAdminRequiredMixin, ListView):
+    """List all global database configurations"""
+    model = GlobalDatabaseConfiguration
+    template_name = 'superadmin/db_config_list.html'
+    context_object_name = 'configs'
+    
+    def get_queryset(self):
+        return GlobalDatabaseConfiguration.objects.all().order_by('name')
+
+
+class GlobalDatabaseConfigurationCreateView(SuperAdminRequiredMixin, CreateView):
+    """Create a new global database configuration"""
+    model = GlobalDatabaseConfiguration
+    template_name = 'superadmin/db_config_form.html'
+    fields = '__all__'
+    success_url = reverse_lazy('superadmin:db_config_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Database configuration created successfully.')
+        return super().form_valid(form)
+
+
+class GlobalDatabaseConfigurationUpdateView(SuperAdminRequiredMixin, UpdateView):
+    """Update a global database configuration"""
+    model = GlobalDatabaseConfiguration
+    template_name = 'superadmin/db_config_form.html'
+    fields = '__all__'
+    success_url = reverse_lazy('superadmin:db_config_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Database configuration updated successfully.')
+        return super().form_valid(form)
+
+
+class GlobalDatabaseConfigurationDeleteView(SuperAdminRequiredMixin, DeleteView):
+    """Delete a global database configuration"""
+    model = GlobalDatabaseConfiguration
+    template_name = 'superadmin/db_config_confirm_delete.html'
+    context_object_name = 'config'
+    success_url = reverse_lazy('superadmin:db_config_list')
+    
+    def delete(self, request, *args, **kwargs):
+        config = self.get_object()
+        messages.success(request, f'Database configuration "{config.name}" deleted successfully.')
+        return super().delete(request, *args, **kwargs)
+
+
+# ============== SCHOOL SETTINGS VIEWS ==============
+
+class SchoolSettingsView(LoginRequiredMixin, TemplateView):
+    """School settings dashboard"""
+    template_name = 'superadmin/school_settings.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Get current school
+        from tenants.models import School
+        school = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+        
+        # Check if user has access to this school
+        if not (self.request.user.role == 'superadmin' or 
+                (self.request.user.role == 'admin' and school.is_active)):
+            messages.error(self.request, 'You do not have permission to access this school\'s settings.')
+            return redirect('frontend:home')
+        
+        from .models import SchoolSMSConfiguration, SchoolEmailConfiguration
+        
+        context['school'] = school
+        context['sms_configs'] = SchoolSMSConfiguration.objects.filter(school=school)
+        context['email_configs'] = SchoolEmailConfiguration.objects.filter(school=school)
+        
+        return context
+
+
+class SchoolSMSConfigurationListView(LoginRequiredMixin, ListView):
+    """List SMS configurations for a school"""
+    model = SchoolSMSConfiguration
+    template_name = 'superadmin/school_sms_config_list.html'
+    context_object_name = 'configs'
+    
+    def get_queryset(self):
+        school = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+        
+        # Check permissions
+        if not (self.request.user.role == 'superadmin' or 
+                (self.request.user.role == 'admin' and school.is_active)):
+            messages.error(self.request, 'You do not have permission to access this school\'s settings.')
+            return redirect('frontend:home')
+        
+        return SchoolSMSConfiguration.objects.filter(school=school).order_by('provider')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school'] = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+        return context
+
+
+class SchoolSMSConfigurationCreateView(LoginRequiredMixin, CreateView):
+    """Create a new SMS configuration for a school"""
+    model = SchoolSMSConfiguration
+    template_name = 'superadmin/school_sms_config_form.html'
+    fields = '__all__'
+    
+    def get_success_url(self):
+        return reverse_lazy('superadmin:school_sms_config_list', kwargs={'school_slug': self.object.school.slug})
+    
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        
+        # Filter school based on user role
+        if self.request.user.role == 'admin':
+            form.fields['school'].queryset = School.objects.filter(is_active=True)
+            form.fields['school'].initial = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+            form.fields['school'].widget = forms.HiddenInput()
+        elif self.request.user.role == 'superadmin':
+            form.fields['school'].queryset = School.objects.all()
+        
+        return form
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'SMS configuration created successfully.')
+        return super().form_valid(form)
+
+
+class SchoolSMSConfigurationUpdateView(LoginRequiredMixin, UpdateView):
+    """Update a SMS configuration for a school"""
+    model = SchoolSMSConfiguration
+    template_name = 'superadmin/school_sms_config_form.html'
+    fields = '__all__'
+    
+    def get_success_url(self):
+        return reverse_lazy('superadmin:school_sms_config_list', kwargs={'school_slug': self.object.school.slug})
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school'] = self.object.school
+        return context
+    
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        
+        # Check permissions
+        if not (self.request.user.role == 'superadmin' or 
+                (self.request.user.role == 'admin' and obj.school.is_active)):
+            messages.error(self.request, 'You do not have permission to access this school\'s settings.')
+            return redirect('frontend:home')
+        
+        return obj
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'SMS configuration updated successfully.')
+        return super().form_valid(form)
+
+
+class SchoolSMSConfigurationDeleteView(LoginRequiredMixin, DeleteView):
+    """Delete a SMS configuration for a school"""
+    model = SchoolSMSConfiguration
+    template_name = 'superadmin/school_sms_config_confirm_delete.html'
+    context_object_name = 'config'
+    
+    def get_success_url(self):
+        return reverse_lazy('superadmin:school_sms_config_list', kwargs={'school_slug': self.object.school.slug})
+    
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        
+        # Check permissions
+        if not (self.request.user.role == 'superadmin' or 
+                (self.request.user.role == 'admin' and obj.school.is_active)):
+            messages.error(self.request, 'You do not have permission to access this school\'s settings.')
+            return redirect('frontend:home')
+        
+        return obj
+    
+    def delete(self, request, *args, **kwargs):
+        config = self.get_object()
+        messages.success(request, f'SMS configuration for {config.get_provider_display()} deleted successfully.')
+        return super().delete(request, *args, **kwargs)
+
+
+class SchoolEmailConfigurationListView(LoginRequiredMixin, ListView):
+    """List email configurations for a school"""
+    model = SchoolEmailConfiguration
+    template_name = 'superadmin/school_email_config_list.html'
+    context_object_name = 'configs'
+    
+    def get_queryset(self):
+        school = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+        
+        # Check permissions
+        if not (self.request.user.role == 'superadmin' or 
+                (self.request.user.role == 'admin' and school.is_active)):
+            messages.error(self.request, 'You do not have permission to access this school\'s settings.')
+            return redirect('frontend:home')
+        
+        return SchoolEmailConfiguration.objects.filter(school=school).order_by('provider')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school'] = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+        return context
+
+
+class SchoolEmailConfigurationCreateView(LoginRequiredMixin, CreateView):
+    """Create a new email configuration for a school"""
+    model = SchoolEmailConfiguration
+    template_name = 'superadmin/school_email_config_form.html'
+    fields = '__all__'
+    
+    def get_success_url(self):
+        return reverse_lazy('superadmin:school_email_config_list', kwargs={'school_slug': self.object.school.slug})
+    
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        
+        # Filter school based on user role
+        if self.request.user.role == 'admin':
+            form.fields['school'].queryset = School.objects.filter(is_active=True)
+            form.fields['school'].initial = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+            form.fields['school'].widget = forms.HiddenInput()
+        elif self.request.user.role == 'superadmin':
+            form.fields['school'].queryset = School.objects.all()
+        
+        return form
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Email configuration created successfully.')
+        return super().form_valid(form)
+
+
+class SchoolEmailConfigurationUpdateView(LoginRequiredMixin, UpdateView):
+    """Update an email configuration for a school"""
+    model = SchoolEmailConfiguration
+    template_name = 'superadmin/school_email_config_form.html'
+    fields = '__all__'
+    
+    def get_success_url(self):
+        return reverse_lazy('superadmin:school_email_config_list', kwargs={'school_slug': self.object.school.slug})
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school'] = self.object.school
+        return context
+    
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        
+        # Check permissions
+        if not (self.request.user.role == 'superadmin' or 
+                (self.request.user.role == 'admin' and obj.school.is_active)):
+            messages.error(self.request, 'You do not have permission to access this school\'s settings.')
+            return redirect('frontend:home')
+        
+        return obj
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Email configuration updated successfully.')
+        return super().form_valid(form)
+
+
+class SchoolEmailConfigurationDeleteView(LoginRequiredMixin, DeleteView):
+    """Delete an email configuration for a school"""
+    model = SchoolEmailConfiguration
+    template_name = 'superadmin/school_email_config_confirm_delete.html'
+    context_object_name = 'config'
+    
+    def get_success_url(self):
+        return reverse_lazy('superadmin:school_email_config_list', kwargs={'school_slug': self.object.school.slug})
+    
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        
+        # Check permissions
+        if not (self.request.user.role == 'superadmin' or 
+                (self.request.user.role == 'admin' and obj.school.is_active)):
+            messages.error(self.request, 'You do not have permission to access this school\'s settings.')
+            return redirect('frontend:home')
+        
+        return obj
+    
+    def delete(self, request, *args, **kwargs):
+        config = self.get_object()
+        messages.success(request, f'Email configuration for {config.get_provider_display()} deleted successfully.')
+        return super().delete(request, *args, **kwargs)

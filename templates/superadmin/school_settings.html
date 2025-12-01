@@ -1,0 +1,281 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}School Settings - {{ school.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">{{ school.name }} Settings</h1>
+                    <p class="text-muted mb-0">Configure SMS and email settings for {{ school.name }}</p>
+                </div>
+                <div>
+                    <a href="{% if request.user.role == 'superadmin' %}{% url 'superadmin:global_settings' %}{% else %}{% url 'core:apps_home' school_slug=school.slug %}{% endif %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- School Info Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        {% if school.logo %}
+                            <img src="{{ school.logo.url }}" alt="{{ school.name }}" class="rounded me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                        {% else %}
+                            <div class="rounded me-3 d-flex align-items-center justify-content-center bg-primary text-white" style="width: 60px; height: 60px;">
+                                <i class="fas fa-school fa-2x"></i>
+                            </div>
+                        {% endif %}
+                        <div>
+                            <h5 class="mb-1">{{ school.name }}</h5>
+                            <p class="text-muted mb-0">{{ school.email }} | {{ school.phone }}</p>
+                            <small class="text-muted">{{ school.address }}, {{ school.city }}</small>
+                        </div>
+                        <div class="ms-auto">
+                            {% if school.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                            {% if school.is_trial %}
+                                <span class="badge bg-warning">Trial</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">SMS Configurations</h5>
+                            <p class="card-text mb-0">{{ sms_configs|length }} configurations</p>
+                        </div>
+                        <div class="fs-2">
+                            <i class="fas fa-sms"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="{% url 'superadmin:school_sms_config_list' school_slug=school.slug %}" class="btn btn-light btn-sm">
+                        Manage SMS <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Email Configurations</h5>
+                            <p class="card-text mb-0">{{ email_configs|length }} configurations</p>
+                        </div>
+                        <div class="fs-2">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="{% url 'superadmin:school_email_config_list' school_slug=school.slug %}" class="btn btn-light btn-sm">
+                        Manage Email <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Configurations -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Active SMS Configurations</h5>
+                </div>
+                <div class="card-body">
+                    {% if sms_configs %}
+                        {% for config in sms_configs %}
+                            {% if config.is_active %}
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <strong>{{ config.get_provider_display }}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            {% if config.custom_sender_id %}
+                                                Sender: {{ config.custom_sender_id }}
+                                            {% elif config.default_sender_id %}
+                                                Sender: {{ config.default_sender_id }}
+                                            {% else %}
+                                                No custom sender ID
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        {% if config.use_global_settings %}
+                                            <span class="badge bg-info me-2">Global</span>
+                                        {% endif %}
+                                        <span class="badge bg-success">Active</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                        {% if not sms_configs %}
+                            <p class="text-muted mb-0">No SMS configurations found.</p>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted mb-0">No SMS configurations found.</p>
+                    {% endif %}
+                </div>
+                {% if sms_configs %}
+                    <div class="card-footer">
+                        <a href="{% url 'superadmin:school_sms_config_create' school_slug=school.slug %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-2"></i>Add SMS Configuration
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Active Email Configurations</h5>
+                </div>
+                <div class="card-body">
+                    {% if email_configs %}
+                        {% for config in email_configs %}
+                            {% if config.is_active %}
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <strong>{{ config.get_provider_display }}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            {% if config.custom_from_email %}
+                                                From: {{ config.custom_from_email }}
+                                            {% elif config.default_from_email %}
+                                                From: {{ config.default_from_email }}
+                                            {% else %}
+                                                No custom from email
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        {% if config.use_global_settings %}
+                                            <span class="badge bg-info me-2">Global</span>
+                                        {% endif %}
+                                        <span class="badge bg-success">Active</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                        {% if not email_configs %}
+                            <p class="text-muted mb-0">No email configurations found.</p>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted mb-0">No email configurations found.</p>
+                    {% endif %}
+                </div>
+                {% if email_configs %}
+                    <div class="card-footer">
+                        <a href="{% url 'superadmin:school_email_config_create' school_slug=school.slug %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-2"></i>Add Email Configuration
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Usage Statistics -->
+    {% if sms_configs or email_configs %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Usage Limits</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6 class="text-muted">Daily SMS Limit</h6>
+                                <h4>
+                                    {% for config in sms_configs %}
+                                        {% if config.daily_sms_limit %}
+                                            {{ config.daily_sms_limit }}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if not sms_configs %}
+                                        <span class="text-muted">Not Set</span>
+                                    {% endif %}
+                                </h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6 class="text-muted">Monthly SMS Limit</h6>
+                                <h4>
+                                    {% for config in sms_configs %}
+                                        {% if config.monthly_sms_limit %}
+                                            {{ config.monthly_sms_limit }}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if not sms_configs %}
+                                        <span class="text-muted">Not Set</span>
+                                    {% endif %}
+                                </h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6 class="text-muted">Daily Email Limit</h6>
+                                <h4>
+                                    {% for config in email_configs %}
+                                        {% if config.daily_email_limit %}
+                                            {{ config.daily_email_limit }}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if not email_configs %}
+                                        <span class="text-muted">Not Set</span>
+                                    {% endif %}
+                                </h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6 class="text-muted">Monthly Email Limit</h6>
+                                <h4>
+                                    {% for config in email_configs %}
+                                        {% if config.monthly_email_limit %}
+                                            {{ config.monthly_email_limit }}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if not email_configs %}
+                                        <span class="text-muted">Not Set</span>
+                                    {% endif %}
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block title %}Subscription Plans{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="text-center mb-4">Choose Your Subscription Plan</h2>
+        </div>
+    </div>
+    
+    <div class="row">
+        {% for plan in plans %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0">{{ plan.name }}</h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <h3>KES {{ plan.price }}</h3>
+                        <p class="text-muted">{{ plan.get_billing_cycle_display }}</p>
+                    </div>
+                    
+                    <p>{{ plan.description }}</p>
+                    
+                    {% if plan.features %}
+                    <ul class="list-unstyled">
+                        {% for feature in plan.features %}
+                        <li><i class="fas fa-check text-success"></i> {{ feature }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    
+                    {% if plan.trial_days > 0 %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-gift"></i> {{ plan.trial_days }} days free trial
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-primary w-100 subscribe-btn" 
+                            data-plan-slug="{{ plan.slug }}"
+                            data-plan-name="{{ plan.name }}"
+                            data-plan-price="{{ plan.price }}">
+                        Subscribe Now
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Complete Subscription</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6>Selected Plan</h6>
+                        <p id="modal-plan-name"></p>
+                        <p id="modal-plan-price"></p>
+                    </div>
+                </div>
+                
+                <h6>Choose Payment Method</h6>
+                <div class="row" id="payment-methods">
+                    <!-- Payment methods will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirm-payment">Proceed with Payment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    let selectedPlan = null;
+    let selectedPaymentMethod = null;
+    
+    // Handle subscribe button clicks
+    document.querySelectorAll('.subscribe-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            selectedPlan = {
+                slug: this.dataset.planSlug,
+                name: this.dataset.planName,
+                price: this.dataset.planPrice
+            };
+            
+            // Load payment modal
+            loadPaymentModal();
+        });
+    });
+    
+    function loadPaymentModal() {
+        // Set plan details
+        document.getElementById('modal-plan-name').textContent = selectedPlan.name;
+        document.getElementById('modal-plan-price').textContent = 'KES ' + selectedPlan.price;
+        
+        // Fetch payment methods from API
+        fetch(`/subscriptions/subscribe/${selectedPlan.slug}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayPaymentMethods(data.payment_methods);
+                    paymentModal.show();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+    
+    function displayPaymentMethods(methods) {
+        const container = document.getElementById('payment-methods');
+        container.innerHTML = '';
+        
+        methods.forEach(method => {
+            const methodDiv = document.createElement('div');
+            methodDiv.className = 'col-md-6 mb-3';
+            methodDiv.innerHTML = `
+                <div class="card payment-method-card" data-method="${method.id}">
+                    <div class="card-body text-center">
+                        <div class="mb-2">${method.icon}</div>
+                        <h6>${method.name}</h6>
+                    </div>
+                </div>
+            `;
+            container.appendChild(methodDiv);
+        });
+        
+        // Add click handlers
+        document.querySelectorAll('.payment-method-card').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.payment-method-card').forEach(c => {
+                    c.classList.remove('border-primary', 'bg-light');
+                });
+                this.classList.add('border-primary', 'bg-light');
+                selectedPaymentMethod = this.dataset.method;
+            });
+        });
+    }
+    
+    // Handle payment confirmation
+    document.getElementById('confirm-payment').addEventListener('click', function() {
+        if (!selectedPaymentMethod) {
+            alert('Please select a payment method');
+            return;
+        }
+        
+        // Create subscription and payment
+        const formData = new FormData();
+        formData.append('payment_method', selectedPaymentMethod);
+        
+        fetch(`/subscriptions/subscribe/${selectedPlan.slug}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    });
+});
+</script>
+{% endblock %}

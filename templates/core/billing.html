@@ -1,0 +1,1228 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Billing & Subscription{% endblock %}
+{% block page_title %}Billing & Subscription{% endblock %}
+{% block page_icon %}credit-card{% endblock %}
+{% block page_subtitle %}Manage your subscription and billing information{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Current Subscription Section -->
+    {% if plan %}
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="modern-card">
+                <div class="card-header-modern">
+                    <h4 class="mb-0">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Current Subscription
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="subscription-info">
+                                <label class="text-muted small">Plan Name</label>
+                                <h5 class="mb-3">{{ plan.name }}</h5>
+                                
+                                <label class="text-muted small">Plan Type</label>
+                                <p class="mb-3">
+                                    <span class="badge bg-primary">{{ plan.get_plan_type_display }}</span>
+                                </p>
+                                
+                                <label class="text-muted small">Billing Cycle</label>
+                                <p class="mb-3">{{ plan.get_billing_cycle_display }}</p>
+                                
+                                <label class="text-muted small">Status</label>
+                                <p>
+                                    {% if subscription %}
+                                        {% if subscription.status == 'active' %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% elif subscription.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif subscription.status == 'expired' %}
+                                            <span class="badge bg-danger">Expired</span>
+                                        {% elif subscription.status == 'cancelled' %}
+                                            <span class="badge bg-secondary">Cancelled</span>
+                                        {% elif subscription.status == 'suspended' %}
+                                            <span class="badge bg-secondary">Suspended</span>
+                                        {% else %}
+                                            <span class="badge bg-info">{{ subscription.get_status_display }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                        {% if is_trial and not subscription_expired %}
+                                            <span class="badge bg-info">Trial Active</span>
+                                        {% elif is_trial and subscription_expired %}
+                                            <span class="badge bg-danger">Trial Expired</span>
+                                        {% elif subscription_end and not subscription_expired %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% elif subscription_end and subscription_expired %}
+                                            <span class="badge bg-danger">Expired</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Not Subscribed</span>
+                                        {% endif %}
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="subscription-info">
+                                <label class="text-muted small">Start Date</label>
+                                <p class="mb-3">
+                                    {% if subscription_start %}
+                                        {{ subscription_start|date:"M d, Y" }}
+                                    {% elif subscription %}
+                                        {{ subscription.start_date|date:"M d, Y" }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </p>
+                                
+                                <label class="text-muted small">End Date</label>
+                                <p class="mb-3">
+                                    {% if subscription_end %}
+                                        {{ subscription_end|date:"M d, Y" }}
+                                    {% elif subscription %}
+                                        {{ subscription.end_date|date:"M d, Y" }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </p>
+                                
+                                {% if is_trial %}
+                                <label class="text-muted small">Trial Status</label>
+                                <p class="mb-3">
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-flask me-1"></i>
+                                        Trial Period
+                                    </span>
+                                </p>
+                                {% endif %}
+                                
+                                <label class="text-muted small">Days Remaining</label>
+                                <p>
+                                    {% if days_remaining > 0 %}
+                                        <span class="badge bg-success">{{ days_remaining }} days</span>
+                                    {% elif days_remaining == 0 %}
+                                        <span class="badge bg-warning">Expires today</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Expired</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+
+                    <!-- Action Buttons -->
+                    <div class="mt-4 pt-4 border-top">
+                        <div class="d-flex gap-2">
+                            {% if subscription and subscription.status == 'active' and not is_trial %}
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#renewModal">
+                                <i class="fas fa-sync-alt me-2"></i>
+                                Renew Subscription
+                            </button>
+                            {% endif %}
+                            {% if subscription and subscription.status == 'active' %}
+                            <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                                <i class="fas fa-times me-2"></i>
+                                Cancel Subscription
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trial Warning Card -->
+        {% if is_trial and not subscription_expired %}
+        <div class="col-lg-4">
+            <div class="modern-card {% if days_remaining <= 7 %}border-warning{% else %}border-info{% endif %}">
+                <div class="card-body text-center">
+                    {% if days_remaining <= 7 %}
+                    <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
+                    <h5>Trial Ending Soon</h5>
+                    {% else %}
+                    <i class="fas fa-flask text-info fa-3x mb-3"></i>
+                    <h5>Trial Period Active</h5>
+                    {% endif %}
+                    <p class="text-muted mb-3">
+                        Your trial period ends in <strong>{{ days_remaining }} days</strong>
+                    </p>
+                    <p class="small text-muted mb-3">
+                        Upgrade to a paid plan to continue using all features without interruption.
+                    </p>
+                    <a href="#upgrade-plans" class="btn {% if days_remaining <= 7 %}btn-warning{% else %}btn-info{% endif %} btn-sm">
+                        <i class="fas fa-arrow-down me-1"></i>
+                        View Plans
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <!-- No Subscription Card -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="modern-card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5>No Active Subscription</h5>
+                    <p class="text-muted mb-4">
+                        You don't have an active subscription yet. Choose a plan below to get started.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+<!-- Billing & Trial History Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="modern-card">
+                <div class="card-header-modern">
+                    <h4 class="mb-0">
+                        <i class="fas fa-history text-info me-2"></i>
+                        Billing & Trial History
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if billing_history %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Date</th>
+                                    <th>Details</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in billing_history %}
+                                <tr>
+                                    <!-- Type Column -->
+                                    <td>
+                                        {% if item.type == 'trial' %}
+                                            <span class="badge bg-info">
+                                                <i class="fas fa-clock me-1"></i> Trial
+                                            </span>
+                                        {% elif item.type == 'free_plan' %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-star me-1"></i> Free Plan
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-primary">
+                                                <i class="fas fa-credit-card me-1"></i> Payment
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- Date Column -->
+                                    <td>
+                                        {% if item.type == 'trial' %}
+                                            {{ item.date|date:"M d, Y" }}
+                                        {% else %}
+                                            {{ item.invoice_date|date:"M d, Y" }}
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- Details Column -->
+                                    <td>
+                                        {% if item.type == 'trial' %}
+                                            {{ item.subscription.plan.name }} Trial
+                                            <div class="text-muted small">
+                                                {{ item.date|date:"M d, Y" }} - {{ item.end_date|date:"M d, Y" }}
+                                            </div>
+                                        {% elif item.type == 'free_plan' %}
+                                            {{ item.subscription.plan.name|default:"Free Plan" }}
+                                            <div class="text-muted small">
+                                                {% if item.end_date %}
+                                                    {{ item.date|date:"M d, Y" }} - {{ item.end_date|date:"M d, Y" }}
+                                                {% else %}
+                                                    Started on {{ item.date|date:"M d, Y" }}
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            {{ item.invoice_number|default:"-" }}
+                                            <div class="text-muted small">
+                                                {{ item.get_payment_method_display }}
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- Amount Column -->
+                                    <td>
+                                        {% if item.type == 'trial' %}
+                                            <span class="text-success">Free</span>
+                                        {% else %}
+                                            Ksh {{ item.amount|floatformat:2|intcomma }}
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- Status Column -->
+                                    <td>
+                                        {% if item.type == 'trial' %}
+                                            {% if item.status == 'Active' %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check-circle me-1"></i> Active
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="fas fa-check-circle me-1"></i> Completed
+                                                </span>
+                                            {% endif %}
+                                        {% elif item.type == 'free_plan' %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle me-1"></i> Active
+                                            </span>
+                                        {% else %}
+                                            {% if item.status == 'completed' %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check-circle me-1"></i> Completed
+                                                </span>
+                                            {% elif item.status == 'pending' %}
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-clock me-1"></i> Pending
+                                                </span>
+                                            {% elif item.status == 'failed' %}
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-times-circle me-1"></i> Failed
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-info">
+                                                    {{ item.get_status_display }}
+                                                </span>
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No billing or trial history available.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invoices Section -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="modern-card">
+            <div class="card-header-modern d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-file-invoice text-info me-2"></i>
+                    Invoices
+                </h4>
+                {% if current_invoice %}
+                <a href="{% url 'core:invoice_download' school_slug=school_slug invoice_id=current_invoice.id %}" 
+                   class="btn btn-sm btn-primary">
+                    <i class="fas fa-download me-1"></i> Download Current Invoice
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if invoices %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Due Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in invoices %}
+                            <tr>
+                                <td><strong>{{ invoice.invoice_number }}</strong></td>
+                                <td>{{ invoice.invoice_date|date:"M d, Y" }}</td>
+                                <td>
+                                    <span class="badge {% if invoice.invoice_type == 'trial_end' %}bg-warning{% else %}bg-info{% endif %}">
+                                        {% if invoice.invoice_type == 'trial_end' %}
+                                            <i class="fas fa-clock me-1"></i> Free Trial
+                                        {% else %}
+                                            {{ invoice.get_invoice_type_display }}
+                                        {% endif %}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if invoice.invoice_type == 'trial_end' %}
+                                        <span class="text-success">Free</span>
+                                    {% else %}
+                                        Ksh {{ invoice.total_amount|floatformat:2|intcomma }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if invoice.status == 'paid' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i> Paid
+                                        </span>
+                                    {% elif invoice.status == 'sent' %}
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-clock me-1"></i> Sent
+                                        </span>
+                                    {% elif invoice.status == 'overdue' %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-exclamation-triangle me-1"></i> Overdue
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">
+                                            {{ invoice.get_status_display|title }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ invoice.due_date|date:"M d, Y" }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-outline-info" 
+                                                data-invoice-id="{{ invoice.id }}"
+                                                title="Preview Invoice"
+                                                onclick="previewInvoice(this.dataset.invoiceId)">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <a href="{% url 'core:invoice_download' school_slug=school_slug invoice_id=invoice.id %}" 
+                                           class="btn btn-sm btn-outline-primary" title="Download PDF">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                        {% if invoice.status != 'paid' %}
+                                        <button class="btn btn-sm btn-outline-success" 
+                                                title="Pay Invoice"
+                                                disabled>
+                                            <i class="fas fa-credit-card"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No invoices available yet.</p>
+                    {% if not current_invoice %}
+                    <p class="text-muted small">Invoices will be generated when you subscribe to a plan.</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Preview Modal -->
+<div class="modal fade" id="invoicePreviewModal" tabindex="-1" aria-labelledby="invoicePreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #003366; color: white;">
+                <h5 style="color: white;" class="modal-title" id="invoicePreviewModalLabel">
+                    <i class="fas fa-file-invoice me-2"></i>Invoice Preview
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="invoicePreviewContent">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading invoice preview...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="downloadInvoiceBtn">
+                    <i class="fas fa-download me-1"></i>Download PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Upgrade Plans Section -->
+    <div class="row" id="upgrade-plans">
+        <div class="col-12">
+            <div class="modern-card">
+                <div class="card-header-modern">
+                    <h4 class="mb-0">
+                        <i class="fas fa-arrow-up text-info me-2"></i>
+                        Available Plans
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if pricing_plans %}
+                    <div class="row">
+                        {% for pricing_plan in pricing_plans %}
+                        <div class="col-lg-3 col-md-6 mb-4">
+                            <div class="plan-card h-100 {% if pricing_plan.is_popular %}popular{% endif %} {% if pricing_plan.is_current %}current-plan{% endif %}">
+                                {% if pricing_plan.is_popular %}
+                                <div class="popular-badge">
+                                    <span class="badge bg-danger">Popular</span>
+                                </div>
+                                {% endif %}
+
+                                <div class="plan-header">
+                                    <h5 class="plan-name">
+                                        {{ pricing_plan.name }}
+                                        {% if pricing_plan.is_current %}
+                                            <span class="badge bg-primary ms-2">Current Plan</span>
+                                        {% endif %}
+                                    </h5>
+                                    <p class="plan-type text-muted small">{{ pricing_plan.duration }}</p>
+                                </div>
+
+                                <div class="plan-price">
+                                    <span class="price-amount">Ksh {{ pricing_plan.price|intcomma }}</span>
+                                    <span class="price-period">/ {{ pricing_plan.duration|lower }}</span>
+                                </div>
+
+                                <div class="plan-features">
+                                    <ul class="list-unstyled">
+                                        {% if pricing_plan.max_students %}
+                                        <li class="mb-2">
+                                            <i class="fas fa-check text-success me-2"></i>
+                                            <small>
+                                                {% if pricing_plan.max_students > 10000 %}
+                                                    Unlimited students
+                                                {% else %}
+                                                    Up to {{ pricing_plan.max_students }} students
+                                                {% endif %}
+                                            </small>
+                                        </li>
+                                        {% endif %}
+                                        {% if pricing_plan.max_teachers %}
+                                        <li class="mb-2">
+                                            <i class="fas fa-check text-success me-2"></i>
+                                            <small>
+                                                {% if pricing_plan.max_teachers > 10000 %}
+                                                    Unlimited teachers
+                                                {% else %}
+                                                    {{ pricing_plan.max_teachers }} teachers
+                                                {% endif %}
+                                            </small>
+                                        </li>
+                                        {% endif %}
+                                        {% if pricing_plan.max_staff %}
+                                        <li class="mb-2">
+                                            <i class="fas fa-check text-success me-2"></i>
+                                            <small>
+                                                {% if pricing_plan.max_staff > 10000 %}
+                                                    Unlimited staff
+                                                {% else %}
+                                                    {{ pricing_plan.max_staff }} staff
+                                                {% endif %}
+                                            </small>
+                                        </li>
+                                        {% endif %}
+                                        {% for feature in pricing_plan.get_features_list %}
+                                        <li class="mb-2">
+                                            <i class="fas fa-check text-success me-2"></i>
+                                            <small>{{ feature }}</small>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+
+                                <div class="plan-action">
+                                    {% if pricing_plan.is_current %}
+                                        <button class="btn btn-outline-secondary w-100" disabled>
+                                            Current Plan
+                                        </button>
+                                    {% else %}
+                                        <button class="btn btn-primary w-100 upgrade-btn" 
+                                                data-plan-slug="{{ pricing_plan.slug }}"
+                                                data-plan-name="{{ pricing_plan.name }}"
+                                                data-plan-price="{{ pricing_plan.price }}">
+                                            <i class="fas fa-shopping-cart me-2"></i>
+                                            {% if subscription or is_trial %}Upgrade{% else %}Subscribe{% endif %}
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <p class="text-muted">No plans configured yet. Please ask the superadmin to add pricing plans.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+   
+<!-- Renew Subscription Modal -->
+<div class="modal fade" id="renewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Renew Subscription</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to renew your subscription for the <strong>{{ plan.name }}</strong> plan?</p>
+                <p class="text-muted small">This will extend your subscription for another {{ plan.get_billing_cycle_display|lower }} period.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" action="{% url 'subscriptions:renew' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-sync-alt me-2"></i>
+                        Renew Now
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #003366; color: white;">
+                <h5 class="modal-title" style="color: white;">Complete Subscription</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6>Selected Plan</h6>
+                        <p id="modal-plan-name"></p>
+                        <p id="modal-plan-price"></p>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="paymentMethodSelect" class="form-label fw-bold">Choose Payment Method</label>
+                    <select class="form-select" id="paymentMethodSelect">
+                        <option value="">-- Select a payment method --</option>
+                    </select>
+                </div>
+
+                <div id="payment-method-details" class="mt-3">
+                    <!-- Dynamic input fields will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn" id="confirm-payment" style="background-color: #00CED1; color: white;">Proceed with Payment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Subscription Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancel Subscription</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> Cancelling your subscription will disable access to premium features.
+                </div>
+                <p>Are you sure you want to cancel your subscription?</p>
+                <p class="text-muted small">You can reactivate your subscription at any time by choosing a plan.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Subscription</button>
+                <form method="post" action="{% url 'subscriptions:cancel' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-times me-2"></i>
+                        Cancel Subscription
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .plan-card {
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 24px;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .plan-card:hover {
+        border-color: #4f46e5;
+        box-shadow: 0 8px 24px rgba(79, 70, 229, 0.1);
+        transform: translateY(-4px);
+    }
+
+    .plan-card.popular {
+        border-color: #dc3545;
+        background: linear-gradient(135deg, rgba(220, 53, 69, 0.05) 0%, rgba(220, 53, 69, 0.02) 100%);
+    }
+
+    .plan-card.current-plan {
+        border-color: #4f46e5;
+        box-shadow: 0 10px 28px rgba(79, 70, 229, 0.18);
+        background: linear-gradient(135deg, rgba(79, 70, 229, 0.06) 0%, rgba(79, 70, 229, 0.02) 100%);
+    }
+
+    .popular-badge {
+        position: absolute;
+        top: -12px;
+        right: 20px;
+    }
+
+    .plan-header {
+        margin-bottom: 20px;
+    }
+
+    .plan-name {
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .plan-price {
+        margin-bottom: 16px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .price-amount {
+        font-size: 32px;
+        font-weight: 700;
+        color: #4f46e5;
+    }
+
+    .price-period {
+        color: #6c757d;
+        font-size: 14px;
+    }
+
+    .plan-description {
+        margin-bottom: 20px;
+    }
+
+    .plan-features {
+        margin-bottom: 20px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .plan-action {
+        margin-top: 20px;
+    }
+
+    .subscription-info label {
+        font-weight: 500;
+    }
+
+    .card-header-modern {
+        padding: 20px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .card-header-modern h4 {
+        color: #2d3748;
+        font-weight: 600;
+    }
+
+    .payment-method-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid #e9ecef;
+    }
+
+    .payment-method-card:hover {
+        border-color: #00CED1;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 206, 209, 0.15);
+    }
+
+    .payment-method-card.border-primary {
+        border-color: #00CED1 !important;
+        background-color: rgba(0, 206, 209, 0.05);
+    }
+
+    .form-select:focus {
+        border-color: #00CED1;
+        box-shadow: 0 0 0 0.2rem rgba(0, 206, 209, 0.25);
+    }
+
+    .form-control:focus {
+        border-color: #00CED1;
+        box-shadow: 0 0 0 0.2rem rgba(0, 206, 209, 0.25);
+    }
+
+    .btn-cyan {
+        background-color: #00CED1 !important;
+        border-color: #00CED1 !important;
+        color: white !important;
+    }
+
+    .btn-cyan:hover {
+        background-color: #00B5B8 !important;
+        border-color: #00B5B8 !important;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentInvoiceId = null;
+let selectedPlan = null;
+let selectedPaymentMethod = null;
+
+// Handle upgrade button clicks
+document.addEventListener('DOMContentLoaded', function() {
+    const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    
+    document.querySelectorAll('.upgrade-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            selectedPlan = {
+                slug: this.dataset.planSlug,
+                name: this.dataset.planName,
+                price: this.dataset.planPrice
+            };
+            
+            // Load payment modal
+            loadPaymentModal();
+        });
+    });
+    
+    function loadPaymentModal() {
+        // Set plan details
+        document.getElementById('modal-plan-name').textContent = selectedPlan.name;
+        document.getElementById('modal-plan-price').textContent = 'Ksh ' + selectedPlan.price;
+        
+        // Fetch payment methods from API
+        fetch(`/subscriptions/subscribe/${selectedPlan.slug}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayPaymentMethods(data.payment_methods);
+                    paymentModal.show();
+                } else {
+                    alert('Error loading payment methods. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error loading payment methods. Please try again.');
+            });
+    }
+    
+    function displayPaymentMethods(methods) {
+        const select = document.getElementById('paymentMethodSelect');
+        select.innerHTML = '<option value="">-- Select a payment method --</option>';
+        
+        methods.forEach(method => {
+            const option = document.createElement('option');
+            option.value = method.id;
+            option.textContent = `${method.icon} ${method.name}`;
+            select.appendChild(option);
+        });
+        
+        // Add change event listener
+        select.addEventListener('change', function() {
+            selectedPaymentMethod = this.value;
+            showPaymentMethodFields(selectedPaymentMethod, methods);
+        });
+    }
+    
+    function showPaymentMethodFields(methodId, methods) {
+        const container = document.getElementById('payment-method-details');
+        container.innerHTML = '';
+        
+        if (!methodId) return;
+        
+        const method = methods.find(m => m.id === methodId);
+        if (!method) return;
+        
+        let fieldsHtml = '<div class="card border-0 bg-light">';
+        fieldsHtml += `<div class="card-body">
+            <h6 class="card-title mb-3">${method.icon} ${method.name} Details</h6>`;
+        
+        switch(methodId) {
+            case 'cash':
+                fieldsHtml += `
+                    <div class="mb-3">
+                        <label for="invoiceNumber" class="form-label">Invoice Number</label>
+                        <input type="text" class="form-control" id="invoiceNumber" placeholder="Enter invoice number" required>
+                    </div>`;
+                break;
+                
+            case 'mpesa_paybill':
+                fieldsHtml += `
+                    <div class="mb-3">
+                        <label for="transactionId" class="form-label">Transaction ID</label>
+                        <input type="text" class="form-control" id="transactionId" placeholder="Enter M-Pesa transaction ID" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phoneNumber" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="phoneNumber" placeholder="Enter phone number (e.g., 07XXXXXXXX)" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="fullName" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="fullName" placeholder="Enter full name" required>
+                    </div>`;
+                break;
+                
+            case 'mpesa_stk':
+                fieldsHtml += `
+                    <div class="mb-3">
+                        <label for="phoneNumberStk" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="phoneNumberStk" placeholder="Enter phone number (e.g., 07XXXXXXXX)" required>
+                        <div class="form-text">You will receive an M-Pesa STK push prompt on this number</div>
+                    </div>`;
+                break;
+                
+            case 'bank_transfer':
+                fieldsHtml += `
+                    <div class="mb-3">
+                        <label for="accountName" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="accountName" placeholder="Enter account holder name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="accountNumber" class="form-label">Account Number</label>
+                        <input type="text" class="form-control" id="accountNumber" placeholder="Enter bank account number" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="transactionId" class="form-label">Transaction ID</label>
+                        <input type="text" class="form-control" id="transactionIdBank" placeholder="Enter bank transaction ID" required>
+                    </div>`;
+                break;
+                
+            case 'paypal':
+                fieldsHtml += `
+                    <div class="mb-3">
+                        <label for="paypalEmail" class="form-label">PayPal Email</label>
+                        <input type="email" class="form-control" id="paypalEmail" placeholder="Enter your PayPal email address" required>
+                        <div class="form-text">You will be redirected to PayPal to complete your payment securely.</div>
+                    </div>`;
+                break;
+        }
+        
+        fieldsHtml += '</div></div>';
+        container.innerHTML = fieldsHtml;
+    }
+    
+    // Handle payment confirmation
+    document.getElementById('confirm-payment').addEventListener('click', function() {
+        if (!selectedPaymentMethod) {
+            alert('Please select a payment method');
+            return;
+        }
+        
+        // Collect payment details based on method
+        let paymentData = {};
+        let isValid = true;
+        let errorMessage = '';
+        
+        switch(selectedPaymentMethod) {
+            case 'cash':
+                const invoiceNumber = document.getElementById('invoiceNumber');
+                if (!invoiceNumber || !invoiceNumber.value.trim()) {
+                    errorMessage = 'Please enter the invoice number';
+                    isValid = false;
+                } else {
+                    paymentData.invoice_number = invoiceNumber.value.trim();
+                }
+                break;
+                
+            case 'mpesa_paybill':
+                const transactionId = document.getElementById('transactionId');
+                const phoneNumber = document.getElementById('phoneNumber');
+                const fullName = document.getElementById('fullName');
+                
+                if (!transactionId || !transactionId.value.trim()) {
+                    errorMessage = 'Please enter the transaction ID';
+                    isValid = false;
+                } else if (!phoneNumber || !phoneNumber.value.trim()) {
+                    errorMessage = 'Please enter the phone number';
+                    isValid = false;
+                } else if (!fullName || !fullName.value.trim()) {
+                    errorMessage = 'Please enter the full name';
+                    isValid = false;
+                } else {
+                    paymentData.transaction_id = transactionId.value.trim();
+                    paymentData.phone_number = phoneNumber.value.trim();
+                    paymentData.full_name = fullName.value.trim();
+                }
+                break;
+                
+            case 'mpesa_stk':
+                const phoneNumberStk = document.getElementById('phoneNumberStk');
+                if (!phoneNumberStk || !phoneNumberStk.value.trim()) {
+                    errorMessage = 'Please enter the phone number';
+                    isValid = false;
+                } else {
+                    paymentData.phone_number = phoneNumberStk.value.trim();
+                }
+                break;
+                
+            case 'bank_transfer':
+                const accountName = document.getElementById('accountName');
+                const accountNumber = document.getElementById('accountNumber');
+                const transactionIdBank = document.getElementById('transactionIdBank');
+                
+                if (!accountName || !accountName.value.trim()) {
+                    errorMessage = 'Please enter the account holder name';
+                    isValid = false;
+                } else if (!accountNumber || !accountNumber.value.trim()) {
+                    errorMessage = 'Please enter the account number';
+                    isValid = false;
+                } else if (!transactionIdBank || !transactionIdBank.value.trim()) {
+                    errorMessage = 'Please enter the transaction ID';
+                    isValid = false;
+                } else {
+                    paymentData.account_name = accountName.value.trim();
+                    paymentData.account_number = accountNumber.value.trim();
+                    paymentData.transaction_id = transactionIdBank.value.trim();
+                }
+                break;
+                
+            case 'paypal':
+                const paypalEmail = document.getElementById('paypalEmail');
+                if (!paypalEmail || !paypalEmail.value.trim()) {
+                    errorMessage = 'Please enter your PayPal email address';
+                    isValid = false;
+                } else {
+                    paymentData.paypal_email = paypalEmail.value.trim();
+                }
+                break;
+        }
+        
+        if (!isValid) {
+            alert(errorMessage);
+            return;
+        }
+        
+        // Create subscription and payment
+        const formData = new FormData();
+        formData.append('payment_method', selectedPaymentMethod);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        // Add payment details to form data
+        Object.keys(paymentData).forEach(key => {
+            formData.append(key, paymentData[key]);
+        });
+        
+        // Show loading state
+        const confirmBtn = document.getElementById('confirm-payment');
+        const originalText = confirmBtn.innerHTML;
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        confirmBtn.disabled = true;
+        
+        fetch(`/subscriptions/subscribe/${selectedPlan.slug}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
+            } else if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Payment processing failed');
+            }
+        })
+        .then(data => {
+            if (data && data.redirect_url) {
+                window.location.href = data.redirect_url;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Payment processing failed. Please try again.');
+            // Reset button
+            confirmBtn.innerHTML = originalText;
+            confirmBtn.disabled = false;
+        });
+    });
+});
+
+function previewInvoice(invoiceId) {
+    currentInvoiceId = invoiceId;
+    
+    // Show loading state
+    document.getElementById('invoicePreviewContent').innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading invoice preview...</p>
+        </div>
+    `;
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('invoicePreviewModal'));
+    modal.show();
+    
+    // Fetch invoice preview
+    fetch(`/school/{{ school_slug }}/billing/invoices/${invoiceId}/preview/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayInvoicePreview(data.invoice);
+            } else {
+                document.getElementById('invoicePreviewContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error loading invoice: ${data.error}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            document.getElementById('invoicePreviewContent').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error loading invoice preview
+                </div>
+            `;
+        });
+}
+
+function displayInvoicePreview(invoice) {
+    const statusColor = invoice.status === 'paid' ? '#00CED1' : '#003366';
+    const totalDisplay = invoice.total_amount === 0 ? 'FREE' : `Ksh ${invoice.total_amount}`;
+    
+    document.getElementById('invoicePreviewContent').innerHTML = `
+        <div style="font-family: Arial, sans-serif; color: #333;">
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #003366;">
+                <h2 style="color: #003366; margin: 0;">Clasyo by Timesten Technologies Ltd.</h2>
+                <div style="text-align: right;">
+                    <h3 style="color: #00CED1; margin: 0;">Invoice #${invoice.invoice_number}</h3>
+                    <p style="color: #003366; margin: 5px 0;">Date: ${invoice.invoice_date}</p>
+                </div>
+            </div>
+            
+            <!-- Bill To -->
+            <div style="margin-bottom: 25px;">
+                <h4 style="color: #003366; margin-bottom: 10px;">Bill To:</h4>
+                <p style="margin: 5px 0;"><strong>${invoice.school_name}</strong></p>
+                ${invoice.school_address ? `<p style="margin: 5px 0;">${invoice.school_address}</p>` : ''}
+                ${invoice.school_phone ? `<p style="margin: 5px 0;">Phone: ${invoice.school_phone}</p>` : ''}
+                ${invoice.school_email ? `<p style="margin: 5px 0;">Email: ${invoice.school_email}</p>` : ''}
+            </div>
+            
+            <!-- Invoice Details -->
+            <div style="margin-bottom: 25px;">
+                <h4 style="color: #003366; margin-bottom: 15px;">Invoice Details:</h4>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="background-color: #E0F7F7; padding: 10px; font-weight: bold; width: 30%;">Invoice Date:</td>
+                        <td style="padding: 10px;">${invoice.invoice_date}</td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #E0F7F7; padding: 10px; font-weight: bold;">Due Date:</td>
+                        <td style="padding: 10px;">${invoice.due_date}</td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #E0F7F7; padding: 10px; font-weight: bold;">Status:</td>
+                        <td style="padding: 10px; color: ${statusColor}; font-weight: bold;">${invoice.status_display}</td>
+                    </tr>
+                    ${invoice.paid_date ? `
+                    <tr>
+                        <td style="background-color: #E0F7F7; padding: 10px; font-weight: bold;">Paid Date:</td>
+                        <td style="padding: 10px;">${invoice.paid_date}</td>
+                    </tr>
+                    ` : ''}
+                </table>
+            </div>
+            
+            <!-- Invoice Items -->
+            <div style="margin-bottom: 25px;">
+                <h4 style="color: #003366; margin-bottom: 15px;">Invoice Items:</h4>
+                <table style="width: 100%; border-collapse: collapse; border: 1px solid #003366;">
+                    <thead>
+                        <tr style="background-color: #003366; color: white;">
+                            <th style="padding: 12px; text-align: left;">Description</th>
+                            <th style="padding: 12px; text-align: left;">Period</th>
+                            <th style="padding: 12px; text-align: center;">Qty</th>
+                            <th style="padding: 12px; text-align: right;">Unit Price</th>
+                            <th style="padding: 12px; text-align: right;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #003366;">
+                                <strong>${invoice.plan_name}</strong><br>
+                                <small>${invoice.plan_description}</small>
+                            </td>
+                            <td style="padding: 12px; border: 1px solid #003366;">${invoice.billing_period}</td>
+                            <td style="padding: 12px; border: 1px solid #003366; text-align: center;">1</td>
+                            <td style="padding: 12px; border: 1px solid #003366; text-align: right;">${invoice.amount_display}</td>
+                            <td style="padding: 12px; border: 1px solid #003366; text-align: right;">${invoice.amount_display}</td>
+                        </tr>
+                        ${invoice.tax_amount > 0 ? `
+                        <tr>
+                            <td colspan="4" style="padding: 12px; border: 1px solid #003366; text-align: right;">Tax:</td>
+                            <td style="padding: 12px; border: 1px solid #003366; text-align: right;">Ksh ${invoice.tax_amount}</td>
+                        </tr>
+                        ` : ''}
+                        <tr style="background-color: #E0F7F7; font-weight: bold;">
+                            <td colspan="4" style="padding: 12px; border: 1px solid #003366; text-align: right;">Total:</td>
+                            <td style="padding: 12px; border: 1px solid #003366; text-align: right; color: #003366;">${totalDisplay}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            ${invoice.notes ? `
+            <div style="margin-bottom: 25px;">
+                <h4 style="color: #003366; margin-bottom: 10px;">Notes:</h4>
+                <p style="margin: 5px 0;">${invoice.notes}</p>
+            </div>
+            ` : ''}
+            
+            <!-- Footer -->
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; font-size: 12px;">
+                <p style="color: #003366; margin: 5px 0;">This is a computer-generated invoice. No signature is required.</p>
+                <p style="color: #00CED1; margin: 5px 0;">Thank you for your business with Clasyo!</p>
+                <p style="color: #003366; margin: 5px 0;">For questions, contact us at billing@clasyo.com</p>
+            </div>
+        </div>
+    `;
+}
+
+// Download button functionality
+document.getElementById('downloadInvoiceBtn').addEventListener('click', function() {
+    if (currentInvoiceId) {
+        window.location.href = `/school/{{ school_slug }}/billing/invoices/${currentInvoiceId}/download/`;
+    }
+});
+</script>
+{% endblock %}

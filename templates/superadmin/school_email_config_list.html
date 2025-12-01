@@ -1,0 +1,212 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Email Configurations - {{ school.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">Email Configurations</h1>
+                    <p class="text-muted mb-0">Manage email settings for {{ school.name }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'superadmin:school_settings' school_slug=school.slug %}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Settings
+                    </a>
+                    <a href="{% url 'superadmin:school_email_config_create' school_slug=school.slug %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Add Configuration
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Configurations List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Email Configurations</h5>
+                    <small class="text-muted">{{ configs|length }} configuration(s)</small>
+                </div>
+                <div class="card-body">
+                    {% if configs %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Provider</th>
+                                        <th>From Email</th>
+                                        <th>Status</th>
+                                        <th>Settings</th>
+                                        <th>Usage Limits</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for config in configs %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if config.provider == 'smtp' %}
+                                                        <i class="fas fa-envelope-open-text text-primary me-2"></i>
+                                                    {% elif config.provider == 'sendgrid' %}
+                                                        <i class="fas fa-paper-plane text-info me-2"></i>
+                                                    {% elif config.provider == 'mailgun' %}
+                                                        <i class="fas fa-bullseye text-success me-2"></i>
+                                                    {% elif config.provider == 'ses' %}
+                                                        <i class="fab fa-aws text-warning me-2"></i>
+                                                    {% elif config.provider == 'postmark' %}
+                                                        <i class="fas fa-stamp text-danger me-2"></i>
+                                                    {% endif %}
+                                                    <div>
+                                                        <strong>{{ config.get_provider_display }}</strong>
+                                                        {% if config.use_global_settings %}
+                                                            <br><small class="text-muted">Using global settings</small>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if config.custom_from_email %}
+                                                    {{ config.custom_from_email }}
+                                                {% elif config.default_from_email %}
+                                                    {{ config.default_from_email }}
+                                                    <br><small class="text-muted">Default</small>
+                                                {% else %}
+                                                    <span class="text-muted">Not set</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if config.is_active %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                {% endif %}
+                                                {% if config.use_global_settings %}
+                                                    <span class="badge bg-info">Global</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {% if config.provider == 'smtp' %}
+                                                        SMTP: {{ config.smtp_host }}:{{ config.smtp_port }}
+                                                    {% elif config.provider == 'sendgrid' %}
+                                                        SendGrid API
+                                                    {% elif config.provider == 'mailgun' %}
+                                                        Mailgun API
+                                                    {% elif config.provider == 'ses' %}
+                                                        AWS SES
+                                                    {% elif config.provider == 'postmark' %}
+                                                        Postmark API
+                                                    {% endif %}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <small>
+                                                    {% if config.daily_email_limit or config.monthly_email_limit %}
+                                                        {% if config.daily_email_limit %}
+                                                            Daily: {{ config.daily_email_limit }}
+                                                        {% endif %}
+                                                        {% if config.monthly_email_limit %}
+                                                            Monthly: {{ config.monthly_email_limit }}
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <span class="text-muted">No limits</span>
+                                                    {% endif %}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{% url 'superadmin:school_email_config_update' school_slug=school.slug pk=config.pk %}" class="btn btn-outline-primary">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <a href="{% url 'superadmin:school_email_config_delete' school_slug=school.slug pk=config.pk %}" class="btn btn-outline-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-envelope fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Email Configurations Found</h5>
+                            <p class="text-muted">Configure email settings to enable email notifications for {{ school.name }}</p>
+                            <a href="{% url 'superadmin:school_email_config_create' school_slug=school.slug %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Add First Email Configuration
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Provider Information -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Supported Email Providers</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-envelope-open-text text-primary me-3 mt-1"></i>
+                                <div>
+                                    <h6>SMTP</h6>
+                                    <small class="text-muted">Standard SMTP server configuration with TLS/SSL support</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-paper-plane text-info me-3 mt-1"></i>
+                                <div>
+                                    <h6>SendGrid</h6>
+                                    <small class="text-muted">Cloud-based email delivery service with analytics</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-bullseye text-success me-3 mt-1"></i>
+                                <div>
+                                    <h6>Mailgun</h6>
+                                    <small class="text-muted">Developer-friendly email API service</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="d-flex align-items-start">
+                                <i class="fab fa-aws text-warning me-3 mt-1"></i>
+                                <div>
+                                    <h6>Amazon SES</h6>
+                                    <small class="text-muted">AWS email service for scalable delivery</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-stamp text-danger me-3 mt-1"></i>
+                                <div>
+                                    <h6>Postmark</h6>
+                                    <small class="text-muted">Fast and reliable email delivery service</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

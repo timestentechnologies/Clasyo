@@ -3,6 +3,7 @@ from django.views.generic import ListView, DetailView, View, TemplateView
 from django.contrib import messages
 from django.utils import timezone
 from django.db import transaction
+from django.http import JsonResponse
 from .models import SubscriptionPlan, Subscription, Payment, Coupon
 from datetime import timedelta
 import json
@@ -19,15 +20,32 @@ class SubscriptionPlansView(ListView):
 
 
 class SubscribeView(View):
-    """View to handle subscription purchase"""
-    template_name = 'subscriptions/subscribe.html'
+    """View to handle subscription purchase - returns payment modal data"""
     
     def get(self, request, plan_slug):
         plan = get_object_or_404(SubscriptionPlan, slug=plan_slug, is_active=True)
-        context = {
-            'plan': plan,
-        }
-        return render(request, self.template_name, context)
+        
+        # Return JSON response with payment modal data
+        return JsonResponse({
+            'success': True,
+            'plan': {
+                'id': plan.id,
+                'name': plan.name,
+                'slug': plan.slug,
+                'price': float(plan.price),
+                'billing_cycle': plan.billing_cycle,
+                'description': plan.description,
+                'features': plan.features,
+                'trial_days': plan.trial_days
+            },
+            'payment_methods': [
+                {'id': 'cash', 'name': 'Cash', 'icon': '💵'},
+                {'id': 'mpesa_paybill', 'name': 'M-Pesa Paybill', 'icon': '📱'},
+                {'id': 'mpesa_stk', 'name': 'M-Pesa STK Push', 'icon': '📱'},
+                {'id': 'bank_transfer', 'name': 'Bank Transfer', 'icon': '🏦'},
+                {'id': 'paypal', 'name': 'PayPal', 'icon': '💳'}
+            ]
+        })
     
     def post(self, request, plan_slug):
         plan = get_object_or_404(SubscriptionPlan, slug=plan_slug, is_active=True)
@@ -80,27 +98,62 @@ class PaymentView(View):
         payment = get_object_or_404(Payment, payment_id=payment_id)
         context = {
             'payment': payment,
+            'payment_methods': [
+                {'id': 'cash', 'name': 'Cash', 'icon': '💵'},
+                {'id': 'mpesa_paybill', 'name': 'M-Pesa Paybill', 'icon': '📱'},
+                {'id': 'mpesa_stk', 'name': 'M-Pesa STK Push', 'icon': '📱'},
+                {'id': 'bank_transfer', 'name': 'Bank Transfer', 'icon': '🏦'},
+                {'id': 'paypal', 'name': 'PayPal', 'icon': '💳'}
+            ]
         }
         return render(request, self.template_name, context)
     
     def post(self, request, payment_id):
         payment = get_object_or_404(Payment, payment_id=payment_id)
+        payment_method = request.POST.get('payment_method', payment.payment_method)
         
-        # Process payment based on payment method
-        # This is a simplified version - implement actual payment gateway integration
+        # Update payment method and details
+        payment.payment_method = payment_method
         
-        payment.status = 'completed'
-        payment.payment_date = timezone.now()
-        payment.transaction_id = f"TXN-{timezone.now().timestamp()}"
+        # Store payment method specific details
+        if payment_method == 'cash':
+            payment.invoice_number_ref = request.POST.get('invoice_number', '')
+        elif payment_method in ['mpesa_paybill', 'mpesa_stk']:
+            payment.phone_number = request.POST.get('phone_number', '')
+            payment.full_name = request.POST.get('full_name', '')
+            if payment_method == 'mpesa_paybill':
+                payment.transaction_id = request.POST.get('transaction_id', '')
+        elif payment_method == 'bank_transfer':
+            payment.full_name = request.POST.get('full_name', '')
+            payment.account_name = request.POST.get('account_name', '')
+            payment.account_number = request.POST.get('account_number', '')
+            payment.transaction_id = request.POST.get('transaction_id', '')
+        elif payment_method == 'paypal':
+            payment.paypal_email = request.POST.get('paypal_email', '')
+        
+        # Set status to pending verification for manual payment methods
+        if payment_method in ['cash', 'mpesa_paybill', 'bank_transfer']:
+            payment.status = 'pending_verification'
+            messages.info(request, 'Payment submitted! Your payment is now pending verification by our team.')
+        elif payment_method == 'mpesa_stk':
+            payment.status = 'pending'
+            messages.info(request, 'M-Pesa STK Push initiated! Please complete the payment on your phone.')
+        elif payment_method == 'paypal':
+            payment.status = 'pending'
+            messages.info(request, 'Redirecting to PayPal for payment...')
+            # TODO: Implement PayPal redirect
+            # For now, just mark as pending
+        else:
+            payment.status = 'pending_verification'
+        
         payment.save()
         
-        # Activate subscription
-        subscription = payment.subscription
-        subscription.status = 'active'
-        subscription.save()
-        
-        messages.success(request, 'Payment successful! Your subscription is now active.')
-        return redirect('subscriptions:payment_success')
+        # For online payment methods, redirect to payment processing
+        if payment_method in ['mpesa_stk', 'paypal']:
+            return redirect('subscriptions:payment_processing', payment_id=payment.payment_id)
+        else:
+            # For manual payment methods, show success message
+            return redirect('subscriptions:payment_success')
 
 
 class PaymentSuccessView(TemplateView):

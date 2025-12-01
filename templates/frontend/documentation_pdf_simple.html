@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clasyo Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+            color: #333;
+        }
+        h1 {
+            color: #1E3A5F;
+            text-align: center;
+            border-bottom: 3px solid #4DD0E1;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #1E3A5F;
+            border-bottom: 2px solid #4DD0E1;
+            padding-bottom: 5px;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #1E3A5F;
+            margin-top: 20px;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #4DD0E1;
+            color: #1E3A5F;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        ul {
+            margin: 10px 0;
+        }
+        li {
+            margin: 5px 0;
+        }
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        @media print {
+            body { margin: 20px; }
+            .warning { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="warning">
+        <strong>Note:</strong> This is an HTML version of the documentation. You can save this page as PDF using your browser's Print function (Ctrl+P or Cmd+P).
+    </div>
+
+    <h1>Clasyo Documentation</h1>
+    <p style="text-align: center; font-style: italic;">Comprehensive Guide for School Management System</p>
+
+    <h2>Getting Started</h2>
+    <h3>System Requirements</h3>
+    <ul>
+        <li>Modern web browser (Chrome, Firefox, Safari, Edge)</li>
+        <li>Stable internet connection</li>
+        <li>Minimum screen resolution: 1024x768</li>
+        <li>JavaScript enabled</li>
+        <li>Cookies enabled for session management</li>
+    </ul>
+
+    <h3>Account Setup</h3>
+    <ol>
+        <li><strong>Register Your School</strong> - Visit the registration page and provide your school details including name, contact information, and administrator credentials.</li>
+        <li><strong>Configure School Profile</strong> - Complete your school profile with address, academic calendar, and grading system preferences.</li>
+        <li><strong>Set Up Academic Structure</strong> - Create academic years, terms, classes, and subjects according to your school's curriculum.</li>
+        <li><strong>Add Users</strong> - Create accounts for teachers, students, and parents with appropriate roles and permissions.</li>
+    </ol>
+
+    <h2>System Modules</h2>
+    {% for feature in core_features %}
+    <h3>{{ feature.title }}</h3>
+    <p>{{ feature.description }}</p>
+    <ul>
+        {% if feature.title == 'Academic Management' %}
+            <li>Academic year and term management</li>
+            <li>Class and section creation</li>
+            <li>Subject allocation</li>
+            <li>Timetable generation</li>
+            <li>CBC competency tracking</li>
+        {% elif feature.title == 'Student Information System' %}
+            <li>Student registration and enrollment</li>
+            <li>Attendance tracking</li>
+            <li>Academic performance records</li>
+            <li>Disciplinary records</li>
+            <li>Medical information</li>
+        {% elif feature.title == 'Examination System' %}
+            <li>Exam creation and scheduling</li>
+            <li>Grade entry and calculation</li>
+            <li>Report card generation</li>
+            <li>Transcript management</li>
+            <li>Performance analytics</li>
+        {% elif feature.title == 'Fee Management' %}
+            <li>Fee structure setup</li>
+            <li>Invoice generation</li>
+            <li>Payment tracking</li>
+            <li>M-Pesa integration</li>
+            <li>Financial reporting</li>
+        {% elif feature.title == 'Library Management' %}
+            <li>Book catalog management</li>
+            <li>Issue and return tracking</li>
+            <li>Fine calculation</li>
+            <li>Inventory management</li>
+            <li>Digital library support</li>
+        {% elif feature.title == 'Communication Tools' %}
+            <li>Messaging system</li>
+            <li>Notice board</li>
+            <li>Parent-teacher communication</li>
+            <li>SMS notifications</li>
+            <li>Email integration</li>
+        {% else %}
+            <li>Comprehensive management tools</li>
+            <li>Real-time data synchronization</li>
+            <li>Advanced reporting capabilities</li>
+            <li>Mobile-responsive interface</li>
+            <li>Secure data storage</li>
+        {% endif %}
+    </ul>
+    {% endfor %}
+
+    <h2>User Guides</h2>
+    {% for guide in user_guides %}
+    <h3>{{ guide.role }}</h3>
+    <p>{{ guide.description }}</p>
+    <ul>
+        {% for section in guide.sections %}
+        <li>{{ section }}</li>
+        {% endfor %}
+    </ul>
+    {% endfor %}
+
+    <h2>API Documentation</h2>
+    <h3>Authentication</h3>
+    <p>All API endpoints require authentication using JWT tokens. Include the token in the Authorization header:</p>
+    <pre style="background: #f4f4f4; padding: 10px; border-radius: 5px;">Authorization: Bearer &lt;your_jwt_token&gt;</pre>
+
+    <h3>Base URL</h3>
+    <pre style="background: #f4f4f4; padding: 10px; border-radius: 5px;">https://api.clasyo.com/v1</pre>
+
+    <h3>Available Endpoints</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th>Endpoint</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for endpoint in api_endpoints %}
+            <tr>
+                <td>{{ endpoint.method }}</td>
+                <td>{{ endpoint.endpoint }}</td>
+                <td>{{ endpoint.description }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3>Error Handling</h3>
+    <p>API returns appropriate HTTP status codes and error messages:</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Status Code</th>
+                <th>Meaning</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>200</td><td>Success</td></tr>
+            <tr><td>201</td><td>Created</td></tr>
+            <tr><td>400</td><td>Bad Request</td></tr>
+            <tr><td>401</td><td>Unauthorized</td></tr>
+            <tr><td>403</td><td>Forbidden</td></tr>
+            <tr><td>404</td><td>Not Found</td></tr>
+            <tr><td>500</td><td>Internal Server Error</td></tr>
+        </tbody>
+    </table>
+
+    <h2>Payment Gateway Configuration</h2>
+    <h3>Supported Payment Methods</h3>
+    <ul>
+        <li><strong>M-Pesa STK Push</strong> - Automatic payment prompts sent to parent phones</li>
+        <li><strong>M-Pesa Manual Paybill</strong> - Parents manually pay using paybill details</li>
+        <li><strong>PayPal</strong> - International payment processing</li>
+        <li><strong>Bank Transfer</strong> - Direct bank deposits</li>
+    </ul>
+
+    <h3>Configuration Steps</h3>
+    <ol>
+        <li>Navigate to Payment Settings</li>
+        <li>Add Payment Gateway</li>
+        <li>Configure Gateway Details</li>
+        <li>Activate Gateway</li>
+    </ol>
+
+    <h2>Integration Guide</h2>
+    <h3>Webhook Integration</h3>
+    <p>Configure webhooks to receive real-time notifications about events in your school:</p>
+    <ul>
+        <li><strong>student.enrolled</strong> - New student registration</li>
+        <li><strong>fee.paid</strong> - Fee payment received</li>
+        <li><strong>attendance.marked</strong> - Attendance recorded</li>
+        <li><strong>grade.posted</strong> - Grades posted</li>
+        <li><strong>user.created</strong> - New user account created</li>
+    </ul>
+
+    <h2>Troubleshooting</h2>
+    <h3>Common Issues</h3>
+    <ul>
+        <li><strong>Unable to Login</strong> - Check your email and password. Use the "Forgot Password" link to reset if needed.</li>
+        <li><strong>Payment Not Reflecting</strong> - Wait 5-10 minutes for M-Pesa processing. Check payment confirmation SMS.</li>
+        <li><strong>Reports Not Generating</strong> - Ensure you have the required permissions. Check that data exists for the selected period.</li>
+        <li><strong>Slow Performance</strong> - Clear browser cache, check internet connection, try a different browser.</li>
+    </ul>
+
+    <h2>Support</h2>
+    <ul>
+        <li><strong>Email:</strong> support@clasyo.com</li>
+        <li><strong>Phone:</strong> +254 700 123 456</li>
+        <li><strong>Hours:</strong> Monday - Friday, 8:00 AM - 6:00 PM EAT</li>
+    </ul>
+
+    <div class="footer">
+        <p>© 2025 Clasyo by Timesten Technologies. All rights reserved.</p>
+    </div>
+</body>
+</html>

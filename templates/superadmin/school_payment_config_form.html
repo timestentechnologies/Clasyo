@@ -1,0 +1,465 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Payment Method - {{ school.name }}{% endblock %}
+
+{% block page_title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Payment Method{% endblock %}
+{% block page_icon %}credit-card{% endblock %}
+{% block page_subtitle %}Configure payment settings for {{ school.name }}{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <a href="{% url 'superadmin:school_payment_config_list' school_slug=school.slug %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Configurations
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_body_attrs %}data-initial-gateway="{% if form.instance.gateway %}{{ form.instance.gateway }}{% endif %}"{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        {% if form.instance.pk %}
+                            <i class="fas fa-edit me-2"></i>Edit Payment Configuration
+                        {% else %}
+                            <i class="fas fa-plus me-2"></i>Add New Payment Configuration
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="paymentConfigForm">
+                        {% csrf_token %}
+                        
+                        <!-- Basic Information -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="{{ form.gateway.id_for_label }}" class="form-label">Payment Gateway *</label>
+                                {{ form.gateway }}
+                                {% if form.gateway.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.gateway.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.environment.id_for_label }}" class="form-label">Environment *</label>
+                                {{ form.environment }}
+                                {% if form.environment.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.environment.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <div class="form-check">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                        Enable this payment method
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gateway-specific fields -->
+                        <div id="gatewayFields">
+                            <!-- M-Pesa STK Push Fields -->
+                            <div id="mpesa_stk-fields" class="gateway-fields" style="display: none;">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-mobile-alt me-2"></i>M-Pesa STK Push Configuration
+                                </h6>
+                                <div class="alert alert-info mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Configure M-Pesa API integration for automatic STK Push payments to parents' phones.
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="{{ form.mpesa_consumer_key.id_for_label }}" class="form-label">Consumer Key *</label>
+                                        {{ form.mpesa_consumer_key }}
+                                        <div class="form-text">Your M-Pesa API consumer key</div>
+                                        {% if form.mpesa_consumer_key.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.mpesa_consumer_key.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="{{ form.mpesa_consumer_secret.id_for_label }}" class="form-label">Consumer Secret *</label>
+                                        {{ form.mpesa_consumer_secret }}
+                                        <div class="form-text">Your M-Pesa API consumer secret</div>
+                                        {% if form.mpesa_consumer_secret.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.mpesa_consumer_secret.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="{{ form.mpesa_passkey.id_for_label }}" class="form-label">Passkey *</label>
+                                        {{ form.mpesa_passkey }}
+                                        <div class="form-text">Your M-Pesa API passkey</div>
+                                        {% if form.mpesa_passkey.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.mpesa_passkey.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="{{ form.mpesa_shortcode.id_for_label }}" class="form-label">Business Shortcode *</label>
+                                        {{ form.mpesa_shortcode }}
+                                        <div class="form-text">Your M-Pesa business shortcode (e.g., 174379)</div>
+                                        {% if form.mpesa_shortcode.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.mpesa_shortcode.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- M-Pesa Manual Paybill Fields -->
+                            <div id="mpesa_paybill-fields" class="gateway-fields" style="display: none;">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-mobile-alt me-2"></i>M-Pesa Manual Paybill Configuration
+                                </h6>
+                                <div class="alert alert-warning mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Configure manual M-Pesa paybill details that parents will use to make payments.
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="{{ form.mpesa_paybill_number.id_for_label }}" class="form-label">Paybill Number *</label>
+                                        {{ form.mpesa_paybill_number }}
+                                        <div class="form-text">Your M-Pesa paybill number (visible to parents)</div>
+                                        {% if form.mpesa_paybill_number.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.mpesa_paybill_number.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="{{ form.mpesa_paybill_account_number.id_for_label }}" class="form-label">Account Number *</label>
+                                        {{ form.mpesa_paybill_account_number }}
+                                        <div class="form-text">Account number for M-Pesa paybill payments (visible to parents)</div>
+                                        {% if form.mpesa_paybill_account_number.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.mpesa_paybill_account_number.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="{{ form.mpesa_paybill_bank_name.id_for_label }}" class="form-label">Bank Name *</label>
+                                        {{ form.mpesa_paybill_bank_name }}
+                                        <div class="form-text">Bank name associated with M-Pesa paybill (visible to parents)</div>
+                                        {% if form.mpesa_paybill_bank_name.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.mpesa_paybill_bank_name.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- PayPal Fields -->
+                            <div id="paypal-fields" class="gateway-fields" style="display: none;">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fab fa-paypal me-2"></i>PayPal Configuration
+                                </h6>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="{{ form.paypal_email.id_for_label }}" class="form-label">PayPal Business Email *</label>
+                                        {{ form.paypal_email }}
+                                        <div class="form-text">Your PayPal business email address for receiving payments</div>
+                                        {% if form.paypal_email.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.paypal_email.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Bank Transfer Fields -->
+                            <div id="bank-fields" class="gateway-fields" style="display: none;">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-university me-2"></i>Bank Transfer Configuration
+                                </h6>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="{{ form.bank_name.id_for_label }}" class="form-label">Bank Name *</label>
+                                        {{ form.bank_name }}
+                                        {% if form.bank_name.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.bank_name.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="{{ form.bank_branch.id_for_label }}" class="form-label">Bank Branch</label>
+                                        {{ form.bank_branch }}
+                                        {% if form.bank_branch.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.bank_branch.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="{{ form.bank_account_name.id_for_label }}" class="form-label">Account Name *</label>
+                                        {{ form.bank_account_name }}
+                                        {% if form.bank_account_name.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.bank_account_name.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="{{ form.bank_account_number.id_for_label }}" class="form-label">Account Number *</label>
+                                        {{ form.bank_account_number }}
+                                        {% if form.bank_account_number.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.bank_account_number.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Cash Fields -->
+                            <div id="cash-fields" class="gateway-fields" style="display: none;">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-money-bill-wave me-2"></i>Cash Payment Instructions
+                                </h6>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="{{ form.payment_instructions.id_for_label }}" class="form-label">Payment Instructions *</label>
+                                        {{ form.payment_instructions }}
+                                        <div class="form-text">Provide clear instructions for parents on how to make cash payments (e.g., where to pay, office hours, etc.)</div>
+                                        {% if form.payment_instructions.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.payment_instructions.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Cheque Fields -->
+                            <div id="cheque-fields" class="gateway-fields" style="display: none;">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-money-check me-2"></i>Cheque Payment Instructions
+                                </h6>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="{{ form.payment_instructions.id_for_label }}" class="form-label">Payment Instructions *</label>
+                                        {{ form.payment_instructions }}
+                                        <div class="form-text">Provide instructions for cheque payments (e.g., who to make the cheque payable to, where to submit, etc.)</div>
+                                        {% if form.payment_instructions.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.payment_instructions.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'superadmin:school_payment_config_list' school_slug=school.slug %}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-2"></i>Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>
+                                        {% if form.instance.pk %}Update Configuration{% else %}Create Configuration{% endif %}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Setup Guide -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Setup Guide
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="setupGuide">
+                        <div class="text-muted">
+                            <p>Select a payment gateway to see setup instructions.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- School Info -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-school me-2"></i>School Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <i class="fas fa-school"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">{{ school.name }}</h6>
+                            <small class="text-muted">{{ school.email }}</small>
+                        </div>
+                    </div>
+                    <div class="small text-muted">
+                        <div class="mb-1">
+                            <i class="fas fa-phone me-1"></i>{{ school.phone }}
+                        </div>
+                        <div class="mb-1">
+                            <i class="fas fa-map-marker-alt me-1"></i>{{ school.city }}, {{ school.country }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const gatewaySelect = document.getElementById('{{ form.gateway.id_for_label }}');
+    const gatewayFields = document.querySelectorAll('.gateway-fields');
+    const setupGuide = document.getElementById('setupGuide');
+    
+    const setupGuides = {
+        'mpesa_stk': `
+            <h6 class="text-primary mb-3">M-Pesa STK Push Setup</h6>
+            <ol class="small">
+                <li>Log into your Safaricom Developer Portal</li>
+                <li>Create a new app or use existing one</li>
+                <li>Get your Consumer Key and Consumer Secret</li>
+                <li>Request for Lipa na M-Pesa Online Passkey</li>
+                <li>Configure your Business Shortcode</li>
+                <li>Test with sandbox credentials first</li>
+            </ol>
+            <div class="alert alert-info small">
+                <strong>Note:</strong> You'll need Consumer Key, Consumer Secret, and Passkey from Safaricom Developer Portal.
+            </div>
+        `,
+        'mpesa_paybill': `
+            <h6 class="text-primary mb-3">M-Pesa Manual Paybill Setup</h6>
+            <ol class="small">
+                <li>Contact your bank to set up M-Pesa paybill</li>
+                <li>Get your Paybill Number and Account Number</li>
+                <li>Confirm the bank name associated with the paybill</li>
+                <li>Test the paybill number with a small amount</li>
+                <li>Provide clear instructions to parents</li>
+            </ol>
+            <div class="alert alert-warning small">
+                <strong>Important:</strong> Parents will see these details when making payments.
+            </div>
+        `,
+        'paypal': `
+            <h6 class="text-primary mb-3">PayPal Setup</h6>
+            <ol class="small">
+                <li>Create a PayPal Business account</li>
+                <li>Get your PayPal business email</li>
+                <li>Enter the email in the configuration form</li>
+                <li>Test with PayPal sandbox first</li>
+                <li>Switch to live environment when ready</li>
+            </ol>
+            <div class="alert alert-info small">
+                <strong>Note:</strong> Make sure your PayPal account is verified and can receive business payments.
+            </div>
+        `,
+        'bank': `
+            <h6 class="text-primary mb-3">Bank Transfer Setup</h6>
+            <ol class="small">
+                <li>Get your school's bank account details</li>
+                <li>Enter bank name and branch information</li>
+                <li>Provide correct account name and number</li>
+                <li>Double-check all details for accuracy</li>
+                <li>Enable to show bank transfer option to parents</li>
+            </ol>
+            <div class="alert alert-warning small">
+                <strong>Important:</strong> Ensure all bank details are accurate to avoid payment issues.
+            </div>
+        `,
+        'cash': `
+            <h6 class="text-primary mb-3">Cash Payment Setup</h6>
+            <ol class="small">
+                <li>Define clear payment instructions</li>
+                <li>Specify payment location (school office, etc.)</li>
+                <li>Set payment collection hours</li>
+                <li>Provide receipt process information</li>
+                <li>Include contact person for questions</li>
+            </ol>
+            <div class="alert alert-info small">
+                <strong>Tip:</strong> Be specific about when and where parents can make cash payments.
+            </div>
+        `,
+        'cheque': `
+            <h6 class="text-primary mb-3">Cheque Payment Setup</h6>
+            <ol class="small">
+                <li>Specify who cheques should be payable to</li>
+                <li>Provide submission location</li>
+                <li>Include cheque clearing timeline</li>
+                <li>Set instructions for post-dated cheques</li>
+                <li>Define bounced cheque policies</li>
+            </ol>
+            <div class="alert alert-warning small">
+                <strong>Note:</strong> Clearly communicate cheque processing time to parents.
+            </div>
+        `
+    };
+    
+    function showGatewayFields(gateway) {
+        // Hide all gateway fields
+        gatewayFields.forEach(field => field.style.display = 'none');
+        
+        // Show selected gateway fields
+        const selectedFields = document.getElementById(gateway + '-fields');
+        if (selectedFields) {
+            selectedFields.style.display = 'block';
+        }
+        
+        // Update setup guide
+        if (setupGuides[gateway]) {
+            setupGuide.innerHTML = setupGuides[gateway];
+        } else {
+            setupGuide.innerHTML = '<div class="text-muted"><p>Select a payment gateway to see setup instructions.</p></div>';
+        }
+    }
+    
+    // Show fields for initial gateway
+    const initialGateway = document.body.getAttribute('data-initial-gateway');
+    if (initialGateway) {
+        showGatewayFields(initialGateway);
+    }
+    
+    // Handle gateway change
+    gatewaySelect.addEventListener('change', function() {
+        showGatewayFields(this.value);
+    });
+});
+</script>
+{% endblock %}

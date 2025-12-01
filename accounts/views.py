@@ -11,8 +11,8 @@ from .forms import LoginForm, UserRegistrationForm, ProfileEditForm, ChangePassw
 
 
 class LoginView(View):
-    """User login view"""
-    template_name = 'accounts/login.html'
+    """User login view - redirects to home page with login modal"""
+    template_name = 'frontend/home.html'
     form_class = LoginForm
     
     def get(self, request):
@@ -32,8 +32,9 @@ class LoginView(View):
                 messages.warning(request, 'No active school found. Please contact administrator or logout.')
                 return redirect('frontend:home')
         
-        form = self.form_class()
-        return render(request, self.template_name, {'form': form})
+        # For unauthenticated users, show home page with login modal
+        messages.info(request, 'Please use the login modal to sign in.')
+        return redirect('frontend:home')
     
     def post(self, request):
         form = self.form_class(request.POST)
@@ -158,8 +159,8 @@ class RegisterView(View):
             except Exception as e:
                 print(f"Error sending notification: {e}")
             
-            messages.success(request, 'Registration successful! Please check your email and login.')
-            return redirect('accounts:login')
+            messages.success(request, 'Registration successful! Please check your email and use the login modal to sign in.')
+            return redirect('frontend:home')
         
         return render(request, self.template_name, {'form': form})
 

@@ -1,0 +1,212 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}SMS Configurations - {{ school.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">SMS Configurations</h1>
+                    <p class="text-muted mb-0">Manage SMS settings for {{ school.name }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'superadmin:school_settings' school_slug=school.slug %}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Settings
+                    </a>
+                    <a href="{% url 'superadmin:school_sms_config_create' school_slug=school.slug %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Add Configuration
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SMS Configurations List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">SMS Configurations</h5>
+                    <small class="text-muted">{{ configs|length }} configuration(s)</small>
+                </div>
+                <div class="card-body">
+                    {% if configs %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Provider</th>
+                                        <th>Sender ID</th>
+                                        <th>Status</th>
+                                        <th>Settings</th>
+                                        <th>Usage Limits</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for config in configs %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if config.provider == 'twilio' %}
+                                                        <i class="fas fa-phone text-primary me-2"></i>
+                                                    {% elif config.provider == 'africas_talking' %}
+                                                        <i class="fas fa-comments text-success me-2"></i>
+                                                    {% elif config.provider == 'infobip' %}
+                                                        <i class="fas fa-sms text-info me-2"></i>
+                                                    {% elif config.provider == 'clickatell' %}
+                                                        <i class="fas fa-mobile-alt text-warning me-2"></i>
+                                                    {% elif config.provider == 'nexmo' %}
+                                                        <i class="fas fa-broadcast-tower text-danger me-2"></i>
+                                                    {% endif %}
+                                                    <div>
+                                                        <strong>{{ config.get_provider_display }}</strong>
+                                                        {% if config.use_global_settings %}
+                                                            <br><small class="text-muted">Using global settings</small>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if config.custom_sender_id %}
+                                                    {{ config.custom_sender_id }}
+                                                {% elif config.default_sender_id %}
+                                                    {{ config.default_sender_id }}
+                                                    <br><small class="text-muted">Default</small>
+                                                {% else %}
+                                                    <span class="text-muted">Not set</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if config.is_active %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                {% endif %}
+                                                {% if config.use_global_settings %}
+                                                    <span class="badge bg-info">Global</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {% if config.provider == 'twilio' %}
+                                                        Twilio API
+                                                    {% elif config.provider == 'africas_talking' %}
+                                                        Africa's Talking API
+                                                    {% elif config.provider == 'infobip' %}
+                                                        Infobip API
+                                                    {% elif config.provider == 'clickatell' %}
+                                                        Clickatell API
+                                                    {% elif config.provider == 'nexmo' %}
+                                                        Vonage API
+                                                    {% endif %}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <small>
+                                                    {% if config.daily_sms_limit or config.monthly_sms_limit %}
+                                                        {% if config.daily_sms_limit %}
+                                                            Daily: {{ config.daily_sms_limit }}
+                                                        {% endif %}
+                                                        {% if config.monthly_sms_limit %}
+                                                            Monthly: {{ config.monthly_sms_limit }}
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <span class="text-muted">No limits</span>
+                                                    {% endif %}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{% url 'superadmin:school_sms_config_update' school_slug=school.slug pk=config.pk %}" class="btn btn-outline-primary">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <a href="{% url 'superadmin:school_sms_config_delete' school_slug=school.slug pk=config.pk %}" class="btn btn-outline-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-sms fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No SMS Configurations Found</h5>
+                            <p class="text-muted">Configure SMS settings to enable text notifications for {{ school.name }}</p>
+                            <a href="{% url 'superadmin:school_sms_config_create' school_slug=school.slug %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Add First SMS Configuration
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Provider Information -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Supported SMS Providers</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-phone text-primary me-3 mt-1"></i>
+                                <div>
+                                    <h6>Twilio</h6>
+                                    <small class="text-muted">Global SMS API with reliable delivery and detailed analytics</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-comments text-success me-3 mt-1"></i>
+                                <div>
+                                    <h6>Africa's Talking</h6>
+                                    <small class="text-muted">Pan-African communication platform with local payment integration</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-sms text-info me-3 mt-1"></i>
+                                <div>
+                                    <h6>Infobip</h6>
+                                    <small class="text-muted">Global omnichannel communication platform with advanced routing</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-mobile-alt text-warning me-3 mt-1"></i>
+                                <div>
+                                    <h6>Clickatell</h6>
+                                    <small class="text-muted">Enterprise SMS platform with global reach and compliance</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-broadcast-tower text-danger me-3 mt-1"></i>
+                                <div>
+                                    <h6>Vonage (Nexmo)</h6>
+                                    <small class="text-muted">Cloud communications platform with APIs and SDKs</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

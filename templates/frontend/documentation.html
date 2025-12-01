@@ -1,74 +1,1352 @@
 {% extends 'frontend/base.html' %}
 
 {% block title %}Documentation - Clasyo School Management System{% endblock %}
-{% block meta_description %}Technical and user documentation for Clasyo, a Kenyan school management platform for CBC, primary, secondary and TVET institutions.{% endblock %}
+{% block meta_description %}Comprehensive technical documentation, API references, and user guides for Clasyo, a Kenyan school management platform for CBC, primary, secondary and TVET institutions.{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --navy-blue: #1E3A5F;
+        --cyan: #4DD0E1;
+        --light-cyan: #E0F7FA;
+        --dark-cyan: #26C6DA;
+        --light-gray: #F8F9FA;
+        --text-dark: #2C3E50;
+        --border-color: #E1E8ED;
+    }
+
+    .doc-section {
+        margin-bottom: 3rem;
+        display: none;
+    }
+    
+    .doc-section.active {
+        display: block;
+    }
+
+    .doc-header {
+        background: linear-gradient(135deg, var(--navy-blue) 0%, var(--dark-cyan) 100%);
+        color: white;
+        padding: 3rem 0;
+        margin-bottom: 3rem;
+    }
+
+    .doc-nav h6 {
+        color: var(--navy-blue);
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .doc-nav ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .doc-nav li {
+        margin-bottom: 0.5rem;
+    }
+
+    .doc-nav a {
+        color: var(--text-dark);
+        text-decoration: none;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        display: block;
+        transition: all 0.3s ease;
+    }
+
+    .doc-nav a:hover,
+    .doc-nav a.active {
+        background: var(--light-cyan);
+        color: var(--navy-blue);
+    }
+
+    .doc-content {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .module-card {
+        background: var(--light-gray);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border-left: 4px solid var(--cyan);
+        transition: transform 0.3s ease;
+    }
+
+    .module-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .module-icon {
+        width: 48px;
+        height: 48px;
+        background: var(--cyan);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        color: white;
+        font-size: 1.5rem;
+    }
+
+    .module-title {
+        color: var(--navy-blue);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .module-description {
+        color: var(--text-dark);
+        opacity: 0.8;
+    }
+
+    .guide-step {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+
+    .step-number {
+        background: var(--cyan);
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+
+    .api-endpoint {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .method-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-right: 0.5rem;
+    }
+
+    .method-get { background: #28a745; color: white; }
+    .method-post { background: #007bff; color: white; }
+    .method-put { background: #ffc107; color: black; }
+    .method-delete { background: #dc3545; color: white; }
+
+    .code-block {
+        background: #2d3748;
+        color: #e2e8f0;
+        padding: 1rem;
+        border-radius: 6px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.875rem;
+        overflow-x: auto;
+    }
+
+    .table-custom {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+    }
+
+    .table-custom th,
+    .table-custom td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .table-custom th {
+        background: var(--light-gray);
+        font-weight: 600;
+        color: var(--navy-blue);
+    }
+
+    .alert-info,
+    .alert-warning,
+    .alert-success {
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+
+    .alert-info {
+        background: #e3f2fd;
+        border-left: 4px solid #2196f3;
+        color: #1565c0;
+    }
+
+    .alert-warning {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        color: #856404;
+    }
+
+    .alert-success {
+        background: #e8f5e8;
+        border-left: 4px solid #28a745;
+        color: #155724;
+    }
+
+    .pagination-nav {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .pagination-nav .btn {
+        margin: 0.25rem;
+    }
+
+    .page-indicator {
+        text-align: center;
+        margin: 1rem 0;
+        color: var(--text-dark);
+        font-weight: 500;
+    }
+
+    .scroll-to-top {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        background: var(--navy-blue);
+        color: white;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        z-index: 1000;
+    }
+
+    .scroll-to-top.visible {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .scroll-to-top:hover {
+        background: var(--dark-cyan);
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<section class="page-header">
-    <div class="container text-center">
-        <h1 class="page-title">Clasyo Documentation</h1>
-        <p class="page-subtitle">Guides for Kenyan CBC, primary, secondary and TVET schools, plus API references.</p>
-    </div>
-</section>
-
-<section class="py-5" style="padding: 4rem 0 !important;">
+<!-- Documentation Header -->
+<div class="doc-header">
     <div class="container">
-        <div class="row g-4">
-            <div class="col-lg-4">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-layer-group"></i>
+        <h1 class="doc-title text-center">Documentation</h1>
+        <p class="doc-subtitle text-center">
+            Comprehensive guide for Clasyo School Management System - Built for Kenyan Educational Institutions
+        </p>
+    </div>
+</div>
+
+<!-- Documentation Container -->
+<div class="container">
+    <div class="row">
+        <!-- Documentation Navigation -->
+        <div class="col-lg-3">
+            <div class="doc-nav">
+                <h6>Quick Navigation</h6>
+                <ul>
+                    <li><a href="#" data-section="getting-started" class="nav-link">Getting Started</a></li>
+                    <li><a href="#" data-section="modules" class="nav-link">System Modules</a></li>
+                    <li><a href="#" data-section="user-guides" class="nav-link">User Guides</a></li>
+                    <li><a href="#" data-section="api-documentation" class="nav-link">API Documentation</a></li>
+                    <li><a href="#" data-section="payment-gateways" class="nav-link">Payment Gateways</a></li>
+                    <li><a href="#" data-section="integration" class="nav-link">Integration Guide</a></li>
+                    <li><a href="#" data-section="technical-docs" class="nav-link">Technical Documentation</a></li>
+                    <li><a href="#" data-section="implementation-guide" class="nav-link">Implementation Guide</a></li>
+                    <li><a href="#" data-section="pricing-plans" class="nav-link">Pricing & Plans</a></li>
+                    <li><a href="#" data-section="contact" class="nav-link">Contact Us</a></li>
+                    <li><a href="#" data-section="troubleshooting" class="nav-link">Troubleshooting</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Documentation Content -->
+        <div class="col-lg-9">
+            <!-- Pagination Navigation -->
+            <div class="pagination-nav">
+                <div class="d-flex justify-content-between align-items-center">
+                    <button class="btn btn-outline-primary" id="prevBtn" onclick="navigatePage('prev')">
+                        <i class="fas fa-arrow-left"></i> Previous
+                    </button>
+                    <div class="page-indicator">
+                        Page <span id="currentPage">1</span> of <span id="totalPages">11</span>
                     </div>
-                    <h5 class="feature-title">Core Features</h5>
-                    <p class="feature-description">Overview of the main modules in Clasyo for Kenyan schools.</p>
-                    <ul class="mt-3">
-                        {% for feature in core_features %}
-                        <li><strong>{{ feature.title }}</strong> – {{ feature.description }}</li>
-                        {% endfor %}
-                    </ul>
+                    <button class="btn btn-outline-primary" id="nextBtn" onclick="navigatePage('next')">
+                        Next <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+                <div class="text-center mt-2">
+                    <small class="text-muted">Use arrow keys or click Previous/Next to navigate</small>
                 </div>
             </div>
-
-            <div class="col-lg-4">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-users-cog"></i>
+            <!-- Getting Started -->
+            <section id="getting-started" class="doc-section">
+                <div class="doc-content">
+                    <h2>Getting Started</h2>
+                    
+                    <h3>System Requirements</h3>
+                    <div class="requirements-list">
+                        <ul>
+                            <li>Modern web browser (Chrome, Firefox, Safari, Edge)</li>
+                            <li>Stable internet connection</li>
+                            <li>Minimum screen resolution: 1024x768</li>
+                            <li>JavaScript enabled</li>
+                            <li>Cookies enabled for session management</li>
+                        </ul>
                     </div>
-                    <h5 class="feature-title">User Guides</h5>
-                    <p class="feature-description">Step-by-step guides for different Clasyo user roles.</p>
+
+                    <h3>Account Setup</h3>
+                    <div class="guide-step">
+                        <div class="step-number">1</div>
+                        <h4>Register Your School</h4>
+                        <p>Visit the registration page and provide your school details including name, contact information, and administrator credentials.</p>
+                    </div>
+
+                    <div class="guide-step">
+                        <div class="step-number">2</div>
+                        <h4>Configure School Profile</h4>
+                        <p>Complete your school profile with address, academic calendar, and grading system preferences.</p>
+                    </div>
+
+                    <div class="guide-step">
+                        <div class="step-number">3</div>
+                        <h4>Set Up Academic Structure</h4>
+                        <p>Create academic years, terms, classes, and subjects according to your school's curriculum.</p>
+                    </div>
+
+                    <div class="guide-step">
+                        <div class="step-number">4</div>
+                        <h4>Add Users</h4>
+                        <p>Create accounts for teachers, students, and parents with appropriate roles and permissions.</p>
+                    </div>
+
+                    <div class="alert-info">
+                        <strong>Note:</strong> Your school gets a 7-day free trial with full access to all features. No credit card required.
+                    </div>
+                </div>
+            </section>
+
+            <!-- System Modules -->
+            <section id="modules" class="doc-section">
+                <div class="doc-content">
+                    <h2>System Modules</h2>
+                    
+                    <div class="row">
+                        {% for feature in core_features %}
+                        <div class="col-md-6">
+                            <div class="module-card">
+                                <div class="module-icon">
+                                    <i class="fas fa-{{ feature.icon }}"></i>
+                                </div>
+                                <h3 class="module-title">{{ feature.title }}</h3>
+                                <p class="module-description">{{ feature.description }}</p>
+                                <div class="module-details">
+                                    <h4>Key Features:</h4>
+                                    <ul>
+                                        {% if feature.title == 'Academic Management' %}
+                                            <li>Academic year and term management</li>
+                                            <li>Class and section creation</li>
+                                            <li>Subject allocation</li>
+                                            <li>Timetable generation</li>
+                                            <li>CBC competency tracking</li>
+                                        {% elif feature.title == 'Student Information System' %}
+                                            <li>Student registration and enrollment</li>
+                                            <li>Attendance tracking</li>
+                                            <li>Academic performance records</li>
+                                            <li>Disciplinary records</li>
+                                            <li>Medical information</li>
+                                        {% elif feature.title == 'Examination System' %}
+                                            <li>Exam creation and scheduling</li>
+                                            <li>Grade entry and calculation</li>
+                                            <li>Report card generation</li>
+                                            <li>Transcript management</li>
+                                            <li>Performance analytics</li>
+                                        {% elif feature.title == 'Fee Management' %}
+                                            <li>Fee structure setup</li>
+                                            <li>Invoice generation</li>
+                                            <li>Payment tracking</li>
+                                            <li>M-Pesa integration</li>
+                                            <li>Financial reporting</li>
+                                        {% elif feature.title == 'Library Management' %}
+                                            <li>Book catalog management</li>
+                                            <li>Issue and return tracking</li>
+                                            <li>Fine calculation</li>
+                                            <li>Inventory management</li>
+                                            <li>Digital library support</li>
+                                        {% elif feature.title == 'Communication Tools' %}
+                                            <li>Messaging system</li>
+                                            <li>Notice board</li>
+                                            <li>Parent-teacher communication</li>
+                                            <li>SMS notifications</li>
+                                            <li>Email integration</li>
+                                        {% else %}
+                                            <li>Comprehensive management tools</li>
+                                            <li>Real-time data synchronization</li>
+                                            <li>Advanced reporting capabilities</li>
+                                            <li>Mobile-responsive interface</li>
+                                            <li>Secure data storage</li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- User Guides -->
+            <section id="user-guides" class="doc-section">
+                <div class="doc-content">
+                    <h2>User Guides</h2>
+                    
                     {% for guide in user_guides %}
-                    <div class="mb-3">
-                        <h6 class="mb-1">{{ guide.role }}</h6>
-                        <p class="mb-1 text-muted">{{ guide.description }}</p>
-                        <ul class="mb-0">
-                            {% for section in guide.sections %}
-                            <li>{{ section }}</li>
+                    <div class="module-card">
+                        <h3 class="module-title">{{ guide.role }}</h3>
+                        <p class="module-description">{{ guide.description }}</p>
+                        
+                        {% for section in guide.sections %}
+                        <div class="guide-step">
+                            <div class="step-number">{{ forloop.counter }}</div>
+                            <h5>{{ section.title }}</h5>
+                            <ol>
+                                {% for step in section.steps %}
+                                <li>{{ step }}</li>
+                                {% endfor %}
+                            </ol>
+                        </div>
+                        {% endfor %}
+                        
+                        {% if guide.common_tasks %}
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <h6>Common Tasks</h6>
+                                <ul>
+                                    {% for task in guide.common_tasks %}
+                                    <li>{{ task }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% if guide.tips %}
+                            <div class="col-md-6">
+                                <h6>Tips & Best Practices</h6>
+                                <ul>
+                                    {% for tip in guide.tips %}
+                                    <li>{{ tip }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% elif guide.benefits %}
+                            <div class="col-md-6">
+                                <h6>Benefits</h6>
+                                <ul>
+                                    {% for benefit in guide.benefits %}
+                                    <li>{{ benefit }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% elif guide.mobile_app_features %}
+                            <div class="col-md-6">
+                                <h6>Mobile App Features</h6>
+                                <ul>
+                                    {% for feature in guide.mobile_app_features %}
+                                    <li>{{ feature }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if guide.troubleshooting %}
+                        <div class="mt-3">
+                            <h6>Troubleshooting</h6>
+                            <ul>
+                                {% for item in guide.troubleshooting %}
+                                <li>{{ item }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        {% if guide.best_practices %}
+                        <div class="mt-3">
+                            <h6>Best Practices</h6>
+                            <ul>
+                                {% for practice in guide.best_practices %}
+                                <li>{{ practice }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- API Documentation -->
+            <section id="api-documentation" class="doc-section">
+                <div class="doc-content">
+                    <h2>API Documentation</h2>
+                    
+                    <h3>Authentication</h3>
+                    <p>All API endpoints require authentication using JWT tokens. Include the token in the Authorization header:</p>
+                    <div class="code-block">
+Authorization: Bearer &lt;your_jwt_token&gt;
+                    </div>
+
+                    <h3>Base URL</h3>
+                    <div class="api-url">https://api.clasyo.com/v1</div>
+
+                    <h3>Available Endpoints</h3>
+                    
+                    {% for endpoint in api_endpoints %}
+                    <div class="api-endpoint">
+                        <div class="api-method method-{{ endpoint.method|lower }}">{{ endpoint.method }}</div>
+                        <div class="api-url">{{ endpoint.endpoint }}</div>
+                        <p>{{ endpoint.description }}</p>
+                        
+                        {% if endpoint.endpoint == '/api/v1/students/' %}
+                            <div class="api-params">
+                                <h5>Parameters (GET):</h5>
+                                <table class="table-custom">
+                                    <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+                                    <tr><td>page</td><td>integer</td><td>Page number (default: 1)</td></tr>
+                                    <tr><td>limit</td><td>integer</td><td>Results per page (default: 20)</td></tr>
+                                    <tr><td>class_id</td><td>integer</td><td>Filter by class ID</td></tr>
+                                    <tr><td>search</td><td>string</td><td>Search by name or admission number</td></tr>
+                                </table>
+                            </div>
+                            <div class="api-response">
+                                <h5>Response Example:</h5>
+                                <div class="code-block">
+{
+  "count": 150,
+  "next": "https://api.clasyo.com/v1/students/?page=2",
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "admission_number": "2024-001",
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john.doe@school.com",
+      "class": {
+        "id": 1,
+        "name": "Grade 7A",
+        "stream": "A"
+      },
+      "date_of_birth": "2012-05-15",
+      "gender": "Male",
+      "is_active": true
+    }
+  ]
+}
+                                </div>
+                            </div>
+                        {% elif endpoint.endpoint == '/api/v1/attendance/' %}
+                            <div class="api-params">
+                                <h5>Request Body (POST):</h5>
+                                <div class="code-block">
+{
+  "student_id": 123,
+  "date": "2024-01-15",
+  "status": "present",
+  "remarks": "On time",
+  "marked_by": 456
+}
+                                </div>
+                                <table class="table-custom">
+                                    <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+                                    <tr><td>student_id</td><td>integer</td><td>Yes</td><td>Student ID</td></tr>
+                                    <tr><td>date</td><td>date</td><td>Yes</td><td>Attendance date (YYYY-MM-DD)</td></tr>
+                                    <tr><td>status</td><td>string</td><td>Yes</td><td>present/absent/late</td></tr>
+                                    <tr><td>remarks</td><td>string</td><td>No</td><td>Additional notes</td></tr>
+                                    <tr><td>marked_by</td><td>integer</td><td>Yes</td><td>Teacher ID marking attendance</td></tr>
+                                </table>
+                            </div>
+                            <div class="api-response">
+                                <h5>Response Example:</h5>
+                                <div class="code-block">
+{
+  "success": true,
+  "message": "Attendance recorded successfully",
+  "data": {
+    "id": 789,
+    "student": {
+      "id": 123,
+      "name": "John Doe",
+      "admission_number": "2024-001"
+    },
+    "date": "2024-01-15",
+    "status": "present",
+    "marked_at": "2024-01-15T08:30:00Z",
+    "marked_by": {
+      "id": 456,
+      "name": "Ms. Smith"
+    }
+  }
+}
+                                </div>
+                            </div>
+                        {% elif endpoint.endpoint == '/api/v1/fees/' %}
+                            <div class="api-params">
+                                <h5>Parameters (GET):</h5>
+                                <table class="table-custom">
+                                    <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+                                    <tr><td>student_id</td><td>integer</td><td>Filter by student ID</td></tr>
+                                    <tr><td>status</td><td>string</td><td>Filter by payment status (paid/unpaid/partial)</td></tr>
+                                    <tr><td>term</td><td>string</td><td>Filter by academic term</td></tr>
+                                    <tr><td>year</td><td>integer</td><td>Filter by academic year</td></tr>
+                                </table>
+                            </div>
+                            <div class="api-response">
+                                <h5>Response Example:</h5>
+                                <div class="code-block">
+{
+  "count": 45,
+  "results": [
+    {
+      "id": 101,
+      "student": {
+        "id": 123,
+        "name": "John Doe",
+        "admission_number": "2024-001"
+      },
+      "fee_type": "Tuition Fee",
+      "amount": 45000,
+      "paid_amount": 45000,
+      "balance": 0,
+      "status": "paid",
+      "due_date": "2024-01-31",
+      "term": "Term 1",
+      "academic_year": "2024"
+    }
+  ]
+}
+                                </div>
+                            </div>
+                        {% elif endpoint.endpoint == '/api/v1/grades/' %}
+                            <div class="api-params">
+                                <h5>Request Body (POST):</h5>
+                                <div class="code-block">
+{
+  "student_id": 123,
+  "exam_id": 45,
+  "subject_id": 78,
+  "marks": 85,
+  "grade": "A",
+  "remarks": "Excellent performance",
+  "graded_by": 456
+}
+                                </div>
+                                <table class="table-custom">
+                                    <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+                                    <tr><td>student_id</td><td>integer</td><td>Yes</td><td>Student ID</td></tr>
+                                    <tr><td>exam_id</td><td>integer</td><td>Yes</td><td>Examination ID</td></tr>
+                                    <tr><td>subject_id</td><td>integer</td><td>Yes</td><td>Subject ID</td></tr>
+                                    <tr><td>marks</td><td>float</td><td>Yes</td><td>Obtained marks</td></tr>
+                                    <tr><td>grade</td><td>string</td><td>No</td><td>Grade letter (auto-calculated if not provided)</td></tr>
+                                    <tr><td>remarks</td><td>string</td><td>No</td><td>Teacher's remarks</td></tr>
+                                    <tr><td>graded_by</td><td>integer</td><td>Yes</td><td>Teacher ID</td></tr>
+                                </table>
+                            </div>
+                            <div class="api-response">
+                                <h5>Response Example:</h5>
+                                <div class="code-block">
+{
+  "success": true,
+  "message": "Grade posted successfully",
+  "data": {
+    "id": 567,
+    "student": {
+      "id": 123,
+      "name": "John Doe"
+    },
+    "exam": {
+      "id": 45,
+      "name": "Mid-Term Exams",
+      "term": "Term 1"
+    },
+    "subject": {
+      "id": 78,
+      "name": "Mathematics",
+      "code": "MATH001"
+    },
+    "marks": 85,
+    "grade": "A",
+    "remarks": "Excellent performance",
+    "graded_at": "2024-01-15T14:30:00Z",
+    "graded_by": {
+      "id": 456,
+      "name": "Ms. Smith"
+    }
+  }
+}
+                                </div>
+                            </div>
+                        {% elif endpoint.endpoint == '/api/v1/auth/login/' %}
+                            <div class="api-params">
+                                <h5>Request Body (POST):</h5>
+                                <div class="code-block">
+{
+  "email": "admin@school.com",
+  "password": "userpassword",
+  "school_slug": "demo-school"
+}
+                                </div>
+                                <table class="table-custom">
+                                    <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+                                    <tr><td>email</td><td>string</td><td>Yes</td><td>User email address</td></tr>
+                                    <tr><td>password</td><td>string</td><td>Yes</td><td>User password</td></tr>
+                                    <tr><td>school_slug</td><td>string</td><td>Yes</td><td>School subdomain/identifier</td></tr>
+                                </table>
+                            </div>
+                            <div class="api-response">
+                                <h5>Response Example:</h5>
+                                <div class="code-block">
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+    "refresh_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+    "token_type": "Bearer",
+    "expires_in": 3600,
+    "user": {
+      "id": 456,
+      "email": "admin@school.com",
+      "first_name": "John",
+      "last_name": "Doe",
+      "role": "admin",
+      "school": {
+        "id": 1,
+        "name": "Demo School",
+        "slug": "demo-school"
+      }
+    }
+  }
+}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    <h3>Error Handling</h3>
+                    <p>API returns appropriate HTTP status codes and error messages:</p>
+                    <table class="table-custom">
+                        <tr><th>Status Code</th><th>Meaning</th></tr>
+                        <tr><td>200</td><td>Success</td></tr>
+                        <tr><td>201</td><td>Created</td></tr>
+                        <tr><td>400</td><td>Bad Request</td></tr>
+                        <tr><td>401</td><td>Unauthorized</td></tr>
+                        <tr><td>403</td><td>Forbidden</td></tr>
+                        <tr><td>404</td><td>Not Found</td></tr>
+                        <tr><td>500</td><td>Internal Server Error</td></tr>
+                    </table>
+
+                    <div class="alert-warning">
+                        <strong>Rate Limiting:</strong> API requests are limited to 1000 requests per hour per school.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Payment Gateways -->
+            <section id="payment-gateways" class="doc-section">
+                <div class="doc-content">
+                    <h2>Payment Gateway Configuration</h2>
+                    
+                    <h3>Supported Payment Methods</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="module-card">
+                                <div class="module-icon">
+                                    <i class="fas fa-mobile-alt"></i>
+                                </div>
+                                <h4 class="module-title">M-Pesa STK Push</h4>
+                                <p>Automatic payment prompts sent to parent phones</p>
+                                <h5>Required Fields:</h5>
+                                <ul>
+                                    <li>Consumer Key</li>
+                                    <li>Consumer Secret</li>
+                                    <li>Passkey</li>
+                                    <li>Business Shortcode</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="module-card">
+                                <div class="module-icon">
+                                    <i class="fas fa-money-check"></i>
+                                </div>
+                                <h4 class="module-title">M-Pesa Manual Paybill</h4>
+                                <p>Parents manually pay using paybill details</p>
+                                <h5>Required Fields:</h5>
+                                <ul>
+                                    <li>Paybill Number</li>
+                                    <li>Account Number</li>
+                                    <li>Bank Name</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="module-card">
+                                <div class="module-icon">
+                                    <i class="fab fa-paypal"></i>
+                                </div>
+                                <h4 class="module-title">PayPal</h4>
+                                <p>International payment processing</p>
+                                <h5>Required Fields:</h5>
+                                <ul>
+                                    <li>PayPal Business Email</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="module-card">
+                                <div class="module-icon">
+                                    <i class="fas fa-university"></i>
+                                </div>
+                                <h4 class="module-title">Bank Transfer</h4>
+                                <p>Direct bank deposits</p>
+                                <h5>Required Fields:</h5>
+                                <ul>
+                                    <li>Bank Name</li>
+                                    <li>Account Name</li>
+                                    <li>Account Number</li>
+                                    <li>Branch</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3>Configuration Steps</h3>
+                    <div class="guide-step">
+                        <div class="step-number">1</div>
+                        <h4>Navigate to Payment Settings</h4>
+                        <p>Go to Settings → Payment Configurations in your school admin dashboard.</p>
+                    </div>
+
+                    <div class="guide-step">
+                        <div class="step-number">2</div>
+                        <h4>Add Payment Gateway</h4>
+                        <p>Click "Add Payment Configuration" and select your preferred payment method.</p>
+                    </div>
+
+                    <div class="guide-step">
+                        <div class="step-number">3</div>
+                        <h4>Configure Gateway Details</h4>
+                        <p>Enter the required credentials and test the connection in sandbox mode first.</p>
+                    </div>
+
+                    <div class="guide-step">
+                        <div class="step-number">4</div>
+                        <h4>Activate Gateway</h4>
+                        <p>Switch to live environment once testing is complete and activate the gateway.</p>
+                    </div>
+
+                    <div class="alert-info">
+                        <strong>Security Note:</strong> Always test payment gateways in sandbox mode before going live. Never share your API credentials publicly.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Integration Guide -->
+            <section id="integration" class="doc-section">
+                <div class="doc-content">
+                    <h2>Integration Guide</h2>
+                    
+                    <h3>Webhook Integration</h3>
+                    <p>Configure webhooks to receive real-time notifications about events in your school:</p>
+                    
+                    <div class="api-endpoint">
+                        <h4>Available Webhook Events:</h4>
+                        <ul>
+                            <li><strong>student.enrolled</strong> - New student registration</li>
+                            <li><strong>fee.paid</strong> - Fee payment received</li>
+                            <li><strong>attendance.marked</strong> - Attendance recorded</li>
+                            <li><strong>grade.posted</strong> - Grades posted</li>
+                            <li><strong>user.created</strong> - New user account created</li>
+                        </ul>
+                    </div>
+
+                    <h3>Third-Party Integrations</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="module-card">
+                                <h4 class="module-title">SMS Gateway</h4>
+                                <p>Integrate with SMS providers for parent notifications</p>
+                                <div class="code-block">
+# Example SMS Integration
+POST /api/v1/sms/send
+{
+  "phone_number": "+254712345678",
+  "message": "Fee payment reminder",
+  "template": "fee_reminder"
+}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="module-card">
+                                <h4 class="module-title">Email Service</h4>
+                                <p>Configure custom email settings</p>
+                                <div class="code-block">
+# Email Configuration
+SMTP_HOST = "smtp.yourprovider.com"
+SMTP_PORT = 587
+SMTP_USER = "your-email@domain.com"
+SMTP_PASSWORD = "your-password"
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Technical Documentation -->
+            <section id="technical-docs" class="doc-section">
+                <div class="doc-content">
+                    <h2>Technical Documentation</h2>
+                    
+                    <h3>System Architecture</h3>
+                    <p>{{ technical_docs.architecture.overview }}</p>
+                    
+                    <div class="row mt-4">
+                        {% for component in technical_docs.architecture.components %}
+                        <div class="col-md-6 mb-3">
+                            <div class="module-card">
+                                <h4 class="module-title">{{ component.name }}</h4>
+                                <p><strong>Technology:</strong> {{ component.technology }}</p>
+                                <p>{{ component.description }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <h3>Security & Compliance</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>Security Features</h4>
+                            <ul>
+                                {% for feature in technical_docs.security.features %}
+                                <li>{{ feature }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h4>Compliance Standards</h4>
+                            <ul>
+                                {% for item in technical_docs.security.compliance %}
+                                <li>{{ item }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <h3>Deployment Options</h3>
+                    <div class="row">
+                        {% for option in technical_docs.deployment.options %}
+                        <div class="col-md-4 mb-3">
+                            <div class="module-card">
+                                <h4 class="module-title">{{ option.name }}</h4>
+                                <p>{{ option.description }}</p>
+                                <h5>Benefits:</h5>
+                                <ul>
+                                    {% for benefit in option.benefits %}
+                                    <li>{{ benefit }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- Implementation Guide -->
+            <section id="implementation-guide" class="doc-section">
+                <div class="doc-content">
+                    <h2>Implementation Guide</h2>
+                    
+                    <h3>Implementation Phases</h3>
+                    {% for phase in implementation.phases %}
+                    <div class="module-card">
+                        <h4>{{ phase.phase }} - {{ phase.duration }}</h4>
+                        <ul>
+                            {% for activity in phase.activities %}
+                            <li>{{ activity }}</li>
                             {% endfor %}
                         </ul>
                     </div>
                     {% endfor %}
-                </div>
-            </div>
-
-            <div class="col-lg-4">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-code"></i>
+                    
+                    <h3>Implementation Checklist</h3>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h4>Pre-Implementation</h4>
+                            <ul>
+                                {% for item in implementation.checklist.pre_implementation %}
+                                <li>{{ item }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h4>During Implementation</h4>
+                            <ul>
+                                {% for item in implementation.checklist.during_implementation %}
+                                <li>{{ item }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h4>Post-Implementation</h4>
+                            <ul>
+                                {% for item in implementation.checklist.post_implementation %}
+                                <li>{{ item }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
                     </div>
-                    <h5 class="feature-title">API Endpoints</h5>
-                    <p class="feature-description">Programmatic access for integrations with your Kenyan school systems.</p>
-                    <ul class="mt-3">
-                        {% for endpoint in api_endpoints %}
-                        <li>
-                            <code>{{ endpoint.method }}</code>
-                            <code>{{ endpoint.endpoint }}</code>
-                            – {{ endpoint.description }}
-                        </li>
-                        {% endfor %}
-                    </ul>
                 </div>
-            </div>
+            </section>
+
+            <!-- Pricing & Plans -->
+            <section id="pricing-plans" class="doc-section">
+                <div class="doc-content">
+                    <h2>Pricing & Plans</h2>
+                    
+                    <div class="row">
+                        {% for plan in pricing_info.plans %}
+                        <div class="col-md-4 mb-4">
+                            <div class="module-card {% if plan.name == 'Professional' %}border-primary{% endif %}">
+                                <h3 class="module-title">{{ plan.name }}</h3>
+                                <p class="text-muted">{{ plan.ideal_for }}</p>
+                                <div class="h4 text-primary mb-3">{{ plan.pricing }}</div>
+                                <ul>
+                                    {% for feature in plan.features %}
+                                    <li>{{ feature }}</li>
+                                    {% endfor %}
+                                </ul>
+                                <button class="btn btn-primary w-100 mt-3">Choose Plan</button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <h3>Additional Services</h3>
+                    <div class="row">
+                        {% for service in pricing_info.additional_services %}
+                        <div class="col-md-6 mb-3">
+                            <div class="module-card">
+                                <h4 class="module-title">{{ service.service }}</h4>
+                                <p>{{ service.description }}</p>
+                                <p><strong>Pricing:</strong> {{ service.pricing }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- Contact Information -->
+            <section id="contact" class="doc-section">
+                <div class="doc-content">
+                    <h2>Contact Us</h2>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h3>{{ contact_info.company.name }}</h3>
+                            <p>{{ contact_info.company.description }}</p>
+                            <p class="fst-italic">{{ contact_info.company.mission }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="row">
+                                <div class="col-6 mb-3">
+                                    <div class="module-card text-center">
+                                        <div class="module-icon mx-auto">
+                                            <i class="fas fa-envelope"></i>
+                                        </div>
+                                        <h6>General</h6>
+                                        <p class="small mb-0">{{ contact_info.emails.general }}</p>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="module-card text-center">
+                                        <div class="module-icon mx-auto">
+                                            <i class="fas fa-phone"></i>
+                                        </div>
+                                        <h6>Kenya</h6>
+                                        <p class="small mb-0">{{ contact_info.phones.kenya }}</p>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="module-card text-center">
+                                        <div class="module-icon mx-auto">
+                                            <i class="fas fa-headset"></i>
+                                        </div>
+                                        <h6>Support</h6>
+                                        <p class="small mb-0">{{ contact_info.emails.support }}</p>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="module-card text-center">
+                                        <div class="module-icon mx-auto">
+                                            <i class="fas fa-globe"></i>
+                                        </div>
+                                        <h6>International</h6>
+                                        <p class="small mb-0">{{ contact_info.phones.international }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="alert-info mt-3">
+                                <h6>Business Hours</h6>
+                                <p class="mb-0">{{ contact_info.business_hours.days }}: {{ contact_info.business_hours.hours }}</p>
+                                <p class="small text-muted mb-0">{{ contact_info.business_hours.support }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-3">
+                            <div class="module-card text-center">
+                                <h6>Sales</h6>
+                                <p class="small mb-0">{{ contact_info.emails.sales }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="module-card text-center">
+                                <h6>Info</h6>
+                                <p class="small mb-0">{{ contact_info.emails.info }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="module-card text-center">
+                                <h6>Customer</h6>
+                                <p class="small mb-0">{{ contact_info.emails.customer }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="module-card text-center">
+                                <h6>Support</h6>
+                                <p class="small mb-0">{{ contact_info.emails.support }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Troubleshooting -->
+            <section id="troubleshooting" class="doc-section">
+                <div class="doc-content">
+                    <h2>Troubleshooting</h2>
+                    
+                    <h3>Common Issues</h3>
+                    
+                    <div class="module-card">
+                        <h4>Unable to Login</h4>
+                        <p><strong>Solution:</strong> Check your email and password. Use the "Forgot Password" link to reset if needed.</p>
+                    </div>
+
+                    <div class="module-card">
+                        <h4>Payment Not Reflecting</h4>
+                        <p><strong>Solution:</strong> Wait 5-10 minutes for M-Pesa processing. Check payment confirmation SMS. Contact support if issue persists.</p>
+                    </div>
+
+                    <div class="module-card">
+                        <h4>Reports Not Generating</h4>
+                        <p><strong>Solution:</strong> Ensure you have the required permissions. Check that data exists for the selected period.</p>
+                    </div>
+
+                    <div class="module-card">
+                        <h4>Slow Performance</h4>
+                        <p><strong>Solution:</strong> Clear browser cache, check internet connection, try a different browser.</p>
+                    </div>
+
+                    <h3>Support</h3>
+                    <div class="alert-info">
+                        <p><strong>Email:</strong> {{ contact_info.emails.support }}</p>
+                        <p><strong>Phone (Kenya):</strong> {{ contact_info.phones.kenya }}</p>
+                        <p><strong>Phone (International):</strong> {{ contact_info.phones.international }}</p>
+                        <p><strong>Hours:</strong> {{ contact_info.business_hours.days }}, {{ contact_info.business_hours.hours }}</p>
+                        <p><strong>Emergency:</strong> {{ contact_info.business_hours.support }}</p>
+                    </div>
+                </div>
+            </section>
         </div>
     </div>
-</section>
+</div>
+
+<script>
+// Pagination functionality
+const sections = [
+    'getting-started',
+    'modules', 
+    'user-guides',
+    'api-documentation',
+    'payment-gateways',
+    'integration',
+    'technical-docs',
+    'implementation-guide',
+    'pricing-plans',
+    'contact',
+    'troubleshooting'
+];
+
+let currentPage = 1;
+const totalPages = sections.length;
+
+// Initialize the first page
+document.addEventListener('DOMContentLoaded', function() {
+    showSection(0);
+    updatePaginationButtons();
+    
+    // Add keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft') {
+            navigatePage('prev');
+        } else if (e.key === 'ArrowRight') {
+            navigatePage('next');
+        }
+    });
+    
+    // Add navigation link clicks - only target doc navigation
+    document.querySelectorAll('.doc-nav .nav-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const sectionName = this.getAttribute('data-section');
+            const pageIndex = sections.indexOf(sectionName);
+            if (pageIndex !== -1) {
+                currentPage = pageIndex + 1;
+                showSection(pageIndex);
+                updatePaginationButtons();
+                updateActiveNav();
+            }
+        });
+    });
+});
+
+function showSection(index) {
+    // Hide all sections
+    document.querySelectorAll('.doc-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // Show current section
+    const currentSection = document.getElementById(sections[index]);
+    if (currentSection) {
+        currentSection.classList.add('active');
+    }
+    
+    // Update page indicator
+    document.getElementById('currentPage').textContent = index + 1;
+    document.getElementById('totalPages').textContent = totalPages;
+    
+    // Scroll to top of content
+    const contentArea = document.querySelector('.col-lg-9');
+    if (contentArea) {
+        contentArea.scrollTop = 0;
+    }
+}
+
+function navigatePage(direction) {
+    if (direction === 'prev' && currentPage > 1) {
+        currentPage--;
+    } else if (direction === 'next' && currentPage < totalPages) {
+        currentPage++;
+    }
+    
+    showSection(currentPage - 1);
+    updatePaginationButtons();
+    updateActiveNav();
+}
+
+function updatePaginationButtons() {
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    
+    // Disable/enable previous button
+    if (currentPage === 1) {
+        prevBtn.disabled = true;
+        prevBtn.classList.add('disabled');
+    } else {
+        prevBtn.disabled = false;
+        prevBtn.classList.remove('disabled');
+    }
+    
+    // Disable/enable next button
+    if (currentPage === totalPages) {
+        nextBtn.disabled = true;
+        nextBtn.classList.add('disabled');
+    } else {
+        nextBtn.disabled = false;
+        nextBtn.classList.remove('disabled');
+    }
+}
+
+function updateActiveNav() {
+    // Update documentation navigation active state only
+    document.querySelectorAll('.doc-nav .nav-link').forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('data-section') === sections[currentPage - 1]) {
+            link.classList.add('active');
+        }
+    });
+}
+
+// Scroll to top functionality
+const scrollToTopBtn = document.createElement('div');
+scrollToTopBtn.className = 'scroll-to-top';
+scrollToTopBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+document.body.appendChild(scrollToTopBtn);
+
+window.addEventListener('scroll', () => {
+    if (window.pageYOffset > 300) {
+        scrollToTopBtn.classList.add('visible');
+    } else {
+        scrollToTopBtn.classList.remove('visible');
+    }
+});
+
+scrollToTopBtn.addEventListener('click', () => {
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+});
+</script>
 {% endblock %}

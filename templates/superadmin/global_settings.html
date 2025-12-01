@@ -1,0 +1,163 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Global Settings - Clasyo{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">Global Settings</h1>
+                    <p class="text-muted mb-0">Configure global SMS, email, and database settings for all schools</p>
+                </div>
+                <div>
+                    <a href="{% url 'superadmin:dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">SMS Configurations</h5>
+                            <p class="card-text mb-0">{{ sms_configs|length }} configurations</p>
+                        </div>
+                        <div class="fs-2">
+                            <i class="fas fa-sms"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="{% url 'superadmin:sms_config_list' %}" class="btn btn-light btn-sm">
+                        Manage SMS <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Email Configurations</h5>
+                            <p class="card-text mb-0">{{ email_configs|length }} configurations</p>
+                        </div>
+                        <div class="fs-2">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="{% url 'superadmin:email_config_list' %}" class="btn btn-light btn-sm">
+                        Manage Email <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Database Configurations</h5>
+                            <p class="card-text mb-0">{{ db_configs|length }} configurations</p>
+                        </div>
+                        <div class="fs-2">
+                            <i class="fas fa-database"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="{% url 'superadmin:db_config_list' %}" class="btn btn-light btn-sm">
+                        Manage Database <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Configurations -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Active SMS Configurations</h5>
+                </div>
+                <div class="card-body">
+                    {% if sms_configs %}
+                        {% for config in sms_configs %}
+                            {% if config.is_active %}
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <strong>{{ config.get_provider_display }}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            {% if config.default_sender_id %}
+                                                Sender: {{ config.default_sender_id }}
+                                            {% else %}
+                                                No custom sender ID
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-success">Active</span>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                        {% if not sms_configs|selectattr:"is_active" %}
+                            <p class="text-muted mb-0">No active SMS configurations found.</p>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted mb-0">No SMS configurations found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Active Email Configurations</h5>
+                </div>
+                <div class="card-body">
+                    {% if email_configs %}
+                        {% for config in email_configs %}
+                            {% if config.is_active %}
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <strong>{{ config.get_provider_display }}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            {% if config.default_from_email %}
+                                                From: {{ config.default_from_email }}
+                                            {% else %}
+                                                No custom from email
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-success">Active</span>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                        {% if not email_configs|selectattr:"is_active" %}
+                            <p class="text-muted mb-0">No active email configurations found.</p>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted mb-0">No email configurations found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,389 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} SMS Configuration - Clasyo{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">{% if form.instance.pk %}Edit{% else %}Create{% endif %} SMS Configuration</h1>
+                    <p class="text-muted mb-0">{% if form.instance.pk %}Modify{% else %}Set up{% endif %} SMS provider settings</p>
+                </div>
+                <div>
+                    <a href="{% url 'superadmin:sms_config_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to List
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" id="sms-config-form">
+                        {% csrf_token %}
+                        
+                        <!-- Basic Settings -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.provider.id_for_label }}" class="form-label">
+                                        {{ form.provider.label }} <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.provider }}
+                                    {% if form.provider.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.provider.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.is_active.id_for_label }}" class="form-label">
+                                        {{ form.is_active.label }}
+                                    </label>
+                                    <div class="form-check form-switch mt-2">
+                                        {{ form.is_active }}
+                                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                            Enable this configuration
+                                        </label>
+                                    </div>
+                                    {% if form.is_active.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.is_active.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Common Settings -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="card-title">Common Settings</h5>
+                                <hr>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.default_sender_id.id_for_label }}" class="form-label">
+                                        {{ form.default_sender_id.label }}
+                                    </label>
+                                    {{ form.default_sender_id }}
+                                    {% if form.default_sender_id.help_text %}
+                                        <small class="form-text text-muted">{{ form.default_sender_id.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.default_sender_id.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.default_sender_id.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Provider-specific settings -->
+                        <div class="row mb-4" id="provider-settings">
+                            <div class="col-12">
+                                <h5 class="card-title">Provider Settings</h5>
+                                <hr>
+                            </div>
+                            
+                            <!-- Twilio Settings -->
+                            <div class="provider-fields" id="twilio-fields" style="display: none;">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="{{ form.twilio_account_sid.id_for_label }}" class="form-label">
+                                            {{ form.twilio_account_sid.label }}
+                                        </label>
+                                        {{ form.twilio_account_sid }}
+                                        {% if form.twilio_account_sid.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.twilio_account_sid.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="{{ form.twilio_auth_token.id_for_label }}" class="form-label">
+                                            {{ form.twilio_auth_token.label }}
+                                        </label>
+                                        {{ form.twilio_auth_token }}
+                                        {% if form.twilio_auth_token.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.twilio_auth_token.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="{{ form.twilio_phone_number.id_for_label }}" class="form-label">
+                                            {{ form.twilio_phone_number.label }}
+                                        </label>
+                                        {{ form.twilio_phone_number }}
+                                        {% if form.twilio_phone_number.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.twilio_phone_number.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Africa's Talking Settings -->
+                            <div class="provider-fields" id="africastalking-fields" style="display: none;">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="{{ form.africastalking_username.id_for_label }}" class="form-label">
+                                            {{ form.africastalking_username.label }}
+                                        </label>
+                                        {{ form.africastalking_username }}
+                                        {% if form.africastalking_username.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.africastalking_username.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="{{ form.africastalking_api_key.id_for_label }}" class="form-label">
+                                            {{ form.africastalking_api_key.label }}
+                                        </label>
+                                        {{ form.africastalking_api_key }}
+                                        {% if form.africastalking_api_key.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.africastalking_api_key.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="{{ form.africastalking_sender_id.id_for_label }}" class="form-label">
+                                            {{ form.africastalking_sender_id.label }}
+                                        </label>
+                                        {{ form.africastalking_sender_id }}
+                                        {% if form.africastalking_sender_id.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.africastalking_sender_id.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Infobip Settings -->
+                            <div class="provider-fields" id="infobip-fields" style="display: none;">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="{{ form.infobip_api_key.id_for_label }}" class="form-label">
+                                            {{ form.infobip_api_key.label }}
+                                        </label>
+                                        {{ form.infobip_api_key }}
+                                        {% if form.infobip_api_key.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.infobip_api_key.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="{{ form.infobip_base_url.id_for_label }}" class="form-label">
+                                            {{ form.infobip_base_url.label }}
+                                        </label>
+                                        {{ form.infobip_base_url }}
+                                        {% if form.infobip_base_url.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.infobip_base_url.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="{{ form.infobip_sender.id_for_label }}" class="form-label">
+                                            {{ form.infobip_sender.label }}
+                                        </label>
+                                        {{ form.infobip_sender }}
+                                        {% if form.infobip_sender.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.infobip_sender.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Clickatell Settings -->
+                            <div class="provider-fields" id="clickatell-fields" style="display: none;">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="{{ form.clickatell_api_key.id_for_label }}" class="form-label">
+                                            {{ form.clickatell_api_key.label }}
+                                        </label>
+                                        {{ form.clickatell_api_key }}
+                                        {% if form.clickatell_api_key.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.clickatell_api_key.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Nexmo Settings -->
+                            <div class="provider-fields" id="nexmo-fields" style="display: none;">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="{{ form.nexmo_api_key.id_for_label }}" class="form-label">
+                                            {{ form.nexmo_api_key.label }}
+                                        </label>
+                                        {{ form.nexmo_api_key }}
+                                        {% if form.nexmo_api_key.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.nexmo_api_key.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="{{ form.nexmo_api_secret.id_for_label }}" class="form-label">
+                                            {{ form.nexmo_api_secret.label }}
+                                        </label>
+                                        {{ form.nexmo_api_secret }}
+                                        {% if form.nexmo_api_secret.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.nexmo_api_secret.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="{{ form.nexmo_from_number.id_for_label }}" class="form-label">
+                                            {{ form.nexmo_from_number.label }}
+                                        </label>
+                                        {{ form.nexmo_from_number }}
+                                        {% if form.nexmo_from_number.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.nexmo_from_number.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-end">
+                                    <a href="{% url 'superadmin:sms_config_list' %}" class="btn btn-outline-secondary me-2">
+                                        Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>{% if form.instance.pk %}Update{% else %}Create{% endif %} Configuration
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Provider Information</h5>
+                </div>
+                <div class="card-body">
+                    <div id="provider-info">
+                        <p class="text-muted">Select a provider to see configuration details.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const providerSelect = document.getElementById('{{ form.provider.id_for_label }}');
+    const providerFields = document.querySelectorAll('.provider-fields');
+    const providerInfo = document.getElementById('provider-info');
+    
+    const providerDescriptions = {
+        'twilio': '<h6>Twilio</h6><p>Global SMS and voice service. Requires Account SID, Auth Token, and a Twilio phone number.</p>',
+        'africastalking': '<h6>Africa\'s Talking</h6><p>African-focused SMS service. Requires username, API key, and optional sender ID.</p>',
+        'infobip': '<h6>Infobip</h6><p>Global communication platform. Requires API key and sender configuration.</p>',
+        'clickatell': '<h6>Clickatell</h6><p>Simple SMS API service. Requires API key only.</p>',
+        'nexmo': '<h6>Nexmo (Vonage)</h6><p>Communication APIs. Requires API key, secret, and from number.</p>'
+    };
+    
+    function showProviderFields(provider) {
+        // Hide all provider fields
+        providerFields.forEach(field => {
+            field.style.display = 'none';
+        });
+        
+        // Show selected provider fields
+        const selectedFields = document.getElementById(`${provider}-fields`);
+        if (selectedFields) {
+            selectedFields.style.display = 'block';
+        }
+        
+        // Update provider info
+        if (providerDescriptions[provider]) {
+            providerInfo.innerHTML = providerDescriptions[provider];
+        } else {
+            providerInfo.innerHTML = '<p class="text-muted">Select a provider to see configuration details.</p>';
+        }
+    }
+    
+    // Show fields for initially selected provider
+    if (providerSelect.value) {
+        showProviderFields(providerSelect.value);
+    }
+    
+    // Handle provider change
+    providerSelect.addEventListener('change', function() {
+        showProviderFields(this.value);
+    });
+});
+</script>
+
+<style>
+.provider-fields {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.form-select, .form-control {
+    border-radius: 6px;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+</style>
+{% endblock %}

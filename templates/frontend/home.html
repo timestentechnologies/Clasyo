@@ -1,491 +1,291 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clasyo - Modern School Management System for Kenyan CBC, Primary, Secondary &amp; TVET</title>
-    <meta name="description" content="Clasyo is a modern Kenyan school management system for CBC, primary, secondary and TVET institutions. Manage admissions, academics, exams, fees, communication and reporting for schools across Kenya.">
-    <meta name="keywords" content="school management system Kenya,CBC school software,TVET college system,primary school management,secondary school management,Kenya school ERP,Clasyo">
-    <meta name="robots" content="index,follow">
-    <link rel="canonical" href="{{ request.build_absolute_uri }}">
-    <meta property="og:locale" content="en_KE">
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="Clasyo School Management System for Kenyan CBC, Primary, Secondary &amp; TVET">
-    <meta property="og:description" content="Cloud school management platform built in Kenya to support CBC, primary, secondary and TVET institutions.">
-    <meta property="og:url" content="{{ request.build_absolute_uri }}">
-    <meta property="og:site_name" content="Clasyo">
-    <meta property="og:image" content="{% static 'images/icon-512x512.png' %}">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Clasyo School Management System – CBC, Primary, Secondary &amp; TVET in Kenya">
-    <meta name="twitter:description" content="Digitize your Kenyan school operations with Clasyo – admissions, academics, exams, fees, communication and more.">
-    <meta name="twitter:image" content="{% static 'images/icon-512x512.png' %}">
-    <meta name="geo.region" content="KE">
-    <meta name="geo.placename" content="Nairobi">
-    <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
-    <link rel="alternate icon" href="{% static 'images/favicon.ico' %}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * {
-            font-family: 'Inter', sans-serif;
-        }
-        
-        .navbar {
-            padding: 1.2rem 0;
-            background: rgba(255, 255, 255, 0.98) !important;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
-            position: relative;
-            z-index: 1050;
-        }
-        
-        .navbar-brand {
-            font-size: 1.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #1E3A5F 0%, #4DD0E1 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .nav-link {
-            font-weight: 500;
-            margin: 0 0.5rem;
-            transition: all 0.3s;
-        }
-        
-        .nav-link:hover {
-            color: #1E3A5F !important;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #1E3A5F 0%, #4DD0E1 100%);
-            border: none;
-            padding: 0.7rem 2rem;
-            font-weight: 600;
-            border-radius: 50px;
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(30, 58, 95, 0.4);
-        }
-        
-        .btn-nav-login {
-            border: 2px solid #1E3A5F !important;
-            color: #1E3A5F !important;
-            background: white !important;
-            font-weight: 600 !important;
-            padding: 0.5rem 1.5rem !important;
-            border-radius: 50px !important;
-            transition: all 0.3s !important;
-            cursor: pointer;
-        }
-        
-        .btn-nav-login:hover,
-        .btn-nav-login:focus,
-        .btn-nav-login:active {
-            background: #1E3A5F !important;
-            color: white !important;
-            border-color: #1E3A5F !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 8px 20px rgba(30, 58, 95, 0.3) !important;
-        }
-        
-        .btn-nav-trial {
-            background: linear-gradient(135deg, #1E3A5F 0%, #4DD0E1 100%) !important;
-            border: none !important;
-            color: white !important;
-            font-weight: 600 !important;
-            padding: 0.5rem 1.5rem !important;
-            border-radius: 50px !important;
-            transition: all 0.3s !important;
-            cursor: pointer;
-        }
-        
-        .btn-nav-trial:hover,
-        .btn-nav-trial:focus,
-        .btn-nav-trial:active {
-            background: linear-gradient(135deg, #1E3A5F 0%, #4DD0E1 100%) !important;
-            color: white !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 8px 20px rgba(30, 58, 95, 0.4) !important;
-            opacity: 0.95;
-        }
-        
-        .hero-section {
-            background: linear-gradient(135deg, #1E3A5F 0%, #2C5282 100%);
-            color: white;
-            padding: 8rem 0 6rem;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .hero-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></svg>');
-            opacity: 0.3;
-        }
-        
-        /* Decorative background icons */
-        .bg-icons {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            overflow: hidden;
-            opacity: 0.05;
-            pointer-events: none;
-            z-index: 0;
-        }
-        
-        .bg-icon {
-            position: absolute;
-            color: white;
-            animation: float 20s ease-in-out infinite;
-        }
-        
-        .bg-icon:nth-child(1) { top: 10%; left: 10%; font-size: 3rem; animation-delay: 0s; }
-        .bg-icon:nth-child(2) { top: 20%; right: 15%; font-size: 2.5rem; animation-delay: 2s; }
-        .bg-icon:nth-child(3) { bottom: 15%; left: 15%; font-size: 2rem; animation-delay: 4s; }
-        .bg-icon:nth-child(4) { top: 50%; right: 10%; font-size: 3.5rem; animation-delay: 1s; }
-        .bg-icon:nth-child(5) { bottom: 25%; right: 25%; font-size: 2rem; animation-delay: 3s; }
-        .bg-icon:nth-child(6) { top: 30%; left: 20%; font-size: 2.5rem; animation-delay: 5s; }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            25% { transform: translateY(-20px) rotate(5deg); }
-            50% { transform: translateY(-10px) rotate(-5deg); }
-            75% { transform: translateY(-15px) rotate(3deg); }
-        }
-        
-        .hero-section .container {
-            position: relative;
-            z-index: 1;
-        }
-        
+{% extends 'frontend/base.html' %}
+
+{% block title %}Clasyo - Modern School Management System for Kenyan CBC, Primary, Secondary & TVET{% endblock %}
+{% block meta_description %}Clasyo is a modern Kenyan school management system for CBC, primary, secondary and TVET institutions. Manage admissions, academics, exams, fees, communication and reporting for schools across Kenya.{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hero Section Styles */
+    .hero-section {
+        background: linear-gradient(135deg, #1E3A5F 0%, #2C5282 100%);
+        color: white;
+        padding: 8rem 0 6rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></svg>');
+        opacity: 0.3;
+    }
+    
+    /* Decorative background icons */
+    .bg-icons {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        overflow: hidden;
+        opacity: 0.05;
+        pointer-events: none;
+        z-index: 0;
+    }
+    
+    .bg-icon {
+        position: absolute;
+        color: white;
+        animation: float 20s ease-in-out infinite;
+    }
+    
+    .bg-icon:nth-child(1) { top: 10%; left: 10%; font-size: 3rem; animation-delay: 0s; }
+    .bg-icon:nth-child(2) { top: 20%; right: 15%; font-size: 2.5rem; animation-delay: 2s; }
+    .bg-icon:nth-child(3) { bottom: 15%; left: 15%; font-size: 2rem; animation-delay: 4s; }
+    .bg-icon:nth-child(4) { top: 50%; right: 10%; font-size: 3.5rem; animation-delay: 1s; }
+    .bg-icon:nth-child(5) { bottom: 25%; right: 25%; font-size: 2rem; animation-delay: 3s; }
+    .bg-icon:nth-child(6) { top: 30%; left: 20%; font-size: 2.5rem; animation-delay: 5s; }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        25% { transform: translateY(-20px) rotate(5deg); }
+        50% { transform: translateY(-10px) rotate(-5deg); }
+        75% { transform: translateY(-15px) rotate(3deg); }
+    }
+    
+    .hero-section .container {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .hero-icon {
+        width: 120px;
+        height: 120px;
+        background: linear-gradient(135deg, #4DD0E1 0%, #26C6DA 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 2rem;
+        font-size: 3rem;
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(77, 208, 225, 0.3);
+        color: white;
+    }
+    
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin-bottom: 1.5rem;
+        line-height: 1.2;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.3rem;
+        opacity: 0.95;
+        margin-bottom: 2.5rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .btn-hero {
+        padding: 1rem 2.5rem;
+        font-weight: 600;
+        border-radius: 50px;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        border: 2px solid transparent;
+    }
+    
+    .btn-hero-primary {
+        background: linear-gradient(135deg, #4DD0E1 0%, #26C6DA 100%);
+        color: white;
+        border-color: rgba(77, 208, 225, 0.3);
+        backdrop-filter: blur(10px);
+    }
+    
+    .btn-hero-primary:hover {
+        background: linear-gradient(135deg, #26C6DA 0%, #1E3A5F 100%);
+        transform: translateY(-3px);
+        box-shadow: 0 15px 35px rgba(77, 208, 225, 0.3);
+    }
+    
+    .btn-hero-outline {
+        background: transparent;
+        color: #4DD0E1;
+        border-color: #4DD0E1;
+    }
+    
+    .btn-hero-outline:hover {
+        background: rgba(77, 208, 225, 0.1);
+        border-color: #26C6DA;
+        transform: translateY(-3px);
+    }
+    
+    /* Stats Section */
+    .stats-section {
+        padding: 5rem 0;
+        background: #f8f9fa;
+        margin-top: -3rem;
+        position: relative;
+        z-index: 10;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: 1px solid #f0f0f0;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #4DD0E1 0%, #26C6DA 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        color: white;
+        font-size: 1.5rem;
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #1E3A5F;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+        color: #6c757d;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.9rem;
+    }
+    
+    /* Features Section */
+    .feature-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 15px;
+        text-align: center;
+        height: 100%;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        border: 1px solid #f0f0f0;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+    }
+    
+    .feature-icon {
+        width: 70px;
+        height: 70px;
+        background: linear-gradient(135deg, #4DD0E1 0%, #26C6DA 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        color: white;
+        font-size: 1.8rem;
+    }
+    
+    .feature-title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #1E3A5F;
+        margin-bottom: 1rem;
+    }
+    
+    .feature-description {
+        color: #6c757d;
+        line-height: 1.6;
+    }
+    
+    /* CTA Section */
+    .cta-section {
+        background: linear-gradient(135deg, #1E3A5F 0%, #2C5282 100%);
+        color: white;
+        padding: 6rem 0;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .cta-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></svg>');
+    }
+    
+    .cta-icon {
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(135deg, #4DD0E1 0%, #26C6DA 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 2rem;
+        font-size: 2.5rem;
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(77, 208, 225, 0.3);
+        color: white;
+    }
+    
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
         .hero-title {
-            font-size: 3.5rem;
-            font-weight: 800;
-            line-height: 1.2;
-            margin-bottom: 1.5rem;
-            animation: fadeInUp 0.8s ease;
+            font-size: 2.5rem !important;
         }
         
         .hero-subtitle {
-            font-size: 1.3rem;
-            font-weight: 400;
-            margin-bottom: 2.5rem;
-            opacity: 0.95;
-            animation: fadeInUp 0.8s ease 0.2s both;
-        }
-        
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% {
-                transform: translateY(0);
-            }
-            40% {
-                transform: translateY(-10px);
-            }
-            60% {
-                transform: translateY(-5px);
-            }
-        }
-        
-        @keyframes pulse {
-            0% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.05);
-            }
-            100% {
-                transform: scale(1);
-            }
-        }
-        
-        @keyframes slideInLeft {
-            from {
-                opacity: 0;
-                transform: translateX(-50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-        
-        @keyframes countUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px) scale(0.8);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
+            font-size: 1.1rem !important;
         }
         
         .btn-hero {
-            padding: 1rem 2.5rem;
-            font-size: 1.1rem;
-            font-weight: 600;
-            border-radius: 50px;
-            transition: all 0.3s;
-            animation: fadeInUp 0.8s ease 0.4s both;
-        }
-        
-        .btn-hero-primary {
-            background: white;
-            color: #1E3A5F;
-        }
-        
-        .btn-hero-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
-            color: #1E3A5F;
-        }
-        
-        .btn-hero-outline {
-            border: 2px solid white;
-            color: white;
-        }
-        
-        .btn-hero-outline:hover {
-            background: white;
-            color: #1E3A5F;
-            transform: translateY(-3px);
-        }
-        
-        .stats-section {
-            background: #f8f9fa;
-            padding: 4rem 0;
-            margin-top: -50px;
-            position: relative;
-            z-index: 2;
-        }
-        
-        .stat-card {
-            background: white;
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-            transition: transform 0.3s, box-shadow 0.3s;
-            text-align: center;
-            animation: countUp 0.6s ease both;
-        }
-        
-        .stat-card:nth-child(1) { animation-delay: 0.1s; }
-        .stat-card:nth-child(2) { animation-delay: 0.2s; }
-        .stat-card:nth-child(3) { animation-delay: 0.3s; }
-        .stat-card:nth-child(4) { animation-delay: 0.4s; }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-        }
-        
-        .stat-icon {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 1rem;
-            background: linear-gradient(135deg, #1E3A5F 0%, #4DD0E1 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.5rem;
-        }
-        
-        .stat-card:hover .stat-icon {
-            animation: pulse 1s ease infinite;
+            padding: 0.8rem 2rem;
+            font-size: 1rem;
         }
         
         .stat-number {
-            font-size: 3rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #1E3A5F 0%, #4DD0E1 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .stat-label {
-            font-size: 1rem;
-            color: #6c757d;
-            font-weight: 500;
-        }
-        
-        .section-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            color: #2d3748;
-        }
-        
-        .section-subtitle {
-            font-size: 1.2rem;
-            color: #6c757d;
-            margin-bottom: 3rem;
+            font-size: 2rem;
         }
         
         .feature-card {
-            background: white;
-            padding: 2.5rem;
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.06);
-            transition: all 0.3s;
-            height: 100%;
-            border: 1px solid #f0f0f0;
+            margin-bottom: 2rem;
         }
-        
-        .feature-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 40px rgba(30, 58, 95, 0.15);
-            border-color: #4DD0E1;
-        }
-        
-        .feature-icon {
-            width: 70px;
-            height: 70px;
-            background: linear-gradient(135deg, #1E3A5F 0%, #4DD0E1 100%);
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1.5rem;
-        }
-        
-        .feature-icon i {
-            font-size: 2rem;
-            color: white;
-        }
-        
-        .feature-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #2d3748;
-        }
-        
-        .feature-description {
-            color: #6c757d;
-            line-height: 1.7;
-        }
-        
-        .cta-section {
-            background: linear-gradient(135deg, #0d8a9c 0%, #4DD0E1 100%);
-            padding: 5rem 0;
-            color: white;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .cta-icon {
-            font-size: 4rem;
-            margin-bottom: 1.5rem;
-            display: inline-block;
-            animation: bounce 2s ease infinite;
-        }
-        
-        .hero-icon {
-            font-size: 3.5rem;
-            margin-bottom: 1rem;
-            display: inline-block;
-            animation: slideInLeft 0.8s ease;
-        }
-        
-        .cta-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></svg>');
-        }
-        
-        footer {
-            background: linear-gradient(135deg, #1E3A5F 0%, #2C5282 100%);
-            color: white;
-            padding: 4rem 0 2rem;
-        }
-        
-        footer a {
-            color: #a0aec0;
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-        
-        footer a:hover {
-            color: white;
-        }
-    </style>
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light sticky-top">
-        <div class="container">
-            <a class="navbar-brand" href="{% url 'frontend:home' %}">
-                <i class="fas fa-graduation-cap"></i> Clasyo
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-center">
-                    <li class="nav-item"><a class="nav-link" href="{% url 'frontend:home' %}">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'frontend:about' %}">About</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'frontend:pricing' %}">Pricing</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'frontend:faq' %}">FAQ</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'frontend:contact' %}">Contact</a></li>
-                    <li class="nav-item ms-2">
-                        <button class="btn btn-nav-login" data-bs-toggle="modal" data-bs-target="#loginModal">
-                            <i class="fas fa-sign-in-alt me-1"></i> Login
-                        </button>
-                    </li>
-                    <li class="nav-item ms-2">
-                        <button class="btn btn-nav-trial" data-bs-toggle="modal" data-bs-target="#registerModal">
-                            <i class="fas fa-rocket me-1"></i> Start Free Trial
-                        </button>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    }
+</style>
+{% endblock %}
 
-    <!-- Messages -->
-    {% if messages %}
-    <div class="container mt-3">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
+{% block content %}
 
     <!-- Hero Section -->
     <section class="hero-section">
@@ -672,71 +472,4 @@
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <div class="row">
-                <div class="col-md-3 mb-4">
-                    <h5 class="text-white mb-3">Clasyo</h5>
-                    <p>Modern cloud-based school management system for the digital age.</p>
-                    <div class="mt-3">
-                        <a href="#" class="text-white me-3"><i class="fab fa-facebook fa-lg"></i></a>
-                        <a href="#" class="text-white me-3"><i class="fab fa-twitter fa-lg"></i></a>
-                        <a href="#" class="text-white me-3"><i class="fab fa-linkedin fa-lg"></i></a>
-                        <a href="#" class="text-white"><i class="fab fa-instagram fa-lg"></i></a>
-                    </div>
-                </div>
-                <div class="col-md-2 mb-4">
-                    <h6 class="text-white mb-3">Product</h6>
-                    <ul class="list-unstyled">
-                        <li class="mb-2"><a href="{% url 'frontend:home' %}">Features</a></li>
-                        <li class="mb-2"><a href="{% url 'frontend:pricing' %}">Pricing</a></li>
-                        <li class="mb-2"><a href="{% url 'accounts:login' %}">Login</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-2 mb-4">
-                    <h6 class="text-white mb-3">Company</h6>
-                    <ul class="list-unstyled">
-                        <li class="mb-2"><a href="{% url 'frontend:about' %}">About</a></li>
-                        <li class="mb-2"><a href="{% url 'frontend:contact' %}">Contact</a></li>
-                        <li class="mb-2"><a href="{% url 'frontend:faq' %}">FAQ</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-2 mb-4">
-                    <h6 class="text-white mb-3">Legal</h6>
-                    <ul class="list-unstyled">
-                        <li class="mb-2"><a href="{% url 'frontend:privacy' %}">Privacy</a></li>
-                        <li class="mb-2"><a href="{% url 'frontend:terms' %}">Terms</a></li>
-                        <li class="mb-2"><a href="{% url 'frontend:license' %}">License</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-3 mb-4">
-                    <h6 class="text-white mb-3">Contact Us</h6>
-                    <ul class="list-unstyled">
-                        <li class="mb-2">
-                            <i class="fas fa-envelope me-2"></i>
-                            <a href="mailto:timestentechnologies@gmail.com">timestentechnologies@gmail.com</a>
-                        </li>
-                        <li class="mb-2">
-                            <i class="fas fa-phone me-2"></i>
-                            <a href="tel:+254718883983">+254 718 883 983</a>
-                        </li>
-                        <li class="mb-2">
-                            <i class="fas fa-map-marker-alt me-2"></i>
-                            <span>Nairobi, Kenya</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-            <hr class="my-4" style="border-color: #4a5568;">
-            <div class="text-center">
-                <p class="mb-0">© 2025 Clasyo by Timesten Technologies. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
-
-    {% include 'frontend/modals.html' %}
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% endblock %}

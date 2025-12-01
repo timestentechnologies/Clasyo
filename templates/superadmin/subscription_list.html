@@ -19,8 +19,14 @@
                             <a href="?status=active" class="btn btn-sm {% if request.GET.status == 'active' %}btn-success{% else %}btn-outline-success{% endif %}">
                                 Active
                             </a>
+                            <a href="?status=trial" class="btn btn-sm {% if request.GET.status == 'trial' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                                Trial
+                            </a>
                             <a href="?status=expired" class="btn btn-sm {% if request.GET.status == 'expired' %}btn-danger{% else %}btn-outline-danger{% endif %}">
                                 Expired
+                            </a>
+                            <a href="?status=pending" class="btn btn-sm {% if request.GET.status == 'pending' %}btn-info{% else %}btn-outline-info{% endif %}">
+                                Pending
                             </a>
                         </div>
                     </div>
@@ -39,6 +45,7 @@
                                 <th>Plan</th>
                                 <th>Duration</th>
                                 <th>Status</th>
+                                <th>Payment Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -58,18 +65,55 @@
                                 </td>
                                 <td>
                                     <strong>{{ subscription.plan.name }}</strong><br>
-                                    <small class="text-muted">${{ subscription.plan.price|default:"0" }}/month</small>
+                                    {% if subscription.is_trial %}
+                                        <span class="badge bg-warning">Trial</span>
+                                    {% else %}
+                                        <small class="text-muted">{{ subscription.plan.price|default:"0" }} {{ subscription.plan.currency|default:"USD" }}/{{ subscription.plan.get_billing_cycle_display }}</small>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <small class="d-block"><i class="fas fa-calendar-check text-success me-1"></i> {{ subscription.start_date|date:"M d, Y" }}</small>
                                     <small class="d-block"><i class="fas fa-calendar-times text-danger me-1"></i> {{ subscription.end_date|date:"M d, Y" }}</small>
+                                    {% if subscription.is_trial %}
+                                    <small class="d-block"><i class="fas fa-hourglass-half text-warning me-1"></i> {{ subscription.plan.trial_days }} days trial</small>
+                                    {% endif %}
                                 </td>
                                 <td>
-                                    {% if subscription.is_active %}
+                                    {% if subscription.status == 'active' %}
                                         <span class="badge bg-success">Active</span>
-                                    {% else %}
+                                    {% elif subscription.status == 'trial' %}
+                                        <span class="badge bg-warning">Trial</span>
+                                    {% elif subscription.status == 'expired' %}
                                         <span class="badge bg-danger">Expired</span>
+                                    {% elif subscription.status == 'pending' %}
+                                        <span class="badge bg-info">Pending</span>
+                                    {% elif subscription.status == 'cancelled' %}
+                                        <span class="badge bg-secondary">Cancelled</span>
+                                    {% elif subscription.status == 'suspended' %}
+                                        <span class="badge bg-dark">Suspended</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ subscription.get_status_display }}</span>
                                     {% endif %}
+                                </td>
+                                <td>
+                                    {% with latest_payment=subscription.payments.last %}
+                                        {% if latest_payment %}
+                                            {% if latest_payment.status == 'approved' %}
+                                                <span class="badge bg-success">Paid</span>
+                                            {% elif latest_payment.status == 'pending_verification' %}
+                                                <span class="badge bg-warning">Pending Verification</span>
+                                            {% elif latest_payment.status == 'verified' %}
+                                                <span class="badge bg-info">Verified</span>
+                                            {% elif latest_payment.status == 'rejected' %}
+                                                <span class="badge bg-danger">Rejected</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ latest_payment.get_status_display }}</span>
+                                            {% endif %}
+                                            <br><small class="text-muted">{{ latest_payment.amount }} {{ latest_payment.currency }}</small>
+                                        {% else %}
+                                            <span class="badge bg-secondary">No Payment</span>
+                                        {% endif %}
+                                    {% endwith %}
                                 </td>
                                 <td>
                                     <div class="btn-group" role="group">
@@ -77,12 +121,20 @@
                                            class="btn btn-sm btn-outline-primary" title="Edit in Django Admin" target="_blank">
                                             <i class="fas fa-edit"></i>
                                         </a>
+                                        {% with latest_payment=subscription.payments.last %}
+                                            {% if latest_payment %}
+                                                <a href="{% url 'superadmin:payment_detail' latest_payment.payment_id %}" 
+                                                   class="btn btn-sm btn-outline-info" title="View Payment">
+                                                    <i class="fas fa-credit-card"></i>
+                                                </a>
+                                            {% endif %}
+                                        {% endwith %}
                                     </div>
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="5" class="text-center py-5">
+                                <td colspan="6" class="text-center py-5">
                                     <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">No subscriptions found</p>
                                 </td>

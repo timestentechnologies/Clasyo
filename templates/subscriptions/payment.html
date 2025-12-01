@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Complete Payment - {{ payment.subscription.plan.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Complete Payment</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h5>Subscription Details</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Plan:</strong> {{ payment.subscription.plan.name }}</p>
+                                <p><strong>Amount:</strong> KES {{ payment.amount }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Billing Cycle:</strong> {{ payment.subscription.plan.get_billing_cycle_display }}</p>
+                                <p><strong>Payment Method:</strong> {{ payment.get_payment_method_display }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check"></i> Confirm Payment
+                            </button>
+                            <a href="{% url 'subscriptions:plans' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Plans
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

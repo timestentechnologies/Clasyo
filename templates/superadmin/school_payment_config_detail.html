@@ -1,0 +1,458 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+{% load payment_filters %}
+
+{% block extra_body_attrs %}id="paymentConfigData" data-is-active="{{ config.is_active|lower }}" data-update-url="{% url 'superadmin:school_payment_config_update' school_slug=school.slug pk=config.pk %}"{% endblock %}
+
+{% block title %}Payment Configuration - {{ config.get_gateway_display }} - {{ school.name }}{% endblock %}
+
+{% block page_title %}Payment Configuration Details{% endblock %}
+{% block page_icon %}credit-card{% endblock %}
+{% block page_subtitle %}{{ config.get_gateway_display }} ({{ config.get_environment_display }}) - {{ school.name }}{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <a href="{% url 'superadmin:school_payment_config_list' school_slug=school.slug %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to List
+    </a>
+    <a href="{% url 'superadmin:school_payment_config_update' school_slug=school.slug pk=config.pk %}" class="btn btn-primary">
+        <i class="fas fa-edit me-2"></i>Edit Configuration
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Configuration Details -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar bg-{{ config.gateway|payment_gateway_color }} text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                            <i class="fas {{ config.gateway|payment_gateway_icon }}"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-1">{{ config.get_gateway_display }}</h5>
+                            <p class="card-text text-muted mb-0">
+                                {% if config.is_active %}
+                                    <span class="badge bg-success rounded-pill">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary rounded-pill">Inactive</span>
+                                {% endif %}
+                                {% if config.environment == 'live' %}
+                                    <span class="badge bg-warning text-dark rounded-pill ms-1">Live Environment</span>
+                                {% else %}
+                                    <span class="badge bg-info rounded-pill ms-1">Sandbox Environment</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'superadmin:school_payment_config_update' school_slug=school.slug pk=config.pk %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'superadmin:school_payment_config_delete' school_slug=school.slug pk=config.pk %}" class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless table-sm">
+                                <tr>
+                                    <td class="text-muted" style="width: 40%;">Gateway:</td>
+                                    <td class="fw-medium">{{ config.get_gateway_display }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Environment:</td>
+                                    <td class="fw-medium">{{ config.get_environment_display }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Status:</td>
+                                    <td class="fw-medium">
+                                        {% if config.is_active %}
+                                            <span class="text-success">Active</span>
+                                        {% else %}
+                                            <span class="text-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless table-sm">
+                                <tr>
+                                    <td class="text-muted" style="width: 40%;">Created:</td>
+                                    <td class="fw-medium">{{ config.created_at|date:"M d, Y H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Last Updated:</td>
+                                    <td class="fw-medium">{{ config.updated_at|date:"M d, Y H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Config ID:</td>
+                                    <td class="fw-medium font-monospace text-muted">#{{ config.pk }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Gateway-specific Configuration -->
+                    <h6 class="text-primary mb-3">
+                        <i class="fas fa-cog me-2"></i>Configuration Details
+                    </h6>
+                    
+                    {% if config.gateway == 'mpesa_stk' %}
+                        <div class="alert alert-info mb-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>M-Pesa STK Push Configuration</strong> - Automatic payment requests sent to parents' phones
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="text-muted small">Consumer Key</label>
+                                    <div class="fw-medium">
+                                        {% if config.mpesa_consumer_key %}
+                                            <code>{{ config.mpesa_consumer_key }}</code>
+                                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('{{ config.mpesa_consumer_key }}')">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        {% else %}
+                                            <span class="text-muted">Not configured</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="text-muted small">Consumer Secret</label>
+                                    <div class="fw-medium">
+                                        {% if config.mpesa_consumer_secret %}
+                                            <code>••••••••••••••••</code>
+                                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('{{ config.mpesa_consumer_secret }}')">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        {% else %}
+                                            <span class="text-muted">Not configured</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="text-muted small">Passkey</label>
+                                    <div class="fw-medium">
+                                        {% if config.mpesa_passkey %}
+                                            <code>••••••••••••••••</code>
+                                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('{{ config.mpesa_passkey }}')">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        {% else %}
+                                            <span class="text-muted">Not configured</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="text-muted small">Business Shortcode</label>
+                                    <div class="fw-medium">
+                                        {% if config.mpesa_shortcode %}
+                                            <code>{{ config.mpesa_shortcode }}</code>
+                                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('{{ config.mpesa_shortcode }}')">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        {% else %}
+                                            <span class="text-muted">Not configured</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% elif config.gateway == 'mpesa_paybill' %}
+                        <div class="alert alert-warning mb-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>M-Pesa Manual Paybill Configuration</strong> - Parents will manually use these details to make payments
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="text-muted small">Paybill Number</label>
+                                    <div class="fw-medium">
+                                        {% if config.mpesa_paybill_number %}
+                                            <code>{{ config.mpesa_paybill_number }}</code>
+                                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('{{ config.mpesa_paybill_number }}')">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        {% else %}
+                                            <span class="text-muted">Not configured</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="text-muted small">Paybill Account Number</label>
+                                    <div class="fw-medium">
+                                        {% if config.mpesa_paybill_account_number %}
+                                            <code>{{ config.mpesa_paybill_account_number }}</code>
+                                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('{{ config.mpesa_paybill_account_number }}')">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        {% else %}
+                                            <span class="text-muted">Not configured</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label class="text-muted small">Paybill Bank Name</label>
+                                    <div class="fw-medium">
+                                        {% if config.mpesa_paybill_bank_name %}
+                                            <span>{{ config.mpesa_paybill_bank_name }}</span>
+                                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('{{ config.mpesa_paybill_bank_name }}')">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        {% else %}
+                                            <span class="text-muted">Not configured</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                    {% elif config.gateway == 'paypal' %}
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label class="text-muted small">PayPal Business Email</label>
+                                    <div class="fw-medium">
+                                        {% if config.paypal_email %}
+                                            <code>{{ config.paypal_email }}</code>
+                                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('{{ config.paypal_email }}')">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        {% else %}
+                                            <span class="text-muted">Not configured</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                    {% elif config.gateway == 'bank' %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="text-muted small">Bank Name</label>
+                                    <div class="fw-medium">{{ config.bank_name|default:'Not configured' }}</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="text-muted small">Account Name</label>
+                                    <div class="fw-medium">{{ config.bank_account_name|default:'Not configured' }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="text-muted small">Account Number</label>
+                                    <div class="fw-medium">
+                                        {% if config.bank_account_number %}
+                                            <code>{{ config.bank_account_number }}</code>
+                                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('{{ config.bank_account_number }}')">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        {% else %}
+                                            <span class="text-muted">Not configured</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="text-muted small">Bank Branch</label>
+                                    <div class="fw-medium">{{ config.bank_branch|default:'Not configured' }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                    {% elif config.gateway == 'cash' or config.gateway == 'cheque' %}
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label class="text-muted small">Payment Instructions</label>
+                                    <div class="fw-medium">
+                                        {% if config.payment_instructions %}
+                                            <div class="alert alert-info">
+                                                {{ config.payment_instructions|linebreaks }}
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">No instructions provided</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- School Information -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-school me-2"></i>School Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <i class="fas fa-school"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">{{ school.name }}</h6>
+                            <small class="text-muted">{{ school.email }}</small>
+                        </div>
+                    </div>
+                    <div class="small text-muted">
+                        <div class="mb-1">
+                            <i class="fas fa-phone me-1"></i>{{ school.phone }}
+                        </div>
+                        <div class="mb-1">
+                            <i class="fas fa-map-marker-alt me-1"></i>{{ school.city }}, {{ school.country }}
+                        </div>
+                        <div class="mb-1">
+                            <i class="fas fa-globe me-1"></i>{{ school.website|default:'No website' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'superadmin:school_payment_config_update' school_slug=school.slug pk=config.pk %}" class="btn btn-outline-primary">
+                            <i class="fas fa-edit me-2"></i>Edit Configuration
+                        </a>
+                        <a href="{% url 'superadmin:school_payment_config_list' school_slug=school.slug %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-list me-2"></i>View All Configurations
+                        </a>
+                        <button class="btn btn-outline-warning" onclick="toggleStatus()">
+                            <i class="fas fa-power-off me-2"></i>
+                            {% if config.is_active %}Deactivate{% else %}Activate{% endif %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Information -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Status Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar bg-{{ config.is_active|yesno:'success,secondary' }} text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 32px; height: 32px;">
+                            <i class="fas fa-{{ config.is_active|yesno:'check,times' }}"></i>
+                        </div>
+                        <div>
+                            <div class="fw-medium">
+                                {% if config.is_active %}
+                                    <span class="text-success">Active</span>
+                                {% else %}
+                                    <span class="text-secondary">Inactive</span>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">
+                                {% if config.is_active %}
+                                    This payment method is available to parents
+                                {% else %}
+                                    This payment method is hidden from parents
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center">
+                        <div class="avatar bg-{{ config.environment|yesno:'warning,info' }} text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 32px; height: 32px;">
+                            <i class="fas fa-{{ config.environment == 'live' and 'rocket' or 'flask' }}"></i>
+                        </div>
+                        <div>
+                            <div class="fw-medium">
+                                {% if config.environment == 'live' %}
+                                    <span class="text-warning">Live Environment</span>
+                                {% else %}
+                                    <span class="text-info">Sandbox Environment</span>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">
+                                {% if config.environment == 'live' %}
+                                    Real transactions will be processed
+                                {% else %}
+                                    Test transactions only
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Show success message
+        const toast = document.createElement('div');
+        toast.className = 'toast position-fixed bottom-0 end-0 m-3';
+        toast.innerHTML = `
+            <div class="toast-body bg-success text-white">
+                <i class="fas fa-check me-2"></i>Copied to clipboard!
+            </div>
+        `;
+        document.body.appendChild(toast);
+        
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    });
+}
+
+function toggleStatus() {
+    // Get values from data attributes instead of Django templates
+    const paymentConfig = document.getElementById('paymentConfigData');
+    const isActive = paymentConfig.dataset.isActive === 'true';
+    const updateUrl = paymentConfig.dataset.updateUrl;
+    
+    const newStatus = !isActive;
+    const statusText = newStatus ? 'activate' : 'deactivate';
+    
+    if (confirm(`Are you sure you want to ${statusText} this payment configuration?`)) {
+        // In a real implementation, this would make an AJAX call to update the status
+        window.location.href = updateUrl + '?toggle_status=true';
+    }
+}
+</script>
+{% endblock %}

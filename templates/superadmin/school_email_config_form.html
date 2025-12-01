@@ -1,0 +1,465 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Email Configuration - {{ school.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">{% if form.instance.pk %}Edit{% else %}Add{% endif %} Email Configuration</h1>
+                    <p class="text-muted mb-0">Configure email settings for {{ school.name }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'superadmin:school_email_config_list' school_slug=school.slug %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Configurations
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Email Configuration Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Basic Settings -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.provider.id_for_label }}" class="form-label">Email Provider *</label>
+                                {{ form.provider }}
+                                {% if form.provider.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.provider.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.is_active.id_for_label }}" class="form-label">Status</label>
+                                <div class="form-check mt-2">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                        Enable this configuration
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Global Settings Override -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <div class="form-check">
+                                    {{ form.use_global_settings }}
+                                    <label class="form-check-label" for="{{ form.use_global_settings.id_for_label }}">
+                                        Use global settings as fallback
+                                    </label>
+                                    <small class="form-text text-muted">If checked, global settings will be used when local settings are not available</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- From Email Settings -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.custom_from_email.id_for_label }}" class="form-label">Custom From Email</label>
+                                {{ form.custom_from_email }}
+                                <small class="form-text text-muted">Overrides the default from email address</small>
+                                {% if form.custom_from_email.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.custom_from_email.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.custom_from_name.id_for_label }}" class="form-label">Custom From Name</label>
+                                {{ form.custom_from_name }}
+                                <small class="form-text text-muted">Overrides the default from name</small>
+                                {% if form.custom_from_name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.custom_from_name.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Usage Limits -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.daily_email_limit.id_for_label }}" class="form-label">Daily Email Limit</label>
+                                {{ form.daily_email_limit }}
+                                <small class="form-text text-muted">Maximum emails per day (0 = unlimited)</small>
+                                {% if form.daily_email_limit.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.daily_email_limit.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.monthly_email_limit.id_for_label }}" class="form-label">Monthly Email Limit</label>
+                                {{ form.monthly_email_limit }}
+                                <small class="form-text text-muted">Maximum emails per month (0 = unlimited)</small>
+                                {% if form.monthly_email_limit.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.monthly_email_limit.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Provider-specific fields -->
+                        <div id="provider-fields">
+                            <!-- SMTP Fields -->
+                            <div id="smtp-fields" class="provider-specific-fields" style="display: none;">
+                                <h6 class="mt-4 mb-3">SMTP Configuration</h6>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="{{ form.smtp_host.id_for_label }}" class="form-label">SMTP Host *</label>
+                                        {{ form.smtp_host }}
+                                        {% if form.smtp_host.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.smtp_host.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="{{ form.smtp_port.id_for_label }}" class="form-label">Port *</label>
+                                        {{ form.smtp_port }}
+                                        {% if form.smtp_port.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.smtp_port.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="{{ form.smtp_security.id_for_label }}" class="form-label">Security</label>
+                                        {{ form.smtp_security }}
+                                        {% if form.smtp_security.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.smtp_security.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="{{ form.smtp_username.id_for_label }}" class="form-label">Username</label>
+                                        {{ form.smtp_username }}
+                                        {% if form.smtp_username.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.smtp_username.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="{{ form.smtp_password.id_for_label }}" class="form-label">Password</label>
+                                        {{ form.smtp_password }}
+                                        {% if form.smtp_password.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.smtp_password.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SendGrid Fields -->
+                            <div id="sendgrid-fields" class="provider-specific-fields" style="display: none;">
+                                <h6 class="mt-4 mb-3">SendGrid Configuration</h6>
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <label for="{{ form.sendgrid_api_key.id_for_label }}" class="form-label">API Key *</label>
+                                        {{ form.sendgrid_api_key }}
+                                        {% if form.sendgrid_api_key.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.sendgrid_api_key.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Mailgun Fields -->
+                            <div id="mailgun-fields" class="provider-specific-fields" style="display: none;">
+                                <h6 class="mt-4 mb-3">Mailgun Configuration</h6>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="{{ form.mailgun_api_key.id_for_label }}" class="form-label">API Key *</label>
+                                        {{ form.mailgun_api_key }}
+                                        {% if form.mailgun_api_key.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.mailgun_api_key.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="{{ form.mailgun_domain.id_for_label }}" class="form-label">Domain *</label>
+                                        {{ form.mailgun_domain }}
+                                        {% if form.mailgun_domain.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.mailgun_domain.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Amazon SES Fields -->
+                            <div id="ses-fields" class="provider-specific-fields" style="display: none;">
+                                <h6 class="mt-4 mb-3">Amazon SES Configuration</h6>
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label for="{{ form.ses_access_key.id_for_label }}" class="form-label">Access Key *</label>
+                                        {{ form.ses_access_key }}
+                                        {% if form.ses_access_key.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.ses_access_key.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="{{ form.ses_secret_key.id_for_label }}" class="form-label">Secret Key *</label>
+                                        {{ form.ses_secret_key }}
+                                        {% if form.ses_secret_key.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.ses_secret_key.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="{{ form.ses_region.id_for_label }}" class="form-label">Region</label>
+                                        {{ form.ses_region }}
+                                        {% if form.ses_region.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.ses_region.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Postmark Fields -->
+                            <div id="postmark-fields" class="provider-specific-fields" style="display: none;">
+                                <h6 class="mt-4 mb-3">Postmark Configuration</h6>
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <label for="{{ form.postmark_server_token.id_for_label }}" class="form-label">Server Token *</label>
+                                        {{ form.postmark_server_token }}
+                                        {% if form.postmark_server_token.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.postmark_server_token.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden school field -->
+                        {{ form.school }}
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'superadmin:school_email_config_list' school_slug=school.slug %}" class="btn btn-secondary">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                {% if form.instance.pk %}
+                                    <i class="fas fa-save me-2"></i>Update Configuration
+                                {% else %}
+                                    <i class="fas fa-plus me-2"></i>Create Configuration
+                                {% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Configuration Help</h5>
+                </div>
+                <div class="card-body">
+                    <div id="smtp-help" class="provider-help" style="display: none;">
+                        <h6>SMTP Configuration</h6>
+                        <p class="small text-muted">Configure your SMTP server for email delivery.</p>
+                        <ul class="small text-muted">
+                            <li>Host: SMTP server address (e.g., smtp.gmail.com)</li>
+                            <li>Port: Usually 587 (TLS) or 465 (SSL)</li>
+                            <li>Security: Choose TLS, SSL, or None</li>
+                            <li>Username/Password: Your SMTP credentials</li>
+                        </ul>
+                    </div>
+
+                    <div id="sendgrid-help" class="provider-help" style="display: none;">
+                        <h6>SendGrid Configuration</h6>
+                        <p class="small text-muted">SendGrid is a cloud-based email service.</p>
+                        <ul class="small text-muted">
+                            <li>Get API Key from SendGrid dashboard</li>
+                            <li>Ensure sender is verified in SendGrid</li>
+                            <li>API Key should have "Mail Send" permissions</li>
+                        </ul>
+                    </div>
+
+                    <div id="mailgun-help" class="provider-help" style="display: none;">
+                        <h6>Mailgun Configuration</h6>
+                        <p class="small text-muted">Mailgun provides developer-friendly email APIs.</p>
+                        <ul class="small text-muted">
+                            <li>Get API Key from Mailgun control panel</li>
+                            <li>Domain must be verified in Mailgun</li>
+                            <li>Use sandbox domain for testing</li>
+                        </ul>
+                    </div>
+
+                    <div id="ses-help" class="provider-help" style="display: none;">
+                        <h6>Amazon SES Configuration</h6>
+                        <p class="small text-muted">AWS Simple Email Service for scalable delivery.</p>
+                        <ul class="small text-muted">
+                            <li>Create IAM user with SES permissions</li>
+                            <li>Verify your sending domain in SES</li>
+                            <li>Move out of sandbox mode for production</li>
+                        </ul>
+                    </div>
+
+                    <div id="postmark-help" class="provider-help" style="display: none;">
+                        <h6>Postmark Configuration</h6>
+                        <p class="small text-muted">Postmark offers fast and reliable email delivery.</p>
+                        <ul class="small text-muted">
+                            <li>Get Server Token from Postmark dashboard</li>
+                            <li>Verify sender signatures</li>
+                            <li>Monitor delivery statistics</li>
+                        </ul>
+                    </div>
+
+                    <div id="default-help" class="provider-help">
+                        <p class="small text-muted">Select an email provider to see configuration help.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Best Practices</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="small text-muted">
+                        <li>Always use secure connections (TLS/SSL)</li>
+                        <li>Test configuration before enabling</li>
+                        <li>Set reasonable usage limits</li>
+                        <li>Monitor email delivery rates</li>
+                        <li>Keep API credentials secure</li>
+                        <li>Use custom from email for branding</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const providerSelect = document.getElementById('{{ form.provider.id_for_label }}');
+    const useGlobalCheckbox = document.getElementById('{{ form.use_global_settings.id_for_label }}');
+    
+    function toggleProviderFields() {
+        const selectedProvider = providerSelect.value;
+        
+        // Hide all provider-specific fields
+        document.querySelectorAll('.provider-specific-fields').forEach(field => {
+            field.style.display = 'none';
+        });
+        
+        // Hide all help sections
+        document.querySelectorAll('.provider-help').forEach(help => {
+            help.style.display = 'none';
+        });
+        
+        // Show selected provider fields
+        const selectedFields = document.getElementById(selectedProvider + '-fields');
+        if (selectedFields) {
+            selectedFields.style.display = 'block';
+        }
+        
+        // Show selected provider help
+        const selectedHelp = document.getElementById(selectedProvider + '-help');
+        if (selectedHelp) {
+            selectedHelp.style.display = 'block';
+        }
+    }
+    
+    function toggleGlobalSettings() {
+        const useGlobal = useGlobalCheckbox.checked;
+        const providerFields = document.getElementById('provider-fields');
+        
+        if (useGlobal) {
+            providerFields.style.opacity = '0.6';
+            providerFields.querySelectorAll('input, select').forEach(field => {
+                field.disabled = true;
+            });
+        } else {
+            providerFields.style.opacity = '1';
+            providerFields.querySelectorAll('input, select').forEach(field => {
+                field.disabled = false;
+            });
+        }
+    }
+    
+    // Initialize
+    toggleProviderFields();
+    toggleGlobalSettings();
+    
+    // Event listeners
+    providerSelect.addEventListener('change', toggleProviderFields);
+    useGlobalCheckbox.addEventListener('change', toggleGlobalSettings);
+});
+</script>
+
+<style>
+.provider-specific-fields {
+    border-left: 3px solid #4DD0E1;
+    padding-left: 15px;
+    margin-left: 0;
+}
+
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #4DD0E1;
+    box-shadow: 0 0 0 0.2rem rgba(77, 208, 225, 0.25);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0 20px rgba(0,0,0,0.08);
+    border-radius: 12px;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid #e9ecef;
+    border-radius: 12px 12px 0 0 !important;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #4DD0E1 0%, #26C6DA 100%);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #26C6DA 0%, #1E3A5F 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(77, 208, 225, 0.3);
+}
+</style>
+{% endblock %}

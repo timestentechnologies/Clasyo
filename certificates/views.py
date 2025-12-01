@@ -10,6 +10,15 @@ from django.utils import timezone
 from django.db.models import Q
 from django.utils.translation import gettext as _
 from django.template.loader import get_template
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch, cm
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from io import BytesIO
 import json
 import uuid
 from datetime import date, timedelta
@@ -175,73 +184,204 @@ class CertificateDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'certificate'
 
 
-from django.template.loader import render_to_string
-from django.conf import settings
-import pdfkit
-import os
-
 class CertificateDownloadView(LoginRequiredMixin, View):
-    """Download certificate as PDF"""
+    """Download certificate as PDF using ReportLab"""
     
     def get(self, request, *args, **kwargs):
         certificate = get_object_or_404(Certificate, pk=kwargs.get('pk'))
-        
-        # Add school to context
         school = get_object_or_404(School, slug=kwargs.get('school_slug'))
         
-        # Prepare context
-        context = {
-            'certificate': certificate,
-            'school': school,
-            'request': request,  # Required for absolute URLs
-        }
-        
-        # Render the HTML template
-        html_string = render_to_string('certificates/certificate_pdf.html', context)
-        
-        # Configure pdfkit options for A4 landscape
-        options = {
-            'page-size': 'A4',
-            'orientation': 'Landscape',
-            'margin-top': '0mm',
-            'margin-right': '0mm',
-            'margin-bottom': '0mm',
-            'margin-left': '0mm',
-            'encoding': 'UTF-8',
-            'no-outline': None,
-            'quiet': '',
-            'enable-local-file-access': None,  # Allow access to local files
-            'disable-smart-shrinking': None,  # Prevent content from being shrunk
-            'dpi': 300,  # Higher DPI for better quality
-        }
-        
         try:
-            # Set the path to wkhtmltopdf with error handling
-            wkhtmltopdf_path = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
-            config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
+            # Create a buffer for the PDF
+            buffer = BytesIO()
             
-            # Get the absolute path to the CSS file
-            css_path = os.path.join(settings.STATIC_ROOT, 'css', 'certificate.css')
-            if not os.path.exists(css_path):
-                # If not in production, try the development static files directory
-                css_path = os.path.join(settings.STATICFILES_DIRS[0], 'css', 'certificate.css')
-            
-            # Generate PDF with explicit configuration
-            pdf = pdfkit.from_string(
-                html_string, 
-                False, 
-                options=options, 
-                configuration=config,
-                css=css_path if os.path.exists(css_path) else None  # Only include CSS if file exists
+            # Create the PDF document in landscape orientation
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=landscape(A4),
+                rightMargin=30,
+                leftMargin=30,
+                topMargin=30,
+                bottomMargin=30
             )
             
-            # Create response
-            response = HttpResponse(pdf, content_type='application/pdf')
+            # Get styles
+            styles = getSampleStyleSheet()
+            
+            # Custom styles for certificate
+            title_style = ParagraphStyle(
+                'CertificateTitle',
+                parent=styles['Heading1'],
+                fontSize=36,
+                spaceAfter=30,
+                textColor=colors.HexColor('#1E3A5F'),
+                alignment=TA_CENTER,
+                borderWidth=2,
+                borderColor=colors.HexColor('#4DD0E1'),
+                borderPadding=10
+            )
+            
+            subtitle_style = ParagraphStyle(
+                'CertificateSubtitle',
+                parent=styles['Heading2'],
+                fontSize=24,
+                spaceAfter=20,
+                textColor=colors.HexColor('#1E3A5F'),
+                alignment=TA_CENTER
+            )
+            
+            body_style = ParagraphStyle(
+                'CertificateBody',
+                parent=styles['Normal'],
+                fontSize=14,
+                spaceAfter=12,
+                textColor=colors.black,
+                alignment=TA_CENTER
+            )
+            
+            left_style = ParagraphStyle(
+                'CertificateLeft',
+                parent=styles['Normal'],
+                fontSize=12,
+                spaceAfter=8,
+                textColor=colors.black,
+                alignment=TA_LEFT
+            )
+            
+            # Build the story (content)
+            story = []
+            
+            # Add decorative border
+            border_data = [[
+                Paragraph('<b><font color="#1E3A5F">Certificate of Completion</font></b>', title_style)
+            ]]
+            border_table = Table(border_data, colWidths=[20*inch])
+            border_table.setStyle(TableStyle([
+                ('GRID', (0, 0), (-1, -1), 3, colors.HexColor('#4DD0E1')),
+                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8F9FA')),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 40),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 40),
+            ]))
+            story.append(border_table)
+            story.append(Spacer(1, 20))
+            
+            # School name
+            story.append(Paragraph(f"<b>{school.name}</b>", subtitle_style))
+            story.append(Spacer(1, 10))
+            
+            # Certificate text
+            story.append(Paragraph("This is to certify that", body_style))
+            story.append(Spacer(1, 10))
+            
+            # Student name (prominent)
+            student_name = certificate.student.get_full_name() or certificate.student.user.get_full_name()
+            story.append(Paragraph(f"<b><font size=18>{student_name}</font></b>", title_style))
+            story.append(Spacer(1, 10))
+            
+            # Certificate type description
+            story.append(Paragraph(f"has successfully completed the requirements for", body_style))
+            story.append(Spacer(1, 10))
+            
+            # Certificate type
+            story.append(Paragraph(f"<b><font size=16>{certificate.certificate_type.name}</font></b>", subtitle_style))
+            story.append(Spacer(1, 10))
+            
+            # Additional details
+            if certificate.certificate_type.description:
+                story.append(Paragraph(certificate.certificate_type.description, body_style))
+                story.append(Spacer(1, 15))
+            
+            # Date information
+            issue_date = certificate.issue_date.strftime("%B %d, %Y") if certificate.issue_date else timezone.now().strftime("%B %d, %Y")
+            story.append(Paragraph(f"Issued on: <b>{issue_date}</b>", body_style))
+            story.append(Spacer(1, 20))
+            
+            # Certificate details table
+            details_data = [
+                ['Certificate Number:', certificate.certificate_number],
+                ['Student ID:', certificate.student.admission_number or 'N/A'],
+                ['Class/Grade:', certificate.student.current_class.name if certificate.student.current_class else 'N/A'],
+                ['Academic Year:', certificate.academic_year or 'N/A'],
+            ]
+            
+            details_table = Table(details_data, colWidths=[3*inch, 4*inch])
+            details_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#E1E8ED')),
+                ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#F8F9FA')),
+            ]))
+            story.append(details_table)
+            story.append(Spacer(1, 30))
+            
+            # Signature section
+            signature_data = [
+                ['', ''],
+                [Paragraph('<b>_________________________</b>', left_style), Paragraph('<b>_________________________</b>', left_style)],
+                [Paragraph('<b>Principal Signature</b>', left_style), Paragraph('<b>HOD Signature</b>', left_style)],
+                [Paragraph(school.name, left_style), Paragraph(school.name, left_style)],
+            ]
+            
+            signature_table = Table(signature_data, colWidths=[4*inch, 4*inch])
+            signature_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ]))
+            story.append(signature_table)
+            story.append(Spacer(1, 20))
+            
+            # Verification code
+            if certificate.verification_code:
+                story.append(Paragraph(f"Verification Code: <b>{certificate.verification_code}</b>", left_style))
+                story.append(Paragraph("Verify this certificate at: " + request.build_absolute_uri(reverse('certificates:verify', kwargs={'code': certificate.verification_code})), left_style))
+            
+            # Footer
+            story.append(Spacer(1, 30))
+            story.append(Paragraph(f"© {timezone.now().year} {school.name}. All rights reserved.", left_style))
+            
+            # Build PDF
+            doc.build(story)
+            
+            # Get PDF value
+            pdf_value = buffer.getvalue()
+            buffer.close()
+            
+            # Create HTTP response with PDF
+            response = HttpResponse(pdf_value, content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{certificate.certificate_number}.pdf"'
             return response
             
+        except ImportError as e:
+            # Fallback to HTML-based certificate if ReportLab is not available
+            return self.generate_html_certificate(request, certificate, school, str(e))
         except Exception as e:
-            return HttpResponse(f'Error generating PDF: {str(e)}\n\nPlease ensure wkhtmltopdf is installed at C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe', status=500)
+            return HttpResponse(f'Error generating certificate: {str(e)}', status=500)
+    
+    def generate_html_certificate(self, request, certificate, school, error_msg):
+        """Fallback method using HTML to certificate conversion"""
+        try:
+            context = {
+                'certificate': certificate,
+                'school': school,
+                'request': request,
+                'error_msg': error_msg
+            }
+            
+            # Render the HTML template
+            html_string = render_to_string('certificates/certificate_pdf_simple.html', context)
+            
+            # Create a simple HTML response that can be saved as PDF from browser
+            response = HttpResponse(html_string, content_type='text/html')
+            response['Content-Disposition'] = f'filename="{certificate.certificate_number}.html"'
+            response['X-PDF-Warning'] = f'Certificate generation error: {error_msg}. Please save this HTML file and convert to PDF using your browser.'
+            return response
+            
+        except Exception as e:
+            return HttpResponse(f'Error generating certificate: {str(e)}', status=500)
 
 
 class CertificateUpdateView(LoginRequiredMixin, UpdateView):
@@ -366,9 +506,107 @@ class PrintBatchCertificatesView(LoginRequiredMixin, FormView):
         return context
     
     def form_valid(self, form):
-        # Logic for batch generating and printing certificates would go here
-        messages.success(self.request, _('Certificates batch processed successfully'))
-        return super().form_valid(form)
+        # Get selected certificates for batch printing
+        certificate_ids = self.request.POST.getlist('certificates')
+        certificates = Certificate.objects.filter(id__in=certificate_ids)
+        school = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+        
+        try:
+            # Create a buffer for the PDF
+            buffer = BytesIO()
+            
+            # Create the PDF document in landscape orientation
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=landscape(A4),
+                rightMargin=30,
+                leftMargin=30,
+                topMargin=30,
+                bottomMargin=30
+            )
+            
+            # Get styles
+            styles = getSampleStyleSheet()
+            
+            # Custom styles for certificate
+            title_style = ParagraphStyle(
+                'CertificateTitle',
+                parent=styles['Heading1'],
+                fontSize=28,
+                spaceAfter=20,
+                textColor=colors.HexColor('#1E3A5F'),
+                alignment=TA_CENTER
+            )
+            
+            body_style = ParagraphStyle(
+                'CertificateBody',
+                parent=styles['Normal'],
+                fontSize=12,
+                spaceAfter=8,
+                textColor=colors.black,
+                alignment=TA_CENTER
+            )
+            
+            # Build the story (content)
+            story = []
+            
+            # Add each certificate to the PDF
+            for i, certificate in enumerate(certificates):
+                # Certificate title
+                story.append(Paragraph(f"<b>Certificate of Completion</b>", title_style))
+                story.append(Spacer(1, 10))
+                
+                # School name
+                story.append(Paragraph(f"<b>{school.name}</b>", body_style))
+                story.append(Spacer(1, 8))
+                
+                # Certificate text
+                story.append(Paragraph("This is to certify that", body_style))
+                story.append(Spacer(1, 5))
+                
+                # Student name
+                student_name = certificate.student.get_full_name() or certificate.student.user.get_full_name()
+                story.append(Paragraph(f"<b><font size=16>{student_name}</font></b>", title_style))
+                story.append(Spacer(1, 5))
+                
+                # Certificate type
+                story.append(Paragraph(f"has successfully completed the requirements for", body_style))
+                story.append(Paragraph(f"<b>{certificate.certificate_type.name}</b>", body_style))
+                story.append(Spacer(1, 8))
+                
+                # Certificate details
+                issue_date = certificate.issue_date.strftime("%B %d, %Y") if certificate.issue_date else timezone.now().strftime("%B %d, %Y")
+                story.append(Paragraph(f"Issued on: <b>{issue_date}</b>", body_style))
+                story.append(Spacer(1, 10))
+                
+                # Certificate number
+                story.append(Paragraph(f"Certificate Number: <b>{certificate.certificate_number}</b>", body_style))
+                
+                # Add page break except for last certificate
+                if i < len(certificates) - 1:
+                    story.append(Spacer(1, 30))
+                    story.append(Paragraph("=" * 50, body_style))
+                    story.append(Spacer(1, 30))
+            
+            # Build PDF
+            doc.build(story)
+            
+            # Get PDF value
+            pdf_value = buffer.getvalue()
+            buffer.close()
+            
+            # Create HTTP response with PDF
+            response = HttpResponse(pdf_value, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="batch_certificates_{timezone.now().strftime("%Y%m%d_%H%M%S")}.pdf"'
+            return response
+            
+        except ImportError as e:
+            # Fallback to HTML-based certificates if ReportLab is not available
+            messages.error(self.request, f'PDF generation not available: {str(e)}. Please install ReportLab.')
+            return super().form_invalid(form)
+        except Exception as e:
+            messages.error(self.request, f'Error generating batch certificates: {str(e)}')
+            return super().form_invalid(form)
     
     def get_success_url(self):
         return reverse('certificates:list', kwargs={'school_slug': self.kwargs['school_slug']})

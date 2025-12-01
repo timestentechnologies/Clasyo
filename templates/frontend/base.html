@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Clasyo - Modern School Management System{% endblock %}</title>
+    <title>{% block title %}Clasyo - Modern School Management ERP{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}Clasyo is a Kenyan school management system for CBC, primary, secondary and TVET institutions. Digitize admissions, academics, exams, fees, communication and reporting for schools across Kenya.{% endblock %}">
     <meta name="keywords" content="{% block meta_keywords %}school management system Kenya,CBC school software,TVET college system,primary school management,secondary school management,Kenya school ERP,Clasyo{% endblock %}">
     <meta name="robots" content="{% block meta_robots %}index,follow{% endblock %}">
@@ -22,8 +22,13 @@
     <meta name="twitter:image" content="{% static 'images/icon-512x512.png' %}">
     <meta name="geo.region" content="KE">
     <meta name="geo.placename" content="Nairobi">
+    <meta name="theme-color" content="#4DD0E1">
     <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
-    <link rel="alternate icon" href="{% static 'images/favicon.ico' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/icon-192x192.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/icon-192x192.png' %}">
+    <link rel="apple-touch-icon" sizes="192x192" href="{% static 'images/icon-192x192.png' %}">
+    <link rel="apple-touch-icon" sizes="512x512" href="{% static 'images/icon-512x512.png' %}">
+    <link rel="manifest" href="{% static 'manifest.json' %}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -122,8 +127,8 @@
         }
         
         .btn-nav-login {
-            border: 2px solid #1E3A5F !important;
-            color: #1E3A5F !important;
+            border: 2px solid #4DD0E1 !important;
+            color: #4DD0E1 !important;
             background: white !important;
             font-weight: 600 !important;
             padding: 0.5rem 1.5rem !important;
@@ -135,15 +140,15 @@
         .btn-nav-login:hover,
         .btn-nav-login:focus,
         .btn-nav-login:active {
-            background: #1E3A5F !important;
+            background: #4DD0E1 !important;
             color: white !important;
-            border-color: #1E3A5F !important;
+            border-color: #4DD0E1 !important;
             transform: translateY(-2px) !important;
-            box-shadow: 0 8px 20px rgba(30, 58, 95, 0.3) !important;
+            box-shadow: 0 8px 20px rgba(77, 208, 225, 0.3) !important;
         }
         
         .btn-nav-trial {
-            background: linear-gradient(135deg, #1E3A5F 0%, #4DD0E1 100%) !important;
+            background: linear-gradient(135deg, #4DD0E1 0%, #26C6DA 100%) !important;
             border: none !important;
             color: white !important;
             font-weight: 600 !important;
@@ -156,10 +161,10 @@
         .btn-nav-trial:hover,
         .btn-nav-trial:focus,
         .btn-nav-trial:active {
-            background: linear-gradient(135deg, #1E3A5F 0%, #4DD0E1 100%) !important;
+            background: linear-gradient(135deg, #26C6DA 0%, #1E3A5F 100%) !important;
             color: white !important;
             transform: translateY(-2px) !important;
-            box-shadow: 0 8px 20px rgba(30, 58, 95, 0.4) !important;
+            box-shadow: 0 8px 20px rgba(77, 208, 225, 0.4) !important;
             opacity: 0.95;
         }
         
@@ -277,9 +282,6 @@
                         <a class="nav-link" href="{% url 'frontend:home' %}">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'frontend:documentation' %}">Documentation</a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'about' %}active{% endif %}" href="{% url 'frontend:about' %}">About</a>
                     </li>
                     <li class="nav-item">
@@ -290,6 +292,9 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'contact' %}active{% endif %}" href="{% url 'frontend:contact' %}">Contact</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'frontend:documentation' %}">Documentation</a>
                     </li>
                     <li class="nav-item ms-2">
                         <button class="btn btn-nav-login" data-bs-toggle="modal" data-bs-target="#loginModal">

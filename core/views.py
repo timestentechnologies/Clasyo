@@ -920,6 +920,541 @@ class StopImpersonationView(View):
         return redirect('core:dashboard')
 
 
+class BillingView(LoginRequiredMixin, TemplateView):
+    """School admin billing and subscription management view"""
+    template_name = 'core/billing.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Only allow school admins to access billing"""
+        if not request.user.is_school_admin:
+            messages.error(request, "Access denied. This page is for school admins only.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        school_slug = self.kwargs.get('school_slug')
+        context['school_slug'] = school_slug
+        
+        # Get school
+        from tenants.models import School
+        from subscriptions.models import Subscription, SubscriptionPlan
+        from django.utils import timezone
+        
+        try:
+            school = School.objects.get(slug=school_slug, is_active=True)
+            context['school'] = school
+        except School.DoesNotExist:
+            context['school'] = None
+            context['subscription'] = None
+            context['plan'] = None
+            context['is_trial'] = False
+            context['days_remaining'] = 0
+            # Pricing plans: use SubscriptionPlan as single source of truth
+            pricing_plans = list(SubscriptionPlan.objects.filter(is_active=True).order_by('display_order', 'price'))
+            context['pricing_plans'] = pricing_plans
+            return context
+
+        # Pricing plans: use SubscriptionPlan as single source of truth
+        pricing_plans = list(SubscriptionPlan.objects.filter(is_active=True).order_by('display_order', 'price'))
+        context['pricing_plans'] = pricing_plans
+        
+        # Get current subscription - include all statuses to show trial and expired subscriptions
+        try:
+            # Get the most recent subscription record for this school (if any)
+            current_subscription = school.subscriptions.all().order_by('-created_at').first()
+            context['subscription'] = current_subscription
+
+            # Determine current plan:
+            # 1) Prefer the plan linked to the Subscription record
+            # 2) Fallback to the plan stored on the School model
+            plan = None
+            if current_subscription and current_subscription.plan:
+                plan = current_subscription.plan
+            elif school.subscription_plan:
+                plan = school.subscription_plan
+            context['plan'] = plan
+
+            # Mark which pricing plan (public-facing) corresponds to the current plan
+            for p in context.get('pricing_plans', []):
+                try:
+                    p.is_current = bool(plan and p.name.lower() == plan.name.lower())
+                except Exception:
+                    p.is_current = False
+
+            # Trial / expiry information comes primarily from the School record
+            is_trial = bool(school.is_trial or (current_subscription and current_subscription.is_trial))
+            context['is_trial'] = is_trial
+
+            # Work out start and end dates (for both trial and paid subscriptions)
+            subscription_start = None
+            subscription_end = None
+
+            # Trial handled via School fields
+            if school.is_trial and school.trial_end_date:
+                subscription_end = school.trial_end_date
+                # Use school's subscription_start_date if present; otherwise leave as None
+                subscription_start = school.subscription_start_date
+            # Paid subscription dates stored on School
+            elif school.subscription_end_date:
+                subscription_start = school.subscription_start_date
+                subscription_end = school.subscription_end_date
+            # Fallback to Subscription model dates if available
+            elif current_subscription:
+                subscription_start = current_subscription.start_date
+                subscription_end = current_subscription.end_date
+
+            context['subscription_start'] = subscription_start
+            context['subscription_end'] = subscription_end
+
+            # Days remaining until expiry (for both trial and paid)
+            if subscription_end:
+                today = timezone.now().date()
+                days_remaining = (subscription_end - today).days
+                context['days_remaining'] = days_remaining
+                context['subscription_expired'] = days_remaining < 0
+            else:
+                context['days_remaining'] = 0
+                context['subscription_expired'] = False
+
+            # Available plans for upgrade: always use active SubscriptionPlan records
+            # If there is a current plan, exclude it so only upgrade options remain
+            plans_qs = SubscriptionPlan.objects.filter(is_active=True).order_by('display_order', 'price')
+            if plan:
+                plans_qs = plans_qs.exclude(id=plan.id)
+            context['available_plans'] = plans_qs
+
+            # Payment and trial history: include both payments and trial records
+            payments = []
+            trial_history = []
+            free_plan_history = []
+            
+            # Get all subscriptions for this school, ordered by creation date (newest first)
+            all_subscriptions = school.subscriptions.all().order_by('-created_at')
+            
+            # If no paid subscriptions but school has a free plan, add it to history
+            if not all_subscriptions.exists() and school.subscription_plan and school.subscription_plan.price == 0:
+                free_plan_history.append({
+                    'type': 'free_plan',
+                    'date': school.created_on.date() if hasattr(school, 'created_on') and school.created_on else timezone.now().date(),
+                    'end_date': None,
+                    'status': 'Active',
+                    'amount': 0.00,
+                    'subscription': None,
+                    'created_at': school.created_on if hasattr(school, 'created_on') and school.created_on else timezone.now()
+                })
+            
+            # Process each subscription to build history
+            for sub in all_subscriptions:
+                # Add payments for this subscription
+                payments.extend(list(sub.payments.all()))
+                
+                # Add subscription to history
+                if sub.is_trial:
+                    trial_history.append({
+                        'type': 'trial',
+                        'date': sub.start_date,
+                        'end_date': sub.end_date,
+                        'status': 'Completed' if sub.end_date and sub.end_date < timezone.now().date() else 'Active',
+                        'amount': 0.00,
+                        'subscription': sub,
+                        'created_at': sub.created_at
+                    })
+                elif sub.plan and sub.plan.price == 0:  # Free plan
+                    free_plan_history.append({
+                        'type': 'free_plan',
+                        'date': sub.start_date,
+                        'end_date': sub.end_date,
+                        'status': 'Active',
+                        'amount': 0.00,
+                        'subscription': sub,
+                        'created_at': sub.created_at
+                    })
+            
+            # Combine and sort all history by date (newest first)
+            all_history = []
+            all_history.extend(payments)
+            all_history.extend(trial_history)
+            all_history.extend(free_plan_history)
+            
+            # Sort by created_at if available, otherwise by date
+            context['billing_history'] = sorted(
+                all_history,
+                key=lambda x: (
+                    x.created_at if hasattr(x, 'created_at') else x.get('created_at', x.get('date')),
+                    x.get('id', 0)  # For stable sorting
+                ),
+                reverse=True
+            )
+            
+            # Get invoices for this school
+            from subscriptions.models import Invoice
+            invoices = Invoice.objects.filter(school=school).order_by('-created_at')
+            context['invoices'] = invoices
+            
+            # Debug information
+            print(f"School: {school.name}")
+            print(f"Current subscription: {current_subscription}")
+            print(f"Plan: {plan}")
+            print(f"Is trial: {is_trial}")
+            print(f"Existing invoices: {invoices.count()}")
+            for inv in invoices:
+                print(f"  - {inv.invoice_number}: {inv.invoice_type} ({inv.status})")
+            
+            # Generate invoice for current subscription if needed
+            if current_subscription and plan:
+                # Check if invoice already exists for this subscription
+                existing_invoice = Invoice.objects.filter(
+                    subscription=current_subscription
+                ).first()
+                
+                if not existing_invoice:
+                    # Determine invoice type and details based on subscription
+                    if current_subscription.is_trial or is_trial:
+                        invoice_type = 'trial_end'
+                        amount = 0
+                        status = 'paid'  # Trial invoices are automatically marked as paid
+                        plan_desc = f"{plan.name} - Free Trial Period"
+                    elif current_subscription.end_date and current_subscription.end_date < timezone.now().date():
+                        invoice_type = 'renewal'
+                        amount = plan.price if plan else 0
+                        status = 'sent'
+                        plan_desc = f"{plan.name} - {plan.billing_cycle if plan else 'Monthly'} subscription"
+                    else:
+                        invoice_type = 'new'
+                        amount = plan.price if plan else 0
+                        status = 'sent'
+                        plan_desc = f"{plan.name} - {plan.billing_cycle if plan else 'Monthly'} subscription"
+                    
+                    due_date = timezone.now().date() + timezone.timedelta(days=30)
+                    
+                    invoice = Invoice.objects.create(
+                        school=school,
+                        subscription=current_subscription,
+                        invoice_type=invoice_type,
+                        plan_name=plan.name,
+                        plan_description=plan_desc,
+                        amount=amount,
+                        tax_amount=0,  # Add tax calculation if needed
+                        total_amount=amount,
+                        due_date=due_date,
+                        billing_start_date=current_subscription.start_date,
+                        billing_end_date=current_subscription.end_date,
+                        status=status
+                    )
+                    context['current_invoice'] = invoice
+                else:
+                    context['current_invoice'] = existing_invoice
+            elif plan and plan.price == 0:
+                # School has a free plan but no subscription record, create a free plan invoice
+                existing_invoice = Invoice.objects.filter(
+                    school=school,
+                    subscription__isnull=True,
+                    invoice_type='new'
+                ).first()
+                
+                if not existing_invoice:
+                    invoice = Invoice.objects.create(
+                        school=school,
+                        subscription=None,
+                        invoice_type='new',
+                        plan_name=plan.name,
+                        plan_description=f"{plan.name} - Free Plan",
+                        amount=0,
+                        tax_amount=0,
+                        total_amount=0,
+                        due_date=timezone.now().date() + timezone.timedelta(days=30),
+                        billing_start_date=school.created_on.date() if hasattr(school, 'created_on') and school.created_on else timezone.now().date(),
+                        status='paid'  # Free plans are automatically marked as paid
+                    )
+                    context['current_invoice'] = invoice
+                else:
+                    context['current_invoice'] = existing_invoice
+            
+        except Exception as e:
+            import traceback
+            print(f"Error fetching subscription: {str(e)}")
+            traceback.print_exc()
+            context['subscription'] = None
+            context['plan'] = None
+            context['is_trial'] = False
+            context['subscription_start'] = None
+            context['subscription_end'] = None
+            context['days_remaining'] = 0
+            context['subscription_expired'] = False
+            context['invoices'] = []
+            context['current_invoice'] = None
+            context['payments'] = []
+            context['available_plans'] = SubscriptionPlan.objects.filter(is_active=True).order_by('display_order', 'price')
+        
+        return context
+
+
+class InvoiceDownloadView(LoginRequiredMixin, View):
+    """Download invoice as PDF"""
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Only allow school admins to access invoices"""
+        if not request.user.is_school_admin:
+            messages.error(request, "Access denied. This page is for school admins only.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get(self, request, school_slug, invoice_id):
+        from subscriptions.models import Invoice
+        from tenants.models import School
+        from django.http import HttpResponse
+        from django.template.loader import render_to_string
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.lib.units import inch
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib import colors
+        import io
+        
+        try:
+            school = School.objects.get(slug=school_slug, is_active=True)
+            invoice = Invoice.objects.get(id=invoice_id, school=school)
+            
+            # Create PDF buffer
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=A4, 
+                                  leftMargin=72, rightMargin=72,
+                                  topMargin=72, bottomMargin=72)
+            styles = getSampleStyleSheet()
+            story = []
+            
+            # Custom colors
+            navy_blue = colors.HexColor('#003366')
+            cyan = colors.HexColor('#00CED1')
+            light_cyan = colors.HexColor('#E0FFFF')
+            
+            # Custom styles
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Title'],
+                textColor=navy_blue,
+                fontSize=18,
+                spaceAfter=12,
+            )
+            
+            heading_style = ParagraphStyle(
+                'CustomHeading',
+                parent=styles['Heading2'],
+                textColor=cyan,
+                fontSize=14,
+                spaceAfter=12,
+            )
+            
+            normal_style = ParagraphStyle(
+                'CustomNormal',
+                parent=styles['Normal'],
+                textColor=navy_blue,
+                fontSize=10,
+            )
+            
+            # Header with company info
+            header_data = [
+                [Paragraph("Clasyo by Timesten Technologies Ltd.", title_style), 
+                 Paragraph(f"Invoice #{invoice.invoice_number}", heading_style)],
+                ["", Paragraph(f"Date: {invoice.invoice_date.strftime('%B %d, %Y')}", normal_style)],
+            ]
+            
+            header_table = Table(header_data, colWidths=[4*inch, 3*inch])
+            header_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                # Remove the problematic LINEBELOW style
+                ('LINEBELOW', (1, 0), (1, 1), 1, navy_blue),  # Simplified line style
+]))
+            story.append(header_table)
+            story.append(Spacer(1, 20))
+            
+            # Bill To section
+            story.append(Paragraph("Bill To:", heading_style))
+            story.append(Paragraph(f"{school.name}", normal_style))
+            if hasattr(school, 'address') and school.address:
+                story.append(Paragraph(school.address, normal_style))
+            if hasattr(school, 'phone') and school.phone:
+                story.append(Paragraph(f"Phone: {school.phone}", normal_style))
+            if hasattr(school, 'email') and school.email:
+                story.append(Paragraph(f"Email: {school.email}", normal_style))
+            story.append(Spacer(1, 20))
+            
+            # Invoice Details section
+            story.append(Paragraph("Invoice Details:", heading_style))
+            
+            # Invoice info table
+            info_data = [
+                ['Invoice Date:', invoice.invoice_date.strftime('%B %d, %Y')],
+                ['Due Date:', invoice.due_date.strftime('%B %d, %Y')],
+                ['Status:', invoice.get_status_display().title()],
+            ]
+            
+            if invoice.paid_date:
+                info_data.append(['Paid Date:', invoice.paid_date.strftime('%B %d, %Y %H:%M')])
+            
+            info_table = Table(info_data, colWidths=[2*inch, 3*inch])
+            info_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, -1), light_cyan),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ]))
+            story.append(info_table)
+            story.append(Spacer(1, 20))
+            
+            # Invoice items table
+            item_data = [
+                [
+                    Paragraph('Description', normal_style), 
+                    Paragraph('Period', normal_style), 
+                    Paragraph('Qty', normal_style), 
+                    Paragraph('Unit Price', normal_style), 
+                    Paragraph('Amount', normal_style)
+                ],
+                [
+                    f"{invoice.plan_name}\n{invoice.plan_description}",
+                    f"{invoice.billing_start_date.strftime('%b %d, %Y')} - {invoice.billing_end_date.strftime('%b %d, %Y')}" if invoice.billing_start_date and invoice.billing_end_date else "Current period",
+                    "1",
+                    f"Ksh {invoice.amount:.2f}",
+                    f"Ksh {invoice.amount:.2f}"
+                ]
+            ]
+            
+            if invoice.tax_amount > 0:
+                item_data.append(['Tax', '', '', '', f"Ksh {invoice.tax_amount:.2f}"])
+            
+            # Total row
+            total_amount_display = "FREE" if invoice.total_amount == 0 else f"Ksh {invoice.total_amount:.2f}"
+            item_data.append([
+                'Total', '', '', '', 
+                total_amount_display
+            ])
+            
+            item_table = Table(item_data, colWidths=[3*inch, 1.5*inch, 0.8*inch, 1*inch, 1*inch])
+            item_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), navy_blue),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (2, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -2), colors.white),
+                ('BACKGROUND', (0, -1), (-1, -1), light_cyan),
+                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 10),
+                ('GRID', (0, 0), (-1, -1), 1, navy_blue),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ]))
+            story.append(item_table)
+            
+            if invoice.notes:
+                story.append(Spacer(1, 20))
+                story.append(Paragraph("Notes:", heading_style))
+                story.append(Paragraph(invoice.notes, normal_style))
+            
+            # Footer
+            story.append(Spacer(1, 40))
+            story.append(Paragraph("This is a computer-generated invoice. No signature is required.", normal_style))
+            story.append(Paragraph("Thank you for your business with Clasyo!", heading_style))
+            story.append(Spacer(1, 10))
+            story.append(Paragraph("For questions, contact us at clasyo@timestentechnologies.co.ke", normal_style))
+            
+            # Build PDF
+            doc.build(story)
+            
+            # Create response
+            buffer.seek(0)
+            pdf = buffer.getvalue()
+            buffer.close()
+            
+            response = HttpResponse(pdf, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
+            
+            return response
+            
+        except (School.DoesNotExist, Invoice.DoesNotExist):
+            messages.error(request, "Invoice not found.")
+            return redirect('core:billing', school_slug=school_slug)
+        except Exception as e:
+            messages.error(request, f"Error generating invoice: {str(e)}")
+            return redirect('core:billing', school_slug=school_slug)
+
+
+class InvoicePreviewView(LoginRequiredMixin, View):
+    """API endpoint for invoice preview"""
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Only allow school admins to access invoices"""
+        if not request.user.is_school_admin:
+            return JsonResponse({'success': False, 'error': 'Access denied'})
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get(self, request, school_slug, invoice_id):
+        from subscriptions.models import Invoice
+        from tenants.models import School
+        from django.http import JsonResponse
+        
+        try:
+            school = School.objects.get(slug=school_slug, is_active=True)
+            invoice = Invoice.objects.get(id=invoice_id, school=school)
+            
+            # Prepare invoice data for preview
+            billing_period = ""
+            if invoice.billing_start_date and invoice.billing_end_date:
+                billing_period = f"{invoice.billing_start_date.strftime('%b %d, %Y')} - {invoice.billing_end_date.strftime('%b %d, %Y')}"
+            else:
+                billing_period = "Current period"
+            
+            data = {
+                'success': True,
+                'invoice': {
+                    'invoice_number': invoice.invoice_number,
+                    'invoice_date': invoice.invoice_date.strftime('%B %d, %Y'),
+                    'due_date': invoice.due_date.strftime('%B %d, %Y'),
+                    'status': invoice.status,
+                    'status_display': invoice.get_status_display().title(),
+                    'paid_date': invoice.paid_date.strftime('%B %d, %Y %H:%M') if invoice.paid_date else None,
+                    'school_name': school.name,
+                    'school_address': getattr(school, 'address', ''),
+                    'school_phone': getattr(school, 'phone', ''),
+                    'school_email': getattr(school, 'email', ''),
+                    'plan_name': invoice.plan_name,
+                    'plan_description': invoice.plan_description,
+                    'billing_period': billing_period,
+                    'amount': float(invoice.amount),
+                    'amount_display': 'FREE' if invoice.amount == 0 else f'Ksh {invoice.amount:.2f}',
+                    'tax_amount': float(invoice.tax_amount),
+                    'total_amount': float(invoice.total_amount),
+                    'notes': invoice.notes,
+                    'invoice_type': invoice.invoice_type,
+                    'invoice_type_display': invoice.get_invoice_type_display()
+                }
+            }
+            
+            return JsonResponse(data)
+            
+        except (School.DoesNotExist, Invoice.DoesNotExist):
+            return JsonResponse({'success': False, 'error': 'Invoice not found'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+
 @require_GET
 def offline_view(request):
     """View for offline page"""

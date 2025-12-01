@@ -1,0 +1,381 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Payment Configuration - {{ config.get_gateway_display }}{% endblock %}
+
+{% block page_title %}Payment Configuration Details{% endblock %}
+{% block page_icon %}credit-card{% endblock %}
+{% block page_subtitle %}{{ config.get_gateway_display }} ({{ config.get_environment_display }}){% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        {% if config.gateway == 'mpesa' %}📱
+                        {% elif config.gateway == 'paypal' %}💳
+                        {% elif config.gateway == 'stripe' %}🔵
+                        {% elif config.gateway == 'bank' %}🏦
+                        {% endif %}
+                        {{ config.get_gateway_display }}
+                    </h5>
+                    <div>
+                        <span class="badge {% if config.environment == 'live' %}bg-success{% else %}bg-warning{% endif %}">
+                            {{ config.get_environment_display }}
+                        </span>
+                        {% if config.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Basic Information -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <label class="text-muted small">Gateway</label>
+                            <p class="mb-2"><strong>{{ config.get_gateway_display }}</strong></p>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small">Environment</label>
+                            <p class="mb-2">
+                                <span class="badge {% if config.environment == 'live' %}bg-success{% else %}bg-warning{% endif %}">
+                                    {{ config.get_environment_display }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small">Status</label>
+                            <p class="mb-2">
+                                {% if config.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Gateway Specific Configuration -->
+                    {% if config.gateway == 'mpesa' %}
+                    <div class="mb-4">
+                        <h6>📱 M-Pesa Configuration</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="text-muted small">Consumer Key</label>
+                                <p class="mb-2">
+                                    {% if config.mpesa_consumer_key %}
+                                        <code>{{ config.mpesa_consumer_key|truncatechars:30 }}</code>
+                                        <button class="btn btn-sm btn-outline-secondary ms-2" onclick="navigator.clipboard.writeText('{{ config.mpesa_consumer_key }}')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    {% else %}
+                                        <span class="text-muted">Not configured</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small">Consumer Secret</label>
+                                <p class="mb-2">
+                                    {% if config.mpesa_consumer_secret %}
+                                        <code>••••••••••••••••</code>
+                                        <button class="btn btn-sm btn-outline-secondary ms-2" onclick="navigator.clipboard.writeText('{{ config.mpesa_consumer_secret }}')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    {% else %}
+                                        <span class="text-muted">Not configured</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small">Passkey</label>
+                                <p class="mb-2">
+                                    {% if config.mpesa_passkey %}
+                                        <code>••••••••••••••••</code>
+                                        <button class="btn btn-sm btn-outline-secondary ms-2" onclick="navigator.clipboard.writeText('{{ config.mpesa_passkey }}')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    {% else %}
+                                        <span class="text-muted">Not configured</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small">Shortcode</label>
+                                <p class="mb-2">
+                                    {% if config.mpesa_shortcode %}
+                                        <code>{{ config.mpesa_shortcode }}</code>
+                                    {% else %}
+                                        <span class="text-muted">Not configured</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small">Paybill Number</label>
+                                <p class="mb-2">
+                                    {% if config.mpesa_paybill_number %}
+                                        <code>{{ config.mpesa_paybill_number }}</code>
+                                    {% else %}
+                                        <span class="text-muted">Not configured</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% elif config.gateway == 'paypal' %}
+                    <div class="mb-4">
+                        <h6>💳 PayPal Configuration</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="text-muted small">Client ID</label>
+                                <p class="mb-2">
+                                    {% if config.paypal_client_id %}
+                                        <code>{{ config.paypal_client_id|truncatechars:30 }}</code>
+                                        <button class="btn btn-sm btn-outline-secondary ms-2" onclick="navigator.clipboard.writeText('{{ config.paypal_client_id }}')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    {% else %}
+                                        <span class="text-muted">Not configured</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small">Client Secret</label>
+                                <p class="mb-2">
+                                    {% if config.paypal_client_secret %}
+                                        <code>••••••••••••••••</code>
+                                        <button class="btn btn-sm btn-outline-secondary ms-2" onclick="navigator.clipboard.writeText('{{ config.paypal_client_secret }}')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    {% else %}
+                                        <span class="text-muted">Not configured</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small">Webhook ID</label>
+                                <p class="mb-2">
+                                    {% if config.paypal_webhook_id %}
+                                        <code>{{ config.paypal_webhook_id|truncatechars:30 }}</code>
+                                        <button class="btn btn-sm btn-outline-secondary ms-2" onclick="navigator.clipboard.writeText('{{ config.paypal_webhook_id }}')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    {% else %}
+                                        <span class="text-muted">Not configured</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% elif config.gateway == 'stripe' %}
+                    <div class="mb-4">
+                        <h6>🔵 Stripe Configuration</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="text-muted small">Publishable Key</label>
+                                <p class="mb-2">
+                                    {% if config.stripe_publishable_key %}
+                                        <code>{{ config.stripe_publishable_key|truncatechars:30 }}</code>
+                                        <button class="btn btn-sm btn-outline-secondary ms-2" onclick="navigator.clipboard.writeText('{{ config.stripe_publishable_key }}')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    {% else %}
+                                        <span class="text-muted">Not configured</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small">Secret Key</label>
+                                <p class="mb-2">
+                                    {% if config.stripe_secret_key %}
+                                        <code>••••••••••••••••</code>
+                                        <button class="btn btn-sm btn-outline-secondary ms-2" onclick="navigator.clipboard.writeText('{{ config.stripe_secret_key }}')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    {% else %}
+                                        <span class="text-muted">Not configured</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small">Webhook Secret</label>
+                                <p class="mb-2">
+                                    {% if config.stripe_webhook_secret %}
+                                        <code>••••••••••••••••</code>
+                                        <button class="btn btn-sm btn-outline-secondary ms-2" onclick="navigator.clipboard.writeText('{{ config.stripe_webhook_secret }}')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    {% else %}
+                                        <span class="text-muted">Not configured</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% elif config.gateway == 'bank' %}
+                    <div class="mb-4">
+                        <h6>🏦 Bank Configuration</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="text-muted small">Bank Name</label>
+                                <p class="mb-2">
+                                    {% if config.bank_name %}
+                                        <strong>{{ config.bank_name }}</strong>
+                                    {% else %}
+                                        <span class="text-muted">Not configured</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small">Account Name</label>
+                                <p class="mb-2">
+                                    {% if config.bank_account_name %}
+                                        <strong>{{ config.bank_account_name }}</strong>
+                                    {% else %}
+                                        <span class="text-muted">Not configured</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small">Account Number</label>
+                                <p class="mb-2">
+                                    {% if config.bank_account_number %}
+                                        <code>{{ config.bank_account_number }}</code>
+                                        <button class="btn btn-sm btn-outline-secondary ms-2" onclick="navigator.clipboard.writeText('{{ config.bank_account_number }}')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    {% else %}
+                                        <span class="text-muted">Not configured</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small">Branch</label>
+                                <p class="mb-2">
+                                    {% if config.bank_branch %}
+                                        {{ config.bank_branch }}
+                                    {% else %}
+                                        <span class="text-muted">Not configured</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small">SWIFT Code</label>
+                                <p class="mb-2">
+                                    {% if config.bank_swift_code %}
+                                        <code>{{ config.bank_swift_code }}</code>
+                                        <button class="btn btn-sm btn-outline-secondary ms-2" onclick="navigator.clipboard.writeText('{{ config.bank_swift_code }}')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    {% else %}
+                                        <span class="text-muted">Not configured</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Timestamps -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Created</label>
+                            <p class="mb-2">{{ config.created_at|date:"M d, Y H:i" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Last Updated</label>
+                            <p class="mb-2">{{ config.updated_at|date:"M d, Y H:i" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Configuration Status -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0">Configuration Status</h6>
+                </div>
+                <div class="card-body">
+                    {% if config.gateway == 'mpesa' %}
+                        {% if config.mpesa_consumer_key and config.mpesa_consumer_secret and config.mpesa_passkey %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                M-Pesa is properly configured
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                M-Pesa configuration is incomplete
+                            </div>
+                        {% endif %}
+                    {% elif config.gateway == 'paypal' %}
+                        {% if config.paypal_client_id and config.paypal_client_secret %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                PayPal is properly configured
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                PayPal configuration is incomplete
+                            </div>
+                        {% endif %}
+                    {% elif config.gateway == 'stripe' %}
+                        {% if config.stripe_publishable_key and config.stripe_secret_key %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Stripe is properly configured
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Stripe configuration is incomplete
+                            </div>
+                        {% endif %}
+                    {% elif config.gateway == 'bank' %}
+                        {% if config.bank_name and config.bank_account_name and config.bank_account_number %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Bank details are properly configured
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Bank configuration is incomplete
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'superadmin:payment_config_update' config.pk %}" class="btn btn-primary">
+                            <i class="fas fa-edit me-2"></i>Edit Configuration
+                        </a>
+                        <a href="{% url 'superadmin:payment_config_delete' config.pk %}" class="btn btn-outline-danger">
+                            <i class="fas fa-trash me-2"></i>Delete Configuration
+                        </a>
+                        <a href="{% url 'superadmin:payment_config_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to List
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

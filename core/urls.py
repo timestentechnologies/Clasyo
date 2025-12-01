@@ -59,6 +59,11 @@ urlpatterns = [
     path('login-as/<int:user_id>/', views.LoginAsView.as_view(), name='login_as'),
     path('impersonate/stop/', views.StopImpersonationView.as_view(), name='stop_impersonation'),
     
+    # Billing
+    path('billing/', views.BillingView.as_view(), name='billing'),
+    path('billing/invoices/<int:invoice_id>/download/', views.InvoiceDownloadView.as_view(), name='invoice_download'),
+    path('billing/invoices/<int:invoice_id>/preview/', views.InvoicePreviewView.as_view(), name='invoice_preview'),
+    
     # Offline page
     path('offline/', views.offline_view, name='offline'),
 ]

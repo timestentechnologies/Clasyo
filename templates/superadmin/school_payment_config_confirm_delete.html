@@ -1,0 +1,155 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Delete Payment Configuration - {{ config.get_gateway_display }} - {{ school.name }}{% endblock %}
+
+{% block page_title %}Delete Payment Configuration{% endblock %}
+{% block page_icon %}trash{% endblock %}
+{% block page_subtitle %}Remove payment method from {{ school.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="avatar bg-danger text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-trash fa-2x"></i>
+                        </div>
+                        <h4 class="text-danger mb-2">Are you sure?</h4>
+                        <p class="text-muted">This action cannot be undone. The payment configuration will be permanently deleted.</p>
+                    </div>
+
+                    <!-- Configuration Details -->
+                    <div class="alert alert-light border">
+                        <h6 class="alert-heading mb-3">
+                            <i class="fas fa-info-circle me-2"></i>Configuration to be deleted:
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <small class="text-muted">School:</small>
+                                    <div class="fw-medium">{{ school.name }}</div>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted">Payment Gateway:</small>
+                                    <div class="fw-medium">{{ config.get_gateway_display }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <small class="text-muted">Environment:</small>
+                                    <div class="fw-medium">{{ config.get_environment_display }}</div>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted">Status:</small>
+                                    <div class="fw-medium">
+                                        {% if config.is_active %}
+                                            <span class="badge bg-success rounded-pill">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary rounded-pill">Inactive</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if config.gateway == 'mpesa_stk' %}
+                            <hr class="my-3">
+                            <div class="small text-muted">
+                                <div class="mb-1">
+                                    <strong>Type:</strong> M-Pesa STK Push
+                                </div>
+                                <div class="mb-1">
+                                    <strong>Shortcode:</strong> {{ config.mpesa_shortcode|default:'Not configured' }}
+                                </div>
+                                <div class="mb-1">
+                                    <strong>Consumer Key:</strong> {% if config.mpesa_consumer_key %}Configured{% else %}Not configured{% endif %}
+                                </div>
+                            </div>
+                        {% elif config.gateway == 'mpesa_paybill' %}
+                            <hr class="my-3">
+                            <div class="small text-muted">
+                                <div class="mb-1">
+                                    <strong>Type:</strong> M-Pesa Manual Paybill
+                                </div>
+                                <div class="mb-1">
+                                    <strong>Paybill:</strong> {{ config.mpesa_paybill_number|default:'Not configured' }}
+                                </div>
+                                <div class="mb-1">
+                                    <strong>Account Number:</strong> {{ config.mpesa_paybill_account_number|default:'Not configured' }}
+                                </div>
+                                <div class="mb-1">
+                                    <strong>Bank Name:</strong> {{ config.mpesa_paybill_bank_name|default:'Not configured' }}
+                                </div>
+                            </div>
+                        {% elif config.gateway == 'paypal' %}
+                            <hr class="my-3">
+                            <div class="small text-muted">
+                                <div class="mb-1">
+                                    <strong>Email:</strong> {{ config.paypal_email|default:'Not configured' }}
+                                </div>
+                            </div>
+                        {% elif config.gateway == 'bank' %}
+                            <hr class="my-3">
+                            <div class="small text-muted">
+                                <div class="mb-1">
+                                    <strong>Bank:</strong> {{ config.bank_name|default:'Not configured' }}
+                                </div>
+                                <div class="mb-1">
+                                    <strong>Account:</strong> {{ config.bank_account_name|default:'Not configured' }}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Warning Message -->
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Important:</strong> Deleting this payment configuration will:
+                        <ul class="mb-0 mt-2">
+                            <li>Remove this payment option from parents</li>
+                            <li>Delete all configuration settings</li>
+                            <li>Affect any pending payments using this method</li>
+                        </ul>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'superadmin:school_payment_config_detail' school_slug=school.slug pk=config.pk %}" class="btn btn-outline-secondary btn-lg">
+                                <i class="fas fa-arrow-left me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-danger btn-lg">
+                                <i class="fas fa-trash me-2"></i>Delete Configuration
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add confirmation for form submission
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const confirmDelete = confirm('Are you absolutely sure you want to delete this payment configuration? This action cannot be undone.');
+        if (!confirmDelete) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

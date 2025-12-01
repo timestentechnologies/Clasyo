@@ -84,15 +84,44 @@
 
         <div class="menu-section-title">System</div>
 
-        <li><a href="{% url 'admin:index' %}">
-            <i class="fas fa-cog"></i>
-            <span>Django Admin</span>
+        <li><a href="{% url 'superadmin:payment_config_list' %}">
+            <i class="fas fa-cogs"></i>
+            <span>Payment Configurations</span>
         </a></li>
 
-        <li><a href="{% url 'frontend:documentation' %}" target="_blank">
-            <i class="fas fa-file-pdf"></i>
-            <span>System Documentation</span>
+        <li><a href="{% url 'superadmin:payment_approval_list' %}">
+            <i class="fas fa-check-circle"></i>
+            <span>Payment Approvals</span>
         </a></li>
+
+        <li><a href="{% url 'superadmin:payment_history' %}">
+            <i class="fas fa-history"></i>
+            <span>Payment History</span>
+        </a></li>
+
+        <div class="menu-section-title">Settings</div>
+
+        <li><a href="{% url 'superadmin:global_settings' %}">
+            <i class="fas fa-cog"></i>
+            <span>Global Settings</span>
+        </a></li>
+
+        <li><a href="{% url 'superadmin:sms_config_list' %}">
+            <i class="fas fa-sms"></i>
+            <span>SMS Configurations</span>
+        </a></li>
+
+        <li><a href="{% url 'superadmin:email_config_list' %}">
+            <i class="fas fa-envelope"></i>
+            <span>Email Configurations</span>
+        </a></li>
+
+        <li><a href="{% url 'superadmin:db_config_list' %}">
+            <i class="fas fa-database"></i>
+            <span>Database Configurations</span>
+        </a></li>
+
+       
 
         {% else %}
         {# === SCHOOL-BASED MENU === #}
@@ -215,6 +244,11 @@
             <span>Transactions</span>
         </a></li>
 
+        <li class="{% if '/payment-config/' in request.path %}active{% endif %}"><a href="{% url 'superadmin:school_payment_config_list' school_slug=school_slug %}">
+            <i class="fas fa-credit-card"></i>
+            <span>Payment Configurations</span>
+        </a></li>
+
         <li class="{% if '/inventory/expenses/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/inventory/expenses/">
             <i class="fas fa-dollar-sign"></i>
             <span>Expenses</span>
@@ -246,7 +280,8 @@
             <i class="fas fa-share-alt"></i>
             <span>Item Distribution</span>
         </a></li>
-        {% endif %}
+
+        
 
         {% if user.role in 'admin,teacher,student' %}
         <div class="menu-section-title">Additional Features</div>
@@ -299,6 +334,25 @@
         <li class="{% if '/messages/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/communication/messages/">
             <i class="fas fa-envelope"></i>
             <span>Messages</span>
+        </a></li>
+        {% endif %}
+
+        {% if user.role == 'admin' %}
+        <div class="menu-section-title">Settings</div>
+        
+        <li><a href="{% url 'superadmin:school_settings' school_slug=school_slug %}">
+            <i class="fas fa-cog"></i>
+            <span>School Settings</span>
+        </a></li>
+
+        <li><a href="{% url 'superadmin:school_sms_config_list' school_slug=school_slug %}">
+            <i class="fas fa-sms"></i>
+            <span>SMS Settings</span>
+        </a></li>
+
+        <li><a href="{% url 'superadmin:school_email_config_list' school_slug=school_slug %}">
+            <i class="fas fa-envelope"></i>
+            <span>Email Settings</span>
         </a></li>
         {% endif %}
 
@@ -369,7 +423,15 @@
 
         {% endif %}
 
-        
+        {% if user.role == 'admin' %}
+        <div class="menu-section-title">Billing & Subscription</div>
+
+        <li class="{% if '/billing/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/billing/">
+            <i class="fas fa-credit-card"></i>
+            <span>Billing</span>
+        </a></li>
+        {% endif %}
+        {% endif %}
 
         <div class="menu-section-title">Account</div>
 

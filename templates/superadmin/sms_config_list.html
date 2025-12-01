@@ -1,0 +1,115 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}SMS Configurations - Clasyo{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">SMS Configurations</h1>
+                    <p class="text-muted mb-0">Manage global SMS provider configurations</p>
+                </div>
+                <div>
+                    <a href="{% url 'superadmin:sms_config_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Add Configuration
+                    </a>
+                    <a href="{% url 'superadmin:global_settings' %}" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if configs %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Provider</th>
+                                        <th>Status</th>
+                                        <th>Default Sender ID</th>
+                                        <th>Created</th>
+                                        <th>Last Updated</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for config in configs %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="me-3">
+                                                        {% if config.provider == 'twilio' %}
+                                                            <i class="fas fa-phone fa-lg text-primary"></i>
+                                                        {% elif config.provider == 'africastalking' %}
+                                                            <i class="fas fa-comments fa-lg text-success"></i>
+                                                        {% elif config.provider == 'infobip' %}
+                                                            <i class="fas fa-satellite-dish fa-lg text-info"></i>
+                                                        {% elif config.provider == 'clickatell' %}
+                                                            <i class="fas fa-paper-plane fa-lg text-warning"></i>
+                                                        {% elif config.provider == 'nexmo' %}
+                                                            <i class="fas fa-mobile-alt fa-lg text-danger"></i>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div>
+                                                        <strong>{{ config.get_provider_display }}</strong>
+                                                        <br>
+                                                        <small class="text-muted">{{ config.provider|upper }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if config.is_active %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if config.default_sender_id %}
+                                                    {{ config.default_sender_id }}
+                                                {% else %}
+                                                    <span class="text-muted">Not set</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ config.created_at|date:"M d, Y" }}</td>
+                                            <td>{{ config.updated_at|date:"M d, Y" }}</td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <a href="{% url 'superadmin:sms_config_update' config.pk %}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <a href="{% url 'superadmin:sms_config_delete' config.pk %}" class="btn btn-sm btn-outline-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-sms fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No SMS Configurations Found</h5>
+                            <p class="text-muted mb-4">Create your first SMS configuration to enable SMS functionality across all schools.</p>
+                            <a href="{% url 'superadmin:sms_config_create' %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Create Configuration
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

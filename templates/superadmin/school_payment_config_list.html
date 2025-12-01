@@ -1,0 +1,175 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+{% load payment_filters %}
+
+{% block title %}Payment Configurations - {{ school.name }}{% endblock %}
+
+{% block page_title %}Payment Configurations{% endblock %}
+{% block page_icon %}credit-card{% endblock %}
+{% block page_subtitle %}Manage payment methods for {{ school.name }}{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <a href="{% url 'superadmin:school_payment_config_create' school_slug=school.slug %}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Add Payment Method
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- School Info Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="fas fa-school"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h5 class="card-title mb-1">{{ school.name }}</h5>
+                            <p class="card-text text-muted mb-0">{{ school.email }} | {{ school.phone }}</p>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <span class="badge bg-{{ school.is_active|yesno:'success,secondary' }} rounded-pill">
+                                {{ school.is_active|yesno:'Active,Inactive' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Configurations -->
+    <div class="row">
+        <div class="col-12">
+            {% if configs %}
+                <div class="row">
+                    {% for config in configs %}
+                        <div class="col-lg-6 col-xl-4 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar bg-{{ config.gateway|payment_gateway_color }} text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 14px;">
+                                            <i class="fas {{ config.gateway|payment_gateway_icon }}"></i>
+                                        </div>
+                                        <span class="fw-bold">{{ config.get_gateway_display }}</span>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-{{ config.is_active|yesno:'success,secondary' }} rounded-pill">
+                                            {{ config.is_active|yesno:'Active,Inactive' }}
+                                        </span>
+                                        {% if config.environment == 'live' %}
+                                            <span class="badge bg-warning text-dark ms-1 rounded-pill">Live</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="payment-method-details">
+                                        {% if config.gateway == 'mpesa_stk' %}
+                                            <div class="mb-2">
+                                                <small class="text-muted">Type:</small>
+                                                <span class="ms-1">STK Push</span>
+                                            </div>
+                                            <div class="mb-2">
+                                                <small class="text-muted">Shortcode:</small>
+                                                <span class="ms-1">{{ config.mpesa_shortcode|default:'Not Set' }}</span>
+                                            </div>
+                                        {% elif config.gateway == 'mpesa_paybill' %}
+                                            <div class="mb-2">
+                                                <small class="text-muted">Type:</small>
+                                                <span class="ms-1">Manual Paybill</span>
+                                            </div>
+                                            <div class="mb-2">
+                                                <small class="text-muted">Paybill:</small>
+                                                <span class="ms-1">{{ config.mpesa_paybill_number|default:'Not Set' }}</span>
+                                            </div>
+                                            <div class="mb-2">
+                                                <small class="text-muted">Account:</small>
+                                                <span class="ms-1">{{ config.mpesa_paybill_account_number|default:'Not Set' }}</span>
+                                            </div>
+                                            <div class="mb-2">
+                                                <small class="text-muted">Bank:</small>
+                                                <span class="ms-1">{{ config.mpesa_paybill_bank_name|default:'Not Set' }}</span>
+                                            </div>
+                                        {% elif config.gateway == 'paypal' %}
+                                            <div class="mb-2">
+                                                <small class="text-muted">Email:</small>
+                                                <span class="ms-1">{{ config.paypal_email|default:'Not Set' }}</span>
+                                            </div>
+                                        {% elif config.gateway == 'bank' %}
+                                            <div class="mb-2">
+                                                <small class="text-muted">Bank:</small>
+                                                <span class="ms-1">{{ config.bank_name|default:'Not Set' }}</span>
+                                            </div>
+                                            <div class="mb-2">
+                                                <small class="text-muted">Account:</small>
+                                                <span class="ms-1">{{ config.bank_account_name|default:'Not Set' }}</span>
+                                            </div>
+                                            <div class="mb-2">
+                                                <small class="text-muted">Number:</small>
+                                                <span class="ms-1">{{ config.bank_account_number|default:'Not Set' }}</span>
+                                            </div>
+                                        {% elif config.gateway == 'cash' or config.gateway == 'cheque' %}
+                                            <div class="mb-2">
+                                                <small class="text-muted">Instructions:</small>
+                                                <p class="ms-1 text-muted small">{{ config.payment_instructions|truncatechars:100|default:'No instructions provided' }}</p>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="text-muted small mt-3">
+                                        <i class="fas fa-clock me-1"></i>
+                                        Updated {{ config.updated_at|timesince }} ago
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <div class="btn-group w-100" role="group">
+                                        <a href="{% url 'superadmin:school_payment_config_detail' school_slug=school.slug pk=config.pk %}" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye me-1"></i>View
+                                        </a>
+                                        <a href="{% url 'superadmin:school_payment_config_update' school_slug=school.slug pk=config.pk %}" class="btn btn-outline-secondary btn-sm">
+                                            <i class="fas fa-edit me-1"></i>Edit
+                                        </a>
+                                        <a href="{% url 'superadmin:school_payment_config_delete' school_slug=school.slug pk=config.pk %}" class="btn btn-outline-danger btn-sm">
+                                            <i class="fas fa-trash me-1"></i>Delete
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <div class="avatar bg-light text-muted rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+                        <i class="fas fa-credit-card fa-2x"></i>
+                    </div>
+                    <h5 class="text-muted mb-3">No Payment Configurations</h5>
+                    <p class="text-muted mb-4">This school hasn't set up any payment methods yet.</p>
+                    <a href="{% url 'superadmin:school_payment_config_create' school_slug=school.slug %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Add First Payment Method
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Add any JavaScript for payment configuration management
+document.addEventListener('DOMContentLoaded', function() {
+    // Add tooltips if needed
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

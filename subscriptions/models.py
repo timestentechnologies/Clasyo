@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator
+from django.utils import timezone
 import uuid
 
 
@@ -69,6 +70,38 @@ class SubscriptionPlan(models.Model):
     def __str__(self):
         return f"{self.name} - {self.get_billing_cycle_display()}"
 
+    def get_features_list(self):
+        """Return features as a flat list of strings for display.
+
+        The JSON `features` field may be stored as a list of strings or as a
+        dict. This helper tries to handle both gracefully so that templates
+        can always iterate over a simple list.
+        """
+        items = []
+        data = self.features or {}
+
+        try:
+            # If it's already a list, normalise it to strings
+            if isinstance(data, list):
+                items.extend(str(f).strip() for f in data if str(f).strip())
+            # If it's a dict, either treat truthy keys as feature labels or
+            # use non-empty values as labels.
+            elif isinstance(data, dict):
+                for key, value in data.items():
+                    if isinstance(value, bool):
+                        if value:
+                            items.append(str(key).replace('_', ' ').title())
+                    else:
+                        text = str(value).strip()
+                        if text:
+                            items.append(text)
+        except Exception:
+            # Never break the page because of malformed JSON; just return
+            # whatever we safely collected.
+            pass
+
+        return items
+
 
 class Subscription(models.Model):
     """Individual Subscription Record"""
@@ -110,17 +143,22 @@ class Subscription(models.Model):
 class Payment(models.Model):
     """Payment Transaction Model"""
     PAYMENT_METHOD_CHOICES = [
-        ('stripe', 'Stripe'),
-        ('razorpay', 'Razorpay'),
+        ('mpesa_paybill', 'M-Pesa Paybill'),
+        ('mpesa_stk', 'M-Pesa STK Push'),
         ('paypal', 'PayPal'),
+        ('stripe', 'Stripe'),
         ('bank_transfer', 'Bank Transfer'),
         ('cash', 'Cash'),
         ('cheque', 'Cheque'),
     ]
     
     STATUS_CHOICES = [
+        ('pending_verification', 'Pending Verification'),
         ('pending', 'Pending'),
         ('processing', 'Processing'),
+        ('verified', 'Verified'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
         ('completed', 'Completed'),
         ('failed', 'Failed'),
         ('refunded', 'Refunded'),
@@ -131,13 +169,30 @@ class Payment(models.Model):
     
     # Payment Details
     amount = models.DecimalField(_("Amount"), max_digits=10, decimal_places=2)
-    currency = models.CharField(_("Currency"), max_length=10, default='USD')
+    currency = models.CharField(_("Currency"), max_length=10, default='KES')
     payment_method = models.CharField(_("Payment Method"), max_length=20, choices=PAYMENT_METHOD_CHOICES)
-    status = models.CharField(_("Status"), max_length=20, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(_("Status"), max_length=25, choices=STATUS_CHOICES, default='pending_verification')
     
     # Transaction Details
     transaction_id = models.CharField(_("Transaction ID"), max_length=255, blank=True, null=True)
     gateway_response = models.JSONField(_("Gateway Response"), default=dict, blank=True)
+    
+    # Payment Method Specific Details
+    phone_number = models.CharField(_("Phone Number"), max_length=20, blank=True, null=True)
+    full_name = models.CharField(_("Full Name"), max_length=255, blank=True, null=True)
+    account_name = models.CharField(_("Account Name"), max_length=255, blank=True, null=True)
+    account_number = models.CharField(_("Account Number"), max_length=50, blank=True, null=True)
+    paypal_email = models.EmailField(_("PayPal Email"), blank=True, null=True)
+    invoice_number_ref = models.CharField(_("Invoice Number Reference"), max_length=100, blank=True, null=True)
+    
+    # Approval Workflow
+    verified_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, 
+                                   related_name='verified_payments', verbose_name=_("Verified By"))
+    verified_at = models.DateTimeField(_("Verified At"), null=True, blank=True)
+    approved_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name='approved_payments', verbose_name=_("Approved By"))
+    approved_at = models.DateTimeField(_("Approved At"), null=True, blank=True)
+    rejection_reason = models.TextField(_("Rejection Reason"), blank=True)
     
     # Invoice
     invoice_number = models.CharField(_("Invoice Number"), max_length=50, unique=True, blank=True, null=True)
@@ -180,6 +235,50 @@ class Payment(models.Model):
             self.invoice_date = timezone.now().date()
         
         super().save(*args, **kwargs)
+    
+    def verify_payment(self, user):
+        """Mark payment as verified"""
+        self.status = 'verified'
+        self.verified_by = user
+        self.verified_at = timezone.now()
+        self.save()
+    
+    def approve_payment(self, user):
+        """Approve payment and activate subscription"""
+        self.status = 'approved'
+        self.approved_by = user
+        self.approved_at = timezone.now()
+        self.payment_date = timezone.now()
+        
+        # Update subscription status
+        if self.subscription:
+            self.subscription.status = 'active'
+            self.subscription.save()
+        
+        self.save()
+    
+    def reject_payment(self, user, reason):
+        """Reject payment"""
+        self.status = 'rejected'
+        self.approved_by = user
+        self.approved_at = timezone.now()
+        self.rejection_reason = reason
+        self.save()
+    
+    @property
+    def needs_verification(self):
+        """Check if payment needs verification"""
+        return self.status in ['pending_verification', 'pending']
+    
+    @property
+    def is_approved(self):
+        """Check if payment is approved"""
+        return self.status == 'approved'
+    
+    @property
+    def is_rejected(self):
+        """Check if payment is rejected"""
+        return self.status == 'rejected'
 
 
 class Coupon(models.Model):
@@ -241,3 +340,106 @@ class Coupon(models.Model):
             return False
         
         return True
+
+
+class Invoice(models.Model):
+    """Invoice for subscription payments and renewals"""
+    INVOICE_TYPES = [
+        ('new', 'New Subscription'),
+        ('renewal', 'Subscription Renewal'),
+        ('upgrade', 'Plan Upgrade'),
+        ('trial_end', 'Trial End'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('sent', 'Sent'),
+        ('paid', 'Paid'),
+        ('overdue', 'Overdue'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    invoice_number = models.CharField(max_length=50, unique=True)
+    school = models.ForeignKey('tenants.School', on_delete=models.CASCADE, related_name='invoices')
+    subscription = models.ForeignKey(Subscription, on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices')
+    payment = models.ForeignKey('Payment', on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices')
+    
+    invoice_type = models.CharField(max_length=20, choices=INVOICE_TYPES, default='new')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    
+    # Invoice details
+    plan_name = models.CharField(max_length=100)
+    plan_description = models.TextField(blank=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    # Dates
+    invoice_date = models.DateField(default=timezone.now)
+    due_date = models.DateField()
+    paid_date = models.DateTimeField(null=True, blank=True)
+    
+    # Billing period
+    billing_start_date = models.DateField(null=True, blank=True)
+    billing_end_date = models.DateField(null=True, blank=True)
+    
+    # Additional fields
+    notes = models.TextField(blank=True)
+    pdf_file = models.FileField(upload_to='invoices/', null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['school', '-created_at']),
+            models.Index(fields=['invoice_number']),
+            models.Index(fields=['status']),
+        ]
+    
+    def __str__(self):
+        return f"Invoice {self.invoice_number} - {self.school.name}"
+    
+    def save(self, *args, **kwargs):
+        if not self.invoice_number:
+            # Generate unique invoice number
+            year = timezone.now().year
+            month = timezone.now().month
+            last_invoice = Invoice.objects.filter(
+                invoice_date__year=year,
+                invoice_date__month=month
+            ).order_by('-invoice_number').first()
+            
+            if last_invoice:
+                try:
+                    last_num = int(last_invoice.invoice_number.split('-')[-1])
+                    new_num = last_num + 1
+                except (ValueError, IndexError):
+                    new_num = 1
+            else:
+                new_num = 1
+            
+            self.invoice_number = f"INV-{year}{month:02d}-{new_num:04d}"
+        
+        # Calculate total if not set
+        if self.total_amount == 0 and self.amount > 0:
+            self.total_amount = self.amount + self.tax_amount
+        
+        super().save(*args, **kwargs)
+    
+    @property
+    def is_paid(self):
+        return self.status == 'paid'
+    
+    @property
+    def is_overdue(self):
+        return self.status != 'paid' and self.due_date < timezone.now().date()
+    
+    def mark_as_paid(self, payment=None):
+        """Mark invoice as paid"""
+        self.status = 'paid'
+        self.paid_date = timezone.now()
+        if payment:
+            self.payment = payment
+        self.save()

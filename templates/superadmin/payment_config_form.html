@@ -1,0 +1,428 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Payment Configuration{% endblock %}
+
+{% block page_title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Payment Configuration{% endblock %}
+{% block page_icon %}credit-card{% endblock %}
+{% block page_subtitle %}Configure payment gateway settings{% endblock %}
+
+{% block extra_body_attrs %}data-initial-gateway="{% if form.instance.gateway %}{{ form.instance.gateway }}{% endif %}"{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Basic Settings -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="mb-3">Basic Settings</h5>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="{{ form.gateway.id_for_label }}" class="form-label">Payment Gateway</label>
+                                    {{ form.gateway }}
+                                    {% if form.gateway.errors %}
+                                        <div class="text-danger small">
+                                            {{ form.gateway.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="{{ form.environment.id_for_label }}" class="form-label">Environment</label>
+                                    {{ form.environment }}
+                                    {% if form.environment.errors %}
+                                        <div class="text-danger small">
+                                            {{ form.environment.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="{{ form.is_active.id_for_label }}" class="form-label">Status</label>
+                                    <div class="form-check mt-2">
+                                        {{ form.is_active }}
+                                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                            Active
+                                        </label>
+                                    </div>
+                                    {% if form.is_active.errors %}
+                                        <div class="text-danger small">
+                                            {{ form.is_active.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- M-Pesa Configuration -->
+                        <div id="mpesa-config" class="gateway-config mb-4" style="display: none;">
+                            <div class="row">
+                                <div class="col-12">
+                                    <h5 class="mb-3">📱 M-Pesa Configuration</h5>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Configure your M-Pesa Daraja API credentials for STK Push and Paybill payments.
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.mpesa_consumer_key.id_for_label }}" class="form-label">Consumer Key</label>
+                                        {{ form.mpesa_consumer_key }}
+                                        {% if form.mpesa_consumer_key.errors %}
+                                            <div class="text-danger small">
+                                                {{ form.mpesa_consumer_key.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.mpesa_consumer_secret.id_for_label }}" class="form-label">Consumer Secret</label>
+                                        {{ form.mpesa_consumer_secret }}
+                                        {% if form.mpesa_consumer_secret.errors %}
+                                            <div class="text-danger small">
+                                                {{ form.mpesa_consumer_secret.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.mpesa_passkey.id_for_label }}" class="form-label">Passkey</label>
+                                        {{ form.mpesa_passkey }}
+                                        {% if form.mpesa_passkey.errors %}
+                                            <div class="text-danger small">
+                                                {{ form.mpesa_passkey.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.mpesa_shortcode.id_for_label }}" class="form-label">Shortcode</label>
+                                        {{ form.mpesa_shortcode }}
+                                        {% if form.mpesa_shortcode.errors %}
+                                            <div class="text-danger small">
+                                                {{ form.mpesa_shortcode.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.mpesa_paybill_number.id_for_label }}" class="form-label">Paybill Number</label>
+                                        {{ form.mpesa_paybill_number }}
+                                        {% if form.mpesa_paybill_number.errors %}
+                                            <div class="text-danger small">
+                                                {{ form.mpesa_paybill_number.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PayPal Configuration -->
+                        <div id="paypal-config" class="gateway-config mb-4" style="display: none;">
+                            <div class="row">
+                                <div class="col-12">
+                                    <h5 class="mb-3">💳 PayPal Configuration</h5>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Configure your PayPal REST API credentials for secure payment processing.
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.paypal_client_id.id_for_label }}" class="form-label">Client ID</label>
+                                        {{ form.paypal_client_id }}
+                                        {% if form.paypal_client_id.errors %}
+                                            <div class="text-danger small">
+                                                {{ form.paypal_client_id.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.paypal_client_secret.id_for_label }}" class="form-label">Client Secret</label>
+                                        {{ form.paypal_client_secret }}
+                                        {% if form.paypal_client_secret.errors %}
+                                            <div class="text-danger small">
+                                                {{ form.paypal_client_secret.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.paypal_webhook_id.id_for_label }}" class="form-label">Webhook ID</label>
+                                        {{ form.paypal_webhook_id }}
+                                        {% if form.paypal_webhook_id.errors %}
+                                            <div class="text-danger small">
+                                                {{ form.paypal_webhook_id.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stripe Configuration -->
+                        <div id="stripe-config" class="gateway-config mb-4" style="display: none;">
+                            <div class="row">
+                                <div class="col-12">
+                                    <h5 class="mb-3">🔵 Stripe Configuration</h5>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Configure your Stripe API keys for credit card processing.
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.stripe_publishable_key.id_for_label }}" class="form-label">Publishable Key</label>
+                                        {{ form.stripe_publishable_key }}
+                                        {% if form.stripe_publishable_key.errors %}
+                                            <div class="text-danger small">
+                                                {{ form.stripe_publishable_key.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.stripe_secret_key.id_for_label }}" class="form-label">Secret Key</label>
+                                        {{ form.stripe_secret_key }}
+                                        {% if form.stripe_secret_key.errors %}
+                                            <div class="text-danger small">
+                                                {{ form.stripe_secret_key.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.stripe_webhook_secret.id_for_label }}" class="form-label">Webhook Secret</label>
+                                        {{ form.stripe_webhook_secret }}
+                                        {% if form.stripe_webhook_secret.errors %}
+                                            <div class="text-danger small">
+                                                {{ form.stripe_webhook_secret.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bank Configuration -->
+                        <div id="bank-config" class="gateway-config mb-4" style="display: none;">
+                            <div class="row">
+                                <div class="col-12">
+                                    <h5 class="mb-3">🏦 Bank Transfer Configuration</h5>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Configure your bank account details for manual bank transfers.
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.bank_name.id_for_label }}" class="form-label">Bank Name</label>
+                                        {{ form.bank_name }}
+                                        {% if form.bank_name.errors %}
+                                            <div class="text-danger small">
+                                                {{ form.bank_name.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.bank_account_name.id_for_label }}" class="form-label">Account Name</label>
+                                        {{ form.bank_account_name }}
+                                        {% if form.bank_account_name.errors %}
+                                            <div class="text-danger small">
+                                                {{ form.bank_account_name.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.bank_account_number.id_for_label }}" class="form-label">Account Number</label>
+                                        {{ form.bank_account_number }}
+                                        {% if form.bank_account_number.errors %}
+                                            <div class="text-danger small">
+                                                {{ form.bank_account_number.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.bank_branch.id_for_label }}" class="form-label">Branch</label>
+                                        {{ form.bank_branch }}
+                                        {% if form.bank_branch.errors %}
+                                            <div class="text-danger small">
+                                                {{ form.bank_branch.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.bank_swift_code.id_for_label }}" class="form-label">SWIFT Code</label>
+                                        {{ form.bank_swift_code }}
+                                        {% if form.bank_swift_code.errors %}
+                                            <div class="text-danger small">
+                                                {{ form.bank_swift_code.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'superadmin:payment_config_list' %}" class="btn btn-secondary">
+                                        <i class="fas fa-arrow-left me-2"></i>Back to List
+                                    </a>
+                                    <div>
+                                        <button type="reset" class="btn btn-outline-secondary me-2">
+                                            <i class="fas fa-undo me-2"></i>Reset
+                                        </button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-2"></i>{% if form.instance.pk %}Update{% else %}Create{% endif %} Configuration
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Configuration Guide</h6>
+                </div>
+                <div class="card-body">
+                    <div id="mpesa-guide" class="gateway-guide" style="display: none;">
+                        <h6>M-Pesa Setup</h6>
+                        <ol class="small">
+                            <li>Register on <a href="https://developer.safaricom.co.ke" target="_blank">Safaricom Developer Portal</a></li>
+                            <li>Create a new app and get Consumer Key & Secret</li>
+                            <li>Request for Lipa na M-Pesa Online Shortcode</li>
+                            <li>Generate and download the security certificate</li>
+                            <li>Test with sandbox credentials before going live</li>
+                        </ol>
+                    </div>
+                    
+                    <div id="paypal-guide" class="gateway-guide" style="display: none;">
+                        <h6>PayPal Setup</h6>
+                        <ol class="small">
+                            <li>Create a <a href="https://www.paypal.com/business" target="_blank">PayPal Business Account</a></li>
+                            <li>Go to PayPal Developer Dashboard</li>
+                            <li>Create a new REST API app</li>
+                            <li>Copy Client ID and Client Secret</li>
+                            <li>Set up webhooks for payment notifications</li>
+                        </ol>
+                    </div>
+                    
+                    <div id="stripe-guide" class="gateway-guide" style="display: none;">
+                        <h6>Stripe Setup</h6>
+                        <ol class="small">
+                            <li>Create a <a href="https://dashboard.stripe.com/register" target="_blank">Stripe Account</a></li>
+                            <li>Get API keys from Dashboard → Developers → API keys</li>
+                            <li>Test with test keys before using live keys</li>
+                            <li>Configure webhooks for payment events</li>
+                            <li>Set up payment methods in Stripe Dashboard</li>
+                        </ol>
+                    </div>
+                    
+                    <div id="bank-guide" class="gateway-guide" style="display: none;">
+                        <h6>Bank Transfer Setup</h6>
+                        <ol class="small">
+                            <li>Contact your bank for business account details</li>
+                            <li>Get account name, number, and branch information</li>
+                            <li>Ask for SWIFT code for international transfers</li>
+                            <li>Display bank details to customers for manual transfers</li>
+                            <li>Verify payments manually through bank statements</li>
+                        </ol>
+                    </div>
+                    
+                    <div id="default-guide" class="gateway-guide">
+                        <h6>Getting Started</h6>
+                        <p class="small text-muted">
+                            Select a payment gateway from the dropdown to see configuration instructions and required fields.
+                        </p>
+                        <div class="alert alert-warning small">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Always test payment configurations in sandbox mode before going live.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const gatewaySelect = document.getElementById('{{ form.gateway.id_for_label }}');
+    const configs = {
+        'mpesa': document.getElementById('mpesa-config'),
+        'paypal': document.getElementById('paypal-config'),
+        'stripe': document.getElementById('stripe-config'),
+        'bank': document.getElementById('bank-config')
+    };
+    const guides = {
+        'mpesa': document.getElementById('mpesa-guide'),
+        'paypal': document.getElementById('paypal-guide'),
+        'stripe': document.getElementById('stripe-guide'),
+        'bank': document.getElementById('bank-guide'),
+        'default': document.getElementById('default-guide')
+    };
+    
+    function showGatewayConfig(gateway) {
+        // Hide all configs
+        Object.values(configs).forEach(config => config.style.display = 'none');
+        Object.values(guides).forEach(guide => guide.style.display = 'none');
+        
+        // Show selected config and guide
+        if (configs[gateway]) {
+            configs[gateway].style.display = 'block';
+            guides[gateway].style.display = 'block';
+        } else {
+            guides.default.style.display = 'block';
+        }
+    }
+    
+    // Show config on change
+    gatewaySelect.addEventListener('change', function() {
+        showGatewayConfig(this.value);
+    });
+    
+    // Show initial config if editing
+    const initialGateway = document.body.getAttribute('data-initial-gateway');
+    if (initialGateway) {
+        showGatewayConfig(initialGateway);
+    } else {
+        showGatewayConfig('');
+    }
+});
+</script>
+{% endblock %}

@@ -7,7 +7,7 @@
 {% block page_subtitle %}Manage website pricing tiers{% endblock %}
 
 {% block page_actions %}
-<a href="{% url 'admin:frontend_pricingplan_add' %}" class="btn btn-primary" target="_blank">
+<a href="{% url 'admin:subscriptions_subscriptionplan_add' %}" class="btn btn-primary" target="_blank">
     <i class="fas fa-plus"></i> Add New Plan
 </a>
 {% endblock %}
@@ -33,8 +33,8 @@
                             {% for plan in pricing_plans %}
                             <tr>
                                 <td><strong>{{ plan.name }}</strong></td>
-                                <td>${{ plan.price }}</td>
-                                <td>{{ plan.duration }}</td>
+                                <td>Ksh {{ plan.price }}</td>
+                                <td>{{ plan.get_billing_cycle_display }}</td>
                                 <td>{{ plan.max_students|default:"Unlimited" }}</td>
                                 <td>
                                     {% if plan.is_active %}
@@ -51,7 +51,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <a href="{% url 'admin:frontend_pricingplan_change' plan.id %}" 
+                                    <a href="{% url 'admin:subscriptions_subscriptionplan_change' plan.id %}" 
                                        class="btn btn-sm btn-outline-primary" target="_blank">
                                         <i class="fas fa-edit"></i> Edit
                                     </a>
