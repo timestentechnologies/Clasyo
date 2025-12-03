@@ -29,7 +29,6 @@
     </div>
 
     <ul class="sidebar-menu">
-        <!-- Apps Link (Non-Superadmin) -->
         {% if user.role != 'superadmin' %}
         <li class="{% if '/apps/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'core:apps_home' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-th-large"></i>
@@ -37,17 +36,13 @@
         </a></li>
         {% endif %}
         
-        <!-- Dashboard (All Users) -->
         <li class="{% if 'dashboard' in request.path and '/apps/' not in request.path %}active{% endif %}"><a href="{% if user.role == 'superadmin' %}{% url 'superadmin:dashboard' %}{% elif school_slug %}{% url 'core:dashboard' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-tachometer-alt"></i>
             <span>Dashboard</span>
         </a></li>
 
         {% if user.role == 'superadmin' %}
-        {# ========================================= #}
-        {# ===       SUPER ADMIN MENU           === #}
-        {# ========================================= #}
-        
+        {# === SUPER ADMIN MENU === #}
         <div class="menu-section-title">Management</div>
         
         <li><a href="{% url 'superadmin:schools' %}">
@@ -126,19 +121,17 @@
             <span>Database Configurations</span>
         </a></li>
 
+       
+
         {% else %}
-        {# ========================================= #}
-        {# ===         ADMIN & TEACHER          === #}
-        {# ========================================= #}
+        {# === SCHOOL-BASED MENU === #}
         
         {% if user.role in 'admin,teacher' %}
         <div class="menu-section-title">Academic</div>
-        
         <li class="{% if '/todos/' in request.path %}active{% endif %}"><a href="{% url 'core:todos' school_slug=school_slug %}">
             <i class="fas fa-tasks"></i>
             <span>To Do</span>
         </a></li>
-
         <li class="{% if '/students/' in request.path and '/parents/' not in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/students/">
             <i class="fas fa-user-graduate"></i>
             <span>Students</span>
@@ -166,19 +159,9 @@
             <span>Class Routine</span>
         </a></li>
 
-        <li class="{% if '/attendance/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/attendance/mark/">
-            <i class="fas fa-check-circle"></i>
-            <span>Attendance</span>
-        </a></li>
-
         <li class="{% if '/lesson-plan/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/lesson-plan/">
             <i class="fas fa-tasks"></i>
             <span>Lesson Plans</span>
-        </a></li>
-
-        <li class="{% if '/homework/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/homework/">
-            <i class="fas fa-book-reader"></i>
-            <span>Homework</span>
         </a></li>
 
         <li class="{% if '/examinations/' in request.path and '/grades/' not in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/examinations/">
@@ -191,26 +174,31 @@
             <span>Online Exams</span>
         </a></li>
 
+        <li class="{% if '/homework/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/homework/">
+            <i class="fas fa-book-reader"></i>
+            <span>Homework</span>
+        </a></li>
+
         <li class="{% if '/grades/' in request.path or '/grading/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/examinations/grades/">
             <i class="fas fa-graduation-cap"></i>
             <span>Grading</span>
-        </a></li>
-
-        <li class="{% if '/library/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/library/">
-            <i class="fas fa-book"></i>
-            <span>Library</span>
         </a></li>
 
         <li class="{% if '/academic-years/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/academic-years/">
             <i class="fas fa-calendar-check"></i>
             <span>Academic Years</span>
         </a></li>
+        <li class="{% if '/attendance/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/attendance/mark/">
+            <i class="fas fa-check-circle"></i>
+            <span>Attendance</span>
+        </a></li>
+
+        <li class="{% if '/library/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/library/">
+            <i class="fas fa-book"></i>
+            <span>Library</span>
+        </a></li>
         {% endif %}
 
-        {# ========================================= #}
-        {# ===         ADMIN ONLY SECTIONS      === #}
-        {# ========================================= #}
-        
         {% if user.role == 'admin' %}
         <div class="menu-section-title">Human Resource</div>
         
@@ -314,7 +302,8 @@
             <i class="fas fa-chart-bar"></i>
             <span>Reports</span>
         </a></li>
-
+<!-- Exclusive only Admin access -->
+        {% if user.role == 'admin' %}
         <div class="menu-section-title">Settings</div>
         
         <li><a href="{% url 'superadmin:school_settings' school_slug=school_slug %}">
@@ -331,7 +320,6 @@
             <i class="fas fa-envelope"></i>
             <span>Email Settings</span>
         </a></li>
-
         <div class="menu-section-title">Billing & Subscription</div>
 
         <li class="{% if '/billing/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/billing/">
@@ -340,31 +328,18 @@
         </a></li>
         {% endif %}
 
-        {# ========================================= #}
-        {# ===            STUDENT               === #}
-        {# ========================================= #}
         
+
         {% if user.role == 'student' %}
         <div class="menu-section-title">My Learning</div>
-        <li class="{% if '/todos/' in request.path %}active{% endif %}"><a href="{% url 'core:todos' school_slug=school_slug %}">
-            <i class="fas fa-tasks"></i>
-            <span>To Do</span>
-        </a></li>
         <li class="{% if '/routine/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/academics/routine/">
             <i class="fas fa-clock"></i>
             <span>Class Routine</span>
         </a></li>
-
         <li class="{% if '/subjects/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/academics/subjects/">
             <i class="fas fa-book"></i>
             <span>Subjects</span>
         </a></li>
-
-        <li class="{% if '/attendance/my-attendance/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'attendance:my_attendance' school_slug=school_slug %}{% else %}#{% endif %}">
-            <i class="fas fa-calendar-check"></i>
-            <span>My Attendance</span>
-        </a></li>
-
         <li class="{% if '/examinations/' in request.path and '/my-results/' not in request.path and '/take/' not in request.path and '/result/' not in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'examinations:exam_list' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-file-alt"></i>
             <span>My Exams</span>
@@ -373,6 +348,11 @@
         <li class="{% if '/my-results/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'examinations:student_results' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-chart-line"></i>
             <span>My Results</span>
+        </a></li>
+
+        <li class="{% if '/attendance/my-attendance/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'attendance:my_attendance' school_slug=school_slug %}{% else %}#{% endif %}">
+            <i class="fas fa-calendar-check"></i>
+            <span>My Attendance</span>
         </a></li>
 
         <li class="{% if '/library/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/library/books/">
@@ -386,16 +366,9 @@
         </a></li>
         {% endif %}
 
-        {# ========================================= #}
-        {# ===            PARENT                === #}
-        {# ========================================= #}
-        
         {% if user.role == 'parent' %}
         <div class="menu-section-title">Parent Dashboard</div>
-        <li class="{% if '/todos/' in request.path %}active{% endif %}"><a href="{% url 'core:todos' school_slug=school_slug %}">
-            <i class="fas fa-tasks"></i>
-            <span>To Do</span>
-        </a></li>
+        
         <li class="{% if '/my-children/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'core:my_children' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-users"></i>
             <span>My Children</span>
@@ -410,52 +383,53 @@
             <i class="fas fa-chalkboard-teacher"></i>
             <span>Teachers</span>
         </a></li>
+        <li class="{% if '/parent/children/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/parent/children/">
+            <i class="fas fa-child"></i>
+            <span>My Children</span>
+        </a></li>
 
-        <li class="{% if '/attendance/my-attendance/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'attendance:my_attendance' school_slug=school_slug %}{% else %}#{% endif %}">
+        <li class="{% if '/parent/attendance/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/parent/attendance/">
             <i class="fas fa-calendar-check"></i>
-            <span>My Attendance</span>
+            <span>Attendance</span>
         </a></li>
 
-        <li class="{% if '/examinations/' in request.path and '/my-results/' not in request.path and '/take/' not in request.path and '/result/' not in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'examinations:exam_list' school_slug=school_slug %}{% else %}#{% endif %}">
+        <li class="{% if '/parent/exams/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/parent/exams/">
             <i class="fas fa-file-alt"></i>
-            <span>My Exams</span>
+            <span>Exams & Results</span>
         </a></li>
 
-        <li class="{% if '/my-results/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'examinations:student_results' school_slug=school_slug %}{% else %}#{% endif %}">
-            <i class="fas fa-chart-line"></i>
-            <span>My Results</span>
+        <li class="{% if '/parent/timetable/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/parent/timetable/">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Class Routine</span>
         </a></li>
 
-        <li class="{% if '/library/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/library/books/">
+        <li class="{% if '/parent/subjects/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/parent/subjects/">
             <i class="fas fa-book"></i>
-            <span>Library</span>
+            <span>Subjects</span>
         </a></li>
 
-        <li class="{% if '/fees/my-fees/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'fees:my_fees' school_slug=school_slug %}{% else %}#{% endif %}">
-            <i class="fas fa-money-bill"></i>
-            <span>Fee Status</span>
+        <li class="{% if '/parent/teachers/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/parent/teachers/">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <span>Teachers</span>
+        </a></li>
+
+        <li class="{% if '/parent/fees/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/parent/fees/">
+            <i class="fas fa-money-bill-wave"></i>
+            <span>Fees & Payments</span>
         </a></li>
         {% endif %}
-
-        {# ========================================= #}
-        {# ===    COMMUNICATION (ALL USERS)     === #}
-        {# ========================================= #}
+        {% endif %}
         
+        <!-- Links Visible by all roles -->
+        {% endif %}
         <div class="menu-section-title">Communication</div>
-
+        <li class="{% if '/todos/' in request.path %}active{% endif %}"><a href="{% url 'core:todos' school_slug=school_slug %}">
+            <i class="fas fa-tasks"></i>
+            <span>To Do</span>
+        </a></li>
         <li class="{% if '/chat/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/chat/">
             <i class="fas fa-comments"></i>
             <span>Chat</span>
-        </a></li>
-
-        <li class="{% if '/messages/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/communication/messages/">
-            <i class="fas fa-envelope"></i>
-            <span>Messages</span>
-        </a></li>
-
-        <li class="{% if '/notices/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/communication/notices/">
-            <i class="fas fa-bell"></i>
-            <span>Notices</span>
         </a></li>
 
         <li class="{% if '/calendar/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/calendar/">
@@ -467,12 +441,16 @@
             <i class="fas fa-calendar-day"></i>
             <span>Events</span>
         </a></li>
-        {% endif %}
 
-        {# ========================================= #}
-        {# ===       ACCOUNT (ALL USERS)        === #}
-        {# ========================================= #}
-        
+        <li class="{% if '/notices/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/communication/notices/">
+            <i class="fas fa-bell"></i>
+            <span>Notices</span>
+        </a></li>
+
+        <li class="{% if '/messages/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/communication/messages/">
+            <i class="fas fa-envelope"></i>
+            <span>Messages</span>
+        </a></li>
         <div class="menu-section-title">Account</div>
 
         <li><a href="{% if user.role == 'superadmin' %}{% url 'superadmin:profile' %}{% elif school_slug %}{% url 'core:profile' school_slug=school_slug %}{% else %}#{% endif %}">
@@ -489,11 +467,6 @@
             <i class="fas fa-sign-out-alt"></i>
             <span>Logout</span>
         </a></li>
-
-        {# ========================================= #}
-        {# ===       SYSTEM (ALL USERS)         === #}
-        {# ========================================= #}
-        
         {% if user.is_authenticated %}
         <div class="menu-section-title">System</div>
         
