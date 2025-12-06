@@ -5,6 +5,55 @@
 {% block meta_description %}Clasyo is a modern Kenyan school management system for CBC, primary, secondary and TVET institutions. Manage admissions, academics, exams, fees, communication and reporting for schools across Kenya.{% endblock %}
 
 {% block extra_css %}
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const texts = ["Transform Your School Management", "Streamline Academic Operations", "Enhance Learning Experiences", "Empower Educators & Students"];
+        const typingText = document.querySelector('.typing-text');
+        const cursor = document.querySelector('.cursor');
+        let textIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        let typingSpeed = 100; // Typing speed in milliseconds
+        let eraseSpeed = 50;   // Erase speed in milliseconds
+        let newTextDelay = 2000; // Delay before starting new text
+        
+        function type() {
+            const currentText = texts[textIndex];
+            
+            if (isDeleting) {
+                // Delete text
+                typingText.textContent = currentText.substring(0, charIndex - 1);
+                charIndex--;
+            } else {
+                // Type text
+                typingText.textContent = currentText.substring(0, charIndex + 1);
+                charIndex++;
+            }
+            
+            // Check if we've finished typing the current text
+            if (!isDeleting && charIndex === currentText.length) {
+                isDeleting = true;
+                typingSpeed = newTextDelay; // Pause at the end of the text
+            } else if (isDeleting && charIndex === 0) {
+                isDeleting = false;
+                textIndex = (textIndex + 1) % texts.length; // Move to next text
+                typingSpeed = 100; // Reset typing speed
+            }
+            
+            // Set the typing speed for the next character
+            const speed = isDeleting ? eraseSpeed : typingSpeed;
+            
+            // Call the function again after the delay
+            setTimeout(type, speed);
+        }
+        
+        // Start the typing effect after a short delay
+        setTimeout(type, 1000);
+    });
+</script>
+{% endblock %}
+
 <style>
     /* Hero Section Styles */
     .hero-section {
@@ -84,6 +133,26 @@
         font-weight: 800;
         margin-bottom: 1.5rem;
         line-height: 1.2;
+        min-height: 120px; /* Ensure space for the typing effect */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .typing-text {
+        margin-right: 8px;
+    }
+    
+    .cursor {
+        display: inline-block;
+        animation: blink 1s infinite;
+        font-weight: 400;
+    }
+    
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
     }
     
     .hero-subtitle {
@@ -301,10 +370,10 @@
         </div>
         
         <div class="container text-center">
-            <div class="mb-4" style="background: rgba(255, 255, 255, 0.2); border-radius: 50%; padding: 20px; display: inline-block;">
-                <img src="{% static 'images/erpupdated.png' %}" alt="Clasyo Logo" style="height: 100px; width: auto; display: block;">
-            </div>
-            <h1 class="hero-title">Transform Your School Management</h1>
+            <h1 class="hero-title">
+                <span class="typing-text">Transform Your School Management</span>
+                <span class="cursor">|</span>
+            </h1>
             <p class="hero-subtitle">Complete cloud-based solution for modern education management. Streamline operations and enhance learning experiences.</p>
             <div class="d-flex justify-content-center gap-3">
                 <button class="btn btn-hero btn-hero-primary" data-bs-toggle="modal" data-bs-target="#registerModal">
