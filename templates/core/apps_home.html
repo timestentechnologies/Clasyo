@@ -75,9 +75,8 @@
         }
         
         [data-theme="light"] .app-card {
-            background: var(--light-card-bg);
+            background: transparent !important;
             color: var(--light-text);
-            box-shadow: var(--light-shadow);
         }
         
         [data-theme="light"] .app-name {
@@ -193,34 +192,32 @@
         }
         .search-box i { position: absolute; left: 1.25rem; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.5); font-size: 1.25rem; }
         .apps-container { padding: 0 2rem 2rem; max-width: 1400px; margin: 0 auto; }
-        .apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1.5rem; }
+        .apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 1.5rem; }
         .app-card { 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
             justify-content: center; 
-            padding: 1.5rem 1rem; 
-            background: var(--dark-card-bg); 
-            border-radius: 12px; 
+            padding: 0.5rem; 
             text-decoration: none; 
-            border: 2px solid transparent; 
-            min-height: 140px; 
-            transition: var(--transition); 
+            transition: var(--transition);
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            min-height: auto;
         }
         .app-card:hover { 
-            transform: translateY(-5px); 
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            border-color: rgba(77, 208, 225, 0.5);
+            transform: none;
         }
         
         /* Light theme hover */
         [data-theme="light"] .app-card:hover {
-            background: #ffffff;
+            background: transparent !important;
         }
         
         /* Dark theme hover */
         [data-theme="dark"] .app-card:hover {
-            background: rgba(42, 48, 66, 0.8);
+            background: transparent !important;
         }
         
         /* Text color on hover */
@@ -247,6 +244,7 @@
         .app-card:hover .app-icon { 
             transform: scale(1.1);
             background: linear-gradient(135deg, #4dd0e1 0%, #26c6da 100%);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
         
         .app-icon i { 
@@ -259,7 +257,7 @@
             font-size: 13px; 
             font-weight: 500; 
             text-align: center; 
-            margin: 0; 
+            margin: 0.5rem 0 0; 
             transition: var(--transition);
         }
         @media (max-width: 768px) { .apps-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 1rem; } .header-content { flex-direction: column; } }
