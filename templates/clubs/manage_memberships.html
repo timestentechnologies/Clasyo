@@ -1,0 +1,314 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Manage Club Memberships{% endblock %}
+{% block page_title %}Manage Club Memberships{% endblock %}
+{% block page_icon %}users{% endblock %}
+{% block page_subtitle %}{{ club.name }} - Member Management{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <a href="{% url 'clubs:club_detail' school_slug=school_slug pk=club.id %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Club
+    </a>
+    <a href="{% url 'clubs:club_list' school_slug=school_slug %}" class="btn btn-brand-primary">
+        <i class="fas fa-list me-2"></i>All Clubs
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-brand-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>
+                    {{ club.name }} - Memberships
+                    <span class="badge bg-light text-dark ms-2">{{ memberships.count }} Members</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Status Filter -->
+                <form method="get" class="mb-4">
+                    <div class="row align-items-end">
+                        <div class="col-md-4">
+                            <label for="status" class="form-label">Filter by Status</label>
+                            <select name="status" id="status" class="form-select" onchange="this.form.submit()">
+                                <option value="">All Status</option>
+                                {% for status_value, status_label in status_choices %}
+                                <option value="{{ status_value }}" {% if selected_status == status_value %}selected{% endif %}>
+                                    {{ status_label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-secondary" onclick="clearFilter()">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </button>
+                        </div>
+                    </div>
+                <script>
+function clearFilter() {
+    window.location.href = "{% url 'clubs:manage_memberships' school_slug=school_slug club_id=club.id %}";
+}
+</script>
+</form>
+
+                <!-- Memberships Table -->
+                {% if memberships %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Student</th>
+                                <th>Application Reason</th>
+                                <th>Status</th>
+                                <th>Applied Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for membership in memberships %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm bg-brand-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                            {{ membership.student.first_name.0 }}{{ membership.student.last_name.0 }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-medium">{{ membership.student.get_full_name }}</div>
+                                            <small class="text-muted">{{ membership.student.email }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="text-truncate d-block" style="max-width: 200px;">
+                                        {{ membership.application_reason|default:"No reason provided"|truncatewords:10 }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if membership.status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% elif membership.status == 'approved' %}
+                                        <span class="badge bg-info">Approved</span>
+                                    {% elif membership.status == 'rejected' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                    {% elif membership.status == 'active' %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% elif membership.status == 'inactive' %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% elif membership.status == 'graduated' %}
+                                        <span class="badge bg-dark">Graduated</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ membership.created_at|date:"M d, Y" }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        {% if membership.status == 'pending' %}
+                                            <button type="button" class="btn btn-success btn-sm" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#approveModal{{ membership.id }}">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-danger btn-sm" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#rejectModal{{ membership.id }}">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        {% elif membership.status == 'approved' or membership.status == 'active' %}
+                                            <button type="button" class="btn btn-warning btn-sm" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deactivateModal{{ membership.id }}">
+                                                <i class="fas fa-pause"></i>
+                                            </button>
+                                        {% elif membership.status == 'inactive' %}
+                                            <button type="button" class="btn btn-success btn-sm" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#activateModal{{ membership.id }}">
+                                                <i class="fas fa-play"></i>
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <!-- Approval Modal -->
+                            <div class="modal fade" id="approveModal{{ membership.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Approve Application</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="post" action="{% url 'clubs:update_membership_status' school_slug=school_slug club_id=club.id membership_id=membership.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="status" value="approved">
+                                            <div class="modal-body">
+                                                <p>Approve {{ membership.student.get_full_name }}'s application to join {{ club.name }}?</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-success">Approve</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Rejection Modal -->
+                            <div class="modal fade" id="rejectModal{{ membership.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Reject Application</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="post" action="{% url 'clubs:update_membership_status' school_slug=school_slug club_id=club.id membership_id=membership.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="status" value="rejected">
+                                            <div class="modal-body">
+                                                <p>Reject {{ membership.student.get_full_name }}'s application to join {{ club.name }}?</p>
+                                                <div class="mb-3">
+                                                    <label for="rejection_reason_{{ membership.id }}" class="form-label">Reason (optional)</label>
+                                                    <textarea name="reason" id="rejection_reason_{{ membership.id }}" class="form-control" rows="3"></textarea>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-danger">Reject</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Deactivate Modal -->
+                            <div class="modal fade" id="deactivateModal{{ membership.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Deactivate Member</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="post" action="{% url 'clubs:update_membership_status' school_slug=school_slug club_id=club.id membership_id=membership.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="status" value="inactive">
+                                            <div class="modal-body">
+                                                <p>Deactivate {{ membership.student.get_full_name }} from {{ club.name }}?</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-warning">Deactivate</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Activate Modal -->
+                            <div class="modal fade" id="activateModal{{ membership.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Activate Member</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="post" action="{% url 'clubs:update_membership_status' school_slug=school_slug club_id=club.id membership_id=membership.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="status" value="active">
+                                            <div class="modal-body">
+                                                <p>Activate {{ membership.student.get_full_name }} in {{ club.name }}?</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-success">Activate</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-users fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">No memberships found</h5>
+                    <p class="text-muted">
+                        {% if selected_status %}
+                            No memberships with status "{{ selected_status }}" found.
+                        {% else %}
+                            No students have applied to join this club yet.
+                        {% endif %}
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Brand Colors */
+.bg-brand-primary {
+    background-color: #0f172a !important; /* Dark Blue */
+}
+
+.btn-brand-primary {
+    background-color: #0f172a !important;
+    border-color: #0f172a !important;
+    color: white !important;
+}
+
+.btn-brand-primary:hover {
+    background-color: #1e293b !important;
+    border-color: #1e293b !important;
+}
+
+/* Dark mode styles */
+[data-theme="dark"] .card {
+    background-color: #2d3748 !important;
+    border-color: #4a5568 !important;
+}
+
+[data-theme="dark"] .card-body {
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .table {
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .table-light {
+    background-color: #374151 !important;
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+    background-color: #374151 !important;
+    border-color: #4b5563 !important;
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .text-muted {
+    color: #b3b3b3 !important;
+}
+
+[data-theme="dark"] .modal-content {
+    background-color: #2d3748 !important;
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .modal-header {
+    border-color: #4a5568 !important;
+}
+
+[data-theme="dark"] .modal-footer {
+    border-color: #4a5568 !important;
+}
+</style>
+{% endblock %}

@@ -232,16 +232,11 @@ class MyChildrenView(LoginRequiredMixin, TemplateView):
                 'average_grade': None,
             }
             
-            # Get class teachers (only for THIS child's class)
-            if child.current_class:
-                try:
-                    from academics.models import ClassTeacher
-                    class_teachers = ClassTeacher.objects.filter(
-                        class_assigned=child.current_class
-                    ).select_related('teacher')
-                    child_info['teachers'] = [ct.teacher for ct in class_teachers]
-                except:
-                    pass
+            # Get class teachers (only for THIS child's section)
+            if child.section and child.section.class_teacher:
+                child_info['teachers'] = [child.section.class_teacher]
+            else:
+                child_info['teachers'] = []
             
             # Get attendance stats (only for THIS child)
             try:
@@ -259,7 +254,7 @@ class MyChildrenView(LoginRequiredMixin, TemplateView):
                 from examinations.models import ExamResult
                 recent_results = ExamResult.objects.filter(
                     student=child
-                ).select_related('exam', 'subject').order_by('-exam__date')[:5]
+                ).select_related('exam', 'student', 'grade').order_by('-exam__start_date')[:5]
                 child_info['recent_results'] = recent_results
                 
                 # Calculate average grade

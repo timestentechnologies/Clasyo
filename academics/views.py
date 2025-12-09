@@ -128,6 +128,8 @@ def get_class_api(request, pk, school_slug=None):
                 'id': section.id,
                 'name': section.name,
                 'max_students': section.max_students,
+                'class_teacher_id': section.class_teacher_id,
+                'class_teacher_name': section.class_teacher.get_full_name() if section.class_teacher else None,
             }
             for section in class_obj.sections.all()
         ]

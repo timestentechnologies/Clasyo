@@ -8,11 +8,11 @@ from datetime import date
 
 # Check if models exist
 try:
-    from .models import Attendance
+    from .models import StudentAttendance
     MODELS_EXIST = True
 except ImportError:
     MODELS_EXIST = False
-    class Attendance:
+    class StudentAttendance:
         pass
 
 
@@ -45,6 +45,21 @@ class MarkAttendanceView(LoginRequiredMixin, ListView):
         context['selected_date'] = self.request.GET.get('date', date.today())
         context['selected_class_id'] = self.request.GET.get('class_id', '')
         context['selected_section_id'] = self.request.GET.get('section_id', '')
+        
+        # Add existing attendance data for the selected date
+        if MODELS_EXIST and context['selected_date'] and context['selected_class_id']:
+            selected_date = context['selected_date']
+            if isinstance(selected_date, str):
+                from datetime import datetime
+                selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+            
+            context['existing_attendance'] = StudentAttendance.objects.filter(
+                date=selected_date,
+                student__current_class_id=context['selected_class_id']
+            ).select_related('student')
+            
+            print(f"Found {context['existing_attendance'].count()} existing attendance records for {selected_date}")
+        
         return context
     
     def post(self, request, *args, **kwargs):
@@ -53,27 +68,53 @@ class MarkAttendanceView(LoginRequiredMixin, ListView):
             attendance_date = request.POST.get('date', date.today())
             status = request.POST.get('status', 'present')
             
+            print(f"Received attendance data: student_id={student_id}, date={attendance_date}, status={status}")
+            
             if not MODELS_EXIST:
                 return JsonResponse({'success': False, 'error': 'Attendance model not available'})
             
-            # Get student and school for the record
-            student = Student.objects.get(id=student_id)
+            # Validate required fields
+            if not student_id:
+                return JsonResponse({'success': False, 'error': 'Student ID is required'})
             
-            Attendance.objects.update_or_create(
+            if not attendance_date:
+                return JsonResponse({'success': False, 'error': 'Date is required'})
+            
+            # Convert string date to date object if needed
+            from datetime import datetime
+            if isinstance(attendance_date, str):
+                try:
+                    attendance_date = datetime.strptime(attendance_date, '%Y-%m-%d').date()
+                except ValueError:
+                    return JsonResponse({'success': False, 'error': 'Invalid date format. Expected YYYY-MM-DD'})
+            
+            # Get student and school for the record
+            try:
+                student = Student.objects.get(id=student_id)
+                print(f"Found student: {student.get_full_name()}")
+            except Student.DoesNotExist:
+                return JsonResponse({'success': False, 'error': f'Student with ID {student_id} not found'})
+            
+            # Create or update attendance record
+            attendance, created = StudentAttendance.objects.update_or_create(
                 student_id=student_id,
                 date=attendance_date,
                 defaults={
                     'status': status,
                     'note': request.POST.get('note', ''),
-                    'school': student.school,
                     'class_name': student.current_class,
                     'section': student.section,
                     'marked_by': request.user
                 }
             )
-            return JsonResponse({'success': True})
+            
+            print(f"Attendance record {'created' if created else 'updated'}: {attendance}")
+            
+            return JsonResponse({'success': True, 'created': created, 'attendance_id': attendance.id})
         except Exception as e:
             import traceback
+            print(f"Error saving attendance: {e}")
+            print(traceback.format_exc())
             return JsonResponse({'success': False, 'error': str(e), 'trace': traceback.format_exc()})
 
 
@@ -83,7 +124,7 @@ class AttendanceReportView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         if MODELS_EXIST:
-            return Attendance.objects.all()
+            return StudentAttendance.objects.all()
         return []
     
     def get_context_data(self, **kwargs):
@@ -101,7 +142,7 @@ class StudentAttendanceView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         if MODELS_EXIST:
             student_id = self.kwargs.get('student_id')
-            return Attendance.objects.filter(student_id=student_id).order_by('-date')
+            return StudentAttendance.objects.filter(student_id=student_id).order_by('-date')
         return []
     
     def get_context_data(self, **kwargs):
@@ -126,7 +167,7 @@ class MyAttendanceView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         if MODELS_EXIST and hasattr(self.request.user, 'student_profile'):
             student = self.request.user.student_profile
-            return Attendance.objects.filter(student=student).order_by('-date')
+            return StudentAttendance.objects.filter(student=student).order_by('-date')
         return []
     
     def get_context_data(self, **kwargs):

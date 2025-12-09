@@ -55,6 +55,7 @@ urlpatterns = [
         path('reports/', include('reports.urls', namespace='reports')),
         path('online-exam/', include('online_exam.urls', namespace='online_exam')),
         path('chat/', include('chat.urls', namespace='chat')),
+        path('clubs/', include('clubs.urls', namespace='clubs')),
     ])),
 ]
 

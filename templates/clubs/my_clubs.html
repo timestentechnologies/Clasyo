@@ -1,0 +1,158 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}My Clubs{% endblock %}
+{% block page_title %}My Clubs{% endblock %}
+{% block page_icon %}users{% endblock %}
+{% block page_subtitle %}Your club memberships{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'clubs:club_list' school_slug=school_slug %}" class="btn btn-primary">
+    <i class="fas fa-th me-2"></i>Browse Clubs
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Upcoming Activities -->
+{% if upcoming_activities %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Your Upcoming Activities</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for activity in upcoming_activities %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ activity.title }}</h6>
+                                <p class="card-text small">{{ activity.description|truncatewords:15 }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        <i class="fas fa-users me-1"></i>{{ activity.club.name }}
+                                        <br><i class="fas fa-calendar me-1"></i>{{ activity.date|date:"M d, Y H:i" }}
+                                    </small>
+                                    <span class="badge bg-primary">{{ activity.get_activity_type_display }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- My Memberships -->
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">Club Memberships</h5>
+            </div>
+            <div class="card-body">
+                {% if memberships %}
+                    <div class="row">
+                        {% for membership in memberships %}
+                        <div class="col-lg-6 mb-4">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-header bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="card-title text-white mb-0">{{ membership.club.name }}</h5>
+                                        <span class="badge bg-light text-dark">{{ membership.club.get_club_type_display }}</span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">{{ membership.club.description|truncatewords:15 }}</p>
+                                    
+                                    <div class="mb-3">
+                                        <span class="badge {% if membership.status == 'active' %}bg-success{% elif membership.status == 'pending' %}bg-warning{% elif membership.status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                            {{ membership.get_status_display }}
+                                        </span>
+                                        {% if membership.position_held %}
+                                            <span class="badge bg-info ms-2">{{ membership.position_held }}</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if membership.club.meeting_day %}
+                                    <div class="mb-2">
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            {{ membership.club.get_meeting_day_display|title }}{% if membership.club.meeting_time %} at {{ membership.club.meeting_time }}{% endif %}
+                                            {% if membership.club.meeting_venue %} - {{ membership.club.meeting_venue }}{% endif %}
+                                        </small>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div class="d-flex justify-content-between">
+                                        <a href="{% url 'clubs:club_detail' school_slug=school_slug pk=membership.club.id %}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-eye me-1"></i>View Club
+                                        </a>
+                                        {% if membership.status == 'active' %}
+                                            <a href="{% url 'clubs:leave_club' school_slug=school_slug club_id=membership.club.id %}" class="btn btn-outline-danger btn-sm">
+                                                <i class="fas fa-sign-out-alt me-1"></i>Leave
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if is_paginated %}
+                    <nav aria-label="Membership pagination">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1">First</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-users fa-4x text-muted mb-3"></i>
+                        <h5 class="text-muted">No club memberships yet</h5>
+                        <p class="text-muted">You haven't joined any clubs yet. Browse available clubs and apply to join!</p>
+                        <a href="{% url 'clubs:club_list' school_slug=school_slug %}" class="btn btn-primary">
+                            <i class="fas fa-th me-2"></i>Browse Clubs
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

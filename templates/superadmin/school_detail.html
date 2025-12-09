@@ -2,6 +2,486 @@
 {% load static %}
 
 {% block title %}{{ school.name }} - Super Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Brand Colors */
+.btn-brand-primary {
+    background-color: #0f172a !important;
+    border-color: #0f172a !important;
+    color: white !important;
+}
+
+.btn-brand-primary:hover {
+    background-color: #1e293b !important;
+    border-color: #1e293b !important;
+}
+
+.btn-brand-cyan {
+    background-color: #06b6d4 !important;
+    border-color: #06b6d4 !important;
+    color: white !important;
+}
+
+.btn-brand-cyan:hover {
+    background-color: #0891b2 !important;
+    border-color: #0891b2 !important;
+}
+
+/* AGGRESSIVE DARK MODE STYLES - MAXIMUM SPECIFICITY */
+html[data-theme="dark"] .modern-card,
+html body[data-theme="dark"] .modern-card,
+body[data-theme="dark"] .modern-card,
+html.dark-theme .modern-card,
+body.dark-theme .modern-card,
+html.theme-dark .modern-card,
+body.theme-dark .modern-card,
+[data-theme="dark"] .modern-card,
+body.dark-theme .modern-card,
+body.theme-dark .modern-card {
+    background-color: #2d3748 !important;
+    border-color: #4a5568 !important;
+}
+
+html[data-theme="dark"] .card,
+html body[data-theme="dark"] .card,
+body[data-theme="dark"] .card,
+html.dark-theme .card,
+body.dark-theme .card,
+html.theme-dark .card,
+body.theme-dark .card,
+[data-theme="dark"] .card,
+body.dark-theme .card,
+body.theme-dark .card {
+    background-color: #2d3748 !important;
+    border-color: #4a5568 !important;
+}
+
+html[data-theme="dark"] .modern-card *,
+html body[data-theme="dark"] .modern-card *,
+body[data-theme="dark"] .modern-card *,
+html.dark-theme .modern-card *,
+body.dark-theme .modern-card *,
+html.theme-dark .modern-card *,
+body.theme-dark .modern-card *,
+[data-theme="dark"] .modern-card *,
+body.dark-theme .modern-card *,
+body.theme-dark .modern-card *,
+html[data-theme="dark"] .card *,
+html body[data-theme="dark"] .card *,
+body[data-theme="dark"] .card *,
+html.dark-theme .card *,
+body.dark-theme .card *,
+html.theme-dark .card *,
+body.theme-dark .card *,
+[data-theme="dark"] .card *,
+body.dark-theme .card *,
+body.theme-dark .card * {
+    color: #e9ecef !important;
+}
+
+html[data-theme="dark"] .modern-card .card-body,
+html body[data-theme="dark"] .modern-card .card-body,
+body[data-theme="dark"] .modern-card .card-body,
+html.dark-theme .modern-card .card-body,
+body.dark-theme .modern-card .card-body,
+html.theme-dark .modern-card .card-body,
+body.theme-dark .modern-card .card-body,
+[data-theme="dark"] .modern-card .card-body,
+body.dark-theme .modern-card .card-body,
+body.theme-dark .modern-card .card-body,
+html[data-theme="dark"] .card-body,
+html body[data-theme="dark"] .card-body,
+body[data-theme="dark"] .card-body,
+html.dark-theme .card-body,
+body.dark-theme .card-body,
+html.theme-dark .card-body,
+body.theme-dark .card-body,
+[data-theme="dark"] .card-body,
+body.dark-theme .card-body,
+body.theme-dark .card-body {
+    background-color: #2d3748 !important;
+    color: #e9ecef !important;
+}
+
+html[data-theme="dark"] .modern-card .card-header,
+html body[data-theme="dark"] .modern-card .card-header,
+body[data-theme="dark"] .modern-card .card-header,
+html.dark-theme .modern-card .card-header,
+body.dark-theme .modern-card .card-header,
+html.theme-dark .modern-card .card-header,
+body.theme-dark .modern-card .card-header,
+[data-theme="dark"] .modern-card .card-header,
+body.dark-theme .modern-card .card-header,
+body.theme-dark .modern-card .card-header,
+html[data-theme="dark"] .card-header,
+html body[data-theme="dark"] .card-header,
+body[data-theme="dark"] .card-header,
+html.dark-theme .card-header,
+body.dark-theme .card-header,
+html.theme-dark .card-header,
+body.theme-dark .card-header,
+[data-theme="dark"] .card-header,
+body.dark-theme .card-header,
+body.theme-dark .card-header {
+    background-color: #374151 !important;
+    border-color: #4a5568 !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .card-title,
+html body[data-theme="dark"] .card-title,
+body[data-theme="dark"] .card-title,
+html.dark-theme .card-title,
+body.dark-theme .card-title,
+html.theme-dark .card-title,
+body.theme-dark .card-title,
+[data-theme="dark"] .card-title,
+body.dark-theme .card-title,
+body.theme-dark .card-title {
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .text-muted,
+html body[data-theme="dark"] .text-muted,
+body[data-theme="dark"] .text-muted,
+html.dark-theme .text-muted,
+body.dark-theme .text-muted,
+html.theme-dark .text-muted,
+body.theme-dark .text-muted,
+[data-theme="dark"] .text-muted,
+body.dark-theme .text-muted,
+body.theme-dark .text-muted {
+    color: #b3b3b3 !important;
+}
+
+html[data-theme="dark"] .card-footer,
+html body[data-theme="dark"] .card-footer,
+body[data-theme="dark"] .card-footer,
+html.dark-theme .card-footer,
+body.dark-theme .card-footer,
+html.theme-dark .card-footer,
+body.theme-dark .card-footer,
+[data-theme="dark"] .card-footer,
+body.dark-theme .card-footer,
+body.theme-dark .card-footer {
+    background-color: #374151 !important;
+    border-color: #4a5568 !important;
+}
+
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4,
+html[data-theme="dark"] h5,
+html[data-theme="dark"] h6,
+html body[data-theme="dark"] h1,
+html body[data-theme="dark"] h3,
+html body[data-theme="dark"] h4,
+html body[data-theme="dark"] h5,
+html body[data-theme="dark"] h6,
+body[data-theme="dark"] h1,
+body[data-theme="dark"] h3,
+body[data-theme="dark"] h4,
+body[data-theme="dark"] h5,
+body[data-theme="dark"] h6,
+html.dark-theme h1,
+html.dark-theme h3,
+html.dark-theme h4,
+html.dark-theme h5,
+html.dark-theme h6,
+body.dark-theme h1,
+body.dark-theme h3,
+body.dark-theme h4,
+body.dark-theme h5,
+body.dark-theme h6,
+html.theme-dark h1,
+html.theme-dark h3,
+html.theme-dark h4,
+html.theme-dark h5,
+html.theme-dark h6,
+body.theme-dark h1,
+body.theme-dark h3,
+body.theme-dark h4,
+body.theme-dark h5,
+body.theme-dark h6,
+[data-theme="dark"] h1,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6,
+body.dark-theme h1,
+body.dark-theme h3,
+body.dark-theme h4,
+body.dark-theme h5,
+body.dark-theme h6,
+body.theme-dark h1,
+body.theme-dark h3,
+body.theme-dark h4,
+body.theme-dark h5,
+body.theme-dark h6 {
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .badge,
+html body[data-theme="dark"] .badge,
+body[data-theme="dark"] .badge,
+html.dark-theme .badge,
+body.dark-theme .badge,
+html.theme-dark .badge,
+body.theme-dark .badge,
+[data-theme="dark"] .badge,
+body.dark-theme .badge,
+body.theme-dark .badge {
+    color: #ffffff !important;
+}
+
+/* Target all spans specifically */
+html[data-theme="dark"] span,
+html body[data-theme="dark"] span,
+body[data-theme="dark"] span,
+html.dark-theme span,
+body.dark-theme span,
+html.theme-dark span,
+body.theme-dark span,
+[data-theme="dark"] span,
+body.dark-theme span,
+body.theme-dark span {
+    color: #e9ecef !important;
+}
+
+html[data-theme="dark"] .modern-card span,
+html body[data-theme="dark"] .modern-card span,
+body[data-theme="dark"] .modern-card span,
+html.dark-theme .modern-card span,
+body.dark-theme .modern-card span,
+html.theme-dark .modern-card span,
+body.theme-dark .modern-card span,
+[data-theme="dark"] .modern-card span,
+body.dark-theme .modern-card span,
+body.theme-dark .modern-card span,
+html[data-theme="dark"] .card span,
+html body[data-theme="dark"] .card span,
+body[data-theme="dark"] .card span,
+html.dark-theme .card span,
+body.dark-theme .card span,
+html.theme-dark .card span,
+body.theme-dark .card span,
+[data-theme="dark"] .card span,
+body.dark-theme .card span,
+body.theme-dark .card span {
+    color: #e9ecef !important;
+}
+
+html[data-theme="dark"] .modern-card .card-body span,
+html body[data-theme="dark"] .modern-card .card-body span,
+body[data-theme="dark"] .modern-card .card-body span,
+html.dark-theme .modern-card .card-body span,
+body.dark-theme .modern-card .card-body span,
+html.theme-dark .modern-card .card-body span,
+body.theme-dark .modern-card .card-body span,
+[data-theme="dark"] .modern-card .card-body span,
+body.dark-theme .modern-card .card-body span,
+body.theme-dark .modern-card .card-body span,
+html[data-theme="dark"] .card-body span,
+html body[data-theme="dark"] .card-body span,
+body[data-theme="dark"] .card-body span,
+html.dark-theme .card-body span,
+body.dark-theme .card-body span,
+html.theme-dark .card-body span,
+body.theme-dark .card-body span,
+[data-theme="dark"] .card-body span,
+body.dark-theme .card-body span,
+body.theme-dark .card-body span {
+    color: #e9ecef !important;
+}
+
+html[data-theme="dark"] .small,
+html body[data-theme="dark"] .small,
+body[data-theme="dark"] .small,
+html.dark-theme .small,
+body.dark-theme .small,
+html.theme-dark .small,
+body.theme-dark .small,
+[data-theme="dark"] .small,
+body.dark-theme .small,
+body.theme-dark .small {
+    color: #cbd5e0 !important;
+}
+
+html[data-theme="dark"] .fw-bold,
+html body[data-theme="dark"] .fw-bold,
+body[data-theme="dark"] .fw-bold,
+html.dark-theme .fw-bold,
+body.dark-theme .fw-bold,
+html.theme-dark .fw-bold,
+body.theme-dark .fw-bold,
+[data-theme="dark"] .fw-bold,
+body.dark-theme .fw-bold,
+body.theme-dark .fw-bold {
+    color: #ffffff !important;
+}
+
+/* Table styles */
+html[data-theme="dark"] .table,
+html body[data-theme="dark"] .table,
+body[data-theme="dark"] .table,
+html.dark-theme .table,
+body.dark-theme .table,
+html.theme-dark .table,
+body.theme-dark .table,
+[data-theme="dark"] .table,
+body.dark-theme .table,
+body.theme-dark .table {
+    color: #e9ecef !important;
+}
+
+html[data-theme="dark"] .table th,
+html body[data-theme="dark"] .table th,
+body[data-theme="dark"] .table th,
+html.dark-theme .table th,
+body.dark-theme .table th,
+html.theme-dark .table th,
+body.theme-dark .table th,
+[data-theme="dark"] .table th,
+body.dark-theme .table th,
+body.theme-dark .table th {
+    background-color: #374151 !important;
+    border-color: #4a5568 !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .table td,
+html body[data-theme="dark"] .table td,
+body[data-theme="dark"] .table td,
+html.dark-theme .table td,
+body.dark-theme .table td,
+html.theme-dark .table td,
+body.theme-dark .table td,
+[data-theme="dark"] .table td,
+body.dark-theme .table td,
+body.theme-dark .table td {
+    border-color: #4a5568 !important;
+    color: #e9ecef !important;
+}
+
+/* Code elements */
+html[data-theme="dark"] code,
+html body[data-theme="dark"] code,
+body[data-theme="dark"] code,
+html.dark-theme code,
+body.dark-theme code,
+html.theme-dark code,
+body.theme-dark code,
+[data-theme="dark"] code,
+body.dark-theme code,
+body.theme-dark code {
+    background-color: #374151 !important;
+    color: #e9ecef !important;
+}
+
+/* Button styles */
+html[data-theme="dark"] .btn-outline-secondary,
+html body[data-theme="dark"] .btn-outline-secondary,
+body[data-theme="dark"] .btn-outline-secondary,
+html.dark-theme .btn-outline-secondary,
+body.dark-theme .btn-outline-secondary,
+html.theme-dark .btn-outline-secondary,
+body.theme-dark .btn-outline-secondary,
+[data-theme="dark"] .btn-outline-secondary,
+body.dark-theme .btn-outline-secondary,
+body.theme-dark .btn-outline-secondary {
+    color: #e9ecef !important;
+    border-color: #4a5568 !important;
+}
+
+html[data-theme="dark"] .btn-outline-secondary:hover,
+html body[data-theme="dark"] .btn-outline-secondary:hover,
+body[data-theme="dark"] .btn-outline-secondary:hover,
+html.dark-theme .btn-outline-secondary:hover,
+body.dark-theme .btn-outline-secondary:hover,
+html.theme-dark .btn-outline-secondary:hover,
+body.theme-dark .btn-outline-secondary:hover,
+[data-theme="dark"] .btn-outline-secondary:hover,
+body.dark-theme .btn-outline-secondary:hover,
+body.theme-dark .btn-outline-secondary:hover {
+    color: #ffffff !important;
+    background-color: #4a5568 !important;
+}
+
+/* Light mode compatibility */
+.modern-card,
+.card {
+    background-color: #ffffff;
+    border-color: #e5e7eb;
+}
+
+.modern-card .card-body,
+.card-body {
+    color: #374151;
+}
+
+.modern-card .card-header,
+.card-header {
+    background-color: #f9fafb;
+    border-color: #e5e7eb;
+    color: #111827;
+}
+
+.card-title {
+    color: #111827;
+}
+
+.text-muted {
+    color: #6b7280 !important;
+}
+
+.card-footer {
+    background-color: #f9fafb;
+    border-color: #e5e7eb;
+}
+
+.fw-bold {
+    color: #111827;
+}
+
+.small {
+    color: #6b7280;
+}
+
+.card-text {
+    color: #374151;
+}
+
+/* Force text color for all spans */
+.modern-card span,
+.card span {
+    color: #374151;
+}
+
+html[data-theme="dark"] .modern-card span,
+html body[data-theme="dark"] .modern-card span,
+body[data-theme="dark"] .modern-card span,
+html.dark-theme .modern-card span,
+body.dark-theme .modern-card span,
+html.theme-dark .modern-card span,
+body.theme-dark .modern-card span,
+[data-theme="dark"] .modern-card span,
+body.dark-theme .modern-card span,
+body.theme-dark .modern-card span,
+html[data-theme="dark"] .card span,
+html body[data-theme="dark"] .card span,
+body[data-theme="dark"] .card span,
+html.dark-theme .card span,
+body.dark-theme .card span,
+html.theme-dark .card span,
+body.theme-dark .card span,
+[data-theme="dark"] .card span,
+body.dark-theme .card span,
+body.theme-dark .card span {
+    color: #e9ecef !important;
+}
+</style>
+{% endblock %}
 {% block page_title %}{{ school.name }}{% endblock %}
 {% block page_icon %}school{% endblock %}
 {% block page_subtitle %}School Details and Statistics{% endblock %}

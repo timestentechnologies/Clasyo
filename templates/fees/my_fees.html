@@ -1,5 +1,16 @@
-{% extends 'core/admin_dashboard.html' %}
+{% extends 'dashboards/base.html' %}
 {% load static %}
+{% load humanize %}
+
+<style>
+.amount-cyan {
+    color: #00bcd4 !important;
+}
+
+[data-theme="dark"] .amount-cyan {
+    color: #ffffff !important;
+}
+</style>
 
 {% block title %}My Fee Status{% endblock %}
 {% block page_icon %}money-bill-wave{% endblock %}
@@ -8,31 +19,184 @@
 
 {% block content %}
 
+<!-- Fee Summary Cards -->
 <div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm border-start border-4" style="border-left-color: #00bcd4 !important;">
+            <div class="card-body">
+                <h6 class="text-muted">Total Fees</h6>
+                <h2 class="amount-cyan">KES {{ total_fees|floatformat:0|intcomma|default:"0" }}</h2>
+                <p class="mb-0 small">Academic year fees</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm border-start border-4" style="border-left-color: #00bcd4 !important;">
             <div class="card-body">
                 <h6 class="text-muted">Total Paid</h6>
-                <h2 class="text-success">KES {{ total_paid|floatformat:2|default:"0.00" }}</h2>
+                <h2 class="amount-cyan">KES {{ total_paid|floatformat:0|intcomma|default:"0" }}</h2>
                 <p class="mb-0 small">All time payments</p>
             </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm border-start border-4" style="border-left-color: #00bcd4 !important;">
+            <div class="card-body">
+                <h6 class="text-muted">Balance</h6>
+                <h2 class="amount-cyan">KES {{ balance|floatformat:0|intcomma|default:"0" }}</h2>
+                <p class="mb-0 small">Outstanding balance</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm border-start border-4" style="border-left-color: #00bcd4 !important;">
             <div class="card-body">
                 <h6 class="text-muted">Student Information</h6>
-                <p class="mb-1"><strong>Name:</strong> {{ student.get_full_name }}</p>
-                <p class="mb-1"><strong>Admission No:</strong> {{ student.admission_number }}</p>
-                <p class="mb-0"><strong>Class:</strong> {{ student.current_class|default:"N/A" }}</p>
+                <p class="mb-1 small"><strong>Name:</strong> {{ student.get_full_name }}</p>
+                <p class="mb-1 small"><strong>Admission:</strong> {{ student.admission_number }}</p>
+                <p class="mb-0 small"><strong>Class:</strong> {{ student.current_class|default:"N/A" }}</p>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Payment Options Section (for parents) -->
+{% if user.role == 'parent' and balance > 0 %}
+<div class="card mb-4">
+    <div class="card-header bg-brand-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Payment Options</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% for payment_config in payment_configurations %}
+            {% if payment_config.is_active %}
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            {% if payment_config.gateway == 'mpesa_stk' %}
+                            <i class="fas fa-mobile-alt fa-3x text-success"></i>
+                            <h6 class="mt-2">M-Pesa STK Push</h6>
+                            <p class="small text-muted">Pay instantly via M-Pesa</p>
+                            <button class="btn btn-success btn-sm" onclick="initiateMpesaStk('{{ payment_config.id }}')">
+                                <i class="fas fa-paper-plane me-1"></i>Pay Now
+                            </button>
+                            
+                            {% elif payment_config.gateway == 'mpesa_paybill' %}
+                            <i class="fas fa-money-bill fa-3x" style="color: #00bcd4;"></i>
+                            <h6 class="mt-2">M-Pesa Paybill</h6>
+                            <p class="small text-muted">Manual M-Pesa payment</p>
+                            <div class="text-start small">
+                                <strong>Paybill Number:</strong> {{ payment_config.mpesa_paybill_number }}<br>
+                                <strong>Account Number:</strong> {{ student.admission_number }}<br>
+                                {% if payment_config.mpesa_paybill_bank_name %}
+                                <strong>Bank Name:</strong> {{ payment_config.mpesa_paybill_bank_name }}
+                                {% endif %}
+                            </div>
+                            <button class="btn btn-primary btn-sm mt-2" onclick="confirmPaybillPayment('{{ payment_config.id }}')">
+                                <i class="fas fa-check me-1"></i>I've Paid
+                            </button>
+                            
+                            {% elif payment_config.gateway == 'bank' %}
+                            <i class="fas fa-university fa-3x text-info"></i>
+                            <h6 class="mt-2">Bank Transfer</h6>
+                            <p class="small text-muted">Direct bank deposit</p>
+                            <div class="text-start small">
+                                <strong>Bank:</strong> {{ payment_config.bank_name }}<br>
+                                <strong>Account Name:</strong> {{ payment_config.bank_account_name }}<br>
+                                <strong>Account Number:</strong> {{ payment_config.bank_account_number }}
+                            </div>
+                            <button class="btn btn-info btn-sm mt-2" onclick="confirmBankPayment('{{ payment_config.id }}')">
+                                <i class="fas fa-check me-1"></i>I've Paid
+                            </button>
+                            
+                            {% elif payment_config.gateway == 'cash' %}
+                            <i class="fas fa-money-bill-wave fa-3x text-warning"></i>
+                            <h6 class="mt-2">Cash Payment</h6>
+                            <p class="small text-muted">Pay at school office</p>
+                            <button class="btn btn-warning btn-sm" onclick="showCashPaymentInfo()">
+                                <i class="fas fa-info-circle me-1"></i>Details
+                            </button>
+                            
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No payment methods are currently configured. Please contact the school administration.
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Fee Structure Details -->
 <div class="card mb-4">
     <div class="card-header">
-        <h5 class="mb-0"><i class="fas fa-list"></i> Payment History</h5>
+        <h5 class="mb-0"><i class="fas fa-list-alt me-2"></i>Fee Structure</h5>
+    </div>
+    <div class="card-body">
+        {% if fee_structures %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fee Type</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for structure in fee_structures %}
+                    <tr>
+                        <td>{{ structure.get_fee_type_display }}</td>
+                        <td>{{ structure.description|default:"-" }}</td>
+                        <td>KES {{ structure.amount|floatformat:0|intcomma }}</td>
+                        <td>{{ structure.due_date|date:"M d, Y"|default:"-" }}</td>
+                        <td>
+                            {% if structure.is_paid %}
+                            <span class="badge bg-success">Paid</span>
+                            {% elif structure.is_overdue %}
+                            <span class="badge bg-danger">Overdue</span>
+                            {% else %}
+                            <span class="badge bg-warning">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if structure.balance > 0 %}
+                            KES {{ structure.balance|floatformat:0|intcomma }}
+                            {% else %}
+                            <span class="text-success">Fully Paid</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+            <p class="text-muted">No fee structure assigned yet</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Payment History -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Payment History</h5>
     </div>
     <div class="card-body">
         {% if payments %}
@@ -46,6 +210,7 @@
                         <th>Payment Method</th>
                         <th>Transaction ID</th>
                         <th>Status</th>
+                        <th>Receipt</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -53,7 +218,7 @@
                     <tr>
                         <td>{{ payment.payment_date|date:"M d, Y" }}</td>
                         <td>{{ payment.fee_structure.name|default:"General Fee" }}</td>
-                        <td>KES {{ payment.amount_paid|floatformat:2 }}</td>
+                        <td>KES {{ payment.paid_amount|floatformat:0|intcomma }}</td>
                         <td>
                             {% if payment.payment_method == 'cash' %}
                             <span class="badge bg-success">Cash</span>
@@ -65,14 +230,25 @@
                             <span class="badge bg-secondary">{{ payment.payment_method|title }}</span>
                             {% endif %}
                         </td>
-                        <td>{{ payment.transaction_id|default:"-" }}</td>
+                        <td>{{ payment.receipt_number|default:"-" }}</td>
                         <td>
-                            {% if payment.status == 'confirmed' %}
-                            <span class="badge bg-success">Confirmed</span>
-                            {% elif payment.status == 'pending' %}
+                            {% if payment.payment_status == 'paid' %}
+                            <span class="badge bg-success">Paid</span>
+                            {% elif payment.payment_status == 'pending' %}
                             <span class="badge bg-warning">Pending</span>
+                            {% elif payment.payment_status == 'partial' %}
+                            <span class="badge bg-info">Partial</span>
                             {% else %}
-                            <span class="badge bg-secondary">{{ payment.status|title }}</span>
+                            <span class="badge bg-secondary">{{ payment.payment_status|title }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if payment.receipt_number %}
+                            <button class="btn btn-sm btn-outline-info" onclick="viewReceipt('{{ payment.receipt_number }}')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            {% else %}
+                            -
                             {% endif %}
                         </td>
                     </tr>
@@ -113,5 +289,652 @@
         {% endif %}
     </div>
 </div>
+
+<!-- M-Pesa STK Push Modal -->
+<div class="modal fade" id="mpesaStkModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">M-Pesa STK Push Payment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="mpesaStkForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="phoneNumber" class="form-label">M-Pesa Phone Number</label>
+                        <input type="tel" class="form-control" id="phoneNumber" name="phone_number" 
+                               placeholder="254XXXXXXXXX" required>
+                        <small class="text-muted">Enter your M-Pesa registered phone number</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="paymentAmount" class="form-label">Payment Amount (KES)</label>
+                        <input type="number" class="form-control" id="paymentAmount" name="amount" 
+                               min="1" max="{{ balance|default:0 }}" step="0.01" required>
+                        <small class="text-muted">Maximum payable: KES {{ balance|default:0 }}</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="feeType" class="form-label">Fee Type</label>
+                        <select class="form-select" id="feeType" name="fee_type" required>
+                            <option value="">Select fee type</option>
+                            {% for structure in fee_structures %}
+                            {% if structure.balance > 0 %}
+                            <option value="{{ structure.id }}">{{ structure.name }} - KES {{ structure.balance|floatformat:0|intcomma }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <input type="hidden" id="stkPaymentConfigId" name="payment_config_id">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-paper-plane me-1"></i>Send STK Push
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Confirmation Modal -->
+<div class="modal fade" id="paymentConfirmationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Payment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="paymentConfirmationForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="confirmPaymentAmount" class="form-label">Payment Amount (KES)</label>
+                        <input type="number" class="form-control" id="confirmPaymentAmount" name="amount" 
+                               min="1" max="{{ balance|default:0 }}" step="0.01" required>
+                        <small class="text-muted">Maximum payable: KES {{ balance|default:0 }}</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmFeeType" class="form-label">Fee Type</label>
+                        <select class="form-select" id="confirmFeeType" name="fee_type" required>
+                            <option value="">Select fee type</option>
+                            {% for structure in fee_structures %}
+                            {% if structure.balance > 0 %}
+                            <option value="{{ structure.id }}">{{ structure.name }} - KES {{ structure.balance|floatformat:0|intcomma }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="transactionId" class="form-label">Transaction ID / Reference</label>
+                        <input type="text" class="form-control" id="transactionId" name="transaction_id" 
+                               placeholder="Enter transaction ID or reference number" required>
+                        <small class="text-muted">Enter the transaction ID from your payment receipt</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="paymentDate" class="form-label">Payment Date</label>
+                        <input type="date" class="form-control" id="paymentDate" name="payment_date" required>
+                    </div>
+                    <input type="hidden" id="paymentConfigId" name="payment_config_id">
+                    <input type="hidden" id="paymentMethod" name="payment_method">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i>Confirm Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle me-2"></i>Success!
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                    <p id="successModalMessage" class="mb-0"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="modal fade" id="receiptModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-brand-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-receipt me-2"></i>Payment Receipt
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="receiptModalBody">
+                <!-- Receipt details will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="window.print()">
+                    <i class="fas fa-print me-1"></i>Print
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Set today's date as default for payment date
+document.addEventListener('DOMContentLoaded', function() {
+    const paymentDateField = document.getElementById('paymentDate');
+    if (paymentDateField) {
+        const today = new Date().toISOString().split('T')[0];
+        paymentDateField.value = today;
+    }
+});
+
+function initiateMpesaStk(configId) {
+    document.getElementById('stkPaymentConfigId').value = configId;
+    const modal = new bootstrap.Modal(document.getElementById('mpesaStkModal'));
+    modal.show();
+}
+
+function confirmPaybillPayment(configId) {
+    console.log('confirmPaybillPayment called with configId:', configId);
+    document.getElementById('paymentConfigId').value = configId;
+    document.getElementById('paymentMethod').value = 'mpesa_paybill';
+    console.log('Set paymentConfigId to:', document.getElementById('paymentConfigId').value);
+    console.log('Set paymentMethod to:', document.getElementById('paymentMethod').value);
+    const modal = new bootstrap.Modal(document.getElementById('paymentConfirmationModal'));
+    modal.show();
+}
+
+function confirmBankPayment(configId) {
+    console.log('confirmBankPayment called with configId:', configId);
+    document.getElementById('paymentConfigId').value = configId;
+    document.getElementById('paymentMethod').value = 'bank';
+    console.log('Set paymentConfigId to:', document.getElementById('paymentConfigId').value);
+    console.log('Set paymentMethod to:', document.getElementById('paymentMethod').value);
+    const modal = new bootstrap.Modal(document.getElementById('paymentConfirmationModal'));
+    modal.show();
+}
+
+function showCashPaymentInfo() {
+    alert('Please visit the school office to make cash payments. Office hours: 8:00 AM - 4:00 PM, Monday to Friday.');
+}
+
+function viewReceipt(receiptNumber) {
+    // Find the payment details from the table
+    const row = event.target.closest('tr');
+    if (!row) return;
+    
+    // Get payment details from the table cells
+    const cells = row.getElementsByTagName('td');
+    console.log('Total cells:', cells.length);
+    
+    const date = cells[0].textContent.trim();
+    const feeType = cells[1].textContent.trim();
+    const amount = cells[2].textContent.trim();
+    const paymentMethod = cells[3].querySelector('.badge')?.textContent.trim() || cells[3].textContent.trim();
+    const transactionId = cells[4].textContent.trim();
+    const status = cells[5].querySelector('.badge')?.textContent.trim() || cells[5].textContent.trim();
+    
+    console.log('Date:', date);
+    console.log('Fee Type:', feeType);
+    console.log('Amount:', amount);
+    console.log('Payment Method:', paymentMethod);
+    console.log('Transaction ID:', transactionId);
+    console.log('Status:', status);
+    
+    // Create receipt modal content
+    const receiptContent = `
+        <div class="receipt-details">
+            <div class="row mb-3">
+                <div class="col-6">
+                    <strong>Receipt Number:</strong><br>
+                    ${receiptNumber}
+                </div>
+                <div class="col-6">
+                    <strong>Status:</strong><br>
+                    ${status}
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-6">
+                    <strong>Date:</strong><br>
+                    ${date}
+                </div>
+                <div class="col-6">
+                    <strong>Fee Type:</strong><br>
+                    ${feeType}
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-6">
+                    <strong>Amount:</strong><br>
+                    ${amount}
+                </div>
+                <div class="col-6">
+                    <strong>Payment Method:</strong><br>
+                    ${paymentMethod}
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-12">
+                    <strong>Transaction ID:</strong><br>
+                    ${transactionId}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Update modal content and show it
+    document.getElementById('receiptModalBody').innerHTML = receiptContent;
+    const modal = new bootstrap.Modal(document.getElementById('receiptModal'));
+    modal.show();
+}
+
+function showSuccessModal(message) {
+    document.getElementById('successModalMessage').textContent = message;
+    const modal = new bootstrap.Modal(document.getElementById('successModal'));
+    modal.show();
+}
+
+// Handle M-Pesa STK form submission
+document.getElementById('mpesaStkForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+    
+    fetch('/school/{{ school_slug }}/fees/mpesa-stk/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessModal('STK Push sent successfully! Please check your phone to complete the payment.');
+            bootstrap.Modal.getInstance(document.getElementById('mpesaStkModal')).hide();
+            this.reset();
+            // Refresh page after 3 seconds
+            setTimeout(() => window.location.reload(), 3000);
+        } else {
+            alert('Error: ' + (data.error || 'Payment failed. Please try again.'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+});
+
+// Handle Payment Confirmation form submission
+document.getElementById('paymentConfirmationForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+    
+    fetch('/school/{{ school_slug }}/fees/confirm-payment/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessModal('Payment confirmed successfully! Your payment will be verified by the school administration.');
+            bootstrap.Modal.getInstance(document.getElementById('paymentConfirmationModal')).hide();
+            this.reset();
+            // Refresh page after 2 seconds
+            setTimeout(() => window.location.reload(), 2000);
+        } else {
+            alert('Error: ' + (data.error || 'Payment confirmation failed. Please try again.'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+});
+</script>
+
+<style>
+/* Brand Colors */
+.bg-brand-primary {
+    background-color: #0f172a !important;
+}
+
+/* Dark mode styles */
+[data-theme="dark"] .card {
+    background-color: #2d3748 !important;
+    border-color: #4a5568 !important;
+}
+
+[data-theme="dark"] .card-body {
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .card-header {
+    background-color: #374151 !important;
+    border-color: #4a5568 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .table {
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .table th {
+    background-color: #374151 !important;
+    border-color: #4a5568 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .table td {
+    border-color: #4a5568 !important;
+}
+
+[data-theme="dark"] .text-muted {
+    color: #b3b3b3 !important;
+}
+
+[data-theme="dark"] .modal-content {
+    background-color: #2d3748 !important;
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .modal-header {
+    border-color: #4a5568 !important;
+}
+
+[data-theme="dark"] .modal-footer {
+    border-color: #4a5568 !important;
+}
+
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+    background-color: #374151 !important;
+    border-color: #4b5563 !important;
+    color: #e9ecef !important;
+}
+
+/* Modal specific dark mode styles */
+[data-theme="dark"] .modal .form-control,
+[data-theme="dark"] .modal .form-select {
+    background-color: #374151 !important;
+    border-color: #4b5563 !important;
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .modal .form-control:focus,
+[data-theme="dark"] .modal .form-select:focus {
+    background-color: #374151 !important;
+    border-color: #60a5fa !important;
+    color: #e9ecef !important;
+    box-shadow: 0 0 0 0.2rem rgba(96, 165, 250, 0.25) !important;
+}
+
+[data-theme="dark"] .modal .form-control::placeholder {
+    color: #9ca3af !important;
+}
+
+[data-theme="dark"] .modal .form-label {
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .modal .text-muted {
+    color: #9ca3af !important;
+}
+
+/* Dark mode styles for badges */
+[data-theme="dark"] .badge {
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .badge.bg-success {
+    background-color: #059669 !important;
+}
+
+[data-theme="dark"] .badge.bg-warning {
+    background-color: #d97706 !important;
+}
+
+[data-theme="dark"] .badge.bg-info {
+    background-color: #0891b2 !important;
+}
+
+[data-theme="dark"] .badge.bg-primary {
+    background-color: #2563eb !important;
+}
+
+[data-theme="dark"] .badge.bg-secondary {
+    background-color: #6b7280 !important;
+}
+</style>
+
+<script>
+function initiateMpesaStk(configId) {
+    console.log('initiateMpesaStk called with configId:', configId);
+    document.getElementById('stkPaymentConfigId').value = configId;
+    const modal = new bootstrap.Modal(document.getElementById('mpesaStkModal'));
+    modal.show();
+}
+
+function confirmPaybillPayment(configId) {
+    console.log('confirmPaybillPayment called with configId:', configId);
+    document.getElementById('paymentConfigId').value = configId;
+    document.getElementById('paymentMethod').value = 'mpesa_paybill';
+    console.log('Set paymentConfigId to:', document.getElementById('paymentConfigId').value);
+    console.log('Set paymentMethod to:', document.getElementById('paymentMethod').value);
+    const modal = new bootstrap.Modal(document.getElementById('paymentConfirmationModal'));
+    modal.show();
+}
+
+function confirmBankPayment(configId) {
+    console.log('confirmBankPayment called with configId:', configId);
+    document.getElementById('paymentConfigId').value = configId;
+    document.getElementById('paymentMethod').value = 'bank';
+    console.log('Set paymentConfigId to:', document.getElementById('paymentConfigId').value);
+    console.log('Set paymentMethod to:', document.getElementById('paymentMethod').value);
+    const modal = new bootstrap.Modal(document.getElementById('paymentConfirmationModal'));
+    modal.show();
+}
+
+function showCashPaymentInfo() {
+    alert('Please visit the school office to make cash payments. Office hours: 8:00 AM - 4:00 PM, Monday to Friday.');
+}
+
+function viewReceipt(receiptNumber) {
+    // Find the payment details from the table
+    const row = event.target.closest('tr');
+    if (!row) return;
+    
+    // Get payment details from the table cells
+    const cells = row.getElementsByTagName('td');
+    console.log('Total cells:', cells.length);
+    
+    const date = cells[0].textContent.trim();
+    const feeType = cells[1].textContent.trim();
+    const amount = cells[2].textContent.trim();
+    const paymentMethod = cells[3].querySelector('.badge')?.textContent.trim() || cells[3].textContent.trim();
+    const transactionId = cells[4].textContent.trim();
+    const status = cells[5].querySelector('.badge')?.textContent.trim() || cells[5].textContent.trim();
+    
+    console.log('Date:', date);
+    console.log('Fee Type:', feeType);
+    console.log('Amount:', amount);
+    console.log('Payment Method:', paymentMethod);
+    console.log('Transaction ID:', transactionId);
+    console.log('Status:', status);
+    
+    // Create receipt modal content
+    const receiptContent = `
+        <div class="receipt-details">
+            <div class="row mb-3">
+                <div class="col-6">
+                    <strong>Receipt Number:</strong><br>
+                    ${receiptNumber}
+                </div>
+                <div class="col-6">
+                    <strong>Status:</strong><br>
+                    ${status}
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-6">
+                    <strong>Date:</strong><br>
+                    ${date}
+                </div>
+                <div class="col-6">
+                    <strong>Fee Type:</strong><br>
+                    ${feeType}
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-6">
+                    <strong>Amount:</strong><br>
+                    ${amount}
+                </div>
+                <div class="col-6">
+                    <strong>Payment Method:</strong><br>
+                    ${paymentMethod}
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-12">
+                    <strong>Transaction ID:</strong><br>
+                    ${transactionId}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Update modal content and show it
+    document.getElementById('receiptModalBody').innerHTML = receiptContent;
+    const modal = new bootstrap.Modal(document.getElementById('receiptModal'));
+    modal.show();
+}
+
+function showSuccessModal(message) {
+    document.getElementById('successModalMessage').textContent = message;
+    const modal = new bootstrap.Modal(document.getElementById('successModal'));
+    modal.show();
+}
+
+// Handle M-Pesa STK form submission
+document.getElementById('mpesaStkForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+    
+    fetch('/school/{{ school_slug }}/fees/mpesa-stk/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessModal('STK Push sent successfully! Please check your phone to complete the payment.');
+            bootstrap.Modal.getInstance(document.getElementById('mpesaStkModal')).hide();
+            this.reset();
+            // Refresh page after 3 seconds
+            setTimeout(() => window.location.reload(), 3000);
+        } else {
+            alert('Error: ' + (data.error || 'Payment failed. Please try again.'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+});
+
+// Handle Payment Confirmation form submission
+document.getElementById('paymentConfirmationForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+    
+    fetch('/school/{{ school_slug }}/fees/confirm-payment/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessModal('Payment confirmed successfully! Your payment will be verified by the school administration.');
+            bootstrap.Modal.getInstance(document.getElementById('paymentConfirmationModal')).hide();
+            this.reset();
+            // Refresh page after 2 seconds
+            setTimeout(() => window.location.reload(), 2000);
+        } else {
+            alert('Error: ' + (data.error || 'Payment confirmation failed. Please try again.'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+});
+</script>
 
 {% endblock %}

@@ -1,0 +1,248 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Club{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Club{% endblock %}
+{% block page_icon %}users{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-brand-primary text-white">
+                <h5 class="mb-0">{% if form.instance.pk %}Edit{% else %}Create{% endif %} Club</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.name.id_for_label }}" class="form-label">Club Name</label>
+                                {{ form.name|add_class:"form-control" }}
+                                {% if form.name.errors %}
+                                <div class="text-danger small mt-1">{{ form.name.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.club_type.id_for_label }}" class="form-label">Club Type</label>
+                                {{ form.club_type|add_class:"form-select" }}
+                                {% if form.club_type.errors %}
+                                <div class="text-danger small mt-1">{{ form.club_type.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                        {{ form.description|add_class:"form-control" }}
+                        {% if form.description.errors %}
+                        <div class="text-danger small mt-1">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.meeting_day.id_for_label }}" class="form-label">Meeting Day</label>
+                                {{ form.meeting_day|add_class:"form-select" }}
+                                {% if form.meeting_day.errors %}
+                                <div class="text-danger small mt-1">{{ form.meeting_day.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.meeting_time.id_for_label }}" class="form-label">Meeting Time</label>
+                                {{ form.meeting_time|add_class:"form-control" }}
+                                {% if form.meeting_time.errors %}
+                                <div class="text-danger small mt-1">{{ form.meeting_time.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.meeting_venue.id_for_label }}" class="form-label">Meeting Venue</label>
+                                {{ form.meeting_venue|add_class:"form-control" }}
+                                {% if form.meeting_venue.errors %}
+                                <div class="text-danger small mt-1">{{ form.meeting_venue.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.max_members.id_for_label }}" class="form-label">Max Members</label>
+                                {{ form.max_members|add_class:"form-control" }}
+                                {% if form.max_members.errors %}
+                                <div class="text-danger small mt-1">{{ form.max_members.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.membership_fee.id_for_label }}" class="form-label">Membership Fee (KES)</label>
+                                {{ form.membership_fee|add_class:"form-control" }}
+                                {% if form.membership_fee.errors %}
+                                <div class="text-danger small mt-1">{{ form.membership_fee.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.application_deadline.id_for_label }}" class="form-label">Application Deadline</label>
+                                {{ form.application_deadline|add_class:"form-control" }}
+                                {% if form.application_deadline.errors %}
+                                <div class="text-danger small mt-1">{{ form.application_deadline.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.requires_application|add_class:"form-check-input" }}
+                                    <label class="form-check-label" for="{{ form.requires_application.id_for_label }}">
+                                        {{ form.requires_application.label }}
+                                    </label>
+                                </div>
+                                {% if form.requires_application.errors %}
+                                <div class="text-danger small mt-1">{{ form.requires_application.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.teacher_advisor.id_for_label }}" class="form-label">Teacher Advisor</label>
+                                {{ form.teacher_advisor|add_class:"form-select" }}
+                                {% if form.teacher_advisor.errors %}
+                                <div class="text-danger small mt-1">{{ form.teacher_advisor.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.student_president.id_for_label }}" class="form-label">Student President</label>
+                                {{ form.student_president|add_class:"form-select" }}
+                                {% if form.student_president.errors %}
+                                <div class="text-danger small mt-1">{{ form.student_president.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.student_secretary.id_for_label }}" class="form-label">Student Secretary</label>
+                                {{ form.student_secretary|add_class:"form-select" }}
+                                {% if form.student_secretary.errors %}
+                                <div class="text-danger small mt-1">{{ form.student_secretary.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'clubs:club_list' school_slug=school_slug %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back
+                        </a>
+                        <button type="submit" class="btn btn-brand-primary">
+                            <i class="fas fa-save me-2"></i>{% if form.instance.pk %}Update{% else %}Create{% endif %} Club
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Brand Colors */
+.bg-brand-primary {
+    background-color: #0f172a !important; /* Dark Blue */
+}
+
+.bg-brand-cyan {
+    background-color: #06b6d4 !important; /* Cyan */
+}
+
+.btn-brand-primary {
+    background-color: #0f172a !important;
+    border-color: #0f172a !important;
+    color: white !important;
+}
+
+.btn-brand-primary:hover {
+    background-color: #1e293b !important;
+    border-color: #1e293b !important;
+}
+
+.btn-brand-cyan {
+    background-color: #06b6d4 !important;
+    border-color: #06b6d4 !important;
+    color: white !important;
+}
+
+.btn-brand-cyan:hover {
+    background-color: #0891b2 !important;
+    border-color: #0891b2 !important;
+}
+
+/* Dark mode styles */
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+    background-color: #374151 !important;
+    border-color: #4b5563 !important;
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-select:focus {
+    background-color: #374151 !important;
+    border-color: #4f46e5 !important;
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .form-label {
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .form-check-input {
+    background-color: #374151 !important;
+    border-color: #4b5563 !important;
+}
+
+[data-theme="dark"] .form-check-input:checked {
+    background-color: #4f46e5 !important;
+    border-color: #4f46e5 !important;
+}
+
+[data-theme="dark"] .card {
+    background-color: #2d3748 !important;
+    border-color: #4a5568 !important;
+}
+
+[data-theme="dark"] .card-header {
+    background-color: #0f172a !important; /* Dark Blue in dark mode */
+    border-color: #0f172a !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .card-body {
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .text-danger {
+    color: #f87171 !important;
+}
+</style>
+{% endblock %}

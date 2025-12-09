@@ -1,8 +1,9 @@
 from django.shortcuts import render
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 from django.db import models
+from django.utils import timezone
 from students.models import Student
 from accounts.models import User
 from django.views.decorators.csrf import csrf_exempt
@@ -172,26 +173,251 @@ class MyFeesView(LoginRequiredMixin, ListView):
         if MODELS_EXIST and hasattr(self.request.user, 'student_profile'):
             student = self.request.user.student_profile
             return FeeCollection.objects.filter(student=student).order_by('-payment_date')
+        elif MODELS_EXIST and self.request.user.role == 'parent':
+            # For parents, get payments for their children
+            from students.models import Student
+            children = Student.objects.filter(parent_user=self.request.user)
+            return FeeCollection.objects.filter(student__in=children).order_by('-payment_date')
         return []
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
         
+        # Get student (for students) or children (for parents)
         if hasattr(self.request.user, 'student_profile'):
             student = self.request.user.student_profile
             context['student'] = student
-            
-            # Calculate fee statistics
-            if MODELS_EXIST:
-                total_paid = FeeCollection.objects.filter(student=student).aggregate(
-                    total=models.Sum('paid_amount'))['total'] or 0
-                context['total_paid'] = total_paid
-                
-                # Get fee structures for the student's class (if available)
-                context['fee_structures'] = FeeStructure.objects.filter(is_active=True)[:5]
+        elif self.request.user.role == 'parent':
+            from students.models import Student
+            children = Student.objects.filter(parent_user=self.request.user)
+            if children.exists():
+                context['student'] = children.first()  # Default to first child
             else:
-                context['total_paid'] = 0
-                context['fee_structures'] = []
+                context['student'] = None
+        
+        student = context.get('student')
+        
+        # Calculate fee statistics
+        if student and MODELS_EXIST:
+            # Get fee structures for the student's class
+            fee_structures = FeeStructure.objects.filter(
+                class_name=student.current_class,
+                is_active=True
+            )
+            context['fee_structures'] = fee_structures
+            
+            # Calculate total fees, paid amount, and balance
+            total_fees = sum(structure.amount for structure in fee_structures)
+            total_paid = FeeCollection.objects.filter(student=student).aggregate(
+                total=models.Sum('paid_amount'))['total'] or 0
+            balance = total_fees - total_paid
+            
+            context['total_fees'] = total_fees
+            context['total_paid'] = total_paid
+            context['balance'] = balance
+            
+            # Add payment status to each fee structure
+            for structure in fee_structures:
+                paid_for_structure = FeeCollection.objects.filter(
+                    student=student, 
+                    fee_structure=structure
+                ).aggregate(total=models.Sum('paid_amount'))['total'] or 0
+                structure.balance = structure.amount - paid_for_structure
+                structure.is_paid = structure.balance <= 0
+                structure.is_overdue = (
+                    structure.balance > 0 and 
+                    hasattr(structure, 'due_date') and 
+                    structure.due_date and 
+                    structure.due_date < timezone.now().date()
+                )
+        
+        # Get payment configurations for parents
+        if self.request.user.role == 'parent':
+            try:
+                from superadmin.models import SchoolPaymentConfiguration
+                from tenants.models import School
+                
+                # Get the current school
+                school = School.objects.get(slug=self.kwargs.get('school_slug'))
+                payment_configs = SchoolPaymentConfiguration.objects.filter(
+                    school=school,
+                    is_active=True
+                )
+                context['payment_configurations'] = payment_configs
+            except (ImportError, School.DoesNotExist):
+                context['payment_configurations'] = []
         
         return context
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class MpesaStkPushView(LoginRequiredMixin, View):
+    """Handle M-Pesa STK Push payments"""
+    
+    def post(self, request, school_slug):
+        if not MODELS_EXIST:
+            return JsonResponse({'success': False, 'error': 'Payment system not available'})
+        
+        try:
+            # Get form data
+            phone_number = request.POST.get('phone_number')
+            amount = request.POST.get('amount')
+            fee_type_id = request.POST.get('fee_type')
+            payment_config_id = request.POST.get('payment_config_id')
+            
+            # Validate data
+            if not all([phone_number, amount, fee_type_id, payment_config_id]):
+                return JsonResponse({'success': False, 'error': 'Missing required fields'})
+            
+            # Get payment configuration
+            from superadmin.models import SchoolPaymentConfiguration
+            from tenants.models import School
+            
+            school = School.objects.get(slug=school_slug)
+            payment_config = SchoolPaymentConfiguration.objects.get(
+                id=payment_config_id,
+                school=school,
+                gateway='mpesa_stk',
+                is_active=True
+            )
+            
+            # Get fee structure
+            fee_structure = FeeStructure.objects.get(id=fee_type_id)
+            
+            # Get student (for students) or child (for parents)
+            if hasattr(request.user, 'student_profile'):
+                student = request.user.student_profile
+            elif request.user.role == 'parent':
+                from students.models import Student
+                children = Student.objects.filter(parent_user=request.user)
+                if not children.exists():
+                    return JsonResponse({'success': False, 'error': 'No students found'})
+                student = children.first()
+            else:
+                return JsonResponse({'success': False, 'error': 'Unauthorized'})
+            
+            # Generate transaction ID
+            import uuid
+            receipt_number = f"MPESA-{uuid.uuid4().hex[:8].upper()}"
+            
+            # Create payment record
+            payment = FeeCollection.objects.create(
+                student=student,
+                fee_structure=fee_structure,
+                amount=fee_structure.amount,
+                paid_amount=0,  # Will be updated after successful payment
+                payment_status='pending',
+                payment_method='online',  # Use valid choice
+                receipt_number=receipt_number,  # Use receipt_number field
+                due_date=timezone.now().date(),  # Use current date as due_date
+                notes=f"M-Pesa STK Push initiated for {phone_number}"
+            )
+            
+            # TODO: Implement actual M-Pesa STK Push API call
+            # For now, simulate successful initiation
+            success = self.simulate_mpesa_stk_push(
+                payment_config, phone_number, amount, receipt_number
+            )
+            
+            if success:
+                return JsonResponse({
+                    'success': True,
+                    'message': 'STK Push sent successfully',
+                    'receipt_number': receipt_number
+                })
+            else:
+                payment.delete()  # Remove the payment record if STK push failed
+                return JsonResponse({'success': False, 'error': 'STK Push failed'})
+                
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    def simulate_mpesa_stk_push(self, config, phone_number, amount, receipt_number):
+        """
+        Simulate M-Pesa STK Push API call
+        In production, this would make actual API calls to M-Pesa
+        """
+        import time
+        import random
+        
+        # Simulate API delay
+        time.sleep(1)
+        
+        # Simulate success (90% success rate for demo)
+        return random.random() > 0.1
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ConfirmPaymentView(LoginRequiredMixin, View):
+    """Handle payment confirmation for manual payment methods"""
+    
+    def post(self, request, school_slug):
+        if not MODELS_EXIST:
+            return JsonResponse({'success': False, 'error': 'Payment system not available'})
+        
+        try:
+            # Get form data
+            amount = request.POST.get('amount')
+            fee_type_id = request.POST.get('fee_type')
+            payment_config_id = request.POST.get('payment_config_id')
+            payment_method = request.POST.get('payment_method')
+            receipt_number = request.POST.get('transaction_id')  # Use receipt_number field
+            payment_date = request.POST.get('payment_date')
+            
+            # Validate data
+            if not all([amount, fee_type_id, payment_config_id, payment_method, receipt_number, payment_date]):
+                return JsonResponse({'success': False, 'error': 'Missing required fields'})
+            
+            # Get payment configuration
+            from superadmin.models import SchoolPaymentConfiguration
+            from tenants.models import School
+            
+            school = School.objects.get(slug=school_slug)
+            payment_config = SchoolPaymentConfiguration.objects.get(
+                id=payment_config_id,
+                school=school,
+                is_active=True
+            )
+            
+            # Get fee structure
+            fee_structure = FeeStructure.objects.get(id=fee_type_id)
+            
+            # Get student (for students) or child (for parents)
+            if hasattr(request.user, 'student_profile'):
+                student = request.user.student_profile
+            elif request.user.role == 'parent':
+                from students.models import Student
+                children = Student.objects.filter(parent_user=request.user)
+                if not children.exists():
+                    return JsonResponse({'success': False, 'error': 'No students found'})
+                student = children.first()
+            else:
+                return JsonResponse({'success': False, 'error': 'Unauthorized'})
+            
+            # Generate unique receipt number
+            import uuid
+            unique_receipt = f"PAY-{uuid.uuid4().hex[:12].upper()}"
+            
+            # Create payment record with pending status for verification
+            payment = FeeCollection.objects.create(
+                student=student,
+                fee_structure=fee_structure,
+                amount=fee_structure.amount,
+                paid_amount=amount,
+                payment_method=payment_method.replace('mpesa_paybill', 'online').replace('bank', 'bank_transfer'),  # Map to valid choices
+                receipt_number=unique_receipt,  # Use unique receipt number
+                payment_date=payment_date,
+                due_date=payment_date,  # Use payment_date as due_date since FeeStructure doesn't have due_date
+                payment_status='pending',  # Requires admin verification
+                notes=f"Payment confirmation submitted via {payment_config.get_gateway_display()}. Transaction ID: {receipt_number}"
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Payment confirmation submitted successfully',
+                'payment_id': payment.id
+            })
+                
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})

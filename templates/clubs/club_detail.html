@@ -1,0 +1,508 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}{{ club.name }} - Club Details{% endblock %}
+{% block page_title %}{{ club.name }}{% endblock %}
+{% block page_icon %}users{% endblock %}
+{% block page_subtitle %}{{ club.get_club_type_display }} Club{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <a href="{% url 'clubs:club_list' school_slug=school_slug %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>All Clubs
+    </a>
+    {% if user.role in 'admin,teacher' %}
+    <a href="{% url 'clubs:club_edit' school_slug=school_slug pk=club.id %}" class="btn btn-brand-primary">
+        <i class="fas fa-edit me-2"></i>Edit Club
+    </a>
+    <a href="{% url 'clubs:manage_memberships' school_slug=school_slug club_id=club.id %}" class="btn btn-brand-cyan">
+        <i class="fas fa-users me-2"></i>Manage Members
+    </a>
+    {% endif %}
+    {% if user.role == 'student' %}
+        {% if user_membership %}
+            {% if user_membership.status == 'active' %}
+                <a href="{% url 'clubs:leave_club' school_slug=school_slug club_id=club.id %}" class="btn btn-danger">
+                    <i class="fas fa-sign-out-alt me-2"></i>Leave Club
+                </a>
+            {% endif %}
+        {% else %}
+            {% if not club.is_full %}
+                <a href="{% url 'clubs:join_club' school_slug=school_slug club_id=club.id %}" class="btn btn-brand-primary">
+                    <i class="fas fa-plus me-2"></i>Join Club
+                </a>
+            {% endif %}
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Club Information -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">About {{ club.name }}</h5>
+                <p class="card-text">{{ club.description }}</p>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <h6>Club Information</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Type:</strong> {{ club.get_club_type_display }}</li>
+                            <li><strong>Members:</strong> {{ active_members|length }}/{{ club.max_members }}</li>
+                            <li><strong>Membership Fee:</strong> KES {{ club.membership_fee }}</li>
+                            <li><strong>Application Required:</strong> {% if club.requires_application %}Yes{% else %}No{% endif %}</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Meeting Schedule</h6>
+                        {% if club.meeting_day %}
+                        <ul class="list-unstyled">
+                            <li><strong>Day:</strong> {{ club.get_meeting_day_display|title }}</li>
+                            {% if club.meeting_time %}<li><strong>Time:</strong> {{ club.meeting_time }}</li>{% endif %}
+                            {% if club.meeting_venue %}<li><strong>Venue:</strong> {{ club.meeting_venue }}</li>{% endif %}
+                        </ul>
+                        {% else %}
+                        <p class="text-muted">No regular meeting schedule set</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if club.teacher_advisor %}
+                <div class="mt-4">
+                    <h6>Club Advisor</h6>
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-circle bg-primary text-white me-3" style="width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                            {{ club.teacher_advisor.first_name.0 }}{{ club.teacher_advisor.last_name.0 }}
+                        </div>
+                        <div>
+                            <strong>{{ club.teacher_advisor.get_full_name }}</strong>
+                            <br><small class="text-muted">Teacher Advisor</small>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if club.student_president or club.student_secretary %}
+                <div class="mt-4">
+                    <h6>Student Leadership</h6>
+                    <div class="row">
+                        {% if club.student_president %}
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle bg-success text-white me-3" style="width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                                    {{ club.student_president.first_name.0 }}{{ club.student_president.last_name.0 }}
+                                </div>
+                                <div>
+                                    <strong>{{ club.student_president.get_full_name }}</strong>
+                                    <br><small class="text-muted">President</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if club.student_secretary %}
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle bg-info text-white me-3" style="width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                                    {{ club.student_secretary.first_name.0 }}{{ club.student_secretary.last_name.0 }}
+                                </div>
+                                <div>
+                                    <strong>{{ club.student_secretary.get_full_name }}</strong>
+                                    <br><small class="text-muted">Secretary</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Membership Status</h5>
+                {% if user.role == 'student' %}
+                    {% if user_membership %}
+                        {% if user_membership.status == 'active' %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                You are an active member of this club
+                            </div>
+                            {% if user_membership.position_held %}
+                                <p><strong>Position:</strong> {{ user_membership.position_held }}</p>
+                            {% endif %}
+                        {% elif user_membership.status == 'pending' %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-clock me-2"></i>
+                                Your application is pending approval
+                            </div>
+                        {% elif user_membership.status == 'rejected' %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-times-circle me-2"></i>
+                                Your application was rejected
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        {% if club.is_full %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-users me-2"></i>
+                                This club is currently full
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                You are not a member of this club
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                {% else %}
+                    <p class="text-muted">
+                        <i class="fas fa-users me-2"></i>
+                        {{ active_members|length }} active members
+                    </p>
+                {% endif %}
+                
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="fas fa-chart-line me-1"></i>
+                        {{ active_members|length }}/{{ club.max_members }} members
+                    </small>
+                    <div class="progress mt-1" style="height: 6px;">
+                        {% if club.max_members > 0 %}
+                            {% widthratio active_members|length 1 club.max_members as percentage %}
+                            <div class="progress-bar bg-success" style="width: {{ percentage|default:0 }}%;"></div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs for different sections -->
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="clubTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="members-tab" data-bs-toggle="tab" data-bs-target="#members" type="button" role="tab">
+                            <i class="fas fa-users me-2"></i>Members
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="activities-tab" data-bs-toggle="tab" data-bs-target="#activities" type="button" role="tab">
+                            <i class="fas fa-calendar me-2"></i>Activities
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="achievements-tab" data-bs-toggle="tab" data-bs-target="#achievements" type="button" role="tab">
+                            <i class="fas fa-trophy me-2"></i>Achievements
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="resources-tab" data-bs-toggle="tab" data-bs-target="#resources" type="button" role="tab">
+                            <i class="fas fa-folder me-2"></i>Resources
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="clubTabContent">
+                    <!-- Members Tab -->
+                    <div class="tab-pane fade show active" id="members" role="tabpanel">
+                        <h5 class="mb-3">Active Members</h5>
+                        {% if active_members %}
+                            <div class="row">
+                                {% for membership in active_members %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle bg-primary text-white me-3" style="width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                                            {{ membership.student.first_name.0 }}{{ membership.student.last_name.0 }}
+                                        </div>
+                                        <div>
+                                            <strong>{{ membership.student.get_full_name }}</strong>
+                                            {% if membership.position_held %}
+                                                <br><small class="text-muted">{{ membership.position_held }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted">No active members yet.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Activities Tab -->
+                    <div class="tab-pane fade" id="activities" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">Club Activities</h5>
+                            {% if user.role in 'admin,teacher' %}
+                                <button class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus me-2"></i>Add Activity
+                                </button>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Upcoming Activities -->
+                        {% if upcoming_activities %}
+                        <h6 class="text-muted mb-3">Upcoming Activities</h6>
+                        <div class="row">
+                            {% for activity in upcoming_activities %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ activity.title }}</h6>
+                                        <p class="card-text small">{{ activity.description|truncatewords:15 }}</p>
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar me-1"></i>{{ activity.date|date:"M d, Y H:i" }}
+                                            {% if activity.venue %}<br><i class="fas fa-map-marker me-1"></i>{{ activity.venue }}{% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Recent Activities -->
+                        {% if recent_activities %}
+                        <h6 class="text-muted mb-3 mt-4">Recent Activities</h6>
+                        <div class="row">
+                            {% for activity in recent_activities %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ activity.title }}</h6>
+                                        <p class="card-text small">{{ activity.description|truncatewords:15 }}</p>
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar me-1"></i>{{ activity.date|date:"M d, Y H:i" }}
+                                            {% if activity.venue %}<br><i class="fas fa-map-marker me-1"></i>{{ activity.venue }}{% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                            <p class="text-muted">No activities scheduled yet.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Achievements Tab -->
+                    <div class="tab-pane fade" id="achievements" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">Club Achievements</h5>
+                            {% if user.role in 'admin,teacher' %}
+                                <button class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus me-2"></i>Add Achievement
+                                </button>
+                            {% endif %}
+                        </div>
+                        
+                        {% if achievements %}
+                            <div class="row">
+                                {% for achievement in achievements %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">{{ achievement.title }}</h6>
+                                            <p class="card-text">{{ achievement.description|truncatewords:20 }}</p>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-trophy me-1"></i>{{ achievement.get_achievement_type_display }}
+                                                    <br><i class="fas fa-calendar me-1"></i>{{ achievement.date_achieved|date:"M d, Y" }}
+                                                </small>
+                                                <span class="badge bg-info">{{ achievement.level }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted">No achievements recorded yet.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Resources Tab -->
+                    <div class="tab-pane fade" id="resources" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">Club Resources</h5>
+                            {% if user.role in 'admin,teacher' %}
+                                <button class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus me-2"></i>Add Resource
+                                </button>
+                            {% endif %}
+                        </div>
+                        
+                        {% if resources %}
+                            <div class="row">
+                                {% for resource in resources %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">{{ resource.title }}</h6>
+                                            <p class="card-text small">{{ resource.description|truncatewords:15 }}</p>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-file me-1"></i>{{ resource.get_resource_type_display }}
+                                                </small>
+                                                {% if resource.file %}
+                                                    <a href="{{ resource.file.url }}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-download me-1"></i>Download
+                                                    </a>
+                                                {% elif resource.url %}
+                                                    <a href="{{ resource.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-external-link-alt me-1"></i>Open
+                                                    </a>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted">No resources available yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Dark mode styles */
+[data-theme="dark"] .card {
+    background-color: #2d3748 !important;
+    border-color: #4a5568 !important;
+}
+
+[data-theme="dark"] .card-body {
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .card-title {
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .card-header {
+    background-color: #374151 !important;
+    border-color: #4a5568 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .text-muted {
+    color: #b3b3b3 !important;
+}
+
+[data-theme="dark"] .nav-tabs .nav-link {
+    background-color: #374151 !important;
+    border-color: #4a5568 !important;
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .nav-tabs .nav-link.active {
+    background-color: #2d3748 !important;
+    border-color: #4a5568 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .table {
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .table th {
+    background-color: #374151 !important;
+    border-color: #4a5568 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .table td {
+    border-color: #4a5568 !important;
+}
+
+[data-theme="dark"] .badge {
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .modal-content {
+    background-color: #2d3748 !important;
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .modal-header {
+    border-color: #4a5568 !important;
+}
+
+[data-theme="dark"] .modal-footer {
+    border-color: #4a5568 !important;
+}
+
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+    background-color: #374151 !important;
+    border-color: #4b5563 !important;
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .progress-bar {
+    background-color: #06b6d4 !important;
+}
+
+/* Brand Colors */
+.btn-brand-primary {
+    background-color: #0f172a !important;
+    border-color: #0f172a !important;
+    color: white !important;
+}
+
+.btn-brand-primary:hover {
+    background-color: #1e293b !important;
+    border-color: #1e293b !important;
+}
+
+.btn-brand-cyan {
+    background-color: #06b6d4 !important;
+    border-color: #06b6d4 !important;
+    color: white !important;
+}
+
+.btn-brand-cyan:hover {
+    background-color: #0891b2 !important;
+    border-color: #0891b2 !important;
+}
+
+/* Dark mode styles for buttons */
+[data-theme="dark"] .btn-brand-primary {
+    background-color: #0f172a !important;
+    border-color: #0f172a !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .btn-brand-primary:hover {
+    background-color: #1e293b !important;
+    border-color: #1e293b !important;
+}
+
+[data-theme="dark"] .btn-brand-cyan {
+    background-color: #06b6d4 !important;
+    border-color: #06b6d4 !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .btn-brand-cyan:hover {
+    background-color: #0891b2 !important;
+    border-color: #0891b2 !important;
+}
+</style>
+{% endblock %}

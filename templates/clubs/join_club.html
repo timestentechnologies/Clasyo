@@ -1,0 +1,75 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Join {{ club.name }}{% endblock %}
+{% block page_title %}Join {{ club.name }}{% endblock %}
+{% block page_icon %}user-plus{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Application to Join {{ club.name }}</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h6>About {{ club.name }}</h6>
+                    <p class="text-muted">{{ club.description }}</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small><strong>Type:</strong> {{ club.get_club_type_display }}</small>
+                        </div>
+                        <div class="col-md-6">
+                            <small><strong>Meeting:</strong> {{ club.get_meeting_day_display|title }} {{ club.meeting_time }}</small>
+                        </div>
+                    </div>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Why do you want to join {{ club.name }}?</label>
+                        {{ form.application_reason }}
+                        {% if form.application_reason.errors %}
+                        <div class="text-danger">
+                            {{ form.application_reason.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.parent_consent }}
+                            <label class="form-check-label" for="{{ form.parent_consent.id_for_label }}">
+                                {{ form.parent_consent.label }}
+                            </label>
+                        </div>
+                        {% if form.parent_consent.errors %}
+                        <div class="text-danger">
+                            {{ form.parent_consent.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% if club.membership_fee > 0 %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Membership fee: KES {{ club.membership_fee }}
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'clubs:club_detail' school_slug=school_slug pk=club.id %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>Submit Application
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

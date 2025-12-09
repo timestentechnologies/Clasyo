@@ -201,6 +201,11 @@
             <span>Library</span>
         </a></li>
 
+        <li class="{% if '/clubs/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/clubs/">
+            <i class="fas fa-users"></i>
+            <span>Clubs & Societies</span>
+        </a></li>
+
         <li class="{% if '/academic-years/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/academic-years/">
             <i class="fas fa-calendar-check"></i>
             <span>Academic Years</span>
@@ -305,18 +310,11 @@
             <span>Dormitory</span>
         </a></li>
       
-        <li class="{% if '/certificates/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/certificates/">
-            <i class="fas fa-certificate"></i>
-            <span>Certificates</span>
+        <li class="{% if '/library/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/library/">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
         </a></li>
 
-        <li class="{% if '/reports/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/reports/">
-            <i class="fas fa-chart-bar"></i>
-            <span>Reports</span>
-        </a></li>
-
-        <div class="menu-section-title">Settings</div>
-        
         <li><a href="{% url 'superadmin:school_settings' school_slug=school_slug %}">
             <i class="fas fa-cog"></i>
             <span>School Settings</span>

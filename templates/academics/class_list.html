@@ -33,7 +33,18 @@
                     {% if class.sections.count > 0 %}
                         <span class="badge bg-info me-1">{{ class.sections.count }} Sections</span>
                         {% for section in class.sections.all|slice:":3" %}
-                            <span class="badge bg-secondary">{{ section.name }}</span>
+                            <div class="mb-1">
+                                <span class="badge bg-secondary">{{ section.name }}</span>
+                                {% if section.class_teacher %}
+                                    <small class="text-muted ms-1">
+                                        <i class="fas fa-user-tie"></i> {{ section.class_teacher.get_full_name }}
+                                    </small>
+                                {% else %}
+                                    <small class="text-muted ms-1">
+                                        <i class="fas fa-user-slash"></i> No teacher
+                                    </small>
+                                {% endif %}
+                            </div>
                         {% endfor %}
                         {% if class.sections.count > 3 %}
                             <span class="badge bg-light text-dark">+{{ class.sections.count|add:"-3" }} more</span>
@@ -432,6 +443,41 @@
 
 <script>
 let sectionCounter = 0;
+let teachersCache = null;
+
+// Function to load teachers into dropdown
+function loadTeachersIntoDropdown(selectElement, selectedTeacherId = null) {
+    if (teachersCache) {
+        populateTeacherDropdown(selectElement, teachersCache, selectedTeacherId);
+        return;
+    }
+    
+    fetch(`/school/{{ school_slug }}/academics/api/teachers/`)
+        .then(response => response.json())
+        .then(data => {
+            teachersCache = data.teachers || [];
+            populateTeacherDropdown(selectElement, teachersCache, selectedTeacherId);
+        })
+        .catch(error => {
+            console.error('Error loading teachers:', error);
+            // Still populate with empty option
+            populateTeacherDropdown(selectElement, [], selectedTeacherId);
+        });
+}
+
+function populateTeacherDropdown(selectElement, teachers, selectedTeacherId = null) {
+    selectElement.innerHTML = '<option value="">No teacher</option>';
+    
+    teachers.forEach(teacher => {
+        const option = document.createElement('option');
+        option.value = teacher.id;
+        option.textContent = teacher.name;
+        if (selectedTeacherId && teacher.id == selectedTeacherId) {
+            option.selected = true;
+        }
+        selectElement.appendChild(option);
+    });
+}
 
 function addSectionAdd() {
     const container = document.getElementById('sectionsAddContainer');
@@ -451,6 +497,9 @@ function addSectionAdd() {
         input.value = letters[count];
     }
     
+    // Load teachers into dropdown
+    loadTeachersIntoDropdown(clone.querySelector('select[name="section_teacher[]"]'));
+    
     container.appendChild(clone);
 }
 
@@ -467,6 +516,9 @@ function addSectionEdit() {
     if (count < 26) {
         input.value = letters[count];
     }
+    
+    // Load teachers into dropdown
+    loadTeachersIntoDropdown(clone.querySelector('select[name="section_teacher[]"]'));
     
     container.appendChild(clone);
 }
@@ -525,6 +577,11 @@ function editClass(event, id) {
                     const clone = template.content.cloneNode(true);
                     clone.querySelector('input[name="sections[]"]').value = section.name;
                     clone.querySelector('input[name="section_capacity[]"]').value = section.max_students;
+                    
+                    // Load teachers and set selected teacher
+                    const teacherSelect = clone.querySelector('select[name="section_teacher[]"]');
+                    loadTeachersIntoDropdown(teacherSelect, section.class_teacher_id);
+                    
                     container.appendChild(clone);
                 });
             }

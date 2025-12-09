@@ -1,0 +1,394 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Clubs & Societies{% endblock %}
+{% block page_title %}Clubs & Societies{% endblock %}
+{% block page_icon %}users{% endblock %}
+{% block page_subtitle %}Discover and join various clubs{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <a href="{% url 'clubs:dashboard' school_slug=school_slug %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Dashboard
+    </a>
+    {% if user.role in 'admin,teacher' %}
+    <a href="{% url 'clubs:club_create' school_slug=school_slug %}" class="btn btn-brand-cyan">
+        <i class="fas fa-plus me-2"></i>New Club
+    </a>
+    {% endif %}
+    {% if user.role == 'student' %}
+    <a href="{% url 'clubs:my_clubs' school_slug=school_slug %}" class="btn btn-brand-cyan">
+        <i class="fas fa-list me-2"></i>My Clubs
+    </a>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Search and Filter Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" name="search" class="form-control" 
+                                   placeholder="Search clubs..." value="{{ search_query }}">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select name="type" class="form-select">
+                            <option value="">All Types</option>
+                            {% for type_value, type_label in club_types %}
+                            <option value="{{ type_value }}" {% if selected_type == type_value %}selected{% endif %}>
+                                {{ type_label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-filter me-2"></i>Filter
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'clubs:club_list' school_slug=school_slug %}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-times me-2"></i>Clear
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Clubs Grid -->
+<div class="row">
+    {% for club in clubs %}
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title text-white mb-0">{{ club.name }}</h5>
+                    <span class="badge bg-light text-dark">{{ club.get_club_type_display }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="card-text">{{ club.description|truncatewords:20 }}</p>
+                
+                <div class="mb-3">
+                    <small class="text-muted">
+                        <i class="fas fa-users me-1"></i>
+                        {{ club.members_count }}/{{ club.max_members }} members
+                    </small>
+                    <div class="progress mt-1" style="height: 4px;">
+                        {% if club.max_members > 0 %}
+                            {% widthratio club.members_count 1 club.max_members as percentage %}
+                            <div class="progress-bar bg-success" style="width: {{ percentage|default:0 }}%"></div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if club.meeting_day %}
+                <div class="mb-2">
+                    <small class="text-muted">
+                        <i class="fas fa-calendar me-1"></i>
+                        {{ club.get_meeting_day_display|title }}{% if club.meeting_time %} at {{ club.meeting_time }}{% endif %}
+                        {% if club.meeting_venue %} - {{ club.meeting_venue }}{% endif %}
+                    </small>
+                </div>
+                {% endif %}
+                
+                {% if club.membership_fee > 0 %}
+                <div class="mb-2">
+                    <small class="text-muted">
+                        <i class="fas fa-money-bill me-1"></i>
+                        Membership: KES {{ club.membership_fee }}
+                    </small>
+                </div>
+                {% endif %}
+                
+                {% if user.role == 'student' %}
+                    {% for user_membership in user_memberships %}
+                        {% if user_membership.club.id == club.id %}
+                            {% if user_membership.status == 'active' %}
+                                <div class="d-grid">
+                                    <a href="{% url 'clubs:club_detail' school_slug=school_slug pk=club.id %}" 
+                                       class="btn btn-success">
+                                        <i class="fas fa-eye me-2"></i>View Club
+                                    </a>
+                                </div>
+                                <div class="d-grid mt-2">
+                                    <a href="{% url 'clubs:leave_club' school_slug=school_slug club_id=club.id %}" 
+                                       class="btn btn-outline-danger btn-sm">
+                                        <i class="fas fa-sign-out-alt me-1"></i>Leave Club
+                                    </a>
+                                </div>
+                            {% elif user_membership.status == 'pending' %}
+                                <div class="d-grid">
+                                    <button class="btn btn-warning btn-sm" disabled>
+                                        <i class="fas fa-clock me-2"></i>Application Pending
+                                    </button>
+                                </div>
+                            {% elif user_membership.status == 'rejected' %}
+                                <div class="d-grid">
+                                    <a href="{% url 'clubs:join_club' school_slug=school_slug pk=club.id %}" 
+                                       class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-redo me-1"></i>Reapply
+                                    </a>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    {% empty %}
+                        {% if club.max_members > club.members_count %}
+                            <div class="d-grid">
+                                <a href="{% url 'clubs:join_club' school_slug=school_slug pk=club.id %}" 
+                                   class="btn btn-primary">
+                                    <i class="fas fa-user-plus me-2"></i>Join Club
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="d-grid">
+                                <button class="btn btn-secondary btn-sm" disabled>
+                                    <i class="fas fa-users me-2"></i>Full
+                                </button>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                
+                {% if user.role in 'admin,teacher' %}
+                <div class="d-flex gap-2 mt-3">
+                    <a href="{% url 'clubs:club_detail' school_slug=school_slug pk=club.id %}" 
+                       class="btn btn-brand-primary btn-sm flex-fill">
+                        <i class="fas fa-eye me-1"></i>View
+                    </a>
+                    <a href="{% url 'clubs:club_edit' school_slug=school_slug pk=club.id %}" 
+                       class="btn btn-brand-cyan btn-sm flex-fill">
+                        <i class="fas fa-edit me-1"></i>Edit
+                    </a>
+                    <button type="button" class="btn btn-danger btn-sm flex-fill" 
+                            data-bs-toggle="modal" data-bs-target="#deleteClubModal{{ club.id }}">
+                        <i class="fas fa-trash me-1"></i>Delete
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="fas fa-users fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">No clubs found</h5>
+            <p class="text-muted">
+                {% if search_query or selected_type %}
+                    Try adjusting your search or filters.
+                {% else %}
+                    No clubs have been created yet.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+<nav aria-label="Club pagination">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}">First</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}">Previous</a>
+            </li>
+        {% endif %}
+        
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}">{{ num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}">Next</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}">Last</a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Delete Club Modals -->
+{% for club in clubs %}
+{% if user.role in 'admin,teacher' %}
+<div class="modal fade" id="deleteClubModal{{ club.id }}" tabindex="-1" aria-labelledby="deleteClubModalLabel{{ club.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteClubModalLabel{{ club.id }}">Delete Club</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the club <strong>{{ club.name }}</strong>?</p>
+                <p class="text-danger">This action cannot be undone and will remove all club data including memberships and activities.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{% url 'clubs:club_delete' school_slug=school_slug pk=club.id %}" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i>Delete Club
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+<style>
+.card-header.bg-gradient {
+    border: none;
+}
+
+.progress {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+/* Dark mode styles */
+[data-theme="dark"] .text-muted {
+    color: #b3b3b3 !important;
+}
+
+[data-theme="dark"] .card-body {
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .card-title {
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .progress {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .card {
+    background-color: #2d3748 !important;
+    border-color: #4a5568 !important;
+}
+
+[data-theme="dark"] .page-link {
+    color: #e9ecef !important;
+    background-color: #374151 !important;
+    border-color: #4b5563 !important;
+}
+
+[data-theme="dark"] .page-item.active .page-link {
+    background-color: #4f46e5 !important;
+    border-color: #4f46e5 !important;
+}
+
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+    background-color: #374151 !important;
+    border-color: #4b5563 !important;
+    color: #e9ecef !important;
+}
+
+[data-theme="dark"] .input-group-text {
+    background-color: #374151 !important;
+    border-color: #4b5563 !important;
+    color: #e9ecef !important;
+}
+
+/* Brand Colors */
+.bg-brand-primary {
+    background-color: #0f172a !important; /* Dark Blue */
+}
+
+.bg-brand-cyan {
+    background-color: #06b6d4 !important; /* Cyan */
+}
+
+.btn-brand-primary {
+    background-color: #0f172a !important;
+    border-color: #0f172a !important;
+    color: white !important;
+}
+
+.btn-brand-primary:hover {
+    background-color: #1e293b !important;
+    border-color: #1e293b !important;
+}
+
+.btn-brand-cyan {
+    background-color: #06b6d4 !important;
+    border-color: #06b6d4 !important;
+    color: white !important;
+}
+
+.btn-brand-cyan:hover {
+    background-color: #0891b2 !important;
+    border-color: #0891b2 !important;
+}
+
+/* Dark mode styles for buttons */
+[data-theme="dark"] .btn-brand-primary {
+    background-color: #0f172a !important;
+    border-color: #0f172a !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .btn-brand-primary:hover {
+    background-color: #1e293b !important;
+    border-color: #1e293b !important;
+}
+
+[data-theme="dark"] .btn-brand-cyan {
+    background-color: #06b6d4 !important;
+    border-color: #06b6d4 !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .btn-brand-cyan:hover {
+    background-color: #0891b2 !important;
+    border-color: #0891b2 !important;
+}
+
+[data-theme="dark"] .btn-danger {
+    background-color: #dc2626 !important;
+    border-color: #dc2626 !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .btn-danger:hover {
+    background-color: #b91c1c !important;
+    border-color: #b91c1c !important;
+}
+</style>
+{% endblock %}
