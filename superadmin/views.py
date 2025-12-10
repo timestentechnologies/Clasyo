@@ -530,24 +530,80 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
             messages.success(request, f'Pricing plan "{plan_name}" deleted successfully!')
             return redirect('superadmin:pricing_management')
         
+        # Handle form submission for create/update
         if plan_id:
             plan = get_object_or_404(SubscriptionPlan, id=plan_id)
-            form = PricingPlanForm(request.POST, instance=plan)
             success_msg = 'Pricing plan updated successfully!'
         else:
-            form = PricingPlanForm(request.POST)
+            plan = None
             success_msg = 'Pricing plan created successfully!'
         
-        if form.is_valid():
-            form.save()
+        try:
+            # Extract form data
+            name = request.POST.get('name')
+            slug = request.POST.get('slug')
+            plan_type = request.POST.get('plan_type')
+            description = request.POST.get('description', '')
+            price = request.POST.get('price')
+            billing_cycle = request.POST.get('billing_cycle')
+            trial_days = request.POST.get('trial_days', 0)
+            max_students = request.POST.get('max_students', 100)
+            max_teachers = request.POST.get('max_teachers', 20)
+            max_staff = request.POST.get('max_staff', 10)
+            max_branches = 1
+            storage_limit_gb = 5
+            is_active = request.POST.get('is_active') == 'on'
+            is_popular = request.POST.get('is_popular') == 'on'
+            display_order = request.POST.get('display_order', 0)
+            
+            # Create or update plan
+            if plan:
+                plan.name = name
+                plan.slug = slug
+                plan.plan_type = plan_type
+                plan.description = description
+                plan.price = price
+                plan.billing_cycle = billing_cycle
+                plan.trial_days = trial_days
+                plan.max_students = max_students
+                plan.max_teachers = max_teachers
+                plan.max_staff = max_staff
+                plan.max_branches = max_branches
+                plan.storage_limit_gb = storage_limit_gb
+                plan.is_active = is_active
+                plan.is_popular = is_popular
+                plan.display_order = display_order
+                plan.save()
+            else:
+                # Check if slug already exists
+                if SubscriptionPlan.objects.filter(slug=slug).exists():
+                    messages.error(request, f'A plan with slug "{slug}" already exists!')
+                    return redirect('superadmin:pricing_management')
+                
+                plan = SubscriptionPlan.objects.create(
+                    name=name,
+                    slug=slug,
+                    plan_type=plan_type,
+                    description=description,
+                    price=price,
+                    billing_cycle=billing_cycle,
+                    trial_days=trial_days,
+                    max_students=max_students,
+                    max_teachers=max_teachers,
+                    max_staff=max_staff,
+                    max_branches=max_branches,
+                    storage_limit_gb=storage_limit_gb,
+                    is_active=is_active,
+                    is_popular=is_popular,
+                    display_order=display_order
+                )
+            
             messages.success(request, success_msg)
             return redirect('superadmin:pricing_management')
-        else:
-            plans = SubscriptionPlan.objects.all().order_by('display_order', 'price')
-            return render(request, self.template_name, {
-                'pricing_plans': plans,
-                'form': form
-            })
+            
+        except Exception as e:
+            messages.error(request, f'Error saving pricing plan: {str(e)}')
+            return redirect('superadmin:pricing_management')
 
 
 class FAQManagementView(SuperAdminRequiredMixin, View):
