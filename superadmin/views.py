@@ -550,8 +550,18 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
         if action == 'delete' and plan_id:
             plan = get_object_or_404(SubscriptionPlan, id=plan_id)
             plan_name = plan.name
-            plan.delete()
-            messages.success(request, f'Pricing plan "{plan_name}" deleted successfully!')
+            
+            # Check if there are any subscriptions associated with this plan
+            subscription_count = plan.subscriptions.count()
+            if subscription_count > 0:
+                messages.error(request, f'Cannot delete pricing plan "{plan_name}" because it is associated with {subscription_count} subscription(s). Please deactivate the plan instead.')
+                return redirect('superadmin:pricing_management')
+            
+            try:
+                plan.delete()
+                messages.success(request, f'Pricing plan "{plan_name}" deleted successfully!')
+            except Exception as e:
+                messages.error(request, f'Error deleting pricing plan: {str(e)}')
             return redirect('superadmin:pricing_management')
         
         # Handle form submission for create/update
@@ -570,18 +580,46 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
             description = request.POST.get('description', '')
             price = request.POST.get('price')
             billing_cycle = request.POST.get('billing_cycle')
-            trial_days = request.POST.get('trial_days', 0)
-            max_students = request.POST.get('max_students', 100)
-            max_teachers = request.POST.get('max_teachers', 20)
-            max_staff = request.POST.get('max_staff', 10)
+            trial_days = request.POST.get('trial_days', '0')
+            max_students = request.POST.get('max_students', '100')
+            max_teachers = request.POST.get('max_teachers', '20')
+            max_staff = request.POST.get('max_staff', '10')
             max_branches = 1
             storage_limit_gb = 5
             is_active = request.POST.get('is_active') == 'on'
             is_popular = request.POST.get('is_popular') == 'on'
-            display_order = request.POST.get('display_order', 0)
+            display_order = request.POST.get('display_order', '0')
+            
+            # Validate required fields
+            if not name or not slug or not plan_type or not price or not billing_cycle:
+                messages.error(request, 'Please fill in all required fields (Name, Slug, Plan Type, Price, and Billing Cycle).')
+                return redirect('superadmin:pricing_management')
+            
+            # Convert to appropriate types
+            try:
+                if price:
+                    price = float(price)
+                if trial_days:
+                    trial_days = int(trial_days)
+                if max_students:
+                    max_students = int(max_students)
+                if max_teachers:
+                    max_teachers = int(max_teachers)
+                if max_staff:
+                    max_staff = int(max_staff)
+                if display_order:
+                    display_order = int(display_order)
+            except ValueError:
+                messages.error(request, 'Please ensure all numeric fields contain valid numbers.')
+                return redirect('superadmin:pricing_management')
             
             # Create or update plan
             if plan:
+                # Check if slug is being changed and if the new slug already exists
+                if plan.slug != slug and SubscriptionPlan.objects.filter(slug=slug).exists():
+                    messages.error(request, f'A plan with slug "{slug}" already exists!')
+                    return redirect('superadmin:pricing_management')
+                
                 plan.name = name
                 plan.slug = slug
                 plan.plan_type = plan_type
