@@ -27,3 +27,8 @@ def payment_gateway_color(gateway):
         'cheque': 'secondary',
     }
     return colors.get(gateway, 'secondary')
+
+@register.filter
+def has_active_items(queryset):
+    """Check if any items in queryset have is_active=True"""
+    return any(item.is_active for item in queryset)

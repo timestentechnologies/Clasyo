@@ -117,10 +117,18 @@
                                 </td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                        <a href="{% url 'admin:subscriptions_subscription_change' subscription.id %}" 
-                                           class="btn btn-sm btn-outline-primary" title="Edit in Django Admin" target="_blank">
+                                        <button type="button" class="btn btn-sm btn-outline-primary edit-subscription-btn"
+                                                data-bs-toggle="modal" data-bs-target="#editSubscriptionModal"
+                                                data-id="{{ subscription.id }}"
+                                                data-school="{{ subscription.school.name|escapejs }}"
+                                                data-plan="{{ subscription.plan.name }}"
+                                                data-status="{{ subscription.status }}"
+                                                data-start-date="{{ subscription.start_date|date:'Y-m-d' }}"
+                                                data-end-date="{{ subscription.end_date|date:'Y-m-d' }}"
+                                                data-is-trial="{{ subscription.is_trial|yesno:'true,false' }}"
+                                                title="Edit Subscription">
                                             <i class="fas fa-edit"></i>
-                                        </a>
+                                        </button>
                                         {% with latest_payment=subscription.payments.last %}
                                             {% if latest_payment %}
                                                 <a href="{% url 'superadmin:payment_detail' latest_payment.payment_id %}" 
@@ -144,6 +152,154 @@
                     </table>
                 </div>
             </div>
+
+<!-- Edit Subscription Modal -->
+<div class="modal fade" id="editSubscriptionModal" tabindex="-1" aria-labelledby="editSubscriptionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editSubscriptionModalLabel">Edit Subscription</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'superadmin:subscription_edit' %}">
+                {% csrf_token %}
+                <input type="hidden" id="edit_subscription_id" name="subscription_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">School</label>
+                        <input type="text" class="form-control" id="edit_school_name" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Current Plan</label>
+                        <input type="text" class="form-control" id="edit_plan_name" readonly>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_start_date" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="edit_start_date" name="start_date" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_end_date" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="edit_end_date" name="end_date" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_status" class="form-label">Status</label>
+                        <select class="form-select" id="edit_status" name="status" required>
+                            <option value="active">Active</option>
+                            <option value="trial">Trial</option>
+                            <option value="expired">Expired</option>
+                            <option value="pending">Pending</option>
+                            <option value="cancelled">Cancelled</option>
+                            <option value="suspended">Suspended</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="edit_is_trial" name="is_trial">
+                            <label class="form-check-label" for="edit_is_trial">Is Trial</label>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    <h6>Quick Actions</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-warning btn-sm w-100" onclick="extendSubscription(30)">
+                                <i class="fas fa-calendar-plus"></i> Extend 30 Days
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-warning btn-sm w-100" onclick="extendSubscription(90)">
+                                <i class="fas fa-calendar-plus"></i> Extend 90 Days
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-danger btn-sm w-100" onclick="cancelSubscription()">
+                                <i class="fas fa-times-circle"></i> Cancel Subscription
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-success btn-sm w-100" onclick="reactivateSubscription()">
+                                <i class="fas fa-check-circle"></i> Reactivate
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const editButtons = document.querySelectorAll('.edit-subscription-btn');
+    
+    editButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const school = this.getAttribute('data-school');
+            const plan = this.getAttribute('data-plan');
+            const status = this.getAttribute('data-status');
+            const startDate = this.getAttribute('data-start-date');
+            const endDate = this.getAttribute('data-end-date');
+            const isTrial = this.getAttribute('data-is-trial');
+            
+            // Populate form
+            document.getElementById('edit_subscription_id').value = id;
+            document.getElementById('edit_school_name').value = school;
+            document.getElementById('edit_plan_name').value = plan;
+            document.getElementById('edit_start_date').value = startDate;
+            document.getElementById('edit_end_date').value = endDate;
+            document.getElementById('edit_status').value = status;
+            document.getElementById('edit_is_trial').checked = isTrial === 'true';
+        });
+    });
+});
+
+function extendSubscription(days) {
+    const endDateField = document.getElementById('edit_end_date');
+    const currentEndDate = new Date(endDateField.value);
+    const newEndDate = new Date(currentEndDate);
+    newEndDate.setDate(newEndDate.getDate() + days);
+    endDateField.value = newEndDate.toISOString().split('T')[0];
+    
+    // Update status to active if it's expired
+    const statusField = document.getElementById('edit_status');
+    if (statusField.value === 'expired') {
+        statusField.value = 'active';
+    }
+}
+
+function cancelSubscription() {
+    const statusField = document.getElementById('edit_status');
+    const endDateField = document.getElementById('edit_end_date');
+    statusField.value = 'cancelled';
+    endDateField.value = new Date().toISOString().split('T')[0];
+}
+
+function reactivateSubscription() {
+    const statusField = document.getElementById('edit_status');
+    const endDateField = document.getElementById('edit_end_date');
+    statusField.value = 'active';
+    
+    // Extend by 30 days from today
+    const today = new Date();
+    const newEndDate = new Date(today);
+    newEndDate.setDate(newEndDate.getDate() + 30);
+    endDateField.value = newEndDate.toISOString().split('T')[0];
+}
+</script>
 
 {% endblock %}
 

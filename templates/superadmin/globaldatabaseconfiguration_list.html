@@ -1,0 +1,73 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Global Database Configurations - Super Admin{% endblock %}
+{% block page_title %}Database Configurations{% endblock %}
+{% block page_icon %}database{% endblock %}
+{% block page_subtitle %}Manage global database settings{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'superadmin:db_config_create' %}" class="btn btn-primary">
+    <i class="fas fa-plus"></i> Add Configuration
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="modern-card">
+    <div class="table-responsive">
+        <table class="table modern-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Host</th>
+                    <th>Database</th>
+                    <th>Environment</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for config in configs %}
+                <tr>
+                    <td><strong>{{ config.name }}</strong></td>
+                    <td>{{ config.host }}</td>
+                    <td>{{ config.database_name }}</td>
+                    <td>
+                        <span class="badge bg-{% if config.environment == 'production' %}danger{% elif config.environment == 'staging' %}warning{% else %}info{% endif %}">
+                            {{ config.get_environment_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if config.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'superadmin:db_config_update' config.id %}" class="btn btn-outline-primary">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'superadmin:db_config_delete' config.id %}" class="btn btn-outline-danger">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        <i class="fas fa-database fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No database configurations found</p>
+                        <a href="{% url 'superadmin:db_config_create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Create First Configuration
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,7 +1,9 @@
 {% extends 'dashboards/base.html' %}
 {% load static %}
 
-{% block title %}SMS Configurations - Clasyo{% endblock %}
+{% block title %}Email Configurations - Clasyo{% endblock %}
+
+{% block page_header %}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -9,11 +11,11 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h1 class="h3 mb-0">SMS Configurations</h1>
-                    <p class="text-muted mb-0">Manage global SMS provider configurations</p>
+                    <h1 class="h3 mb-0">Email Configurations</h1>
+                    <p class="text-muted mb-0">Manage global email provider configurations</p>
                 </div>
                 <div>
-                    <a href="{% url 'superadmin:sms_config_create' %}" class="btn btn-primary">
+                    <a href="{% url 'superadmin:email_config_create' %}" class="btn btn-primary">
                         <i class="fas fa-plus me-2"></i>Add Configuration
                     </a>
                     <a href="{% url 'superadmin:global_settings' %}" class="btn btn-outline-secondary ms-2">
@@ -28,31 +30,39 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <!-- Current SMS Configuration -->
-                    {% if current_sms %}
+                    <!-- Current Email Configuration -->
+                    {% if current_email %}
                         <div class="alert alert-info mb-4">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="mb-2">
-                                        <i class="fas fa-cog me-2"></i>{{ current_sms.name }}
+                                        <i class="fas fa-cog me-2"></i>{{ current_email.name }}
                                         <span class="badge bg-success ms-2">Active</span>
                                     </h6>
                                     <div class="row">
-                                        <div class="col-md-3">
-                                            <small class="text-muted">Provider:</small><br>
-                                            <strong>System Settings</strong>
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Host:</small><br>
+                                            <strong>{{ current_email.smtp_host }}</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Port:</small><br>
+                                            <strong>{{ current_email.smtp_port }}</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted">TLS:</small><br>
+                                            <strong>{% if current_email.smtp_use_tls %}Enabled{% else %}Disabled{% endif %}</strong>
                                         </div>
                                         <div class="col-md-3">
-                                            <small class="text-muted">API Key:</small><br>
-                                            <strong>{% if current_sms.api_key %}Configured{% else %}Not Configured{% endif %}</strong>
+                                            <small class="text-muted">From Email:</small><br>
+                                            <strong>{{ current_email.default_from_email }}</strong>
                                         </div>
-                                        <div class="col-md-3">
-                                            <small class="text-muted">Default Sender ID:</small><br>
-                                            <strong>{{ current_sms.default_sender_id|default:"Not Set" }}</strong>
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Backend:</small><br>
+                                            <strong>{{ current_email.backend|title }}</strong>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-1">
                                             <small class="text-muted">Status:</small><br>
-                                            <strong>Environment Variables</strong>
+                                            <strong>System</strong>
                                         </div>
                                     </div>
                                 </div>
@@ -68,7 +78,8 @@
                                     <tr>
                                         <th>Provider</th>
                                         <th>Status</th>
-                                        <th>Default Sender ID</th>
+                                        <th>Host</th>
+                                        <th>From Email</th>
                                         <th>Created</th>
                                         <th>Last Updated</th>
                                         <th>Actions</th>
@@ -80,16 +91,14 @@
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <div class="me-3">
-                                                        {% if config.provider == 'twilio' %}
-                                                            <i class="fas fa-phone fa-lg text-primary"></i>
-                                                        {% elif config.provider == 'africastalking' %}
-                                                            <i class="fas fa-comments fa-lg text-success"></i>
-                                                        {% elif config.provider == 'infobip' %}
-                                                            <i class="fas fa-satellite-dish fa-lg text-info"></i>
-                                                        {% elif config.provider == 'clickatell' %}
-                                                            <i class="fas fa-paper-plane fa-lg text-warning"></i>
-                                                        {% elif config.provider == 'nexmo' %}
-                                                            <i class="fas fa-mobile-alt fa-lg text-danger"></i>
+                                                        {% if config.provider == 'smtp' %}
+                                                            <i class="fas fa-envelope fa-lg text-primary"></i>
+                                                        {% elif config.provider == 'sendgrid' %}
+                                                            <i class="fas fa-paper-plane fa-lg text-success"></i>
+                                                        {% elif config.provider == 'ses' %}
+                                                            <i class="fab fa-aws fa-lg text-warning"></i>
+                                                        {% elif config.provider == 'mailgun' %}
+                                                            <i class="fas fa-gun fa-lg text-info"></i>
                                                         {% endif %}
                                                     </div>
                                                     <div>
@@ -107,20 +116,31 @@
                                                 {% endif %}
                                             </td>
                                             <td>
-                                                {% if config.default_sender_id %}
-                                                    {{ config.default_sender_id }}
+                                                {% if config.smtp_host %}
+                                                    {{ config.smtp_host }}:{{ config.smtp_port }}
+                                                {% else %}
+                                                    <span class="text-muted">Not configured</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if config.default_from_email %}
+                                                    {{ config.default_from_email }}
                                                 {% else %}
                                                     <span class="text-muted">Not set</span>
                                                 {% endif %}
                                             </td>
-                                            <td>{{ config.created_at|date:"M d, Y" }}</td>
-                                            <td>{{ config.updated_at|date:"M d, Y" }}</td>
                                             <td>
-                                                <div class="btn-group" role="group">
-                                                    <a href="{% url 'superadmin:sms_config_update' config.pk %}" class="btn btn-sm btn-outline-primary">
+                                                <small>{{ config.created_at|date:"M d, Y" }}</small>
+                                            </td>
+                                            <td>
+                                                <small>{{ config.updated_at|date:"M d, Y" }}</small>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{% url 'superadmin:email_config_update' config.pk %}" class="btn btn-outline-primary">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
-                                                    <a href="{% url 'superadmin:sms_config_delete' config.pk %}" class="btn btn-sm btn-outline-danger">
+                                                    <a href="{% url 'superadmin:email_config_delete' config.pk %}" class="btn btn-outline-danger">
                                                         <i class="fas fa-trash"></i>
                                                     </a>
                                                 </div>
@@ -132,10 +152,10 @@
                         </div>
                     {% else %}
                         <div class="text-center py-5">
-                            <i class="fas fa-sms fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">No SMS Configurations Found</h5>
-                            <p class="text-muted mb-4">Create your first SMS configuration to enable SMS functionality across all schools.</p>
-                            <a href="{% url 'superadmin:sms_config_create' %}" class="btn btn-primary">
+                            <i class="fas fa-envelope fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Email Configurations Found</h5>
+                            <p class="text-muted">Create your first email configuration to get started.</p>
+                            <a href="{% url 'superadmin:email_config_create' %}" class="btn btn-primary">
                                 <i class="fas fa-plus me-2"></i>Create Configuration
                             </a>
                         </div>

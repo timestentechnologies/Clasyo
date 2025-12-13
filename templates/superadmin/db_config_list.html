@@ -1,0 +1,146 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Database Configurations - Super Admin{% endblock %}
+{% block page_header %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">Database Configurations</h1>
+                    <p class="text-muted mb-0">Manage global database settings</p>
+                </div>
+                <div>
+                    <a href="{% url 'superadmin:db_config_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Add Configuration
+                    </a>
+                    <a href="{% url 'superadmin:global_settings' %}" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <!-- Current Database Configuration -->
+                    {% if current_db %}
+                        <div class="alert alert-info mb-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-2">
+                                        <i class="fas fa-cog me-2"></i>{{ current_db.name }}
+                                        <span class="badge bg-success ms-2">Active</span>
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Engine:</small><br>
+                                            <strong>{{ current_db.engine|upper }}</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Host:</small><br>
+                                            <strong>{{ current_db.db_host }}:{{ current_db.db_port }}</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Database:</small><br>
+                                            <strong>{{ current_db.db_name }}</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted">User:</small><br>
+                                            <strong>{{ current_db.db_user }}</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Password:</small><br>
+                                            <strong>{{ current_db.db_password|default:"None" }}</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Status:</small><br>
+                                            <strong>System</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    {% if configs %}
+                        <h5 class="mb-3">Manual Configurations</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Host</th>
+                                        <th>Database</th>
+                                        <th>Environment</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for config in configs %}
+                                        <tr>
+                                            <td><strong>{{ config.name }}</strong></td>
+                                            <td>
+                                                {% if config.db_host %}
+                                                    {{ config.db_host }}:{{ config.db_port|default:"5432" }}
+                                                {% else %}
+                                                    <span class="text-muted">Not configured</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if config.db_name %}
+                                                    {{ config.db_name }}
+                                                {% else %}
+                                                    <span class="text-muted">Not set</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{% if config.environment == 'production' %}danger{% elif config.environment == 'staging' %}warning{% else %}info{% endif %}">
+                                                    {{ config.get_environment_display }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if config.is_active %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <a href="{% url 'superadmin:db_config_update' config.id %}" class="btn btn-outline-primary">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <a href="{% url 'superadmin:db_config_delete' config.id %}" class="btn btn-outline-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-database fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Database Configurations Found</h5>
+                            <p class="text-muted">Create your first database configuration to get started.</p>
+                            <a href="{% url 'superadmin:db_config_create' %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Create Configuration
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

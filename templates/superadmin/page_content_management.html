@@ -7,9 +7,9 @@
 {% block page_subtitle %}Manage website page content{% endblock %}
 
 {% block page_actions %}
-<a href="{% url 'admin:frontend_pagecontent_add' %}" class="btn btn-primary" target="_blank">
-    <i class="fas fa-plus"></i> Add New Content
-</a>
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addContentModal">
+    <i class="fas fa-plus"></i> Add Content
+</button>
 {% endblock %}
 
 {% block content %}
@@ -33,10 +33,16 @@
                         <p class="text-muted small">{{ content.content|truncatewords:30 }}</p>
                         <div class="d-flex justify-content-between align-items-center">
                             <small class="text-muted">Last updated: {{ content.updated_at|date:"M d, Y" }}</small>
-                            <a href="{% url 'admin:frontend_pagecontent_change' content.id %}" 
-                               class="btn btn-sm btn-outline-primary" target="_blank">
+                            <button type="button" class="btn btn-sm btn-outline-primary edit-content-btn"
+                                data-bs-toggle="modal" data-bs-target="#editContentModal"
+                                data-id="{{ content.id }}"
+                                data-page="{{ content.page }}"
+                                data-title="{{ content.title|escapejs }}"
+                                data-subtitle="{{ content.subtitle|escapejs }}"
+                                data-content="{{ content.content|escapejs }}"
+                                data-is-active="{{ content.is_active|yesno:'true,false' }}">
                                 <i class="fas fa-edit"></i> Edit
-                            </a>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -45,12 +51,134 @@
                     <div class="modern-card text-center py-5">
                         <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
                         <p class="text-muted">No page content found</p>
-                        <a href="{% url 'admin:frontend_pagecontent_add' %}" class="btn btn-primary" target="_blank">
+                        <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addContentModal">
                             <i class="fas fa-plus"></i> Create First Content
                         </a>
                     </div>
                 </div>
                 {% endfor %}
             </div>
+
+<!-- Add Content Modal -->
+<div class="modal fade" id="addContentModal" tabindex="-1" aria-labelledby="addContentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addContentModalLabel">Add Page Content</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="#">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="add_page" class="form-label">Page</label>
+                        <select class="form-select" id="add_page" name="page" required>
+                            <option value="about">About Us</option>
+                            <option value="home_hero">Home - Hero Section</option>
+                            <option value="home_features">Home - Features</option>
+                            <option value="contact">Contact Info</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="add_title" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="add_title" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="add_subtitle" class="form-label">Subtitle</label>
+                        <input type="text" class="form-control" id="add_subtitle" name="subtitle">
+                    </div>
+                    <div class="mb-3">
+                        <label for="add_content" class="form-label">Content</label>
+                        <textarea class="form-control" id="add_content" name="content" rows="5" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="add_is_active" name="is_active" checked>
+                            <label class="form-check-label" for="add_is_active">Is Active</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Content</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Content Modal -->
+<div class="modal fade" id="editContentModal" tabindex="-1" aria-labelledby="editContentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editContentModalLabel">Edit Page Content</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="#">
+                {% csrf_token %}
+                <input type="hidden" id="edit_content_id" name="content_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_page" class="form-label">Page</label>
+                        <select class="form-select" id="edit_page" name="page" required>
+                            <option value="about">About Us</option>
+                            <option value="home_hero">Home - Hero Section</option>
+                            <option value="home_features">Home - Features</option>
+                            <option value="contact">Contact Info</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_title" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="edit_title" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_subtitle" class="form-label">Subtitle</label>
+                        <input type="text" class="form-control" id="edit_subtitle" name="subtitle">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_content" class="form-label">Content</label>
+                        <textarea class="form-control" id="edit_content" name="content" rows="5" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="edit_is_active" name="is_active">
+                            <label class="form-check-label" for="edit_is_active">Is Active</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Content</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const editButtons = document.querySelectorAll('.edit-content-btn');
+    
+    editButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const page = this.getAttribute('data-page');
+            const title = this.getAttribute('data-title');
+            const subtitle = this.getAttribute('data-subtitle');
+            const content = this.getAttribute('data-content');
+            const isActive = this.getAttribute('data-is-active');
+            
+            // Populate form
+            document.getElementById('edit_content_id').value = id;
+            document.getElementById('edit_page').value = page;
+            document.getElementById('edit_title').value = title;
+            document.getElementById('edit_subtitle').value = subtitle || '';
+            document.getElementById('edit_content').value = content;
+            document.getElementById('edit_is_active').checked = isActive === 'true';
+        });
+    });
+});
+</script>
 
 {% endblock %}

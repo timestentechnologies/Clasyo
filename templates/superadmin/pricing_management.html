@@ -54,9 +54,16 @@
                                     <button type="button" class="btn btn-sm btn-outline-primary edit-plan-btn" data-bs-toggle="modal" data-bs-target="#editPlanModal"
                                             data-id="{{ plan.id }}" 
                                             data-name="{{ plan.name|escapejs }}" 
+                                            data-slug="{{ plan.slug|escapejs }}" 
+                                            data-plan-type="{{ plan.plan_type }}" 
                                             data-price="{{ plan.price }}" 
                                             data-billing-cycle="{{ plan.billing_cycle }}" 
+                                            data-trial-days="{{ plan.trial_days }}" 
                                             data-max-students="{{ plan.max_students|default:''|escapejs }}" 
+                                            data-max-teachers="{{ plan.max_teachers|default:''|escapejs }}" 
+                                            data-max-staff="{{ plan.max_staff|default:''|escapejs }}" 
+                                            data-display-order="{{ plan.display_order }}" 
+                                            data-description="{{ plan.description|escapejs }}" 
                                             data-is-active="{{ plan.is_active|yesno:'true,false' }}" 
                                             data-is-popular="{{ plan.is_popular|yesno:'true,false' }}">
                                         <i class="fas fa-edit"></i> Edit
@@ -324,15 +331,46 @@
 </div>
 
 <script>
-function editPlan(id, name, price, billingCycle, maxStudents, isActive, isPopular) {
-    document.getElementById('edit_plan_id').value = id;
-    document.getElementById('edit_id_name').value = name;
-    document.getElementById('edit_id_price').value = price;
-    document.getElementById('edit_id_billing_cycle').value = billingCycle;
-    document.getElementById('edit_id_max_students').value = maxStudents || '';
-    document.getElementById('edit_id_is_active').checked = isActive === 'true';
-    document.getElementById('edit_id_is_popular').checked = isPopular === 'true';
-}
+// Handle edit plan button clicks
+document.addEventListener('DOMContentLoaded', function() {
+    const editButtons = document.querySelectorAll('.edit-plan-btn');
+    
+    editButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Get all data attributes
+            const id = this.getAttribute('data-id');
+            const name = this.getAttribute('data-name');
+            const slug = this.getAttribute('data-slug');
+            const planType = this.getAttribute('data-plan-type');
+            const price = this.getAttribute('data-price');
+            const billingCycle = this.getAttribute('data-billing-cycle');
+            const trialDays = this.getAttribute('data-trial-days');
+            const maxStudents = this.getAttribute('data-max-students');
+            const maxTeachers = this.getAttribute('data-max-teachers');
+            const maxStaff = this.getAttribute('data-max-staff');
+            const displayOrder = this.getAttribute('data-display-order');
+            const description = this.getAttribute('data-description');
+            const isActive = this.getAttribute('data-is-active');
+            const isPopular = this.getAttribute('data-is-popular');
+            
+            // Populate the edit form
+            document.getElementById('edit_plan_id').value = id;
+            document.getElementById('edit_id_name').value = name || '';
+            document.getElementById('edit_id_slug').value = slug || '';
+            document.getElementById('edit_id_plan_type').value = planType || 'basic';
+            document.getElementById('edit_id_price').value = price || '0';
+            document.getElementById('edit_id_billing_cycle').value = billingCycle || 'monthly';
+            document.getElementById('edit_id_trial_days').value = trialDays || '0';
+            document.getElementById('edit_id_max_students').value = maxStudents || '100';
+            document.getElementById('edit_id_max_teachers').value = maxTeachers || '20';
+            document.getElementById('edit_id_max_staff').value = maxStaff || '10';
+            document.getElementById('edit_id_display_order').value = displayOrder || '0';
+            document.getElementById('edit_id_description').value = description || '';
+            document.getElementById('edit_id_is_active').checked = isActive === 'true';
+            document.getElementById('edit_id_is_popular').checked = isPopular === 'true';
+        });
+    });
+});
 </script>
 
 {% endblock %}

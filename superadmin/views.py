@@ -126,6 +126,30 @@ class SubscriptionListView(SuperAdminRequiredMixin, ListView):
         return queryset
 
 
+class SubscriptionEditView(SuperAdminRequiredMixin, View):
+    """Edit subscription details"""
+    
+    def post(self, request):
+        subscription_id = request.POST.get('subscription_id')
+        subscription = get_object_or_404(Subscription, id=subscription_id)
+        
+        try:
+            # Update subscription fields
+            subscription.start_date = request.POST.get('start_date')
+            subscription.end_date = request.POST.get('end_date')
+            subscription.status = request.POST.get('status')
+            subscription.is_trial = request.POST.get('is_trial') == 'on'
+            
+            subscription.save()
+            
+            messages.success(request, f'Subscription for {subscription.school.name} updated successfully!')
+            
+        except Exception as e:
+            messages.error(request, f'Error updating subscription: {str(e)}')
+        
+        return redirect('superadmin:subscriptions')
+
+
 class SchoolCreateView(SuperAdminRequiredMixin, CreateView):
     """Create a new school with admin"""
     model = School
@@ -1176,10 +1200,47 @@ class GlobalSettingsView(SuperAdminRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         
         from .models import GlobalSMSConfiguration, GlobalEmailConfiguration, GlobalDatabaseConfiguration
+        from django.conf import settings
         
         context['sms_configs'] = GlobalSMSConfiguration.objects.all()
         context['email_configs'] = GlobalEmailConfiguration.objects.all()
         context['db_configs'] = GlobalDatabaseConfiguration.objects.all()
+        
+        # Add current database configuration from settings
+        current_db = {
+            'name': 'Current Database',
+            'is_active': True,
+            'db_host': getattr(settings, 'DB_HOST', None) or settings.DATABASES['default'].get('HOST', 'localhost'),
+            'db_port': getattr(settings, 'DB_PORT', None) or settings.DATABASES['default'].get('PORT', '5432'),
+            'db_name': settings.DATABASES['default'].get('NAME', 'N/A'),
+            'db_user': getattr(settings, 'DB_USER', None) or settings.DATABASES['default'].get('USER', 'N/A'),
+            'db_password': '***' if settings.DATABASES['default'].get('PASSWORD') else None,
+            'engine': settings.DATABASES['default']['ENGINE'].split('.')[-1],
+            'is_current': True
+        }
+        
+        # Add current email configuration from settings
+        current_email = {
+            'name': 'Current Email Configuration',
+            'is_active': True,
+            'smtp_host': getattr(settings, 'EMAIL_HOST', 'Not configured'),
+            'smtp_port': getattr(settings, 'EMAIL_PORT', 587),
+            'smtp_use_tls': getattr(settings, 'EMAIL_USE_TLS', True),
+            'smtp_use_ssl': getattr(settings, 'EMAIL_USE_SSL', False),
+            'default_from_email': getattr(settings, 'DEFAULT_FROM_EMAIL', 'Not configured'),
+            'default_from_name': getattr(settings, 'DEFAULT_FROM_NAME', 'Clasyo'),
+            'backend': getattr(settings, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend').split('.')[-1],
+            'is_current': True
+        }
+        
+        # Create simple objects that can be used in templates
+        from collections import namedtuple
+        
+        CurrentDB = namedtuple('CurrentDB', current_db.keys())
+        CurrentEmail = namedtuple('CurrentEmail', current_email.keys())
+        
+        context['current_db'] = CurrentDB(**current_db)
+        context['current_email'] = CurrentEmail(**current_email)
         
         return context
 
@@ -1192,6 +1253,27 @@ class GlobalSMSConfigurationListView(SuperAdminRequiredMixin, ListView):
     
     def get_queryset(self):
         return GlobalSMSConfiguration.objects.all().order_by('provider')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from django.conf import settings
+        
+        # Add current SMS configuration from settings
+        current_sms = {
+            'name': 'Current SMS Configuration',
+            'is_active': True,
+            'provider': 'system',
+            'api_key': getattr(settings, 'SMS_API_KEY', None),
+            'default_sender_id': getattr(settings, 'SMS_SENDER_ID', None),
+            'is_current': True
+        }
+        
+        # Create simple object that can be used in template
+        from collections import namedtuple
+        CurrentSMS = namedtuple('CurrentSMS', current_sms.keys())
+        
+        context['current_sms'] = CurrentSMS(**current_sms)
+        return context
 
 
 class GlobalSMSConfigurationCreateView(SuperAdminRequiredMixin, CreateView):
@@ -1239,6 +1321,32 @@ class GlobalEmailConfigurationListView(SuperAdminRequiredMixin, ListView):
     
     def get_queryset(self):
         return GlobalEmailConfiguration.objects.all().order_by('provider')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from django.conf import settings
+        
+        # Add current email configuration from settings
+        current_email = {
+            'name': 'Current Email Configuration',
+            'is_active': True,
+            'provider': 'system',
+            'smtp_host': getattr(settings, 'EMAIL_HOST', 'Not configured'),
+            'smtp_port': getattr(settings, 'EMAIL_PORT', 587),
+            'smtp_use_tls': getattr(settings, 'EMAIL_USE_TLS', True),
+            'smtp_use_ssl': getattr(settings, 'EMAIL_USE_SSL', False),
+            'default_from_email': getattr(settings, 'DEFAULT_FROM_EMAIL', 'Not configured'),
+            'default_from_name': getattr(settings, 'DEFAULT_FROM_NAME', 'Clasyo'),
+            'backend': getattr(settings, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend').split('.')[-1],
+            'is_current': True
+        }
+        
+        # Create simple object that can be used in template
+        from collections import namedtuple
+        CurrentEmail = namedtuple('CurrentEmail', current_email.keys())
+        
+        context['current_email'] = CurrentEmail(**current_email)
+        return context
 
 
 class GlobalEmailConfigurationCreateView(SuperAdminRequiredMixin, CreateView):
@@ -1286,6 +1394,30 @@ class GlobalDatabaseConfigurationListView(SuperAdminRequiredMixin, ListView):
     
     def get_queryset(self):
         return GlobalDatabaseConfiguration.objects.all().order_by('name')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from django.conf import settings
+        
+        # Add current database configuration from settings
+        current_db = {
+            'name': 'Current Database',
+            'is_active': True,
+            'db_host': getattr(settings, 'DB_HOST', None) or settings.DATABASES['default'].get('HOST', 'localhost'),
+            'db_port': getattr(settings, 'DB_PORT', None) or settings.DATABASES['default'].get('PORT', '5432'),
+            'db_name': settings.DATABASES['default'].get('NAME', 'N/A'),
+            'db_user': getattr(settings, 'DB_USER', None) or settings.DATABASES['default'].get('USER', 'N/A'),
+            'db_password': '***' if settings.DATABASES['default'].get('PASSWORD') else None,
+            'engine': settings.DATABASES['default']['ENGINE'].split('.')[-1],
+            'is_current': True
+        }
+        
+        # Create simple object that can be used in template
+        from collections import namedtuple
+        CurrentDB = namedtuple('CurrentDB', current_db.keys())
+        
+        context['current_db'] = CurrentDB(**current_db)
+        return context
 
 
 class GlobalDatabaseConfigurationCreateView(SuperAdminRequiredMixin, CreateView):

@@ -1,7 +1,10 @@
 {% extends 'dashboards/base.html' %}
 {% load static %}
+{% load payment_filters %}
 
 {% block title %}Global Settings - Clasyo{% endblock %}
+
+{% block page_header %}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -24,7 +27,7 @@
     <!-- Settings Overview Cards -->
     <div class="row mb-4">
         <div class="col-md-4">
-            <div class="card bg-primary text-white">
+            <div class="card bg-gradient-primary text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -45,12 +48,12 @@
         </div>
         
         <div class="col-md-4">
-            <div class="card bg-success text-white">
+            <div class="card bg-gradient-success text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h5 class="card-title mb-0">Email Configurations</h5>
-                            <p class="card-text mb-0">{{ email_configs|length }} configurations</p>
+                            <p class="card-text mb-0">{{ email_configs|length }}{% if current_email %} + 1 (current){% endif %} configurations</p>
                         </div>
                         <div class="fs-2">
                             <i class="fas fa-envelope"></i>
@@ -66,12 +69,12 @@
         </div>
         
         <div class="col-md-4">
-            <div class="card bg-info text-white">
+            <div class="card bg-gradient-info text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h5 class="card-title mb-0">Database Configurations</h5>
-                            <p class="card-text mb-0">{{ db_configs|length }} configurations</p>
+                            <p class="card-text mb-0">{{ db_configs|length }}{% if current_db %} + 1 (current){% endif %} configurations</p>
                         </div>
                         <div class="fs-2">
                             <i class="fas fa-database"></i>
@@ -114,7 +117,7 @@
                                 </div>
                             {% endif %}
                         {% endfor %}
-                        {% if not sms_configs|selectattr:"is_active" %}
+                        {% if not sms_configs|has_active_items %}
                             <p class="text-muted mb-0">No active SMS configurations found.</p>
                         {% endif %}
                     {% else %}
@@ -130,31 +133,105 @@
                     <h5 class="card-title mb-0">Active Email Configurations</h5>
                 </div>
                 <div class="card-body">
-                    {% if email_configs %}
-                        {% for config in email_configs %}
-                            {% if config.is_active %}
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <div>
-                                        <strong>{{ config.get_provider_display }}</strong>
-                                        <br>
-                                        <small class="text-muted">
-                                            {% if config.default_from_email %}
-                                                From: {{ config.default_from_email }}
-                                            {% else %}
-                                                No custom from email
-                                            {% endif %}
-                                        </small>
-                                    </div>
-                                    <span class="badge bg-success">Active</span>
+                    {% if email_configs or current_email %}
+                        {% if current_email %}
+                            <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded bg-light">
+                                <div>
+                                    <h6 class="mb-1">{{ current_email.name }}</h6>
+                                    <small class="text-muted">
+                                        Host: {{ current_email.smtp_host }}:{{ current_email.smtp_port }}<br>
+                                        From: {{ current_email.default_from_email }}<br>
+                                        TLS: {% if current_email.smtp_use_tls %}Enabled{% else %}Disabled{% endif %}<br>
+                                        Backend: {{ current_email.backend|title }}
+                                    </small>
                                 </div>
-                            {% endif %}
+                                <span class="badge bg-success">
+                                    Active
+                                </span>
+                            </div>
+                        {% endif %}
+                        {% for config in email_configs %}
+                            <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded">
+                                <div>
+                                    <h6 class="mb-1">{{ config.name }}</h6>
+                                    <small class="text-muted">
+                                        {% if config.smtp_host %}
+                                            Host: {{ config.smtp_host }}:{{ config.smtp_port }}<br>
+                                            From: {{ config.default_from_email }}
+                                        {% else %}
+                                            No SMTP configuration
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                {% if config.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% endif %}
+                            </div>
                         {% endfor %}
-                        {% if not email_configs|selectattr:"is_active" %}
+                        {% if not email_configs|has_active_items and not current_email %}
                             <p class="text-muted mb-0">No active email configurations found.</p>
                         {% endif %}
                     {% else %}
                         <p class="text-muted mb-0">No email configurations found.</p>
                     {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Database Configurations -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Database Configurations</h5>
+                        <a href="{% url 'superadmin:db_config_list' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-cog me-1"></i>Manage
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        {% if db_configs or current_db %}
+                            {% if current_db %}
+                                <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded bg-light">
+                                    <div>
+                                        <h6 class="mb-1">{{ current_db.name }}</h6>
+                                        <small class="text-muted">
+                                            Engine: {{ current_db.engine|upper }}<br>
+                                            Host: {{ current_db.db_host }}:{{ current_db.db_port }}<br>
+                                            Database: {{ current_db.db_name }}<br>
+                                            User: {{ current_db.db_user }}
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-success">
+                                        Active
+                                    </span>
+                                </div>
+                            {% endif %}
+                            {% for config in db_configs %}
+                                <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded">
+                                    <div>
+                                        <h6 class="mb-1">{{ config.name }}</h6>
+                                        <small class="text-muted">
+                                            {% if config.db_host %}
+                                                Host: {{ config.db_host }}:{{ config.db_port|default:"5432" }}<br>
+                                                Database: {{ config.db_name }}<br>
+                                                User: {{ config.db_user }}
+                                            {% else %}
+                                                No database connection configured
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-{% if config.is_active %}success{% else %}secondary{% endif %}">
+                                        {% if config.is_active %}Active{% else %}Inactive{% endif %}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                            {% if not db_configs|has_active_items and not current_db %}
+                                <p class="text-muted mb-0">No active database configurations found.</p>
+                            {% endif %}
+                        {% else %}
+                            <p class="text-muted mb-0">No database configurations found.</p>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

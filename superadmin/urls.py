@@ -21,6 +21,7 @@ urlpatterns = [
     
     # Subscriptions
     path('subscriptions/', views.SubscriptionListView.as_view(), name='subscriptions'),
+    path('subscriptions/edit/', views.SubscriptionEditView.as_view(), name='subscription_edit'),
     
     # Content Management
     path('content/pricing/', views.PricingManagementView.as_view(), name='pricing_management'),
