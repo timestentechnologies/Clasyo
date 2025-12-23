@@ -4,7 +4,13 @@
 {% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Class{% endblock %}
 {% block page_icon %}chalkboard{% endblock %}
 {% block page_title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Class{% endblock %}
-{% block page_subtitle %}Manage class/grade levels and their sections{% endblock %}
+{% block page_subtitle %}
+    {% if school and school.institution_type == 'tvet_college' %}
+        Manage programmes/levels and their groups
+    {% else %}
+        Manage class/grade levels and their sections
+    {% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -14,9 +20,22 @@
             <div class="d-flex align-items-start">
                 <i class="fas fa-info-circle fa-2x me-3"></i>
                 <div>
-                    <h6 class="mb-1">What is a Class?</h6>
-                    <p class="mb-0">A <strong>Class</strong> represents a grade or year level (e.g., Grade 10, Year 8). 
-                    Within each class, you can create <strong>Sections</strong> (e.g., Section A, B, C) to divide students into smaller groups.</p>
+                    {% if school and school.institution_type == 'tvet_college' %}
+                        <h6 class="mb-1">What is a Class/Programme?</h6>
+                        <p class="mb-0">
+                            A <strong>Class</strong> represents a programme level or year in your college/TVET institution
+                            (e.g., <strong>Diploma in ICT - Year 1</strong>, <strong>Certificate in Business - Level 4</strong>).
+                            Within each class, you can create <strong>Groups</strong> (sections) such as Group A or Group B to
+                            organise students into smaller cohorts.
+                        </p>
+                    {% else %}
+                        <h6 class="mb-1">What is a Class?</h6>
+                        <p class="mb-0">
+                            A <strong>Class</strong> represents a grade or year level (e.g., Grade 10, Year 8).
+                            Within each class, you can create <strong>Sections</strong> (e.g., Section A, B, C) to divide
+                            students into smaller groups.
+                        </p>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -44,10 +63,14 @@
                                     <i class="fas fa-tag text-primary me-2"></i>Class Name <span class="text-danger">*</span>
                                 </label>
                                 <input type="text" name="name" class="form-control" 
-                                       placeholder="e.g., Grade 10, Year 8, Form 3" 
+                                       placeholder="{% if school and school.institution_type == 'tvet_college' %}e.g., Diploma in ICT - Year 1, Certificate in Business - Level 4{% else %}e.g., Grade 10, Year 8, Form 3{% endif %}" 
                                        value="{{ form.instance.name|default:'' }}" required>
                                 <small class="form-text text-muted">
-                                    <i class="fas fa-info-circle"></i> The name or level (e.g., Grade 10, Year 8)
+                                    {% if school and school.institution_type == 'tvet_college' %}
+                                        <i class="fas fa-info-circle"></i> The programme or level name (e.g., Diploma Year 1, Craft Level 4).
+                                    {% else %}
+                                        <i class="fas fa-info-circle"></i> The name or level (e.g., Grade 10, Year 8)
+                                    {% endif %}
                                 </small>
                                 {% if form.name.errors %}
                                 <div class="invalid-feedback d-block">{{ form.name.errors }}</div>
@@ -59,14 +82,38 @@
                                     <i class="fas fa-sort-numeric-up text-primary me-2"></i>Numeric Name <span class="text-danger">*</span>
                                 </label>
                                 <input type="number" name="numeric_name" class="form-control" 
-                                       placeholder="e.g., 10, 8, 3" 
+                                       placeholder="{% if school and school.institution_type == 'tvet_college' %}e.g., 1 for Year 1, 2 for Year 2{% else %}e.g., 10, 8, 3{% endif %}" 
                                        value="{% if form.instance.numeric_name %}{{ form.instance.numeric_name }}{% endif %}" required>
                                 <small class="form-text text-muted">
-                                    <i class="fas fa-info-circle"></i> Numeric value for sorting (e.g., 10 for Grade 10)
+                                    {% if school and school.institution_type == 'tvet_college' %}
+                                        <i class="fas fa-info-circle"></i> Numeric value for ordering (e.g., 1 for Year 1, 2 for Year 2).
+                                    {% else %}
+                                        <i class="fas fa-info-circle"></i> Numeric value for sorting (e.g., 10 for Grade 10)
+                                    {% endif %}
                                 </small>
                                 {% if form.numeric_name.errors %}
                                 <div class="invalid-feedback d-block">{{ form.numeric_name.errors }}</div>
                                 {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-layer-group text-primary me-2"></i>Education Level
+                                </label>
+                                <select name="education_level" class="form-select">
+                                    {% for value,label in education_level_choices %}
+                                    <option value="{{ value }}" {% if form.instance.education_level == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">
+                                    {% if school and school.institution_type == 'tvet_college' %}
+                                        <i class="fas fa-info-circle"></i> Choose whether this is a TVET or College level programme.
+                                    {% else %}
+                                        <i class="fas fa-info-circle"></i> Align this class with CBC levels (e.g., Junior Secondary, TVET).
+                                    {% endif %}
+                                </small>
                             </div>
 
                             <div class="col-md-6">
@@ -137,8 +184,19 @@
 
                         <div class="alert alert-info">
                             <i class="fas fa-question-circle"></i> <strong>What are Sections?</strong><br>
-                            <small>Sections let you divide a large class into smaller groups. For example, if you have 150 students in Grade 10, 
-                            you can create Grade 10-A, Grade 10-B, and Grade 10-C. Each section gets its own timetable and can have different teachers.</small>
+                            {% if school and school.institution_type == 'tvet_college' %}
+                                <small>
+                                    Sections (or groups) let you divide a large programme cohort into smaller groups.
+                                    For example, "Diploma in ICT - Year 1" can have Group A and Group B, each with its own timetable
+                                    and class teacher.
+                                </small>
+                            {% else %}
+                                <small>
+                                    Sections let you divide a large class into smaller groups. For example, if you have 150 students in Grade 10,
+                                    you can create Grade 10-A, Grade 10-B, and Grade 10-C. Each section gets its own timetable and can have
+                                    different teachers.
+                                </small>
+                            {% endif %}
                         </div>
 
                         <div id="sectionsContainer">

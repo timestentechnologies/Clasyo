@@ -305,7 +305,7 @@ class PasswordResetCompleteView(TemplateView):
 class ProfileView(LoginRequiredMixin, DetailView):
     """User profile view"""
     model = User
-    template_name = 'accounts/profile.html'
+    template_name = 'core/profile.html'
     context_object_name = 'profile_user'
     
     def get_object(self):
@@ -321,6 +321,23 @@ class ProfileEditView(LoginRequiredMixin, UpdateView):
     
     def get_object(self):
         return self.request.user
+
+    def get_success_url(self):
+        school_slug = getattr(self.request, 'school_slug', '')
+
+        if not school_slug and self.request.META.get('HTTP_REFERER'):
+            referer = self.request.META.get('HTTP_REFERER', '')
+            if '/school/' in referer:
+                parts = referer.split('/school/')
+                if len(parts) > 1:
+                    slug_part = parts[1].split('/')[0]
+                    if slug_part:
+                        school_slug = slug_part
+
+        if school_slug:
+            return reverse_lazy('core:profile', kwargs={'school_slug': school_slug})
+
+        return super().get_success_url()
     
     def form_valid(self, form):
         messages.success(self.request, 'Profile updated successfully!')

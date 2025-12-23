@@ -134,7 +134,7 @@
         {% if user.role in 'admin,teacher' %}
         <div class="menu-section-title">Academic</div>
         
-        <li class="{% if '/todos/' in request.path %}active{% endif %}"><a href="{% url 'core:todos' school_slug=school_slug %}">
+        <li class="{% if '/todos/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'core:todos' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-tasks"></i>
             <span>To Do</span>
         </a></li>
@@ -256,44 +256,44 @@
             <span>Collect Fees</span>
         </a></li>
 
-        <li class="{% if '/fees/transactions/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/fees/transactions/">
+        <li class="{% if '/fees/transactions/' in request.path %}active{% endif %}"><a href="{% if school_slug %}/school/{{ school_slug }}/fees/transactions/{% else %}#{% endif %}">
             <i class="fas fa-receipt"></i>
             <span>Transactions</span>
         </a></li>
 
-        <li class="{% if '/payment-config/' in request.path %}active{% endif %}"><a href="{% url 'superadmin:school_payment_config_list' school_slug=school_slug %}">
+        <li class="{% if '/payment-config/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'superadmin:school_payment_config_list' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-credit-card"></i>
             <span>Payment Configurations</span>
         </a></li>
 
-        <li class="{% if '/inventory/expenses/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/inventory/expenses/">
+        <li class="{% if '/inventory/expenses/' in request.path %}active{% endif %}"><a href="{% if school_slug %}/school/{{ school_slug }}/inventory/expenses/{% else %}#{% endif %}">
             <i class="fas fa-dollar-sign"></i>
             <span>Expenses</span>
         </a></li>
 
-        <li class="{% if '/inventory/payments/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/inventory/payments/">
+        <li class="{% if '/inventory/payments/' in request.path %}active{% endif %}"><a href="{% if school_slug %}/school/{{ school_slug }}/inventory/payments/{% else %}#{% endif %}">
             <i class="fas fa-money-check-alt"></i>
             <span>Staff Payments</span>
         </a></li>
 
         <div class="menu-section-title">Procurement</div>
 
-        <li class="{% if '/inventory/' in request.path and '/expenses/' not in request.path and '/payments/' not in request.path and '/suppliers/' not in request.path and '/purchase-orders/' not in request.path and '/distributions/' not in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/inventory/">
+        <li class="{% if '/inventory/' in request.path and '/expenses/' not in request.path and '/payments/' not in request.path and '/suppliers/' not in request.path and '/purchase-orders/' not in request.path and '/distributions/' not in request.path %}active{% endif %}"><a href="{% if school_slug %}/school/{{ school_slug }}/inventory/{% else %}#{% endif %}">
             <i class="fas fa-boxes"></i>
             <span>Inventory</span>
         </a></li>
 
-        <li class="{% if '/inventory/suppliers/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/inventory/suppliers/">
+        <li class="{% if '/inventory/suppliers/' in request.path %}active{% endif %}"><a href="{% if school_slug %}/school/{{ school_slug }}/inventory/suppliers/{% else %}#{% endif %}">
             <i class="fas fa-truck"></i>
             <span>Suppliers</span>
         </a></li>
 
-        <li class="{% if '/inventory/purchase-orders/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/inventory/purchase-orders/">
+        <li class="{% if '/inventory/purchase-orders/' in request.path %}active{% endif %}"><a href="{% if school_slug %}/school/{{ school_slug }}/inventory/purchase-orders/{% else %}#{% endif %}">
             <i class="fas fa-shopping-cart"></i>
             <span>Purchase Orders</span>
         </a></li>
 
-        <li class="{% if '/inventory/distributions/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/inventory/distributions/">
+        <li class="{% if '/inventory/distributions/' in request.path %}active{% endif %}"><a href="{% if school_slug %}/school/{{ school_slug }}/inventory/distributions/{% else %}#{% endif %}">
             <i class="fas fa-share-alt"></i>
             <span>Item Distribution</span>
         </a></li>
@@ -309,23 +309,20 @@
             <i class="fas fa-bed"></i>
             <span>Dormitory</span>
         </a></li>
-      
-        <li class="{% if '/library/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/library/">
+
+        <div class="menu-section-title">Settings</div>
+        
+        <li class="{% if '/school/' in request.path and '/settings/' in request.path and '/superadmin/' not in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'core:settings' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-cog"></i>
             <span>Settings</span>
         </a></li>
 
-        <li><a href="{% url 'superadmin:school_settings' school_slug=school_slug %}">
-            <i class="fas fa-cog"></i>
-            <span>School Settings</span>
-        </a></li>
-
-        <li><a href="{% url 'superadmin:school_sms_config_list' school_slug=school_slug %}">
+        <li><a href="{% if school_slug %}{% url 'superadmin:school_sms_config_list' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-sms"></i>
             <span>SMS Settings</span>
         </a></li>
 
-        <li><a href="{% url 'superadmin:school_email_config_list' school_slug=school_slug %}">
+        <li><a href="{% if school_slug %}{% url 'superadmin:school_email_config_list' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-envelope"></i>
             <span>Email Settings</span>
         </a></li>
@@ -344,7 +341,7 @@
         
         {% if user.role == 'student' %}
         <div class="menu-section-title">My Learning</div>
-        <li class="{% if '/todos/' in request.path %}active{% endif %}"><a href="{% url 'core:todos' school_slug=school_slug %}">
+        <li class="{% if '/todos/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'core:todos' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-tasks"></i>
             <span>To Do</span>
         </a></li>
@@ -390,7 +387,7 @@
         
         {% if user.role == 'parent' %}
         <div class="menu-section-title">Parent Dashboard</div>
-        <li class="{% if '/todos/' in request.path %}active{% endif %}"><a href="{% url 'core:todos' school_slug=school_slug %}">
+        <li class="{% if '/todos/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'core:todos' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-tasks"></i>
             <span>To Do</span>
         </a></li>

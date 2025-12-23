@@ -4,10 +4,30 @@
 {% block title %}Classes - Academics{% endblock %}
 {% block page_icon %}chalkboard{% endblock %}
 {% block page_title %}Classes{% endblock %}
-{% block page_subtitle %}Manage all classes in your institution{% endblock %}
+{% block page_subtitle %}
+    {% if school and school.institution_type == 'tvet_college' %}
+        Manage all programmes/levels in your TVET or college
+    {% else %}
+        Manage all classes in your institution
+    {% endif %}
+{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-end mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <form method="get" class="d-flex gap-2 align-items-center">
+        <label class="me-2 mb-0 fw-semibold">
+            <i class="fas fa-layer-group text-primary me-1"></i>Level
+        </label>
+        <select name="education_level" class="form-select">
+            <option value="">All Levels</option>
+            {% for value,label in education_level_choices %}
+            <option value="{{ value }}" {% if selected_education_level == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-outline-secondary">
+            <i class="fas fa-filter"></i> Filter
+        </button>
+    </form>
     <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#addClassModal">
         <i class="fas fa-plus-circle"></i> Add New Class
     </button>
@@ -28,7 +48,14 @@
             <tbody>
             {% for class in classes %}
             <tr>
-                <td><strong><i class="fas fa-school text-primary me-2"></i>{{ class.name }}</strong></td>
+                <td>
+                    <strong><i class="fas fa-school text-primary me-2"></i>{{ class.name }}</strong>
+                    <div class="mt-1">
+                        <span class="badge bg-light text-muted">
+                            <i class="fas fa-layer-group me-1"></i>{{ class.get_education_level_display }}
+                        </span>
+                    </div>
+                </td>
                 <td>
                     {% if class.sections.count > 0 %}
                         <span class="badge bg-info me-1">{{ class.sections.count }} Sections</span>
@@ -91,8 +118,15 @@
             </div>
             <div class="modal-body">
                 <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i> <strong>What is a Class?</strong> A class represents a grade level. 
-                    You can add <strong>Sections</strong> (like A, B, C) to divide students into smaller groups.
+                    {% if school and school.institution_type == 'tvet_college' %}
+                        <i class="fas fa-info-circle"></i> <strong>What is a Class/Programme?</strong>
+                        A class represents a programme level or year (e.g., Diploma in ICT - Year 1). You can add
+                        <strong>Groups</strong> (sections) such as Group A or Group B to divide students into smaller cohorts.
+                    {% else %}
+                        <i class="fas fa-info-circle"></i> <strong>What is a Class?</strong>
+                        A class represents a grade level. You can add <strong>Sections</strong> (like A, B, C) to divide
+                        students into smaller groups.
+                    {% endif %}
                 </div>
                 
                 <form id="classAddForm">
@@ -104,11 +138,21 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Class Name *</label>
-                                <input type="text" name="name" class="form-control" required placeholder="e.g., Grade 10, Year 8">
+                                <input type="text" name="name" class="form-control" required
+                                       placeholder="{% if school and school.institution_type == 'tvet_college' %}e.g., Diploma in ICT - Year 1, Certificate in Business - Level 4{% else %}e.g., Grade 10, Year 8{% endif %}">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Numeric Name *</label>
-                                <input type="number" name="numeric_name" class="form-control" placeholder="e.g., 10, 8">
+                                <input type="number" name="numeric_name" class="form-control"
+                                       placeholder="{% if school and school.institution_type == 'tvet_college' %}e.g., 1 for Year 1, 2 for Year 2{% else %}e.g., 10, 8{% endif %}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Education Level</label>
+                                <select name="education_level" class="form-select">
+                                    {% for value,label in education_level_choices %}
+                                    <option value="{{ value }}"{% if value == 'unspecified' %} selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Display Order</label>
@@ -137,7 +181,14 @@
                         </div>
                         
                         <div class="alert alert-info py-2 small">
-                            <i class="fas fa-question-circle"></i> Sections divide a class into groups (e.g., Grade 10-A, Grade 10-B). Click "Add Section" to create them.
+                            {% if school and school.institution_type == 'tvet_college' %}
+                                <i class="fas fa-question-circle"></i>
+                                Groups/sections divide a programme cohort into smaller groups (e.g., Diploma ICT Year 1 - Group A, Group B).
+                                Click "Add Section" to create them.
+                            {% else %}
+                                <i class="fas fa-question-circle"></i>
+                                Sections divide a class into groups (e.g., Grade 10-A, Grade 10-B). Click "Add Section" to create them.
+                            {% endif %}
                         </div>
                         
                         <div id="sectionsAddContainer">
@@ -182,6 +233,14 @@
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Numeric Name</label>
                                 <input type="number" id="edit_numeric_name" name="numeric_name" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Education Level</label>
+                                <select id="edit_education_level" name="education_level" class="form-select">
+                                    {% for value,label in education_level_choices %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Display Order</label>
@@ -566,6 +625,9 @@ function editClass(event, id) {
             document.getElementById('edit_description').value = data.description || '';
             document.getElementById('edit_order').value = data.order || 0;
             document.getElementById('edit_is_active').checked = data.is_active;
+            if (document.getElementById('edit_education_level')) {
+                document.getElementById('edit_education_level').value = data.education_level || 'unspecified';
+            }
             
             // Load sections
             const container = document.getElementById('sectionsEditContainer');

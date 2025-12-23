@@ -4,11 +4,12 @@
 """Test handling of ``pyproject.toml`` configuration"""
 
 import os
-from typing import cast, Optional, Union
 from pathlib import Path
+from typing import Optional, Union, cast
+
 from twisted.trial.unittest import TestCase
 
-from incremental import _load_pyproject_toml, _IncrementalConfig
+from incremental import _IncrementalConfig, _load_pyproject_toml
 
 
 class VerifyPyprojectDotTomlTests(TestCase):
@@ -37,9 +38,7 @@ class VerifyPyprojectDotTomlTests(TestCase):
             return _load_pyproject_toml(path_)
         except Exception as e:
             if hasattr(e, "add_note"):
-                e.add_note(  # type: ignore[attr-defined]
-                    f"While loading:\n\n{toml}"
-                )  # pragma: no coverage
+                e.add_note(f"While loading:\n\n{toml}")  # pragma: no coverage
             raise
 
     def test_fileNotFound(self):

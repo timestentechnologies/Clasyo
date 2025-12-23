@@ -9,6 +9,17 @@ from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_GET
 from datetime import datetime, time
+from pathlib import Path
+from django.conf import settings as django_settings
+from django.utils import timezone
+from tenants.models import School
+from superadmin.models import (
+    SchoolSMSConfiguration,
+    SchoolEmailConfiguration,
+    GlobalSMSConfiguration,
+    GlobalEmailConfiguration,
+    GlobalDatabaseConfiguration,
+)
 from .models import (
     AcademicYear, Session, Holiday, SystemSetting,
     Notification, ToDoList, CalendarEvent
@@ -377,32 +388,211 @@ class ToDoDeleteView(LoginRequiredMixin, View):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class SystemSettingsUpdateView(View):
-    """Update system settings"""
+class SystemSettingsApiView(View):
+    """Lightweight JSON API for updating core system settings.
+
+    Currently supports:
+    - admission_number_prefix
+    - maintenance_mode (on/off)
+    """
+
     def post(self, request, *args, **kwargs):
         try:
             if not request.user.is_authenticated:
-                return JsonResponse({'success': False, 'error': 'Not authenticated'})
-            
-            settings, created = SystemSetting.objects.get_or_create(id=1)
-            
+                return JsonResponse({'success': False, 'error': 'Not authenticated'}, status=401)
+
+            settings_obj = SystemSetting.get_settings()
+            updated = False
+
+            # Resolve current school from URL (tenant)
+            school_slug = kwargs.get('school_slug')
+            school = None
+            if school_slug:
+                try:
+                    school = School.objects.get(slug=school_slug, is_active=True)
+                except School.DoesNotExist:
+                    school = None
+
+            # Update academic year if provided
+            if 'current_academic_year' in request.POST:
+                year_id = request.POST.get('current_academic_year')
+                try:
+                    year = AcademicYear.objects.get(pk=year_id)
+                    # Deactivate all and activate the selected one
+                    AcademicYear.objects.all().update(is_active=False)
+                    year.is_active = True
+                    year.save(update_fields=['is_active'])
+                    return JsonResponse({'success': True, 'message': f'Active academic year set to {year.name}.'})
+                except (AcademicYear.DoesNotExist, ValueError):
+                    return JsonResponse({'success': False, 'error': 'Invalid academic year selected.'}, status=400)
+
+            # Update notification settings if provided
+            notification_fields = ['email_notifications', 'sms_notifications', 'parent_notifications', 'teacher_notifications']
+            if any(field in request.POST for field in notification_fields):
+                for field in notification_fields:
+                    if field in request.POST:
+                        enabled_val = request.POST.get(field, '').lower()
+                        enabled = enabled_val in ['1', 'true', 'on', 'yes']
+                        setattr(settings_obj, field, enabled)
+                settings_obj.save(update_fields=notification_fields)
+                return JsonResponse({'success': True, 'message': 'Notification settings updated.'})
+
+            # Update grading system if provided
+            if 'grading_system' in request.POST:
+                grading_system = request.POST.get('grading_system')
+                valid_systems = ['letter', 'percentage', 'gpa']
+                if grading_system not in valid_systems:
+                    return JsonResponse({'success': False, 'error': 'Invalid grading system.'}, status=400)
+                settings_obj.grading_system = grading_system
+                settings_obj.save(update_fields=['grading_system'])
+                return JsonResponse({'success': True, 'message': 'Grading system updated.'})
+
+            # Update school fields if provided
+            if school and any(field in request.POST for field in ['school_name', 'school_email', 'school_phone', 'school_address', 'school_website']):
+                if 'school_name' in request.POST:
+                    school.name = request.POST.get('school_name', '').strip() or school.name
+                if 'school_email' in request.POST:
+                    school.email = request.POST.get('school_email', '').strip() or school.email
+                if 'school_phone' in request.POST:
+                    school.phone = request.POST.get('school_phone', '').strip() or school.phone
+                if 'school_address' in request.POST:
+                    school.address = request.POST.get('school_address', '').strip() or school.address
+                if 'school_website' in request.POST:
+                    school.website = request.POST.get('school_website', '').strip() or school.website
+                school.save(update_fields=['name', 'email', 'phone', 'address', 'website'])
+                return JsonResponse({'success': True, 'message': 'School information updated.'})
+
+            # Update institution type for the current school
+            if 'institution_type' in request.POST:
+                if not school:
+                    return JsonResponse({'success': False, 'error': 'School not found'}, status=400)
+
+                institution_type = request.POST.get('institution_type')
+                valid_types = [value for value, _ in School.INSTITUTION_TYPE_CHOICES]
+                if institution_type not in valid_types:
+                    return JsonResponse({'success': False, 'error': 'Invalid institution type'}, status=400)
+
+                school.institution_type = institution_type
+                school.save(update_fields=['institution_type'])
+
+                return JsonResponse({
+                    'success': True,
+                    'institution_type': institution_type,
+                    'institution_type_label': school.get_institution_type_display(),
+                })
+
             # Update admission number prefix if provided
             if 'admission_number_prefix' in request.POST:
                 prefix = request.POST.get('admission_number_prefix', 'STU').strip().upper()
                 if prefix:
-                    settings.admission_number_prefix = prefix
-                    settings.save()
-                    return JsonResponse({
-                        'success': True, 
-                        'message': f'Admission number prefix updated to: {prefix}'
-                    })
-            
-            messages.success(request, 'Settings updated successfully!')
-            return JsonResponse({'success': True})
+                    settings_obj.admission_number_prefix = prefix
+                    updated = True
+
+            # Toggle maintenance mode if provided
+            if 'maintenance_mode' in request.POST:
+                enabled_val = request.POST.get('maintenance_mode', '').lower()
+                enabled = enabled_val in ['1', 'true', 'on', 'yes']
+                settings_obj.maintenance_mode = enabled
+                settings_obj.save()
+                return JsonResponse({'success': True, 'maintenance_mode': settings_obj.maintenance_mode})
+
+            if updated:
+                settings_obj.save()
+                return JsonResponse({'success': True})
+
+            return JsonResponse({'success': False, 'error': 'No valid setting provided'}, status=400)
         except Exception as e:
             import traceback
             traceback.print_exc()
-            return JsonResponse({'success': False, 'error': str(e)})
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class DatabaseActionsApiView(View):
+    """Handle database-related maintenance actions from the settings page."""
+
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({'success': False, 'error': 'Not authenticated'}, status=401)
+
+        # Only allow admins / superadmins to perform these actions
+        role = getattr(request.user, 'role', '') or ''
+        if not (request.user.is_superuser or role in ('superadmin', 'admin')):
+            return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+
+        action = request.POST.get('action')
+        if not action:
+            return JsonResponse({'success': False, 'error': 'No action provided'}, status=400)
+
+        try:
+            if action == 'backup':
+                # Simple SQLite backup implementation; for other engines, show a helpful message
+                db_conf = django_settings.DATABASES['default']
+                engine = db_conf.get('ENGINE', '').split('.')[-1]
+
+                if engine == 'sqlite3':
+                    db_path = Path(db_conf['NAME'])
+                    backup_dir = Path(django_settings.MEDIA_ROOT) / 'backups'
+                    backup_dir.mkdir(parents=True, exist_ok=True)
+                    timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+                    backup_path = backup_dir / f'db_backup_{timestamp}.sqlite3'
+
+                    import shutil
+                    shutil.copy2(db_path, backup_path)
+
+                    rel_path = str(backup_path.relative_to(backup_dir.parent))
+                    size_bytes = backup_path.stat().st_size
+                    size_mb = round(size_bytes / (1024 * 1024), 2)
+                    created_at = timezone.now().isoformat()
+
+                    return JsonResponse({
+                        'success': True,
+                        'message': 'Database backup created successfully.',
+                        'file': rel_path,
+                        'details': {
+                            'path': rel_path,
+                            'size_mb': size_mb,
+                            'size_bytes': size_bytes,
+                            'created_at': created_at,
+                            'engine': engine,
+                        },
+                    })
+                else:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Automatic backups are only implemented for SQLite in this setup.',
+                    }, status=400)
+
+            elif action == 'clear_cache':
+                from django.core.cache import cache
+                cache.clear()
+                cleared_at = timezone.now().isoformat()
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Cache cleared successfully.',
+                    'details': {
+                        'cleared_at': cleared_at,
+                    },
+                })
+
+            elif action == 'sync':
+                # Placeholder for future sync tasks; currently just acknowledges the action
+                run_at = timezone.now().isoformat()
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Data sync triggered successfully.',
+                    'details': {
+                        'run_at': run_at,
+                    },
+                })
+
+            else:
+                return JsonResponse({'success': False, 'error': 'Unknown action.'}, status=400)
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 class CalendarView(LoginRequiredMixin, TemplateView):
@@ -550,24 +740,76 @@ class SystemSettingsView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['school_slug'] = self.kwargs.get('school_slug', '')
-        context['settings'] = SystemSetting.get_settings()
+        school_slug = kwargs.get('school_slug', '')
+        context['school_slug'] = school_slug
+
+        school = None
+        if school_slug:
+            try:
+                school = School.objects.get(slug=school_slug, is_active=True)
+            except School.DoesNotExist:
+                school = None
+
+        context['school'] = school
+        context['institution_type_choices'] = School.INSTITUTION_TYPE_CHOICES
+
+        # Academic years
+        context['academic_years'] = AcademicYear.objects.all()
+        # System info
+        from accounts.models import User
+        from students.models import Student
+        user_count = User.objects.count()
+        student_count = Student.objects.count()
+        db_engine = django_settings.DATABASES['default']['ENGINE'].split('.')[-1]
+        system_version = getattr(django_settings, 'SYSTEM_VERSION', '1.0.0')
+
+        context['system_info'] = {
+            'version': system_version,
+            'db_engine': db_engine,
+            'django_version': getattr(__import__('django'), 'get_version', lambda: 'N/A')(),
+            'user_count': user_count,
+            'student_count': student_count,
+        }
+
+        # Global / environment-level messaging & DB configuration fallbacks
+        global_sms = GlobalSMSConfiguration.objects.filter(is_active=True).first()
+        if not global_sms:
+            # Build a lightweight object from env settings
+            from collections import namedtuple
+            SMSInfo = namedtuple('SMSInfo', ['provider', 'default_sender_id', 'source'])
+            global_sms = SMSInfo(
+                provider='system',
+                default_sender_id=getattr(django_settings, 'SMS_SENDER_ID', None),
+                source='env',
+            )
+        context['global_sms_config'] = global_sms
+
+        global_email = GlobalEmailConfiguration.objects.filter(is_active=True).first()
+        if not global_email:
+            from collections import namedtuple
+            EmailInfo = namedtuple('EmailInfo', ['provider', 'default_from_email', 'source'])
+            global_email = EmailInfo(
+                provider='system',
+                default_from_email=getattr(django_settings, 'DEFAULT_FROM_EMAIL', None),
+                source='env',
+            )
+        context['global_email_config'] = global_email
+
+        global_db = GlobalDatabaseConfiguration.objects.filter(is_active=True).first()
+        if not global_db:
+            from collections import namedtuple
+            DBInfo = namedtuple('DBInfo', ['name', 'engine', 'host', 'port', 'source'])
+            default_db = django_settings.DATABASES['default']
+            global_db = DBInfo(
+                name=default_db.get('NAME', 'N/A'),
+                engine=default_db.get('ENGINE', 'N/A').split('.')[-1],
+                host=default_db.get('HOST', 'localhost'),
+                port=default_db.get('PORT', ''),
+                source='env',
+            )
+        context['global_db_config'] = global_db
+
         return context
-
-
-class SystemSettingsUpdateView(LoginRequiredMixin, UpdateView):
-    """Update system settings"""
-    model = SystemSetting
-    template_name = 'core/settings_form.html'
-    fields = '__all__'
-    success_url = reverse_lazy('core:settings')
-    
-    def get_object(self):
-        return SystemSetting.get_settings()
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Settings updated successfully!')
-        return super().form_valid(form)
 
 
 class AcademicYearListView(LoginRequiredMixin, ListView):
@@ -1451,6 +1693,10 @@ class InvoicePreviewView(LoginRequiredMixin, View):
 
 
 @require_GET
-def offline_view(request):
-    """View for offline page"""
+def offline_view(request, *args, **kwargs):
+    """View for offline page shown during maintenance or offline mode.
+
+    Accepts optional school_slug from the tenant URL pattern but does not
+    need to use it directly.
+    """
     return render(request, 'offline.html', status=200)

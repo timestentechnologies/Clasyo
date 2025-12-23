@@ -4,6 +4,15 @@ from django.utils.translation import gettext_lazy as _
 
 class School(models.Model):
     """School (Tenant) Model"""
+    INSTITUTION_TYPE_CHOICES = [
+        ('unspecified', 'Unspecified'),
+        ('pre_primary_primary', 'Pre-Primary & Primary'),
+        ('primary_junior_secondary', 'Primary & Junior Secondary'),
+        ('junior_secondary_only', 'Junior Secondary Only'),
+        ('senior_secondary', 'Senior Secondary'),
+        ('tvet_college', 'TVET / College'),
+        ('mixed', 'Mixed School (Multiple Levels)'),
+    ]
     name = models.CharField(_("School Name"), max_length=255)
     slug = models.SlugField(_("Slug"), unique=True)
     
@@ -21,6 +30,8 @@ class School(models.Model):
     website = models.URLField(_("Website"), null=True, blank=True)
     established_date = models.DateField(_("Established Date"), null=True, blank=True)
     registration_number = models.CharField(_("Registration Number"), max_length=100, null=True, blank=True)
+    institution_type = models.CharField(_("Institution Type"), max_length=50,
+                                       choices=INSTITUTION_TYPE_CHOICES, default='unspecified')
     
     # Subscription Details
     subscription_plan = models.ForeignKey('subscriptions.SubscriptionPlan', 

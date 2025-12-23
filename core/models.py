@@ -146,9 +146,19 @@ class SystemSetting(models.Model):
     auto_backup = models.BooleanField(_("Auto Backup"), default=True)
     backup_time = models.TimeField(_("Backup Time"), null=True, blank=True)
     
+    # Maintenance Mode
+    maintenance_mode = models.BooleanField(_("Maintenance Mode"), default=False,
+                                           help_text="When enabled, only administrators can access the system.")
+    
     # Student Settings
     admission_number_prefix = models.CharField(_("Admission Number Prefix"), max_length=10, default='STU',
                                                help_text="Prefix for auto-generated admission numbers (e.g., STU, AD, etc.)")
+    
+    # Notification Settings
+    email_notifications = models.BooleanField(_("Email Notifications"), default=True)
+    sms_notifications = models.BooleanField(_("SMS Notifications"), default=True)
+    parent_notifications = models.BooleanField(_("Parent Notifications"), default=True)
+    teacher_notifications = models.BooleanField(_("Teacher Notifications"), default=True)
     
     updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
     

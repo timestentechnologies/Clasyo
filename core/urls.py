@@ -40,7 +40,8 @@ urlpatterns = [
     
     # Settings
     path('settings/', views.SystemSettingsView.as_view(), name='settings'),
-    path('settings/update/', views.SystemSettingsUpdateView.as_view(), name='settings_update'),
+    path('settings/update/', views.SystemSettingsApiView.as_view(), name='settings_update'),
+    path('settings/db-actions/', views.DatabaseActionsApiView.as_view(), name='database_actions'),
     
     # Academic Year
     path('academic-years/', views.AcademicYearListView.as_view(), name='academic_years'),

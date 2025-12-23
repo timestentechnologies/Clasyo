@@ -80,6 +80,7 @@ class SchoolListView(SuperAdminRequiredMixin, ListView):
         queryset = super().get_queryset()
         search = self.request.GET.get('search')
         status = self.request.GET.get('status')
+        institution_type = self.request.GET.get('institution_type')
         
         if search:
             queryset = queryset.filter(
@@ -95,7 +96,16 @@ class SchoolListView(SuperAdminRequiredMixin, ListView):
         elif status == 'trial':
             queryset = queryset.filter(is_trial=True)
         
+        if institution_type:
+            queryset = queryset.filter(institution_type=institution_type)
+        
         return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['institution_type_choices'] = School.INSTITUTION_TYPE_CHOICES
+        context['selected_institution_type'] = self.request.GET.get('institution_type', '')
+        return context
 
 
 class SchoolDetailView(SuperAdminRequiredMixin, DetailView):
@@ -155,7 +165,7 @@ class SchoolCreateView(SuperAdminRequiredMixin, CreateView):
     model = School
     template_name = 'superadmin/school_form.html'
     fields = ['name', 'slug', 'email', 'phone', 'address', 'city', 'state', 'country', 
-              'postal_code', 'website', 'is_active', 'is_trial', 'trial_end_date']
+              'postal_code', 'website', 'institution_type', 'is_active', 'is_trial', 'trial_end_date']
     success_url = reverse_lazy('superadmin:schools')
     
     def get_form(self, form_class=None):
@@ -171,6 +181,7 @@ class SchoolCreateView(SuperAdminRequiredMixin, CreateView):
         form.fields['country'].widget.attrs.update({'class': 'form-control'})
         form.fields['postal_code'].widget.attrs.update({'class': 'form-control'})
         form.fields['website'].widget.attrs.update({'class': 'form-control', 'placeholder': 'https://school.com'})
+        form.fields['institution_type'].widget.attrs.update({'class': 'form-select'})
         form.fields['is_active'].widget.attrs.update({'class': 'form-check-input'})
         form.fields['is_trial'].widget.attrs.update({'class': 'form-check-input'})
         form.fields['trial_end_date'].widget.attrs.update({'class': 'form-control', 'type': 'date'})
@@ -261,7 +272,7 @@ class SchoolUpdateView(SuperAdminRequiredMixin, UpdateView):
     model = School
     template_name = 'superadmin/school_form.html'
     fields = ['name', 'email', 'phone', 'address', 'city', 'state', 'country', 
-              'postal_code', 'website', 'is_active', 'is_trial', 'trial_end_date']
+              'postal_code', 'website', 'institution_type', 'is_active', 'is_trial', 'trial_end_date']
     success_url = reverse_lazy('superadmin:schools')
     
     def get_form(self, form_class=None):
@@ -276,6 +287,7 @@ class SchoolUpdateView(SuperAdminRequiredMixin, UpdateView):
         form.fields['country'].widget.attrs.update({'class': 'form-control'})
         form.fields['postal_code'].widget.attrs.update({'class': 'form-control'})
         form.fields['website'].widget.attrs.update({'class': 'form-control'})
+        form.fields['institution_type'].widget.attrs.update({'class': 'form-select'})
         form.fields['is_active'].widget.attrs.update({'class': 'form-check-input'})
         form.fields['is_trial'].widget.attrs.update({'class': 'form-check-input'})
         form.fields['trial_end_date'].widget.attrs.update({'class': 'form-control', 'type': 'date'})
@@ -459,6 +471,7 @@ class AdminUserUpdateView(SuperAdminRequiredMixin, UpdateView):
     """Update school admin details"""
     model = User
     template_name = 'superadmin/admin_edit.html'
+    context_object_name = 'admin_user'
     fields = ['email', 'first_name', 'last_name', 'phone', 'is_active']
     success_url = reverse_lazy('superadmin:admins')
     
@@ -848,15 +861,7 @@ class ImpersonateUserView(SuperAdminRequiredMixin, View):
         
         if user_to_impersonate.role == 'admin':
             # For school admin, find their school through SchoolAdmin
-            try:
-                from tenants.models import SchoolAdmin
-                school_admin = SchoolAdmin.objects.filter(user=user_to_impersonate).first()
-                if school_admin:
-                    school = school_admin.school
-            except:
-                # Fallback: find any school where user is admin
-                from tenants.models import School
-                school = School.objects.filter(admins__user=user_to_impersonate).first()
+            school = School.objects.filter(is_active=True).first()
         elif user_to_impersonate.role == 'teacher':
             # Get teacher's school through their classes or HR record
             try:
@@ -1493,34 +1498,6 @@ class GlobalDatabaseConfigurationDeleteView(SuperAdminRequiredMixin, DeleteView)
         config = self.get_object()
         messages.success(request, f'Database configuration "{config.name}" deleted successfully.')
         return super().delete(request, *args, **kwargs)
-
-
-# ============== SCHOOL SETTINGS VIEWS ==============
-
-class SchoolSettingsView(LoginRequiredMixin, TemplateView):
-    """School settings dashboard"""
-    template_name = 'superadmin/school_settings.html'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        # Get current school
-        from tenants.models import School
-        school = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
-        
-        # Check if user has access to this school
-        if not (self.request.user.role == 'superadmin' or 
-                (self.request.user.role == 'admin' and school.is_active)):
-            messages.error(self.request, 'You do not have permission to access this school\'s settings.')
-            return redirect('frontend:home')
-        
-        from .models import SchoolSMSConfiguration, SchoolEmailConfiguration
-        
-        context['school'] = school
-        context['sms_configs'] = SchoolSMSConfiguration.objects.filter(school=school)
-        context['email_configs'] = SchoolEmailConfiguration.objects.filter(school=school)
-        
-        return context
 
 
 class SchoolSMSConfigurationListView(LoginRequiredMixin, ListView):

@@ -6,6 +6,18 @@ from tenants.models import School
 
 class Class(models.Model):
     """Class/Grade Model"""
+    EDUCATION_LEVEL_CHOICES = [
+        ('unspecified', 'Unspecified'),
+        ('pre_primary', 'Pre-Primary'),
+        ('lower_primary', 'Lower Primary (Grades 1-3)'),
+        ('upper_primary', 'Upper Primary (Grades 4-6)'),
+        ('junior_secondary', 'Junior Secondary (Grades 7-9)'),
+        ('senior_secondary', 'Senior Secondary (Grades 10-12)'),
+        ('tvet', 'TVET'),
+        ('college', 'College'),
+    ]
+    education_level = models.CharField(_("Education Level"), max_length=50,
+                                       choices=EDUCATION_LEVEL_CHOICES, default='unspecified')
     school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='classes', null=True, blank=True)
     name = models.CharField(_("Class Name"), max_length=100)
     numeric_name = models.IntegerField(_("Numeric Name"), null=True, blank=True)

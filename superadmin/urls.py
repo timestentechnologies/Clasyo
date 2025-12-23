@@ -79,9 +79,6 @@ urlpatterns = [
     path('settings/database/<int:pk>/edit/', views.GlobalDatabaseConfigurationUpdateView.as_view(), name='db_config_update'),
     path('settings/database/<int:pk>/delete/', views.GlobalDatabaseConfigurationDeleteView.as_view(), name='db_config_delete'),
     
-    # School Settings
-    path('school/<slug:school_slug>/settings/', views.SchoolSettingsView.as_view(), name='school_settings'),
-    
     # School SMS Configurations
     path('school/<slug:school_slug>/settings/sms/', views.SchoolSMSConfigurationListView.as_view(), name='school_sms_config_list'),
     path('school/<slug:school_slug>/settings/sms/create/', views.SchoolSMSConfigurationCreateView.as_view(), name='school_sms_config_create'),

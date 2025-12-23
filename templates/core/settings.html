@@ -5,7 +5,6 @@
 
 {% block content %}
 <div class="mb-4">
-    <h2><i class="fas fa-cog"></i> System Settings</h2>
     <p class="text-muted">Manage your school system settings and configurations</p>
 </div>
 
@@ -17,24 +16,37 @@
                 {% csrf_token %}
                 <div class="mb-3">
                     <label for="school_name" class="form-label">School Name</label>
-                    <input type="text" class="form-control" id="school_name" name="school_name" value="Demo School">
+                    <input type="text" class="form-control" id="school_name" name="school_name" value="{{ school.name|default:'Demo School' }}">
                 </div>
                 <div class="mb-3">
                     <label for="school_email" class="form-label">School Email</label>
-                    <input type="email" class="form-control" id="school_email" name="school_email" value="school@demo.com">
+                    <input type="email" class="form-control" id="school_email" name="school_email" value="{{ school.email|default:'school@demo.com' }}">
                 </div>
                 <div class="mb-3">
                     <label for="school_phone" class="form-label">School Phone</label>
-                    <input type="text" class="form-control" id="school_phone" name="school_phone" value="+1234567890">
+                    <input type="text" class="form-control" id="school_phone" name="school_phone" value="{{ school.phone|default:'+1234567890' }}">
                 </div>
                 <div class="mb-3">
                     <label for="school_address" class="form-label">School Address</label>
-                    <textarea class="form-control" id="school_address" name="school_address" rows="3">123 Education Street, Learning City, ED 12345</textarea>
+                    <textarea class="form-control" id="school_address" name="school_address" rows="3">{{ school.address|default:'123 Education Street, Learning City, ED 12345' }}</textarea>
                 </div>
                 <div class="mb-3">
                     <label for="school_website" class="form-label">School Website</label>
-                    <input type="url" class="form-control" id="school_website" name="school_website" value="https://demo-school.com">
+                    <input type="url" class="form-control" id="school_website" name="school_website" value="{{ school.website|default:'https://demo-school.com' }}">
                 </div>
+                {% if school %}
+                <div class="mb-3">
+                    <label for="institution_type" class="form-label">Institution Type</label>
+                    <select id="institution_type" name="institution_type" class="form-select">
+                        {% for value,label in institution_type_choices %}
+                        <option value="{{ value }}" {% if school.institution_type == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted">
+                        <i class="fas fa-info-circle"></i> Choose your institution type. This affects class/grade options.
+                    </small>
+                </div>
+                {% endif %}
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save"></i> Save School Info
                 </button>
@@ -46,24 +58,28 @@
             <form id="academicSettingsForm">
                 {% csrf_token %}
                 <div class="mb-3">
-                    <label for="current_session" class="form-label">Current Academic Session</label>
-                    <input type="text" class="form-control" id="current_session" name="current_session" value="2024-2025">
-                </div>
-                <div class="mb-3">
-                    <label for="session_start" class="form-label">Session Start Date</label>
-                    <input type="date" class="form-control" id="session_start" name="session_start" value="2024-09-01">
-                </div>
-                <div class="mb-3">
-                    <label for="session_end" class="form-label">Session End Date</label>
-                    <input type="date" class="form-control" id="session_end" name="session_end" value="2025-06-30">
+                    <label for="current_academic_year" class="form-label">Current Academic Year</label>
+                    <select id="current_academic_year" name="current_academic_year" class="form-select">
+                        {% for year in academic_years %}
+                        <option value="{{ year.id }}" {% if year.is_active %}selected{% endif %}>{{ year.name }} ({{ year.start_date|date:"Y" }}–{{ year.end_date|date:"Y" }})</option>
+                        {% empty %}
+                        <option value="">No academic years configured</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted">
+                        <i class="fas fa-info-circle"></i> Select the active academic year. Only one can be active at a time.
+                    </small>
                 </div>
                 <div class="mb-3">
                     <label for="grading_system" class="form-label">Grading System</label>
                     <select class="form-select" id="grading_system" name="grading_system">
-                        <option value="letter">Letter Grades (A, B, C, D, F)</option>
-                        <option value="percentage" selected>Percentage (0-100)</option>
-                        <option value="gpa">GPA (0.0-4.0)</option>
+                        <option value="letter" {% if settings.grading_system == 'letter' %}selected{% endif %}>Letter Grades (A, B, C, D, F)</option>
+                        <option value="percentage" {% if settings.grading_system == 'percentage' or not settings.grading_system %}selected{% endif %}>Percentage (0-100)</option>
+                        <option value="gpa" {% if settings.grading_system == 'gpa' %}selected{% endif %}>GPA (0.0-4.0)</option>
                     </select>
+                    <small class="form-text text-muted">
+                        <i class="fas fa-info-circle"></i> Choose how grades are displayed and calculated.
+                    </small>
                 </div>
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save"></i> Save Academic Settings
@@ -76,25 +92,25 @@
             <form id="notificationSettingsForm">
                 {% csrf_token %}
                 <div class="mb-3 form-check">
-                    <input type="checkbox" class="form-check-input" id="email_notifications" checked>
+                    <input type="checkbox" class="form-check-input" id="email_notifications" name="email_notifications" {% if settings.email_notifications %}checked{% endif %}>
                     <label class="form-check-label" for="email_notifications">
                         Enable email notifications
                     </label>
                 </div>
                 <div class="mb-3 form-check">
-                    <input type="checkbox" class="form-check-input" id="sms_notifications" checked>
+                    <input type="checkbox" class="form-check-input" id="sms_notifications" name="sms_notifications" {% if settings.sms_notifications %}checked{% endif %}>
                     <label class="form-check-label" for="sms_notifications">
                         Enable SMS notifications
                     </label>
                 </div>
                 <div class="mb-3 form-check">
-                    <input type="checkbox" class="form-check-input" id="parent_notifications" checked>
+                    <input type="checkbox" class="form-check-input" id="parent_notifications" name="parent_notifications" {% if settings.parent_notifications %}checked{% endif %}>
                     <label class="form-check-label" for="parent_notifications">
                         Send notifications to parents
                     </label>
                 </div>
                 <div class="mb-3 form-check">
-                    <input type="checkbox" class="form-check-input" id="teacher_notifications" checked>
+                    <input type="checkbox" class="form-check-input" id="teacher_notifications" name="teacher_notifications" {% if settings.teacher_notifications %}checked{% endif %}>
                     <label class="form-check-label" for="teacher_notifications">
                         Send notifications to teachers
                     </label>
@@ -112,36 +128,36 @@
             <table class="table table-sm">
                 <tr>
                     <th>Version:</th>
-                    <td>1.0.0</td>
+                    <td>{{ system_info.version }}</td>
                 </tr>
                 <tr>
                     <th>Database:</th>
-                    <td>SQLite</td>
+                    <td>{{ system_info.db_engine|default:'N/A' }}</td>
                 </tr>
                 <tr>
                     <th>Django:</th>
-                    <td>5.2.7</td>
+                    <td>{{ system_info.django_version }}</td>
                 </tr>
                 <tr>
                     <th>Users:</th>
-                    <td>{{ total_users|default:50 }}</td>
+                    <td>{{ system_info.user_count|default:0 }}</td>
                 </tr>
                 <tr>
                     <th>Students:</th>
-                    <td>{{ total_students|default:20 }}</td>
+                    <td>{{ system_info.student_count|default:0 }}</td>
                 </tr>
             </table>
         </div>
 
         <div class="modern-card mb-4">
             <h4 class="mb-3"><i class="fas fa-database"></i> Database Actions</h4>
-            <button class="btn btn-warning btn-sm w-100 mb-2">
+            <button id="btn-backup-db" class="btn btn-warning btn-sm w-100 mb-2">
                 <i class="fas fa-download"></i> Backup Database
             </button>
-            <button class="btn btn-danger btn-sm w-100 mb-2">
+            <button id="btn-clear-cache" class="btn btn-danger btn-sm w-100 mb-2">
                 <i class="fas fa-trash"></i> Clear Cache
             </button>
-            <button class="btn btn-info btn-sm w-100">
+            <button id="btn-sync-data" class="btn btn-info btn-sm w-100">
                 <i class="fas fa-sync"></i> Sync Data
             </button>
         </div>
@@ -149,7 +165,7 @@
         <div class="modern-card">
             <h4 class="mb-3"><i class="fas fa-tools"></i> Maintenance</h4>
             <div class="mb-3 form-check">
-                <input type="checkbox" class="form-check-input" id="maintenance_mode">
+                <input type="checkbox" class="form-check-input" id="maintenance_mode" {% if settings.maintenance_mode %}checked{% endif %}>
                 <label class="form-check-label" for="maintenance_mode">
                     Enable Maintenance Mode
                 </label>
@@ -159,20 +175,454 @@
     </div>
 </div>
 
+{% if school %}
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="modern-card mb-4">
+            <h4 class="mb-3"><i class="fas fa-sms"></i> SMS Configurations</h4>
+            <p class="text-muted mb-3">
+                {% if sms_configs %}
+                    {{ sms_configs|length }} configuration{{ sms_configs|length|pluralize }}
+                {% else %}
+                    Using global SMS settings ({{ global_sms_config.provider|default:'system' }})
+                {% endif %}
+            </p>
+            <a href="{% url 'superadmin:school_sms_config_list' school_slug=school.slug %}" class="btn btn-outline-primary btn-sm">
+                Manage SMS
+            </a>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="modern-card mb-4">
+            <h4 class="mb-3"><i class="fas fa-envelope"></i> Email Configurations</h4>
+            <p class="text-muted mb-3">
+                {% if email_configs %}
+                    {{ email_configs|length }} configuration{{ email_configs|length|pluralize }}
+                {% else %}
+                    Using global email settings ({{ global_email_config.provider|default:'system' }})
+                {% endif %}
+            </p>
+            <a href="{% url 'superadmin:school_email_config_list' school_slug=school.slug %}" class="btn btn-outline-primary btn-sm">
+                Manage Email
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="modern-card">
+            <h4 class="mb-3"><i class="fas fa-check-circle"></i> Active SMS Configurations</h4>
+            {% if sms_configs %}
+                {% with has_active=False %}
+                    {% for config in sms_configs %}
+                        {% if config.is_active %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <strong>{{ config.get_provider_display }}</strong><br>
+                                    <small class="text-muted">
+                                        {% if config.custom_sender_id %}
+                                            Sender: {{ config.custom_sender_id }}
+                                        {% elif config.default_sender_id %}
+                                            Sender: {{ config.default_sender_id }}
+                                        {% else %}
+                                            No custom sender ID
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    {% if config.use_global_settings %}
+                                        <span class="badge bg-info me-2">Global</span>
+                                    {% endif %}
+                                    <span class="badge bg-success">Active</span>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endwith %}
+                {% if not sms_configs %}
+                    <p class="text-muted mb-0">No SMS configurations found.</p>
+                {% endif %}
+            {% else %}
+                <p class="text-muted mb-0">
+                    No school-specific SMS configurations found.
+                    {% if global_sms_config.default_sender_id %}
+                        Using global sender {{ global_sms_config.default_sender_id }}.
+                    {% else %}
+                        Global SMS configuration will be used from environment settings.
+                    {% endif %}
+                </p>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="modern-card">
+            <h4 class="mb-3"><i class="fas fa-check-circle"></i> Active Email Configurations</h4>
+            {% if email_configs %}
+                {% for config in email_configs %}
+                    {% if config.is_active %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ config.get_provider_display }}</strong><br>
+                                <small class="text-muted">
+                                    {% if config.custom_from_email %}
+                                        From: {{ config.custom_from_email }}
+                                    {% elif config.default_from_email %}
+                                        From: {{ config.default_from_email }}
+                                    {% else %}
+                                        No custom from email
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                {% if config.use_global_settings %}
+                                    <span class="badge bg-info me-2">Global</span>
+                                {% endif %}
+                                <span class="badge bg-success">Active</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+                {% if not email_configs %}
+                    <p class="text-muted mb-0">No email configurations found.</p>
+                {% endif %}
+            {% else %}
+                <p class="text-muted mb-0">
+                    No school-specific email configurations found.
+                    {% if global_email_config.default_from_email %}
+                        Using global from address {{ global_email_config.default_from_email }}.
+                    {% else %}
+                        Global email configuration will be used from environment settings.
+                    {% endif %}
+                </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <script>
-document.getElementById('schoolSettingsForm').addEventListener('submit', function(e) {
+document.getElementById('schoolSettingsForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
-    alert('School settings saved successfully!');
+
+    const form = this;
+    const formData = new FormData(form);
+    const params = new URLSearchParams();
+
+    // Include all fields
+    for (const [key, value] of formData.entries()) {
+        params.append(key, value);
+    }
+
+    fetch("{% url 'core:settings_update' school_slug=school_slug %}", {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: params
+    }).then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              const message = data.message || 'School information updated successfully.';
+              if (window.showSuccess) {
+                  window.showSuccess(message);
+              } else if (window.showMessage) {
+                  window.showMessage('School Information Updated', message, true);
+              } else {
+                  alert(message);
+              }
+          } else {
+              const errorMsg = data.error || 'Failed to update school information.';
+              if (window.showError) {
+                  window.showError(errorMsg);
+              } else if (window.showMessage) {
+                  window.showMessage('Error', errorMsg, false);
+              } else {
+                  alert(errorMsg);
+              }
+          }
+      }).catch(err => {
+          console.error('Error updating school settings', err);
+          const fallbackMsg = 'An error occurred while updating school information.';
+          if (window.showError) {
+              window.showError(fallbackMsg);
+          } else if (window.showMessage) {
+              window.showMessage('Error', fallbackMsg, false);
+          } else {
+              alert(fallbackMsg);
+          }
+      });
 });
 
-document.getElementById('academicSettingsForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    alert('Academic settings saved successfully!');
+// Institution type change handler (instant update)
+document.getElementById('institution_type')?.addEventListener('change', function() {
+    const value = this.value;
+    fetch("{% url 'core:settings_update' school_slug=school_slug %}", {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: new URLSearchParams({
+            'institution_type': value
+        })
+    }).then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              const label = data.institution_type_label || 'Institution type updated.';
+              if (window.showSuccess) {
+                  window.showSuccess(`Institution type set to <strong>${label}</strong>.`);
+              } else if (window.showMessage) {
+                  window.showMessage('Institution Type Updated', `Institution type set to <strong>${label}</strong>.`, true);
+              } else {
+                  alert('Institution type updated to: ' + label);
+              }
+          } else {
+              const errorMsg = data.error || 'Failed to update institution type.';
+              if (window.showError) {
+                  window.showError(errorMsg);
+              } else if (window.showMessage) {
+                  window.showMessage('Error', errorMsg, false);
+              } else {
+                  alert(errorMsg);
+              }
+          }
+      }).catch(err => {
+          console.error('Error updating institution type', err);
+          const fallbackMsg = 'An error occurred while updating institution type.';
+          if (window.showError) {
+              window.showError(fallbackMsg);
+          } else if (window.showMessage) {
+              window.showMessage('Error', fallbackMsg, false);
+          } else {
+              alert(fallbackMsg);
+          }
+      });
 });
 
-document.getElementById('notificationSettingsForm').addEventListener('submit', function(e) {
+document.getElementById('academicSettingsForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
-    alert('Notification settings saved successfully!');
+
+    const form = this;
+    const formData = new FormData(form);
+    const params = new URLSearchParams();
+
+    for (const [key, value] of formData.entries()) {
+        params.append(key, value);
+    }
+
+    fetch("{% url 'core:settings_update' school_slug=school_slug %}", {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: params
+    }).then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              const message = data.message || 'Academic settings updated successfully.';
+              if (window.showSuccess) {
+                  window.showSuccess(message);
+              } else if (window.showMessage) {
+                  window.showMessage('Academic Settings Updated', message, true);
+              } else {
+                  alert(message);
+              }
+          } else {
+              const errorMsg = data.error || 'Failed to update academic settings.';
+              if (window.showError) {
+                  window.showError(errorMsg);
+              } else if (window.showMessage) {
+                  window.showMessage('Error', errorMsg, false);
+              } else {
+                  alert(errorMsg);
+              }
+          }
+      }).catch(err => {
+          console.error('Error updating academic settings', err);
+          const fallbackMsg = 'An error occurred while updating academic settings.';
+          if (window.showError) {
+              window.showError(fallbackMsg);
+          } else if (window.showMessage) {
+              window.showMessage('Error', fallbackMsg, false);
+          } else {
+              alert(fallbackMsg);
+          }
+      });
+});
+
+document.getElementById('notificationSettingsForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const form = this;
+    const formData = new FormData(form);
+    const params = new URLSearchParams();
+
+    for (const [key, value] of formData.entries()) {
+        // For checkboxes, include them only if checked; otherwise, send as 'off' to indicate false
+        if (form.elements[key].type === 'checkbox') {
+            params.append(key, form.elements[key].checked ? 'on' : 'off');
+        } else {
+            params.append(key, value);
+        }
+    }
+
+    fetch("{% url 'core:settings_update' school_slug=school_slug %}", {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: params
+    }).then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              const message = data.message || 'Notification settings updated successfully.';
+              if (window.showSuccess) {
+                  window.showSuccess(message);
+              } else if (window.showMessage) {
+                  window.showMessage('Notification Settings Updated', message, true);
+              } else {
+                  alert(message);
+              }
+          } else {
+              const errorMsg = data.error || 'Failed to update notification settings.';
+              if (window.showError) {
+                  window.showError(errorMsg);
+              } else if (window.showMessage) {
+                  window.showMessage('Error', errorMsg, false);
+              } else {
+                  alert(errorMsg);
+              }
+          }
+      }).catch(err => {
+          console.error('Error updating notification settings', err);
+          const fallbackMsg = 'An error occurred while updating notification settings.';
+          if (window.showError) {
+              window.showError(fallbackMsg);
+          } else if (window.showMessage) {
+              window.showMessage('Error', fallbackMsg, false);
+          } else {
+              alert(fallbackMsg);
+          }
+      });
+});
+
+// Maintenance mode toggle
+const maintenanceCheckbox = document.getElementById('maintenance_mode');
+if (maintenanceCheckbox) {
+    maintenanceCheckbox.addEventListener('change', function() {
+        const enabled = this.checked ? 'on' : 'off';
+        fetch("{% url 'core:settings_update' school_slug=school_slug %}", {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: new URLSearchParams({
+                'maintenance_mode': enabled
+            })
+        }).then(response => response.json())
+          .then(data => {
+              if (!data.success) {
+                  console.error('Failed to update maintenance mode', data);
+              }
+          }).catch(err => console.error('Error updating maintenance mode', err));
+    });
+}
+
+// Database actions
+function callDatabaseAction(action) {
+    fetch("{% url 'core:database_actions' school_slug=school_slug %}", {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: new URLSearchParams({
+            'action': action
+        })
+    }).then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              let title = 'Database Action';
+              let body = '';
+
+              if (action === 'backup') {
+                  title = 'Database Backup';
+                  if (data.details) {
+                      body = `
+                          <p class="mb-2">${data.message || 'Backup completed successfully.'}</p>
+                          <ul class="mb-0">
+                              <li><strong>File:</strong> ${data.details.path || data.file || ''}</li>
+                              <li><strong>Size:</strong> ${data.details.size_mb || 0} MB (${data.details.size_bytes || 0} bytes)</li>
+                              <li><strong>Engine:</strong> ${data.details.engine || ''}</li>
+                              <li><strong>Created at:</strong> ${data.details.created_at || ''}</li>
+                          </ul>
+                      `;
+                  } else {
+                      body = data.message || 'Database backup created successfully.';
+                  }
+              } else if (action === 'clear_cache') {
+                  title = 'Cache Cleared';
+                  if (data.details) {
+                      body = `
+                          <p class="mb-2">${data.message || 'Cache cleared successfully.'}</p>
+                          <p class="mb-0"><strong>Cleared at:</strong> ${data.details.cleared_at || ''}</p>
+                      `;
+                  } else {
+                      body = data.message || 'Cache cleared successfully.';
+                  }
+              } else if (action === 'sync') {
+                  title = 'Data Sync';
+                  if (data.details) {
+                      body = `
+                          <p class="mb-2">${data.message || 'Data sync triggered successfully.'}</p>
+                          <p class="mb-0"><strong>Triggered at:</strong> ${data.details.run_at || ''}</p>
+                      `;
+                  } else {
+                      body = data.message || 'Data sync triggered successfully.';
+                  }
+              } else {
+                  body = data.message || 'Operation completed successfully.';
+              }
+
+              if (window.showMessage) {
+                  window.showMessage(title, body, true);
+              } else {
+                  // Fallback if modal system is not available
+                  alert(data.message || 'Operation completed successfully.');
+              }
+          } else {
+              console.error('Database action failed', data);
+              const errorMsg = data.error || 'Database action failed';
+              if (window.showError) {
+                  window.showError(errorMsg);
+              } else if (window.showMessage) {
+                  window.showMessage('Error', errorMsg, false);
+              } else {
+                  alert(errorMsg);
+              }
+          }
+      }).catch(err => {
+          console.error('Error calling database action', err);
+          const fallbackMsg = 'An error occurred while performing the action.';
+          if (window.showError) {
+              window.showError(fallbackMsg);
+          } else if (window.showMessage) {
+              window.showMessage('Error', fallbackMsg, false);
+          } else {
+              alert(fallbackMsg);
+          }
+      });
+}
+
+document.getElementById('btn-backup-db')?.addEventListener('click', function() {
+    callDatabaseAction('backup');
+});
+
+document.getElementById('btn-clear-cache')?.addEventListener('click', function() {
+    callDatabaseAction('clear_cache');
+});
+
+document.getElementById('btn-sync-data')?.addEventListener('click', function() {
+    callDatabaseAction('sync');
 });
 </script>
 {% endblock %}

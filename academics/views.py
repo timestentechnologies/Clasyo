@@ -6,6 +6,31 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from .models import Class, Section, Subject, ClassRoutine, ClassTime, ClassRoom, StudyMaterial, Assignment
 from accounts.models import User
+from tenants.models import School
+
+
+def get_allowed_education_level_choices_for_school(school):
+    """Return education_level choices filtered by school.institution_type."""
+    # Default: all choices
+    base_choices = Class.EDUCATION_LEVEL_CHOICES
+    if not school or not getattr(school, 'institution_type', None):
+        return base_choices
+
+    institution_type = school.institution_type
+    allowed_keys_by_type = {
+        'pre_primary_primary': ['pre_primary', 'lower_primary', 'upper_primary'],
+        'primary_junior_secondary': ['lower_primary', 'upper_primary', 'junior_secondary'],
+        'junior_secondary_only': ['junior_secondary'],
+        'senior_secondary': ['senior_secondary'],
+        'tvet_college': ['tvet', 'college'],
+        # 'mixed' and 'unspecified' fall back to all levels
+    }
+
+    allowed_keys = allowed_keys_by_type.get(
+        institution_type,
+        [value for value, _ in base_choices],
+    )
+    return [choice for choice in base_choices if choice[0] in allowed_keys]
 
 
 class ClassListView(LoginRequiredMixin, ListView):
@@ -13,20 +38,62 @@ class ClassListView(LoginRequiredMixin, ListView):
     template_name = 'academics/class_list.html'
     context_object_name = 'classes'
     
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        education_level = self.request.GET.get('education_level')
+        if education_level:
+            queryset = queryset.filter(education_level=education_level)
+        return queryset
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['school_slug'] = self.kwargs.get('school_slug', '')
+        school_slug = self.kwargs.get('school_slug', '')
+        context['school_slug'] = school_slug
+
+        school = None
+        if school_slug:
+            try:
+                school = School.objects.get(slug=school_slug, is_active=True)
+            except School.DoesNotExist:
+                school = None
+
+        context['school'] = school
+        context['education_level_choices'] = get_allowed_education_level_choices_for_school(school)
+        context['selected_education_level'] = self.request.GET.get('education_level', '')
         return context
 
 
 class ClassCreateView(LoginRequiredMixin, CreateView):
     model = Class
     template_name = 'academics/class_form.html'
-    fields = ['name', 'numeric_name', 'description', 'order', 'is_active']
+    fields = ['name', 'numeric_name', 'description', 'order', 'is_active', 'education_level']
     
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        school_slug = self.kwargs.get('school_slug', '')
+        school = None
+        if school_slug:
+            try:
+                school = School.objects.get(slug=school_slug, is_active=True)
+            except School.DoesNotExist:
+                school = None
+        form.fields['education_level'].choices = get_allowed_education_level_choices_for_school(school)
+        return form
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['school_slug'] = self.kwargs.get('school_slug', '')
+        school_slug = self.kwargs.get('school_slug', '')
+        context['school_slug'] = school_slug
+
+        school = None
+        if school_slug:
+            try:
+                school = School.objects.get(slug=school_slug, is_active=True)
+            except School.DoesNotExist:
+                school = None
+
+        context['school'] = school
+        context['education_level_choices'] = get_allowed_education_level_choices_for_school(school)
         return context
     
     def get_success_url(self):
@@ -64,11 +131,34 @@ class ClassCreateView(LoginRequiredMixin, CreateView):
 class ClassUpdateView(LoginRequiredMixin, UpdateView):
     model = Class
     template_name = 'academics/class_form.html'
-    fields = ['name', 'numeric_name', 'description', 'order', 'is_active']
+    fields = ['name', 'numeric_name', 'description', 'order', 'is_active', 'education_level']
     
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        school_slug = self.kwargs.get('school_slug', '')
+        school = None
+        if school_slug:
+            try:
+                school = School.objects.get(slug=school_slug, is_active=True)
+            except School.DoesNotExist:
+                school = None
+        form.fields['education_level'].choices = get_allowed_education_level_choices_for_school(school)
+        return form
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['school_slug'] = self.kwargs.get('school_slug', '')
+        school_slug = self.kwargs.get('school_slug', '')
+        context['school_slug'] = school_slug
+
+        school = None
+        if school_slug:
+            try:
+                school = School.objects.get(slug=school_slug, is_active=True)
+            except School.DoesNotExist:
+                school = None
+
+        context['school'] = school
+        context['education_level_choices'] = get_allowed_education_level_choices_for_school(school)
         return context
     
     def get_success_url(self):
@@ -141,6 +231,8 @@ def get_class_api(request, pk, school_slug=None):
             'description': class_obj.description,
             'order': class_obj.order,
             'is_active': class_obj.is_active,
+            'education_level': class_obj.education_level,
+            'education_level_display': class_obj.get_education_level_display(),
             'sections': sections,
         })
     except Class.DoesNotExist:

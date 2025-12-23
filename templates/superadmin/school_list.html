@@ -37,6 +37,27 @@
                         <span class="text-muted">Total: <strong>{{ page_obj.paginator.count|default:schools.count }}</strong> schools</span>
                     </div>
                 </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-8">
+                        <form method="get" class="d-flex align-items-center gap-2">
+                            <input type="hidden" name="status" value="{{ request.GET.status|default:'all' }}">
+                            {% if request.GET.search %}
+                                <input type="hidden" name="search" value="{{ request.GET.search }}">
+                            {% endif %}
+                            <label class="form-label mb-0 me-2"><i class="fas fa-layer-group text-primary"></i> Type</label>
+                            <select name="institution_type" class="form-select">
+                                <option value="">All Types</option>
+                                {% for value,label in institution_type_choices %}
+                                <option value="{{ value }}" {% if selected_institution_type == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-outline-secondary ms-2">
+                                <i class="fas fa-filter"></i> Apply
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
 
             <div class="modern-card">
@@ -47,6 +68,7 @@
                                 <th>School</th>
                                 <th>Slug</th>
                                 <th>Contact</th>
+                                <th>Type</th>
                                 <th>Status</th>
                                 <th>Students</th>
                                 <th>Created</th>
@@ -71,6 +93,11 @@
                                 <td>
                                     <small class="d-block"><i class="fas fa-envelope text-muted"></i> {{ school.email }}</small>
                                     {% if school.phone %}<small class="d-block"><i class="fas fa-phone text-muted"></i> {{ school.phone }}</small>{% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark">
+                                        {{ school.get_institution_type_display }}
+                                    </span>
                                 </td>
                                 <td>
                                     {% if school.is_active %}
@@ -106,7 +133,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="7" class="text-center py-5">
+                                <td colspan="8" class="text-center py-5">
                                     <i class="fas fa-school fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">No schools found. Create your first school to get started!</p>
                                     <a href="{% url 'superadmin:school_create' %}" class="btn btn-primary">
