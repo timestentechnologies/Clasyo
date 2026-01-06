@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
     'crispy_forms',
     'crispy_bootstrap5',
     'widget_tweaks',
@@ -171,8 +172,16 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 LOGIN_URL = 'accounts:login'
-# LOGIN_REDIRECT_URL handled manually in LoginView based on user role
+# LOGIN_REDIRECT_URL for social logins (regular email/password handled in LoginView)
+LOGIN_REDIRECT_URL = '/accounts/social-login-complete/'
 LOGOUT_REDIRECT_URL = 'frontend:home'
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+    },
+}
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'

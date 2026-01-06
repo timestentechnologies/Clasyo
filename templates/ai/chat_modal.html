@@ -1,0 +1,110 @@
+{% load static %}
+<!-- AI Chat Modal -->
+<style>
+.thinking-dots::after {
+  content: '.';
+  animation: thinking-dots 1.5s steps(4, end) infinite;
+}
+@keyframes thinking-dots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60% { content: '...'; }
+  80%, 100% { content: ''; }
+}
+</style>
+<div class="modal fade" id="aiChatModal" tabindex="-1" aria-labelledby="aiChatModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color:white;">
+        <h5 class="modal-title" id="aiChatModalLabel" style="color:#ffffff !important;"><i class="fas fa-robot me-2"></i>AI Assistant</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body d-flex flex-column" style="max-height:70vh;">
+        <div id="aiChatMessages" class="flex-grow-1 overflow-auto mb-3" style="border:1px solid #e2e8f0; border-radius:8px; padding:1rem; background:#ffffff; color:#1a202c;"></div>
+        <form id="aiChatForm" class="d-flex gap-2">
+          <textarea id="aiPrompt" class="form-control" rows="1" placeholder="Ask me anything..." required style="background-color:#ffffff; color:#1a202c;"></textarea>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% if school_slug %}
+<script>
+(function(){
+  const form = document.getElementById('aiChatForm');
+  if (!form) return;
+  const promptField = document.getElementById('aiPrompt');
+  const messagesBox = document.getElementById('aiChatMessages');
+  const scrollToBottom = () => messagesBox.scrollTop = messagesBox.scrollHeight;
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const prompt = promptField.value.trim();
+    if(!prompt) return;
+    // append user message
+    messagesBox.innerHTML += `<div class="mb-2"><strong style="color: #333;">You:</strong> ${prompt}</div>`;
+    scrollToBottom();
+    promptField.value='';
+
+    // Show thinking indicator
+    const thinkingId = 'thinking-' + Date.now();
+    messagesBox.innerHTML += `<div id="${thinkingId}" class="mb-2"><strong style="color: #333;">AI:</strong> <span class="thinking-dots">Thinking</span></div>`;
+    scrollToBottom();
+
+    // call API
+    try {
+      const resp = await fetch('{% url "core:ai_chat_api" school_slug=school_slug %}', {
+        method:'POST',
+        headers: {
+          'Content-Type':'application/x-www-form-urlencoded',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: new URLSearchParams({prompt})
+      });
+
+      let data;
+      try {
+        data = await resp.json();
+      } catch (parseError) {
+        throw new Error(`Server returned an invalid response (status ${resp.status})`);
+      }
+
+      // Remove thinking indicator
+      const thinkingEl = document.getElementById(thinkingId);
+      if (thinkingEl) thinkingEl.remove();
+
+      if (!resp.ok) {
+        const message = data && data.error ? data.error : `Server error (${resp.status})`;
+        throw new Error(message);
+      }
+
+      if (data.answer){
+        messagesBox.innerHTML += `<div class="mb-2"><strong style="color: #333;">AI:</strong> ${data.answer}</div>`;
+      }else if(data.error){
+        messagesBox.innerHTML += `<div class="mb-2 text-danger"><strong>Error:</strong> ${data.error}</div>`;
+      }else{
+        messagesBox.innerHTML += `<div class="mb-2 text-danger"><strong>Error:</strong> Unexpected response from server.</div>`;
+      }
+      scrollToBottom();
+    }catch(err){
+      // Remove thinking indicator
+      const thinkingEl = document.getElementById(thinkingId);
+      if (thinkingEl) thinkingEl.remove();
+      messagesBox.innerHTML += `<div class="mb-2 text-danger"><strong>Error:</strong> ${err.message || err}</div>`;
+      scrollToBottom();
+    }
+  });
+})();
+</script>
+{% else %}
+<script>
+(function(){
+  const form = document.getElementById('aiChatForm');
+  if (!form) return;
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    alert('AI chat is only available within a specific school context.');
+  });
+})();
+</script>
+{% endif %}

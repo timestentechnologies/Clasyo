@@ -27,6 +27,8 @@ urlpatterns = [
     
     # Authentication
     path('accounts/', include('accounts.urls', namespace='accounts')),
+    # Social authentication (django-allauth)
+    path('auth/', include('allauth.urls')),
     
     # Public site
     path('', include('frontend.urls', namespace='frontend')),

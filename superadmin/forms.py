@@ -1,5 +1,8 @@
 from django import forms
-from .models import PaymentConfiguration, SchoolPaymentConfiguration
+from .models import (
+    PaymentConfiguration, SchoolPaymentConfiguration,
+    GlobalAIConfiguration, SchoolAIConfiguration,
+)
 
 
 class PaymentConfigurationForm(forms.ModelForm):

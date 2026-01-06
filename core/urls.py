@@ -7,6 +7,9 @@ urlpatterns = [
     # Apps Home (landing page)
     path('apps/', views.AppsHomeView.as_view(), name='apps_home'),
     
+    # AI Chat API
+    path('ai/chat/', views.AiChatApiView.as_view(), name='ai_chat_api'),
+    
     # Dashboard
     path('', views.DashboardView.as_view(), name='dashboard'),
     

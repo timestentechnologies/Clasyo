@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import PaymentConfiguration, SchoolPaymentConfiguration
+from .models import (
+    PaymentConfiguration, SchoolPaymentConfiguration,
+    GlobalAIConfiguration, SchoolAIConfiguration,
+)
 
 
 @admin.register(PaymentConfiguration)
@@ -77,3 +80,21 @@ class SchoolPaymentConfigurationAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
+
+
+@admin.register(GlobalAIConfiguration)
+class GlobalAIConfigurationAdmin(admin.ModelAdmin):
+    """Admin interface for global AI settings"""
+    list_display = ['provider', 'is_active', 'temperature', 'max_tokens', 'updated_at']
+    list_filter = ['provider', 'is_active']
+    search_fields = ['provider', 'openai_model', 'anthropic_model']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(SchoolAIConfiguration)
+class SchoolAIConfigurationAdmin(admin.ModelAdmin):
+    """Admin interface for school-specific AI settings"""
+    list_display = ['school', 'is_active', 'use_global_settings', 'provider', 'updated_at']
+    list_filter = ['is_active', 'use_global_settings', 'provider']
+    search_fields = ['school__name', 'provider']
+    readonly_fields = ['created_at', 'updated_at']

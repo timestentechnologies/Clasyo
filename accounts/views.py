@@ -165,6 +165,33 @@ class RegisterView(View):
         return render(request, self.template_name, {'form': form})
 
 
+class SocialLoginCompleteView(LoginRequiredMixin, View):
+    """Redirect users after social (e.g., Google) login using role-based logic"""
+
+    def get(self, request):
+        user = request.user
+
+        # Super admin: always go to superadmin dashboard
+        if user.role == 'superadmin':
+            messages.success(request, f'Welcome back, {user.get_full_name()}!')
+            return redirect('superadmin:dashboard')
+
+        # For other roles, redirect to first active school apps home (same as LoginView)
+        from tenants.models import School
+        school = School.objects.filter(is_active=True).first()
+
+        if school:
+            messages.success(request, f'Welcome back, {user.get_full_name()}!')
+            return redirect('core:apps_home', school_slug=school.slug)
+
+        # No school associated
+        messages.warning(
+            request,
+            f'Welcome {user.get_full_name()}! No school associated with your account. Please contact administrator.',
+        )
+        return redirect('frontend:home')
+
+
 class PasswordResetView(View):
     """Password reset request view - handles sending reset emails"""
     

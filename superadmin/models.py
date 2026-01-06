@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from tenants.models import School
+from django.conf import settings
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 SMS_PROVIDER_CHOICES = [
@@ -835,6 +837,337 @@ class SchoolPaymentConfiguration(models.Model):
                 'instructions': self.payment_instructions,
             })
         
+        return config
+
+
+class GlobalAIConfiguration(models.Model):
+    """Global AI configuration for all schools"""
+    
+    provider = models.CharField(
+        max_length=50,
+        default='openai',
+        choices=[
+            ('openai', 'OpenAI'),
+            ('azure', 'Azure OpenAI'),
+            ('anthropic', 'Anthropic'),
+            ('local', 'Local Model'),
+        ],
+        verbose_name=_('AI Provider')
+    )
+    
+    is_active = models.BooleanField(
+        default=False, 
+        verbose_name=_('Is Active'),
+        help_text=_('Enable AI features across all schools')
+    )
+    
+    # OpenAI settings
+    openai_api_key = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('OpenAI API Key'),
+        help_text=_('Your OpenAI API key')
+    )
+    
+    openai_model = models.CharField(
+        max_length=100,
+        default='gpt-4',
+        blank=True,
+        null=True,
+        verbose_name=_('OpenAI Model'),
+        help_text=_('Default model to use for OpenAI (e.g., gpt-4, gpt-3.5-turbo)')
+    )
+    
+    # Azure OpenAI settings
+    azure_openai_api_key = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Azure OpenAI API Key')
+    )
+    
+    azure_openai_endpoint = models.URLField(
+        blank=True, 
+        null=True,
+        verbose_name=_('Azure OpenAI Endpoint')
+    )
+    
+    azure_openai_deployment = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name=_('Azure OpenAI Deployment')
+    )
+    
+    # Anthropic settings
+    anthropic_api_key = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Anthropic API Key')
+    )
+    
+    anthropic_model = models.CharField(
+        max_length=100,
+        default='claude-2',
+        blank=True,
+        null=True,
+        verbose_name=_('Anthropic Model')
+    )
+    
+    # Local model settings
+    local_model_path = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        verbose_name=_('Local Model Path'),
+        help_text=_('Path to the local model files')
+    )
+    
+    # General settings
+    temperature = models.FloatField(
+        default=0.7,
+        validators=[MinValueValidator(0.0), MaxValueValidator(2.0)],
+        verbose_name=_('Temperature'),
+        help_text=_('Controls randomness in the AI responses (0.0 to 2.0)')
+    )
+    
+    max_tokens = models.PositiveIntegerField(
+        default=1000,
+        verbose_name=_('Max Tokens'),
+        help_text=_('Maximum number of tokens to generate in the response')
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Created At'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('Updated At'))
+    
+    class Meta:
+        verbose_name = _('Global AI Configuration')
+        verbose_name_plural = _('Global AI Configurations')
+    
+    def __str__(self):
+        return f"Global AI Configuration ({self.get_provider_display()})"
+    
+    def get_config_data(self):
+        """Return configuration data as dictionary"""
+        return {
+            'provider': self.provider,
+            'is_active': self.is_active,
+            'openai_api_key': self.openai_api_key,
+            'openai_model': self.openai_model,
+            'azure_openai_api_key': self.azure_openai_api_key,
+            'azure_openai_endpoint': self.azure_openai_endpoint,
+            'azure_openai_deployment': self.azure_openai_deployment,
+            'anthropic_api_key': self.anthropic_api_key,
+            'anthropic_model': self.anthropic_model,
+            'local_model_path': self.local_model_path,
+            'temperature': self.temperature,
+            'max_tokens': self.max_tokens,
+        }
+
+
+class SchoolAIConfiguration(models.Model):
+    """School-specific AI configuration"""
+    
+    school = models.ForeignKey(
+        School, 
+        on_delete=models.CASCADE, 
+        verbose_name=_('School'),
+        related_name='ai_configurations'
+    )
+    
+    is_active = models.BooleanField(
+        default=False, 
+        verbose_name=_('Is Active'),
+        help_text=_('Enable AI features for this school')
+    )
+    
+    use_global_settings = models.BooleanField(
+        default=True,
+        verbose_name=_('Use Global Settings'),
+        help_text=_('Use global AI configuration settings')
+    )
+    
+    # Provider override
+    provider = models.CharField(
+        max_length=50,
+        default='openai',
+        choices=[
+            ('openai', 'OpenAI'),
+            ('azure', 'Azure OpenAI'),
+            ('anthropic', 'Anthropic'),
+            ('local', 'Local Model'),
+        ],
+        blank=True,
+        null=True,
+        verbose_name=_('AI Provider Override'),
+        help_text=_('Override global AI provider settings')
+    )
+    
+    # OpenAI overrides
+    openai_api_key = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('OpenAI API Key (Override)'),
+        help_text=_('Override global OpenAI API key')
+    )
+    
+    openai_model = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name=_('OpenAI Model (Override)'),
+        help_text=_('Override global OpenAI model')
+    )
+    
+    # Azure OpenAI overrides
+    azure_openai_api_key = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Azure OpenAI API Key (Override)')
+    )
+    
+    azure_openai_endpoint = models.URLField(
+        blank=True, 
+        null=True,
+        verbose_name=_('Azure OpenAI Endpoint (Override)')
+    )
+    
+    azure_openai_deployment = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name=_('Azure OpenAI Deployment (Override)')
+    )
+    
+    # Anthropic overrides
+    anthropic_api_key = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Anthropic API Key (Override)')
+    )
+    
+    anthropic_model = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name=_('Anthropic Model (Override)')
+    )
+    
+    # Local model overrides
+    local_model_path = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        verbose_name=_('Local Model Path (Override)')
+    )
+    
+    # General settings overrides
+    temperature = models.FloatField(
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(0.0), MaxValueValidator(2.0)],
+        verbose_name=_('Temperature (Override)'),
+        help_text=_('Override global temperature setting')
+    )
+    
+    max_tokens = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        verbose_name=_('Max Tokens (Override)'),
+        help_text=_('Override global max tokens setting')
+    )
+    
+    # Context settings
+    include_student_data = models.BooleanField(
+        default=True,
+        verbose_name=_('Include Student Data'),
+        help_text=_('Allow AI to access student data for context')
+    )
+    
+    include_academic_data = models.BooleanField(
+        default=True,
+        verbose_name=_('Include Academic Data'),
+        help_text=_('Allow AI to access academic records for context')
+    )
+    
+    include_financial_data = models.BooleanField(
+        default=False,
+        verbose_name=_('Include Financial Data'),
+        help_text=_('Allow AI to access financial data for context')
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Created At'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('Updated At'))
+    
+    class Meta:
+        verbose_name = _('School AI Configuration')
+        verbose_name_plural = _('School AI Configurations')
+        unique_together = ('school',)
+    
+    def __str__(self):
+        return f"AI Configuration - {self.school.name}"
+    
+    def get_effective_config(self):
+        """Get the effective configuration, merging global and school-specific settings"""
+        global_config = GlobalAIConfiguration.objects.first()
+        
+        # If no global config, build from school config only
+        if not global_config:
+            config = {
+                'provider': self.provider or 'openai',
+                'is_active': self.is_active,
+                'openai_api_key': self.openai_api_key,
+                'openai_model': self.openai_model or 'gpt-3.5-turbo',
+                'azure_openai_api_key': self.azure_openai_api_key,
+                'azure_openai_endpoint': self.azure_openai_endpoint,
+                'azure_openai_deployment': self.azure_openai_deployment,
+                'anthropic_api_key': self.anthropic_api_key,
+                'anthropic_model': self.anthropic_model,
+                'local_model_path': self.local_model_path,
+                'temperature': self.temperature if self.temperature is not None else 0.7,
+                'max_tokens': self.max_tokens if self.max_tokens is not None else 1000,
+            }
+            return config
+            
+        if self.use_global_settings and not self.provider:
+            return global_config.get_config_data()
+            
+        config = global_config.get_config_data()
+        
+        # Override with school-specific settings if they exist
+        if self.provider:
+            config['provider'] = self.provider
+            
+        if self.openai_api_key:
+            config['openai_api_key'] = self.openai_api_key
+        if self.openai_model:
+            config['openai_model'] = self.openai_model
+            
+        if self.azure_openai_api_key:
+            config['azure_openai_api_key'] = self.azure_openai_api_key
+        if self.azure_openai_endpoint:
+            config['azure_openai_endpoint'] = self.azure_openai_endpoint
+        if self.azure_openai_deployment:
+            config['azure_openai_deployment'] = self.azure_openai_deployment
+            
+        if self.anthropic_api_key:
+            config['anthropic_api_key'] = self.anthropic_api_key
+        if self.anthropic_model:
+            config['anthropic_model'] = self.anthropic_model
+            
+        if self.local_model_path:
+            config['local_model_path'] = self.local_model_path
+            
+        if self.temperature is not None:
+            config['temperature'] = self.temperature
+        if self.max_tokens is not None:
+            config['max_tokens'] = self.max_tokens
+            
         return config
 
 

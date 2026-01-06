@@ -9,8 +9,19 @@ from django.http import JsonResponse
 from django.conf import settings
 from django.utils.crypto import get_random_string
 from django import forms
-from .models import PaymentConfiguration, SchoolPaymentConfiguration, GlobalSMSConfiguration, GlobalEmailConfiguration, GlobalDatabaseConfiguration, SchoolSMSConfiguration, SchoolEmailConfiguration
+from .models import (
+    PaymentConfiguration,
+    SchoolPaymentConfiguration,
+    GlobalSMSConfiguration,
+    GlobalEmailConfiguration,
+    GlobalDatabaseConfiguration,
+    SchoolSMSConfiguration,
+    SchoolEmailConfiguration,
+    GlobalAIConfiguration,
+    SchoolAIConfiguration,
+)
 from .forms import PaymentConfigurationForm, SchoolPaymentConfigurationForm
+from .ai_forms import GlobalAIConfigurationForm, SchoolAIConfigurationForm
 from tenants.models import School
 from accounts.models import User
 from subscriptions.models import SubscriptionPlan, Subscription, Payment
@@ -1498,6 +1509,148 @@ class GlobalDatabaseConfigurationDeleteView(SuperAdminRequiredMixin, DeleteView)
         config = self.get_object()
         messages.success(request, f'Database configuration "{config.name}" deleted successfully.')
         return super().delete(request, *args, **kwargs)
+
+
+class GlobalAIConfigurationListView(SuperAdminRequiredMixin, ListView):
+    """List all global AI configurations"""
+    model = GlobalAIConfiguration
+    template_name = 'superadmin/ai_config_global_list.html'
+    context_object_name = 'configs'
+
+    def get_queryset(self):
+        return GlobalAIConfiguration.objects.all().order_by('provider')
+
+
+class GlobalAIConfigurationCreateView(SuperAdminRequiredMixin, CreateView):
+    """Create a new global AI configuration"""
+    model = GlobalAIConfiguration
+    form_class = GlobalAIConfigurationForm
+    template_name = 'superadmin/ai_config_global_form.html'
+    success_url = reverse_lazy('superadmin:ai_config_global_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Global AI configuration created successfully.')
+        return super().form_valid(form)
+
+
+class GlobalAIConfigurationUpdateView(SuperAdminRequiredMixin, UpdateView):
+    """Update a global AI configuration"""
+    model = GlobalAIConfiguration
+    form_class = GlobalAIConfigurationForm
+    template_name = 'superadmin/ai_config_global_form.html'
+    success_url = reverse_lazy('superadmin:ai_config_global_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Global AI configuration updated successfully.')
+        return super().form_valid(form)
+
+
+class GlobalAIConfigurationDeleteView(SuperAdminRequiredMixin, DeleteView):
+    """Delete a global AI configuration"""
+    model = GlobalAIConfiguration
+    template_name = 'superadmin/ai_config_global_confirm_delete.html'
+    context_object_name = 'config'
+    success_url = reverse_lazy('superadmin:ai_config_global_list')
+
+    def delete(self, request, *args, **kwargs):
+        config = self.get_object()
+        messages.success(request, f'Global AI configuration "{config}" deleted successfully.')
+        return super().delete(request, *args, **kwargs)
+
+
+class SchoolAIConfigurationListView(SuperAdminRequiredMixin, ListView):
+    """List AI configurations for all schools"""
+    model = SchoolAIConfiguration
+    template_name = 'superadmin/ai_config_school_list.html'
+    context_object_name = 'configs'
+
+    def get_queryset(self):
+        return SchoolAIConfiguration.objects.select_related('school').order_by('school__name')
+
+
+class SchoolAIConfigurationCreateView(SuperAdminRequiredMixin, CreateView):
+    """Create a new AI configuration for a school"""
+    model = SchoolAIConfiguration
+    form_class = SchoolAIConfigurationForm
+    template_name = 'superadmin/ai_config_school_form.html'
+    success_url = reverse_lazy('superadmin:ai_config_school_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'School AI configuration created successfully.')
+        return super().form_valid(form)
+
+
+class SchoolAIConfigurationUpdateView(SuperAdminRequiredMixin, UpdateView):
+    """Update an AI configuration for a school"""
+    model = SchoolAIConfiguration
+    form_class = SchoolAIConfigurationForm
+    template_name = 'superadmin/ai_config_school_form.html'
+    success_url = reverse_lazy('superadmin:ai_config_school_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'School AI configuration updated successfully.')
+        return super().form_valid(form)
+
+
+class SchoolAIConfigurationDeleteView(SuperAdminRequiredMixin, DeleteView):
+    """Delete an AI configuration for a school"""
+    model = SchoolAIConfiguration
+    template_name = 'superadmin/ai_config_school_confirm_delete.html'
+    context_object_name = 'config'
+    success_url = reverse_lazy('superadmin:ai_config_school_list')
+
+    def delete(self, request, *args, **kwargs):
+        config = self.get_object()
+        messages.success(request, f'AI configuration for school "{config.school}" deleted successfully.')
+        return super().delete(request, *args, **kwargs)
+
+
+class SchoolAdminAIConfigurationView(SchoolAdminRequiredMixin, UpdateView):
+    """Allow a school admin to manage AI configuration for their own school"""
+
+    model = SchoolAIConfiguration
+    form_class = SchoolAIConfigurationForm
+    template_name = 'superadmin/school_admin_ai_config_form.html'
+
+    def get_object(self, queryset=None):
+        """Fetch or create the SchoolAIConfiguration for the current school"""
+        school_slug = self.kwargs.get('school_slug')
+        school = get_object_or_404(School, slug=school_slug)
+        config, _created = SchoolAIConfiguration.objects.get_or_create(
+            school=school,
+            defaults={
+                'use_global_settings': True,
+                'is_active': True,
+                'provider': 'openai',
+            },
+        )
+        return config
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school_slug'] = self.kwargs.get('school_slug')
+        return context
+
+    def get_form_kwargs(self):
+        """Pass the school instance to the form"""
+        kwargs = super().get_form_kwargs()
+        school_slug = self.kwargs.get('school_slug')
+        school = get_object_or_404(School, slug=school_slug)
+        kwargs['instance'] = self.get_object()  # Already fetches/creates the config
+        return kwargs
+
+    def get_success_url(self):
+        return reverse_lazy('superadmin:school_admin_ai_config', kwargs={'school_slug': self.kwargs.get('school_slug')})
+
+    def form_valid(self, form):
+        print("SchoolAdminAIConfigurationView.form_valid called")
+        messages.success(self.request, 'AI configuration for your school has been updated successfully.')
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        print("SchoolAdminAIConfigurationView.form_invalid called")
+        print(form.errors)
+        return super().form_invalid(form)
 
 
 class SchoolSMSConfigurationListView(LoginRequiredMixin, ListView):

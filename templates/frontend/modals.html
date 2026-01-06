@@ -1,4 +1,4 @@
-{% load static %}
+{% load static socialaccount %}
 
 <!-- Login Modal -->
 <div class="modal fade" id="loginModal" tabindex="-1">
@@ -35,6 +35,18 @@
                     <button type="submit" class="btn btn-primary w-100 mb-3" style="background: linear-gradient(135deg, #1E3A5F 0%, #4DD0E1 100%); border: none; padding: 0.75rem;">
                         <i class="fas fa-sign-in-alt me-2"></i>Sign In
                     </button>
+                    <div class="text-center my-3">
+                        <span class="text-muted">or</span>
+                    </div>
+                    <a href="{% provider_login_url 'google' %}" class="btn w-100 mb-3" style="background-color: #ffffff; border: 1px solid #dadce0; color: #3c4043; padding: 0.625rem 1rem; font-size: 0.875rem; font-weight: 500; border-radius: 4px; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: box-shadow 0.2s, border-color 0.2s;">
+                        <svg width="18" height="18" viewBox="0 0 18 18" style="margin-right: 0.75rem;">
+                            <path fill="#4285F4" d="M16.51 8.846c-.018-.123-.041-.244-.067-.363h-7.93v2.145h4.544a3.877 3.877 0 0 1-1.667 2.545v1.394h2.698c1.576-1.452 2.485-3.597 2.422-5.721z"/>
+                            <path fill="#34A853" d="M8.513 17.965c2.26 0 4.157-.748 5.545-2.031l-2.698-1.394a5.04 5.04 0 0 1-2.847.803 5.04 5.04 0 0 1-4.734-3.317H1.327v1.438a8.497 8.497 0 0 0 7.186 4.497z"/>
+                            <path fill="#FBBC05" d="M3.777 11.726a5.04 5.04 0 0 1 0-3.207V7.081H1.327a8.497 8.497 0 0 0 0 7.083l2.45-1.438z"/>
+                            <path fill="#EA4335" d="M8.513 6.5a4.55 4.55 0 0 1 3.204 1.25l2.394-2.393A8.033 8.033 0 0 0 8.513 3.5a8.497 8.497 0 0 0-7.186 4.581l2.45 1.438a5.04 5.04 0 0 1 4.736-3.317z"/>
+                        </svg>
+                        Continue with Google
+                    </a>
                     <div class="text-center mb-3">
                         <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal" data-bs-dismiss="modal">Forgot password?</a>
                     </div>
@@ -66,6 +78,18 @@
             <div class="modal-body p-4">
                 <div class="alert alert-info">
                     <i class="fas fa-gift me-2"></i><strong>Free Trial:</strong> Get full access for 7 days. No credit card required!
+                </div>
+                <div class="text-center mb-3">
+                    <a href="{% provider_login_url 'google' %}" class="btn w-100" style="background-color: #ffffff; border: 1px solid #dadce0; color: #3c4043; padding: 0.625rem 1rem; font-size: 0.875rem; font-weight: 500; border-radius: 4px; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: box-shadow 0.2s, border-color 0.2s;">
+                        <svg width="18" height="18" viewBox="0 0 18 18" style="margin-right: 0.75rem;">
+                            <path fill="#4285F4" d="M16.51 8.846c-.018-.123-.041-.244-.067-.363h-7.93v2.145h4.544a3.877 3.877 0 0 1-1.667 2.545v1.394h2.698c1.576-1.452 2.485-3.597 2.422-5.721z"/>
+                            <path fill="#34A853" d="M8.513 17.965c2.26 0 4.157-.748 5.545-2.031l-2.698-1.394a5.04 5.04 0 0 1-2.847.803 5.04 5.04 0 0 1-4.734-3.317H1.327v1.438a8.497 8.497 0 0 0 7.186 4.497z"/>
+                            <path fill="#FBBC05" d="M3.777 11.726a5.04 5.04 0 0 1 0-3.207V7.081H1.327a8.497 8.497 0 0 0 0 7.083l2.45-1.438z"/>
+                            <path fill="#EA4335" d="M8.513 6.5a4.55 4.55 0 0 1 3.204 1.25l2.394-2.393A8.033 8.033 0 0 0 8.513 3.5a8.497 8.497 0 0 0-7.186 4.581l2.45 1.438a5.04 5.04 0 0 1 4.736-3.317z"/>
+                        </svg>
+                        Continue with Google
+                    </a>
+                    <small class="text-muted d-block mt-1">We will create your account if it doesn't exist yet.</small>
                 </div>
                 <form method="post" action="{% url 'frontend:register' %}">
                     {% csrf_token %}

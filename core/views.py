@@ -1692,6 +1692,427 @@ class InvoicePreviewView(LoginRequiredMixin, View):
             return JsonResponse({'success': False, 'error': str(e)})
 
 
+class AiChatApiView(LoginRequiredMixin, View):
+    """Handle AI chat requests"""
+
+    def post(self, request, school_slug):
+        from superadmin.models import GlobalAIConfiguration, SchoolAIConfiguration
+        prompt = request.POST.get('prompt', '').strip()
+        if not prompt:
+            return JsonResponse({'success': False, 'error': 'Prompt is required'}, status=400)
+        try:
+            # Determine effective configuration
+            school = School.objects.get(slug=school_slug)
+            school_config = SchoolAIConfiguration.objects.filter(school=school).first()
+            print(f"School: {school.name}, school_config exists: {bool(school_config)}")
+            if school_config:
+                print(f"school_config.is_active: {school_config.is_active}")
+                print(f"school_config.openai_api_key set: {bool(school_config.openai_api_key)}")
+            if school_config and school_config.is_active:
+                config = school_config.get_effective_config()
+                print("Using school config")
+            else:
+                global_config = GlobalAIConfiguration.objects.filter(is_active=True).first()
+                config = global_config.get_config_data() if global_config else None
+                print("Using global config" if global_config else "No global config")
+            print("Final config:", config)
+            if not config:
+                return JsonResponse({'success': False, 'error': 'AI is not configured'}, status=503)
+
+            # Gather school context data
+            context_data = self.get_school_context(school, school_config)
+            print(f"Context data keys: {list(context_data.keys())}")
+
+            # Import OpenAI safely so missing dependency returns JSON instead of an HTML error page
+            try:
+                from openai import OpenAI
+            except ImportError:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'OpenAI Python library is not installed on the server.'
+                }, status=500)
+
+            provider = config.get('provider', 'openai')
+            print(f"Provider: {provider}")
+            if provider != 'openai':
+                return JsonResponse({'success': False, 'error': 'Only OpenAI provider supported for now'})
+            openai_api_key = config.get('openai_api_key') or ''
+            print(f"OpenAI API key present: {bool(openai_api_key)}")
+            if not openai_api_key:
+                return JsonResponse({'success': False, 'error': 'OpenAI API key is not configured'}, status=503)
+            
+            client = OpenAI(api_key=openai_api_key)
+            model = config.get('openai_model', 'gpt-3.5-turbo')
+            temperature = float(config.get('temperature', 0.7))
+            max_tokens = int(config.get('max_tokens', 1000))
+            
+            # Build system prompt with context
+            system_prompt = self.build_system_prompt(context_data)
+            print(f"Calling OpenAI with model={model}, temperature={temperature}, max_tokens={max_tokens}")
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user', 'content': prompt}
+                ],
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            answer = response.choices[0].message.content
+            return JsonResponse({'success': True, 'answer': answer})
+        except School.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'School not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+    def get_school_context(self, school, school_config):
+        """Gather relevant school data for AI context"""
+        context = {
+            'school_name': school.name,
+            'school_email': school.email,
+            'school_phone': school.phone,
+            'school_address': school.address,
+        }
+        
+        print(f"school_config exists: {bool(school_config)}")
+        from django.db.models import Sum, F
+        if school_config:
+            print(f"include_student_data: {school_config.include_student_data}")
+            print(f"include_academic_data: {school_config.include_academic_data}")
+            print(f"include_financial_data: {school_config.include_financial_data}")
+            
+            # Students
+            if school_config.include_student_data:
+                try:
+                    from students.models import Student
+                    # Start with all active students
+                    base_qs = Student.objects.filter(is_active=True)
+                    total_students = base_qs.count()
+                    # Prefer students linked to this school via current_class
+                    school_students = base_qs.filter(current_class__school=school).count()
+                    if school_students > 0:
+                        context['student_count'] = school_students
+                        print(f"Student count (by class.school): {school_students}")
+                    else:
+                        context['student_count'] = total_students
+                        print(f"Student count (all active, no class.school match): {total_students}")
+                except Exception as e:
+                    context['student_count'] = 'Unknown'
+                    print(f"Error getting student count: {e}")
+
+                # Parents and their children (linked via Student.parent_user)
+                try:
+                    from accounts.models import User
+                    parent_students_qs = Student.objects.filter(
+                        is_active=True,
+                        parent_user__isnull=False,
+                    )
+                    if school is not None:
+                        parent_students_qs = parent_students_qs.filter(current_class__school=school)
+
+                    parents_map = {}
+                    for s in parent_students_qs.select_related('parent_user'):
+                        parent = s.parent_user
+                        if not parent:
+                            continue
+                        entry = parents_map.setdefault(parent.id, {
+                            'name': parent.get_full_name(),
+                            'email': parent.email,
+                            'children': [],
+                        })
+                        entry['children'].append({
+                            'name': s.get_full_name(),
+                            'admission_number': s.admission_number,
+                        })
+
+                    context['parent_count'] = len(parents_map)
+                    context['children_with_parents_count'] = parent_students_qs.count()
+
+                    # Build a short textual summary for the prompt (max 10 parents)
+                    summary_parts = []
+                    for _, info in list(parents_map.items())[:10]:
+                        child_names = ", ".join(c['name'] for c in info['children'])
+                        summary_parts.append(f"{info['name']} (Children: {child_names})")
+                    if summary_parts:
+                        context['parent_children_summary'] = "; ".join(summary_parts)
+
+                    print(
+                        f"Parents with linked children: {context['parent_count']}, "
+                        f"children linked to parents: {context['children_with_parents_count']}"
+                    )
+                except Exception as e:
+                    context['parent_count'] = 'Unknown'
+                    context['children_with_parents_count'] = 'Unknown'
+                    print(f"Error getting parent/children data: {e}")
+            
+            # Classes, subjects, teachers
+            if school_config.include_academic_data:
+                try:
+                    from academics.models import Class, Subject
+                    from accounts.models import User
+                    from examinations.models import Exam
+                    from django.utils import timezone
+                    from django.db.models import Q
+                    context['class_count'] = Class.objects.filter(school=school, is_active=True).count()
+                    context['subject_count'] = Subject.objects.filter(school=school, is_active=True).count()
+                    # Approximate teacher count: teachers linked to classes/sections for this school
+                    teacher_count = User.objects.filter(
+                        role='teacher',
+                        class_sections__class_name__school=school,
+                    ).distinct().count()
+                    context['teacher_count'] = teacher_count
+
+                    # Exams linked to this school via class or subject
+                    today = timezone.now().date()
+                    exam_qs = Exam.objects.all()
+                    if school is not None:
+                        exam_qs = exam_qs.filter(
+                            Q(class_assigned__school=school) |
+                            Q(subject__school=school)
+                        )
+                    exam_count = exam_qs.count()
+                    context['exam_count'] = exam_count
+                    context['published_exam_count'] = exam_qs.filter(is_published=True).count()
+                    context['upcoming_exams_count'] = exam_qs.filter(start_date__gte=today).count()
+
+                    upcoming = []
+                    for exam in exam_qs.filter(start_date__gte=today).order_by('start_date')[:5]:
+                        try:
+                            exam_type = exam.get_exam_type_display()
+                        except Exception:
+                            exam_type = exam.exam_type
+                        upcoming.append(f"{exam.name} ({exam_type}) on {exam.start_date}")
+                    if upcoming:
+                        context['upcoming_exams'] = upcoming
+
+                    print(
+                        f"Class count: {context['class_count']}, Subject count: {context['subject_count']}, "
+                        f"Teacher count: {teacher_count}, Exams: {exam_count}, Upcoming exams: {len(upcoming)}"
+                    )
+                except Exception as e:
+                    context['class_count'] = 'Unknown'
+                    context['subject_count'] = 'Unknown'
+                    context['teacher_count'] = 'Unknown'
+                    context['exam_count'] = 'Unknown'
+                    context['published_exam_count'] = 'Unknown'
+                    context['upcoming_exams_count'] = 'Unknown'
+                    print(f"Error getting academic/teacher/exam data: {e}")
+            
+            # Fee balances (always computed when a school config exists)
+            try:
+                from fees.models import FeeCollection
+                from django.db.models import Q
+
+                fee_qs = FeeCollection.objects.all()
+                if school is not None:
+                    fee_qs = fee_qs.filter(
+                        Q(student__current_class__school=school) |
+                        Q(fee_structure__class_name__school=school)
+                    )
+
+                # If nothing matched the school filters, fall back to all fee collections
+                if not fee_qs.exists():
+                    fee_qs = FeeCollection.objects.all()
+                    print(f"No fee collections matched school filter; using all collections, total_rows={fee_qs.count()}")
+
+                # Aggregate per student: total expected (amount) vs total paid
+                agg = (
+                    fee_qs
+                    .values('student_id', 'student__first_name', 'student__last_name', 'student__admission_number')
+                    .annotate(
+                        total_amount=Sum('amount'),
+                        total_paid=Sum('paid_amount'),
+                    )
+                )
+
+                balances = []
+                for row in agg:
+                    total = row['total_amount'] or 0
+                    paid = row['total_paid'] or 0
+                    balance = total - paid
+                    if balance > 0:
+                        balances.append({
+                            'student_id': row['student_id'],
+                            'name': f"{row['student__first_name']} {row['student__last_name']}".strip(),
+                            'admission_number': row['student__admission_number'],
+                            'balance': float(balance),
+                        })
+
+                balances.sort(key=lambda x: x['balance'], reverse=True)
+                context['students_with_fee_balances'] = balances
+                context['students_with_fee_balances_count'] = len(balances)
+                print(f"Aggregated fee rows: {agg.count()}, students with positive balances: {len(balances)}")
+
+                # Detailed breakdown per fee type for top students with balances
+                top_student_ids = [b['student_id'] for b in balances[:10]]
+                fee_details_by_student = {}
+                if top_student_ids:
+                    details_qs = (
+                        fee_qs
+                        .filter(student_id__in=top_student_ids)
+                        .values(
+                            'student_id',
+                            'fee_structure__name',
+                            'fee_structure__fee_type',
+                        )
+                        .annotate(
+                            total_amount=Sum('amount'),
+                            total_paid=Sum('paid_amount'),
+                        )
+                    )
+                    for row in details_qs:
+                        sid = row['student_id']
+                        fee_details_by_student.setdefault(sid, []).append({
+                            'fee_name': row['fee_structure__name'],
+                            'fee_type': row['fee_structure__fee_type'],
+                            'total_amount': float(row['total_amount'] or 0),
+                            'total_paid': float(row['total_paid'] or 0),
+                            'balance': float((row['total_amount'] or 0) - (row['total_paid'] or 0)),
+                        })
+                    print(f"Built fee_details_by_student for {len(fee_details_by_student)} students")
+                context['fee_details_by_student'] = fee_details_by_student
+            except Exception as e:
+                context['students_with_fee_balances'] = []
+                context['students_with_fee_balances_count'] = 'Unknown'
+                context['fee_details_by_student'] = {}
+                print(f"Error getting financial data: {e}")
+            # Students who both have upcoming exams and positive fee balances
+            try:
+                if context.get('students_with_fee_balances'):
+                    from students.models import Student
+                    from examinations.models import Exam
+                    from django.utils import timezone
+
+                    today = timezone.now().date()
+                    exam_qs = Exam.objects.filter(start_date__gte=today)
+                    if school is not None:
+                        exam_qs = exam_qs.filter(
+                            Q(class_assigned__school=school) |
+                            Q(subject__school=school)
+                        )
+
+                    class_ids = list(
+                        exam_qs.values_list('class_assigned_id', flat=True).distinct()
+                    )
+
+                    if class_ids:
+                        upcoming_exam_student_ids = set(
+                            Student.objects.filter(
+                                is_active=True,
+                                current_class__school=school,
+                                current_class_id__in=class_ids,
+                            ).values_list('id', flat=True)
+                        )
+
+                        balance_student_ids = {
+                            s['student_id'] for s in context.get('students_with_fee_balances', [])
+                        }
+                        intersect_ids = balance_student_ids & upcoming_exam_student_ids
+
+                        overlapping_students = [
+                            s for s in context['students_with_fee_balances']
+                            if s['student_id'] in intersect_ids
+                        ]
+
+                        context['students_with_upcoming_exams_and_fee_balances'] = overlapping_students
+                        context['students_with_upcoming_exams_and_fee_balances_count'] = len(overlapping_students)
+                        print(
+                            "Students with upcoming exams and positive fee balances: "
+                            f"{context['students_with_upcoming_exams_and_fee_balances_count']}"
+                        )
+                    else:
+                        context['students_with_upcoming_exams_and_fee_balances'] = []
+                        context['students_with_upcoming_exams_and_fee_balances_count'] = 0
+            except Exception as e:
+                context['students_with_upcoming_exams_and_fee_balances'] = []
+                context['students_with_upcoming_exams_and_fee_balances_count'] = 'Unknown'
+                print(f"Error computing students with upcoming exams and fee balances: {e}")
+        else:
+            # Default: include basic student count
+            print("No school config, including default student count")
+            try:
+                from students.models import Student
+                count = Student.objects.filter(
+                    is_active=True,
+                    current_class__school=school,
+                ).count()
+                context['student_count'] = count
+                print(f"Default student count: {count}")
+            except Exception as e:
+                context['student_count'] = 'Unknown'
+                print(f"Error getting default student count: {e}")
+        
+        print(f"Final context: {context}")
+        return context
+
+    def build_system_prompt(self, context):
+        """Build a system prompt with school context"""
+        prompt_parts = [
+            f"You are an AI assistant for {context['school_name']}.",
+            "Answer questions about this school based ONLY on the provided context.",
+            "When asked for counts (students, teachers, parents, exams, etc.), always use the exact numbers from the context instead of guessing.",
+            "When asked about fee balances, use the list of students with balances and any fee breakdowns from the context (including amounts and fee types).",
+            "When asked about parents and their children, use the parent/children information in the context instead of saying you don't know.",
+            "When asked about exams, use the exam counts and upcoming exam list from the context.",
+            "Be helpful, concise, and professional.",
+            "",
+            "School Information:"
+        ]
+        
+        if 'student_count' in context:
+            prompt_parts.append(f"- Total Students: {context['student_count']}")
+        if 'teacher_count' in context:
+            prompt_parts.append(f"- Total Teachers (approximate): {context['teacher_count']}")
+        if 'class_count' in context:
+            prompt_parts.append(f"- Total Classes: {context['class_count']}")
+        if 'subject_count' in context:
+            prompt_parts.append(f"- Total Subjects: {context['subject_count']}")
+        if 'parent_count' in context:
+            prompt_parts.append(f"- Parents (with linked children): {context['parent_count']}")
+        if 'children_with_parents_count' in context:
+            prompt_parts.append(f"- Children linked to parents: {context['children_with_parents_count']}")
+        if 'parent_children_summary' in context:
+            prompt_parts.append(f"- Parent/Children Sample: {context['parent_children_summary']}")
+        if 'exam_count' in context:
+            prompt_parts.append(f"- Total Exams: {context['exam_count']}")
+        if 'published_exam_count' in context:
+            prompt_parts.append(f"- Published Exams: {context['published_exam_count']}")
+        if 'upcoming_exams_count' in context:
+            prompt_parts.append(f"- Upcoming Exams: {context['upcoming_exams_count']}")
+        if context.get('upcoming_exams'):
+            prompt_parts.append("- Upcoming Exams (next few): " + "; ".join(context['upcoming_exams']))
+        if 'students_with_fee_balances_count' in context:
+            prompt_parts.append(f"- Students with Fee Balances: {context['students_with_fee_balances_count']}")
+        if context.get('students_with_fee_balances'):
+            # Include a short, explicit list (capped) to guide the model
+            top = context['students_with_fee_balances'][:10]
+            details = ", ".join(
+                f"{s['name']} (Adm {s['admission_number']}, Balance {s['balance']})" for s in top
+            )
+            prompt_parts.append(f"- Students with Fee Balances (sample): {details}")
+        if 'students_with_upcoming_exams_and_fee_balances_count' in context:
+            prompt_parts.append(
+                "- Students with BOTH upcoming exams and fee balances: "
+                f"{context['students_with_upcoming_exams_and_fee_balances_count']}"
+            )
+        if context.get('students_with_upcoming_exams_and_fee_balances'):
+            top_overlap = context['students_with_upcoming_exams_and_fee_balances'][:10]
+            overlap_details = ", ".join(
+                f"{s['name']} (Adm {s['admission_number']}, Balance {s['balance']})" for s in top_overlap
+            )
+            prompt_parts.append(
+                "- Sample of students with upcoming exams AND fee balances: " + overlap_details
+            )
+        
+        prompt_parts.extend([
+            "",
+            "Use this information to answer questions. If a piece of data is not present in the context, then say you don't have that information available.",
+            "After answering the user's question, suggest 2-3 concise, relevant follow-up questions or insights they might find useful about the school (for example, breakdowns by class, trends, or related information from exams, attendance, or fees)."
+        ])
+        
+        return "\n".join(prompt_parts)
+
+
 @require_GET
 def offline_view(request, *args, **kwargs):
     """View for offline page shown during maintenance or offline mode.

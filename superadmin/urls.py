@@ -1,5 +1,6 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
+from .ai_urls import urlpatterns as ai_urls
 
 app_name = 'superadmin'
 
@@ -57,6 +58,12 @@ urlpatterns = [
     path('school/<slug:school_slug>/payment-config/<int:pk>/', views.SchoolPaymentConfigurationDetailView.as_view(), name='school_payment_config_detail'),
     path('school/<slug:school_slug>/payment-config/<int:pk>/edit/', views.SchoolPaymentConfigurationUpdateView.as_view(), name='school_payment_config_update'),
     path('school/<slug:school_slug>/payment-config/<int:pk>/delete/', views.SchoolPaymentConfigurationDeleteView.as_view(), name='school_payment_config_delete'),
+    
+    # School AI Configuration (School Admin access)
+    path('school/<slug:school_slug>/settings/ai/', views.SchoolAdminAIConfigurationView.as_view(), name='school_admin_ai_config'),
+
+    # AI Configuration
+    path('ai/', include(ai_urls)),
     
     # Global Settings
     path('settings/', views.GlobalSettingsView.as_view(), name='global_settings'),

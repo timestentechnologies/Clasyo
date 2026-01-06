@@ -1,0 +1,289 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}AI Settings - {{ form.instance.school.name }}{% endblock %}
+{% block page_title %}AI Configuration{% endblock %}
+{% block page_icon %}robot{% endblock %}
+{% block page_subtitle %}Configure AI provider and API keys for {{ form.instance.school.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <a href="{% url 'core:settings' school_slug=form.instance.school.slug %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">General Settings</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'superadmin:school_admin_ai_config' school_slug=form.instance.school.slug %}">
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+
+                        <!-- Debug: show form errors for each field -->
+                        {% for field in form %}
+                            {% if field.errors %}
+                            <div class="alert alert-danger">
+                                <strong>{{ field.label }}:</strong> {{ field.errors|join:", " }}
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.is_active.id_for_label }}" class="form-label">Status</label>
+                                <div class="form-check mt-2">
+                                    {{ form.is_active|add_class:"form-check-input" }}
+                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                        Enable AI for this school
+                                    </label>
+                                </div>
+                                {% if form.is_active.errors %}
+                                <div class="invalid-feedback d-block">{{ form.is_active.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.use_global_settings.id_for_label }}" class="form-label">Use Global Settings</label>
+                                <div class="form-check mt-2">
+                                    {{ form.use_global_settings|add_class:"form-check-input" }}
+                                    <label class="form-check-label" for="{{ form.use_global_settings.id_for_label }}">
+                                        Inherit from global AI configuration when overrides are empty
+                                    </label>
+                                </div>
+                                {% if form.use_global_settings.errors %}
+                                <div class="invalid-feedback d-block">{{ form.use_global_settings.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.provider.id_for_label }}" class="form-label">Provider</label>
+                                {{ form.provider|add_class:"form-select" }}
+                                {% if form.provider.errors %}
+                                <div class="invalid-feedback d-block">{{ form.provider.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ form.temperature.id_for_label }}" class="form-label">Temperature</label>
+                                {{ form.temperature|add_class:"form-control" }}
+                                {% if form.temperature.errors %}
+                                <div class="invalid-feedback d-block">{{ form.temperature.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ form.max_tokens.id_for_label }}" class="form-label">Max Tokens</label>
+                                {{ form.max_tokens|add_class:"form-control" }}
+                                {% if form.max_tokens.errors %}
+                                <div class="invalid-feedback d-block">{{ form.max_tokens.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div id="provider-openai">
+                        <h5 class="mb-3">OpenAI Settings</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <label for="{{ form.openai_api_key.id_for_label }}" class="form-label">OpenAI Secret Key</label>
+                                {{ form.openai_api_key|add_class:"form-control" }}
+                                <small class="form-text text-muted">This overrides the global OpenAI API key when provided.</small>
+                                {% if form.openai_api_key.errors %}
+                                <div class="invalid-feedback d-block">{{ form.openai_api_key.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.openai_model.id_for_label }}" class="form-label">Model</label>
+                                {{ form.openai_model|add_class:"form-control" }}
+                                <small class="form-text text-muted">
+                                    Examples: <code>gpt-4</code>, <code>gpt-4-turbo</code>, <code>gpt-3.5-turbo</code>
+                                </small>
+                                {% if form.openai_model.errors %}
+                                <div class="invalid-feedback d-block">{{ form.openai_model.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        </div>
+
+                        <hr>
+
+                        <div id="provider-azure" style="display:none;">
+                        <h5 class="mb-3">Azure OpenAI Settings</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.azure_openai_api_key.id_for_label }}" class="form-label">API Key</label>
+                                {{ form.azure_openai_api_key|add_class:"form-control" }}
+                                {% if form.azure_openai_api_key.errors %}
+                                <div class="invalid-feedback d-block">{{ form.azure_openai_api_key.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.azure_openai_endpoint.id_for_label }}" class="form-label">Endpoint</label>
+                                {{ form.azure_openai_endpoint|add_class:"form-control" }}
+                                {% if form.azure_openai_endpoint.errors %}
+                                <div class="invalid-feedback d-block">{{ form.azure_openai_endpoint.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.azure_openai_deployment.id_for_label }}" class="form-label">Deployment</label>
+                                {{ form.azure_openai_deployment|add_class:"form-control" }}
+                                {% if form.azure_openai_deployment.errors %}
+                                <div class="invalid-feedback d-block">{{ form.azure_openai_deployment.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        </div>
+
+                        <hr>
+
+                        <div id="provider-anthropic" style="display:none;">
+                        <h5 class="mb-3">Anthropic Settings</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.anthropic_api_key.id_for_label }}" class="form-label">API Key</label>
+                                {{ form.anthropic_api_key|add_class:"form-control" }}
+                                {% if form.anthropic_api_key.errors %}
+                                <div class="invalid-feedback d-block">{{ form.anthropic_api_key.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.anthropic_model.id_for_label }}" class="form-label">Model</label>
+                                {{ form.anthropic_model|add_class:"form-control" }}
+                                {% if form.anthropic_model.errors %}
+                                <div class="invalid-feedback d-block">{{ form.anthropic_model.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        </div>
+
+                        <hr>
+
+                        <div id="provider-local" style="display:none;">
+                        <h5 class="mb-3">Local Model</h5>
+                        <div class="mb-3">
+                            <label for="{{ form.local_model_path.id_for_label }}" class="form-label">Model Path</label>
+                            {{ form.local_model_path|add_class:"form-control" }}
+                            {% if form.local_model_path.errors %}
+                            <div class="invalid-feedback d-block">{{ form.local_model_path.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        </div>
+
+                        <hr>
+
+                        <h5 class="mb-3">Data Access</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-check mb-2">
+                                    {{ form.include_student_data|add_class:"form-check-input" }}
+                                    <label class="form-check-label" for="{{ form.include_student_data.id_for_label }}">
+                                        Include student data
+                                    </label>
+                                </div>
+                                {% if form.include_student_data.errors %}
+                                <div class="invalid-feedback d-block">{{ form.include_student_data.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check mb-2">
+                                    {{ form.include_academic_data|add_class:"form-check-input" }}
+                                    <label class="form-check-label" for="{{ form.include_academic_data.id_for_label }}">
+                                        Include academic data
+                                    </label>
+                                </div>
+                                {% if form.include_academic_data.errors %}
+                                <div class="invalid-feedback d-block">{{ form.include_academic_data.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check mb-2">
+                                    {{ form.include_financial_data|add_class:"form-check-input" }}
+                                    <label class="form-check-label" for="{{ form.include_financial_data.id_for_label }}">
+                                        Include financial data
+                                    </label>
+                                </div>
+                                {% if form.include_financial_data.errors %}
+                                <div class="invalid-feedback d-block">{{ form.include_financial_data.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save AI Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">How it works</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">If <strong>Use Global Settings</strong> is enabled, any empty fields here will fall back to the global AI configuration.</li>
+                        <li class="mb-2">If you provide an <strong>OpenAI API Key</strong> here, it will be used instead of the global key for this school.</li>
+                        <li class="mb-2">Only one provider is used at a time, based on the <strong>Provider</strong> selection above.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function(){
+  const provider = document.getElementById('{{ form.provider.id_for_label }}');
+  if (!provider) return;
+
+  const sections = {
+    openai: document.getElementById('provider-openai'),
+    azure: document.getElementById('provider-azure'),
+    anthropic: document.getElementById('provider-anthropic'),
+    local: document.getElementById('provider-local')
+  };
+
+  function showOnly(key){
+    Object.keys(sections).forEach(k => {
+      if (!sections[k]) return;
+      sections[k].style.display = (k === key) ? '' : 'none';
+    });
+  }
+
+  function update(){
+    const val = (provider.value || 'openai').toLowerCase();
+    if (val === 'azure') return showOnly('azure');
+    if (val === 'anthropic') return showOnly('anthropic');
+    if (val === 'local') return showOnly('local');
+    return showOnly('openai');
+  }
+
+  provider.addEventListener('change', update);
+  update();
+})();
+</script>
+{% endblock %}

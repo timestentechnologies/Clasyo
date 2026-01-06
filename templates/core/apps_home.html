@@ -16,6 +16,9 @@
     <link rel="apple-touch-icon" sizes="192x192" href="{% static 'images/erpupdated.png' %}">
     <link rel="apple-touch-icon" sizes="512x512" href="{% static 'images/erpupdated.png' %}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS for modal styling -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -353,6 +356,13 @@
             <a href="/school/{{ school_slug }}/library/my-books/" class="app-card" data-name="mybooks"><div class="app-icon"><i class="fas fa-book"></i></div><p class="app-name">My Books</p></a>
             <a href="/school/{{ school_slug }}/certificates/" class="app-card" data-name="certificates"><div class="app-icon"><i class="fas fa-certificate"></i></div><p class="app-name">Certificates</p></a>
             {% endif %}
+
+            {% if user.role in 'admin,teacher' %}
+            <a href="#" class="app-card" data-name="ai-assistant" data-bs-toggle="modal" data-bs-target="#aiChatModal">
+                <div class="app-icon"><i class="fas fa-robot"></i></div>
+                <p class="app-name">AI Assistant</p>
+            </a>
+            {% endif %}
             {% if user.role == 'parent' %}
             <a href="{% url 'core:my_children' school_slug=school_slug %}" class="app-card" data-name="children"><div class="app-icon"><i class="fas fa-users"></i></div><p class="app-name">My Children</p></a>
             <a href="/school/{{ school_slug }}/hr/teachers/" class="app-card" data-name="teachers"><div class="app-icon"><i class="fas fa-chalkboard-teacher"></i></div><p class="app-name">Teachers</p></a>
@@ -372,6 +382,11 @@
     </div>
     
     <script src="{% static 'js/theme-switcher.js' %}"></script>
+
+    {% if user.is_authenticated and user.is_school_admin or user.is_authenticated and user.is_teacher %}
+        {% include 'ai/chat_modal.html' %}
+    {% endif %}
+
     <script>
         // Initialize theme from localStorage or system preference
         function initTheme() {
