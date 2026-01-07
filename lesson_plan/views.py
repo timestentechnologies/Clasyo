@@ -297,6 +297,12 @@ class LessonPlanUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             return super(LessonPlanUpdateView, self).form_valid(form)
         else:
             return self.form_invalid(form)
+    
+    def get_success_url(self):
+        return reverse('lesson_plan:detail', kwargs={
+            'school_slug': self.kwargs.get('school_slug', ''),
+            'pk': self.object.pk
+        })
 
 
 class LessonPlanDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):

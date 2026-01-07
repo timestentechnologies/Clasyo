@@ -250,6 +250,18 @@ CKEDITOR_CONFIGS = {
         'toolbar': 'full',
         'height': 300,
         'width': '100%',
+        'extraPlugins': 'colorbutton,colordialog,font,justify,showblocks',
+        'removePlugins': 'save,newpage,preview,print,templates',
+        'allowedContent': True,
+        'forcePasteAsPlainText': False,
+        'basicEntities': False,
+        'entities': False,
+        'entities_greek': False,
+        'entities_latin': False,
+        'htmlEncodeOutput': False,
+        'fillEmptyBlocks': False,
+        'tabSpaces': 4,
+        'versionCheck': False,
     },
 }
 
