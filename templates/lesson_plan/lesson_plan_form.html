@@ -391,7 +391,16 @@
         $('.rich-editor').each(function() {
             CKEDITOR.replace(this.id, {
                 height: 150,
-                removeButtons: 'Source'
+                toolbar: [
+                    { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike', '-', 'RemoveFormat'] },
+                    { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote'] },
+                    { name: 'links', items: ['Link', 'Unlink'] },
+                    { name: 'insert', items: ['Image', 'Table', 'HorizontalRule', 'SpecialChar'] },
+                    { name: 'styles', items: ['Styles', 'Format'] },
+                    { name: 'colors', items: ['TextColor', 'BGColor'] },
+                    { name: 'tools', items: ['Maximize', 'ShowBlocks'] }
+                ],
+                removePlugins: 'elementspath,save,newpage,preview,print,templates'
             });
         });
         
@@ -457,7 +466,16 @@
                 template.find(".rich-editor").each(function() {
                     CKEDITOR.replace(this.id, {
                         height: 150,
-                        removeButtons: 'Source'
+                        toolbar: [
+                            { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike', '-', 'RemoveFormat'] },
+                            { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote'] },
+                            { name: 'links', items: ['Link', 'Unlink'] },
+                            { name: 'insert', items: ['Image', 'Table', 'HorizontalRule', 'SpecialChar'] },
+                            { name: 'styles', items: ['Styles', 'Format'] },
+                            { name: 'colors', items: ['TextColor', 'BGColor'] },
+                            { name: 'tools', items: ['Maximize', 'ShowBlocks'] }
+                        ],
+                        removePlugins: 'elementspath,save,newpage,preview,print,templates'
                     });
                 });
             } else {
