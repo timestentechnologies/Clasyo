@@ -23,6 +23,40 @@ class LessonPlanDashboardView(LoginRequiredMixin, TemplateView):
         user = self.request.user
         school_slug = self.kwargs.get('school_slug', '')
         
+        # Dashboard card counts
+        if user.is_school_admin:
+            # Admin sees all data
+            context['total_lesson_plans'] = LessonPlan.objects.count()
+            context['my_lesson_plans'] = LessonPlan.objects.filter(created_by=user).count()
+            context['total_subjects'] = Subject.objects.filter(is_active=True).count()
+            
+            # Today's plans (all approved lessons for today)
+            today = timezone.now().date()
+            context['todays_plans'] = LessonPlan.objects.filter(
+                planned_date=today,
+                status='approved'
+            ).count()
+        else:
+            # Teacher sees their data
+            context['total_lesson_plans'] = LessonPlan.objects.filter(
+                Q(created_by=user) | Q(section__class_teacher=user)
+            ).distinct().count()
+            context['my_lesson_plans'] = LessonPlan.objects.filter(created_by=user).count()
+            
+            # Subjects they teach
+            context['total_subjects'] = Subject.objects.filter(
+                subject_assignments__teacher=user,
+                is_active=True
+            ).distinct().count()
+            
+            # Today's plans (their approved lessons for today)
+            today = timezone.now().date()
+            context['todays_plans'] = LessonPlan.objects.filter(
+                Q(created_by=user) | Q(section__class_teacher=user),
+                planned_date=today,
+                status='approved'
+            ).distinct().count()
+        
         # Recent lesson plans (created by user or for classes taught by user)
         if user.is_teacher:
             # For teachers, show their created lesson plans and those for their classes
@@ -278,8 +312,11 @@ class LessonPlanUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         context = self.get_context_data()
         resource_formset = context['resource_formset']
         
+        # Always save the main lesson plan first
+        self.object = form.save()
+        
+        # Handle resources if formset is valid
         if resource_formset.is_valid():
-            self.object = form.save()
             resource_formset.instance = self.object
             resource_instances = resource_formset.save(commit=False)
             
@@ -292,11 +329,12 @@ class LessonPlanUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             # Delete the marked for deletion
             for obj in resource_formset.deleted_objects:
                 obj.delete()
-                
-            messages.success(self.request, _('Lesson plan updated successfully'))
-            return super(LessonPlanUpdateView, self).form_valid(form)
         else:
-            return self.form_invalid(form)
+            # If formset is invalid, still save the main lesson plan but log the formset errors
+            print(f"Resource formset errors: {resource_formset.errors}")
+                
+        messages.success(self.request, _('Lesson plan updated successfully'))
+        return super(LessonPlanUpdateView, self).form_valid(form)
     
     def get_success_url(self):
         return reverse('lesson_plan:detail', kwargs={

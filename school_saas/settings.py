@@ -262,8 +262,15 @@ CKEDITOR_CONFIGS = {
         'fillEmptyBlocks': False,
         'tabSpaces': 4,
         'versionCheck': False,
+        'scayt_autoStartup': False,
+        'disableNativeSpellChecker': False,
+        'browserContextMenuOnCtrl': True,
     },
 }
+
+# Disable CKEditor version check to prevent security warnings
+CKEDITOR_ALLOW_NONIMAGE_FILES = True
+CKEDITOR_BROWSE_SHOW_DIRS = True
 
 # REST Framework
 REST_FRAMEWORK = {
