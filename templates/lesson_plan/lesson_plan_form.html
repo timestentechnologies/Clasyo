@@ -387,22 +387,38 @@
     
     $(document).ready(function() {
         debug('Document ready fired');
-        // Initialize rich text editors
-        $('.rich-editor').each(function() {
-            CKEDITOR.replace(this.id, {
-                height: 150,
-                toolbar: [
-                    { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike', '-', 'RemoveFormat'] },
-                    { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote'] },
-                    { name: 'links', items: ['Link', 'Unlink'] },
-                    { name: 'insert', items: ['Image', 'Table', 'HorizontalRule', 'SpecialChar'] },
-                    { name: 'styles', items: ['Styles', 'Format'] },
-                    { name: 'colors', items: ['TextColor', 'BGColor'] },
-                    { name: 'tools', items: ['Maximize', 'ShowBlocks'] }
-                ],
-                removePlugins: 'elementspath,save,newpage,preview,print,templates'
-            });
-        });
+        
+        // Wait for CKEditor to be available
+        function initializeCKEditor() {
+            console.log('CKEDITOR available:', typeof CKEDITOR !== 'undefined');
+            console.log('Rich editor elements found:', $('.rich-editor').length);
+            
+            if (typeof CKEDITOR !== 'undefined') {
+                // Initialize rich text editors
+                $('.rich-editor').each(function() {
+                    console.log('Attempting to replace CKEditor for ID:', this.id);
+                    CKEDITOR.replace(this.id, {
+                        height: 150,
+                        toolbar: [
+                            { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike', '-', 'RemoveFormat'] },
+                            { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote'] },
+                            { name: 'links', items: ['Link', 'Unlink'] },
+                            { name: 'insert', items: ['Image', 'Table', 'HorizontalRule', 'SpecialChar'] },
+                            { name: 'styles', items: ['Styles', 'Format'] },
+                            { name: 'colors', items: ['TextColor', 'BGColor'] },
+                            { name: 'tools', items: ['Maximize', 'ShowBlocks'] }
+                        ],
+                        removePlugins: 'elementspath,save,newpage,preview,print,templates'
+                    });
+                });
+            } else {
+                console.error('CKEditor not loaded yet, retrying...');
+                setTimeout(initializeCKEditor, 500);
+            }
+        }
+        
+        // Start initialization
+        initializeCKEditor();
         
         // Initialize Select2
         if($.fn.select2) {
@@ -416,7 +432,7 @@
             var maxForms = parseInt($("#id_" + resourceFormPrefix + "-MAX_NUM_FORMS").val() || 1000);
         } else {
             // Set defaults if management form not found
-            var resourceFormCount = $('.resource-form').length || 1;
+            var resourceFormCount = $('.resource-form').length || 0; // Start with 0 since forms are already rendered
             var maxForms = 1000;
         }
         
@@ -425,7 +441,7 @@
             e.preventDefault();
             debug('Add Resource button clicked');
             if (resourceFormCount < maxForms) {
-                var template = $(".resource-form").last().clone();
+                var template = $(".resource-form:first").clone(); // Clone first form to ensure all fields are present
                 template.find("input, select, textarea").each(function() {
                     if($(this).attr("name")) {
                         var name = $(this).attr("name").replace("-" + (resourceFormCount-1) + "-", "-" + resourceFormCount + "-");
