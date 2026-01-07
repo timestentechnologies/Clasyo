@@ -1696,8 +1696,17 @@ class AiChatApiView(LoginRequiredMixin, View):
     """Handle AI chat requests"""
 
     def post(self, request, school_slug):
+        import json
         from superadmin.models import GlobalAIConfiguration, SchoolAIConfiguration
-        prompt = request.POST.get('prompt', '').strip()
+        prompt = ''
+        if request.content_type == 'application/json':
+            try:
+                data = json.loads(request.body)
+                prompt = data.get('prompt', '').strip()
+            except (json.JSONDecodeError, TypeError):
+                prompt = ''
+        else:
+                prompt = request.POST.get('prompt', '').strip()
         if not prompt:
             return JsonResponse({'success': False, 'error': 'Prompt is required'}, status=400)
         try:
