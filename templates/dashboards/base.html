@@ -169,7 +169,36 @@
 
     <!-- Dashboard Scripts -->
     <script src="{% static 'js/dashboard.js' %}"></script>
-    
+
+    <!-- Preserve sidebar scroll position and focus active item -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var sidebar = document.getElementById('sidebar');
+            if (!sidebar) return;
+
+            try {
+                // Restore previous scroll position if available
+                var stored = sessionStorage.getItem('sidebarScrollTop');
+                if (stored !== null) {
+                    sidebar.scrollTop = parseInt(stored, 10) || 0;
+                } else {
+                    // First load: scroll active item into view if it's below the fold
+                    var activeItem = sidebar.querySelector('.sidebar-menu li.active');
+                    if (activeItem && typeof activeItem.scrollIntoView === 'function') {
+                        activeItem.scrollIntoView({ block: 'center' });
+                    }
+                }
+
+                // Save scroll position before navigating away / reload
+                window.addEventListener('beforeunload', function () {
+                    sessionStorage.setItem('sidebarScrollTop', String(sidebar.scrollTop));
+                });
+            } catch (e) {
+                // Ignore storage errors (private mode, etc.)
+            }
+        });
+    </script>
+
     {% block extra_js %}{% endblock %}
     {% block custom_js %}{% endblock %}
 </body>

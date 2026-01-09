@@ -1,5 +1,6 @@
 {% extends 'core/admin_dashboard.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Staff & Teacher Payments{% endblock %}
 {% block page_icon %}money-bill-wave{% endblock %}
@@ -104,13 +105,42 @@
     </a>
 </div>
 
+<!-- Dynamic Search and Filters -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search staff/teacher...">
+            </div>
+            <div class="col-md-3">
+                <select name="staff_type" id="staffTypeFilter" class="form-select">
+                    <option value="">All Types</option>
+                    <option value="teacher">Teachers</option>
+                    <option value="staff">Staff</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="status" id="statusFilter" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="paid">Paid</option>
+                    <option value="pending">Pending</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <a href="." class="btn btn-outline-secondary w-100">Reset</a>
+            </div>
+        </div>
+    </div>
+</div>
+
     <div class="modern-card mb-4">
         <div class="p-3">
             <div class="payment-summary">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="payment-summary-title mb-1">Total Paid</h5>
-                        <h2 class="payment-summary-amount mb-0">Ksh{{ total_payments|floatformat:2 }}</h2>
+                        <h2 class="payment-summary-amount mb-0" id="totalPaidCard">Ksh{{ total_payments|intcomma }}</h2>
                     </div>
                     <div class="payment-summary-icon">
                         <i class="fas fa-wallet fa-2x"></i>
@@ -122,7 +152,7 @@
 
 <div class="modern-card">
     <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover" id="paymentsTable">
                 <thead>
                     <tr>
                         <th>Payment #</th>
@@ -140,7 +170,7 @@
                 </thead>
                 <tbody>
                     {% for payment in payments %}
-                    <tr>
+                    <tr data-staff-name="{{ payment.staff_name|lower }}" data-staff-type="{{ payment.staff_type|lower }}" data-status="{{ payment.status|lower }}" data-payment-date="{{ payment.payment_date }}">
                         <td><strong>{{ payment.payment_number }}</strong></td>
                         <td>{{ payment.staff_name }}</td>
                         <td>
@@ -151,10 +181,10 @@
                             {% endif %}
                         </td>
                         <td>{{ payment.payment_month|date:"M Y" }}</td>
-                        <td>Ksh{{ payment.basic_salary|floatformat:2 }}</td>
-                        <td>Ksh{{ payment.allowances|floatformat:2 }}</td>
-                        <td>Ksh{{ payment.deductions|floatformat:2 }}</td>
-                        <td><strong>Ksh{{ payment.net_salary|floatformat:2 }}</strong></td>
+                        <td>Ksh{{ payment.basic_salary|intcomma }}</td>
+                        <td>Ksh{{ payment.allowances|intcomma }}</td>
+                        <td>Ksh{{ payment.deductions|intcomma }}</td>
+                        <td><strong>Ksh{{ payment.net_salary|intcomma }}</strong></td>
                         <td>{{ payment.payment_date }}</td>
                         <td>
                             {% if payment.status == 'paid' %}
@@ -313,7 +343,75 @@
 </div>
 
 <script>
-// Debug function to check data
+// Dynamic filtering for payments table
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const staffTypeFilter = document.getElementById('staffTypeFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const table = document.getElementById('paymentsTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedStaffType = staffTypeFilter.value.toLowerCase();
+        const selectedStatus = statusFilter.value.toLowerCase();
+
+        let totalPaid = 0;
+
+        for (let row of rows) {
+            const staffName = row.dataset.staffName || '';
+            const staffType = row.dataset.staffType || '';
+            const status = row.dataset.status || '';
+            const paymentDate = row.dataset.paymentDate || '';
+            
+            // Extract net salary from the row
+            const netSalaryCell = row.cells[7]; // Net salary is at index 7
+            const netSalaryText = netSalaryCell ? netSalaryCell.textContent : '0';
+            const netSalary = parseFloat(netSalaryText.replace(/[^0-9.-]/g, '')) || 0;
+
+            let showRow = true;
+
+            // Search filter
+            if (searchTerm && !staffName.includes(searchTerm)) {
+                showRow = false;
+            }
+
+            // Staff type filter
+            if (selectedStaffType && staffType !== selectedStaffType) {
+                showRow = false;
+            }
+
+            // Status filter
+            if (selectedStatus && status !== selectedStatus) {
+                showRow = false;
+            }
+
+            row.style.display = showRow ? '' : 'none';
+            
+            // Add to total if row is visible and status is 'paid'
+            if (showRow && status === 'paid') {
+                totalPaid += netSalary;
+            }
+        }
+
+        // Update summary card
+        updateSummaryCard(totalPaid);
+    }
+
+    function updateSummaryCard(totalPaid) {
+        const totalPaidCard = document.getElementById('totalPaidCard');
+        if (totalPaidCard) {
+            totalPaidCard.textContent = 'Ksh' + totalPaid.toLocaleString('en-US');
+        }
+    }
+
+    // Add event listeners for real-time filtering
+    searchInput.addEventListener('input', filterTable);
+    staffTypeFilter.addEventListener('change', filterTable);
+    statusFilter.addEventListener('change', filterTable);
+});
+
+// Parse JSON data from context
 function debugData() {
     console.log('=== DEBUG START ===');
     console.log('Teachers element exists:', !!document.getElementById('teachers-data'));

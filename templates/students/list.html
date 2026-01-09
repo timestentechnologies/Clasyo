@@ -7,17 +7,46 @@
 {% block page_subtitle %}Manage all students in your institution - {{ students|length }} students enrolled{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-end mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3">
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">
         <i class="fas fa-user-plus"></i>
         Add New Student
     </button>
 </div>
 
+<!-- Dynamic Search and Filters -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search students by name, admission, email...">
+            </div>
+            <div class="col-md-3">
+                <select name="class_filter" id="classFilter" class="form-select">
+                    <option value="">All Classes</option>
+                    {% for class in classes %}
+                    <option value="{{ class.id }}">{{ class.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="status_filter" id="statusFilter" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <a href="." class="btn btn-outline-secondary w-100">Reset</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modern-card">
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table">
+            <table class="table" id="studentsTable">
                 <thead>
                     <tr>
                         <th>Photo</th>
@@ -32,7 +61,7 @@
                 </thead>
                 <tbody>
                     {% for student in students %}
-                    <tr>
+                    <tr data-name="{{ student.get_full_name|lower }}" data-admission="{{ student.admission_number|lower }}" data-email="{{ student.email|lower }}" data-class="{{ student.current_class.id|lower }}" data-status="{% if student.is_active %}active{% else %}inactive{% endif %}">
                         <td>
                             {% if student.photo %}
                                 <img src="{{ student.photo.url }}" alt="{{ student.get_full_name }}" class="rounded-circle" style="width: 40px; height: 40px;">
@@ -548,8 +577,7 @@ function deleteStudent(id, name) {
             }
             
             if (data.success) {
-                showMessage('Success!', 'Student deleted successfully!', true);
-                setTimeout(() => location.reload(), 1500);
+                showSuccessAndReload('Student deleted successfully!');
             } else {
                 showMessage('Error', data.error || 'Failed to delete student', false);
             }
@@ -636,6 +664,53 @@ document.getElementById('addStudentModal').addEventListener('shown.bs.modal', fu
     // Mother email auto-generation
     document.getElementById('motherFirstName').addEventListener('input', updateMotherEmail);
     document.getElementById('motherLastName').addEventListener('input', updateMotherEmail);
+});
+
+// Dynamic filtering for students table
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const classFilter = document.getElementById('classFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const table = document.getElementById('studentsTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedClass = classFilter.value.toLowerCase();
+        const selectedStatus = statusFilter.value.toLowerCase();
+
+        for (let row of rows) {
+            const name = row.dataset.name || '';
+            const admission = row.dataset.admission || '';
+            const email = row.dataset.email || '';
+            const studentClass = row.dataset.class || '';
+            const status = row.dataset.status || '';
+
+            let showRow = true;
+
+            // Search filter
+            if (searchTerm && !name.includes(searchTerm) && !admission.includes(searchTerm) && !email.includes(searchTerm)) {
+                showRow = false;
+            }
+
+            // Class filter
+            if (selectedClass && studentClass !== selectedClass) {
+                showRow = false;
+            }
+
+            // Status filter
+            if (selectedStatus && status !== selectedStatus) {
+                showRow = false;
+            }
+
+            row.style.display = showRow ? '' : 'none';
+        }
+    }
+
+    // Add event listeners for real-time filtering
+    searchInput.addEventListener('input', filterTable);
+    classFilter.addEventListener('change', filterTable);
+    statusFilter.addEventListener('change', filterTable);
 });
 </script>
 {% endblock %}

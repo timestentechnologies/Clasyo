@@ -29,7 +29,26 @@ class InventoryListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
-        context['categories'] = ItemCategory.objects.filter(is_active=True)
+        # Ensure there are some default categories available
+        categories_qs = ItemCategory.objects.filter(is_active=True)
+        if not categories_qs.exists():
+            default_categories = [
+                ("Books", "stationery"),
+                ("Stationery", "stationery"),
+                ("Food Supplies", "food"),
+                ("Equipment", "equipment"),
+                ("Furniture", "furniture"),
+                ("Supplies", "supplies"),
+                ("Other", "other"),
+            ]
+            for name, cat_type in default_categories:
+                ItemCategory.objects.get_or_create(
+                    name=name,
+                    defaults={"category_type": cat_type, "is_active": True},
+                )
+            categories_qs = ItemCategory.objects.filter(is_active=True)
+
+        context['categories'] = categories_qs
         context['low_stock_items'] = Item.objects.filter(
             quantity_in_stock__lte=F('reorder_level'),
             is_active=True
@@ -55,6 +74,18 @@ class InventoryListView(LoginRequiredMixin, ListView):
                     reorder_level=request.POST.get('reorder_level', 10)
                 )
                 return JsonResponse({'success': True, 'message': 'Item added successfully'})
+
+            elif action == 'edit_item':
+                item = Item.objects.get(id=request.POST.get('item_id'))
+                item.name = request.POST.get('name')
+                item.code = request.POST.get('code')
+                item.category_id = request.POST.get('category') or None
+                item.description = request.POST.get('description', '')
+                item.unit = request.POST.get('unit', 'piece')
+                item.unit_price = request.POST.get('unit_price')
+                item.reorder_level = request.POST.get('reorder_level', 10)
+                item.save()
+                return JsonResponse({'success': True, 'message': 'Item updated successfully'})
             
             elif action == 'update_stock':
                 item = Item.objects.get(id=request.POST.get('item_id'))
@@ -234,7 +265,8 @@ class ItemDistributionView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
-        context['items'] = Item.objects.filter(is_active=True)
+        context['items'] = Item.objects.filter(is_active=True).select_related('category')
+        context['categories'] = ItemCategory.objects.filter(is_active=True)
         
         # Import models for recipient selection
         from human_resource.models import Teacher, Staff
@@ -251,6 +283,36 @@ class ItemDistributionView(LoginRequiredMixin, ListView):
             if not request.user.is_authenticated:
                 return JsonResponse({'success': False, 'error': 'Not authenticated'})
             
+            action = request.POST.get('action')
+            
+            if action == 'edit_distribution':
+                distribution = ItemDistribution.objects.get(id=request.POST.get('distribution_id'))
+                old_quantity = distribution.quantity
+                
+                # Update fields
+                distribution.item_id = request.POST.get('item_id')
+                distribution.quantity = Decimal(request.POST.get('quantity'))
+                distribution.recipient_type = request.POST.get('recipient_type')
+                distribution.recipient_id = request.POST.get('recipient_id')
+                distribution.recipient_name = request.POST.get('recipient_name')
+                distribution.distribution_date = request.POST.get('distribution_date', date.today())
+                distribution.purpose = request.POST.get('purpose', '')
+                distribution.notes = request.POST.get('notes', '')
+                distribution.save()
+                
+                # Adjust stock based on quantity change
+                item = distribution.item
+                if distribution.quantity > old_quantity:
+                    # Additional quantity taken from stock
+                    item.quantity_in_stock -= (distribution.quantity - old_quantity)
+                elif distribution.quantity < old_quantity:
+                    # Some quantity returned to stock
+                    item.quantity_in_stock += (old_quantity - distribution.quantity)
+                item.save()
+                
+                return JsonResponse({'success': True, 'message': 'Distribution updated successfully'})
+            
+            # Original distribution logic
             item = Item.objects.get(id=request.POST.get('item_id'))
             quantity = Decimal(request.POST.get('quantity'))
             

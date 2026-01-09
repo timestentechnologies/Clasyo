@@ -7,15 +7,43 @@
 {% block page_subtitle %}Manage parent accounts and information{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-end mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3">
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addParentModal">
         <i class="fas fa-user-plus"></i> Add Parent
     </button>
 </div>
 
+<!-- Dynamic Search and Filters -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search parents by name, email, phone...">
+            </div>
+            <div class="col-md-3">
+                <select name="children_filter" id="childrenFilter" class="form-select">
+                    <option value="">All Parents</option>
+                    <option value="has_children">Has Children</option>
+                    <option value="no_children">No Children</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="status_filter" id="statusFilter" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <a href="." class="btn btn-outline-secondary w-100">Reset</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modern-card">
     <div class="table-responsive">
-        <table class="table">
+        <table class="table" id="parentsTable">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -28,7 +56,7 @@
             </thead>
             <tbody>
             {% for parent in parents %}
-            <tr>
+            <tr data-name="{{ parent.get_full_name|default:parent.email|lower }}" data-email="{{ parent.email|lower }}" data-phone="{{ parent.phone|lower }}" data-children="{{ parent.children.count|default:0 }}" data-status="{% if parent.is_active %}active{% else %}inactive{% endif %}">
                 <td><strong>{{ parent.get_full_name|default:parent.email }}</strong></td>
                 <td>{{ parent.email }}</td>
                 <td>{{ parent.phone|default:"Not set" }}</td>
@@ -213,8 +241,7 @@ function submitEditParent() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('editParentModal')).hide();
-            location.reload();
+            showSuccessAndReload('Parent account updated successfully!');
         } else {
             alert(data.error || 'Failed to update parent');
         }
@@ -223,6 +250,55 @@ function submitEditParent() {
         alert('Error: ' + error.message);
     });
 }
+
+// Dynamic filtering for parents table
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const childrenFilter = document.getElementById('childrenFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const table = document.getElementById('parentsTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedChildren = childrenFilter.value.toLowerCase();
+        const selectedStatus = statusFilter.value.toLowerCase();
+
+        for (let row of rows) {
+            const name = row.dataset.name || '';
+            const email = row.dataset.email || '';
+            const phone = row.dataset.phone || '';
+            const children = row.dataset.children || '';
+            const status = row.dataset.status || '';
+
+            let showRow = true;
+
+            // Search filter
+            if (searchTerm && !name.includes(searchTerm) && !email.includes(searchTerm) && !phone.includes(searchTerm)) {
+                showRow = false;
+            }
+
+            // Children filter
+            if (selectedChildren === 'has_children' && children === '0') {
+                showRow = false;
+            } else if (selectedChildren === 'no_children' && children !== '0') {
+                showRow = false;
+            }
+
+            // Status filter
+            if (selectedStatus && status !== selectedStatus) {
+                showRow = false;
+            }
+
+            row.style.display = showRow ? '' : 'none';
+        }
+    }
+
+    // Add event listeners for real-time filtering
+    searchInput.addEventListener('input', filterTable);
+    childrenFilter.addEventListener('change', filterTable);
+    statusFilter.addEventListener('change', filterTable);
+});
 
 function viewParent(id) {
     // Get parent details

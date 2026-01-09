@@ -7,15 +7,46 @@
 {% block page_subtitle %}Manage all staff members in your institution{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-end mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3">
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStaffModal">
         <i class="fas fa-user-plus"></i> Add Staff
     </button>
 </div>
 
+<!-- Dynamic Search and Filters -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search staff by name, email...">
+            </div>
+            <div class="col-md-3">
+                <select name="role_filter" id="roleFilter" class="form-select">
+                    <option value="">All Roles</option>
+                    <option value="staff">Staff</option>
+                    <option value="accountant">Accountant</option>
+                    <option value="librarian">Librarian</option>
+                    <option value="driver">Driver</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="department_filter" id="departmentFilter" class="form-select">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <a href="." class="btn btn-outline-secondary w-100">Reset</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modern-card">
     <div class="table-responsive">
-        <table class="table">
+        <table class="table" id="staffTable">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -29,7 +60,7 @@
             </thead>
             <tbody>
             {% for member in staff %}
-            <tr>
+            <tr data-name="{{ member.get_full_name|default:member.email|lower }}" data-email="{{ member.email|lower }}" data-role="{{ member.role|lower }}" data-department="{{ member.department.name|default:'N/A'|lower }}" data-status="{% if member.is_active %}active{% else %}inactive{% endif %}">
                 <td><strong>{{ member.get_full_name|default:member.email }}</strong></td>
                 <td>{{ member.email }}</td>
                 <td>{{ member.phone|default:"Not set" }}</td>
@@ -104,6 +135,151 @@
 </div>
 
 <script>
+// Dynamic filtering for staff table - Version 2.0
+function initializeStaffFilters() {
+    console.log('Initializing staff filters v2.0...');
+    
+    // Wait for elements to be available with retry logic
+    let retryCount = 0;
+    const maxRetries = 10;
+    
+    function tryInitializeFilters() {
+        const searchInput = document.getElementById('searchInput');
+        const roleFilter = document.getElementById('roleFilter');
+        const departmentFilter = document.getElementById('departmentFilter');
+        const statusFilter = document.getElementById('statusFilter');
+        const table = document.getElementById('staffTable');
+        
+        // Debug: Check if elements exist
+        console.log('Elements found:', {
+            searchInput: !!searchInput,
+            roleFilter: !!roleFilter,
+            departmentFilter: !!departmentFilter,
+            statusFilter: !!statusFilter,
+            table: !!table
+        });
+        
+        if (!table) {
+            console.error('Staff table not found!');
+            return false;
+        }
+        
+        const tbody = table.getElementsByTagName('tbody')[0];
+        if (!tbody) {
+            console.error('Table tbody not found!');
+            return false;
+        }
+        
+        const rows = tbody.getElementsByTagName('tr');
+        console.log('Total rows found:', rows.length);
+        
+        // Check if any row has data attributes
+        let hasDataAttributes = false;
+        for (let row of rows) {
+            if (row.dataset.name || row.dataset.email || row.dataset.role || row.dataset.department || row.dataset.status) {
+                hasDataAttributes = true;
+                break;
+            }
+        }
+        
+        if (!hasDataAttributes) {
+            console.warn('No data attributes found on table rows!');
+            console.log('First row HTML:', rows[0] ? rows[0].outerHTML : 'No rows');
+        }
+
+        return { searchInput, roleFilter, departmentFilter, statusFilter, table, rows };
+    }
+    
+    function filterTable() {
+        const elements = tryInitializeFilters();
+        if (!elements) {
+            console.warn('Could not initialize filters, skipping filtering');
+            return;
+        }
+        
+        const searchInput = elements.searchInput;
+        const roleFilter = elements.roleFilter;
+        const departmentFilter = elements.departmentFilter;
+        const statusFilter = elements.statusFilter;
+        const table = elements.table;
+        const rows = elements.rows;
+        
+        const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+        const selectedRole = roleFilter ? roleFilter.value.toLowerCase() : '';
+        const selectedDepartment = departmentFilter ? departmentFilter.value.toLowerCase() : '';
+        const selectedStatus = statusFilter ? statusFilter.value.toLowerCase() : '';
+
+        console.log('Filtering with:', { searchTerm, selectedRole, selectedDepartment, selectedStatus });
+
+        let visibleCount = 0;
+        for (let row of rows) {
+            const name = row.dataset.name || '';
+            const email = row.dataset.email || '';
+            const role = row.dataset.role || '';
+            const department = row.dataset.department || '';
+            const status = row.dataset.status || '';
+
+            let showRow = true;
+
+            // Search filter
+            if (searchTerm && !name.includes(searchTerm) && !email.includes(searchTerm)) {
+                showRow = false;
+            }
+
+            // Role filter
+            if (selectedRole && role !== selectedRole) {
+                showRow = false;
+            }
+
+            // Department filter
+            if (selectedDepartment && department !== selectedDepartment) {
+                showRow = false;
+            }
+
+            // Status filter
+            if (selectedStatus && status !== selectedStatus) {
+                showRow = false;
+            }
+
+            row.style.display = showRow ? '' : 'none';
+            if (showRow) visibleCount++;
+        }
+        
+        console.log('Rows visible after filtering:', visibleCount);
+    }
+
+    // Add event listeners for real-time filtering
+    if (typeof searchInput !== 'undefined' && searchInput) searchInput.addEventListener('input', filterTable);
+    if (typeof roleFilter !== 'undefined' && roleFilter) roleFilter.addEventListener('change', filterTable);
+    if (typeof departmentFilter !== 'undefined' && departmentFilter) departmentFilter.addEventListener('change', filterTable);
+    if (typeof statusFilter !== 'undefined' && statusFilter) statusFilter.addEventListener('change', filterTable);
+}
+
+// Initialize when DOM is ready
+function initializeWhenReady() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeStaffFilters);
+    } else {
+        // DOM already loaded, initialize immediately
+        console.log('DOM already loaded, initializing immediately');
+        initializeStaffFilters();
+    }
+}
+
+// Try initialization immediately, then fallback to DOM ready
+initializeWhenReady();
+setTimeout(() => {
+    if (!document.getElementById('searchInput')) {
+        console.warn('Elements still not found after timeout, retrying...');
+        initializeStaffFilters();
+    }
+}, 1000);
+
+function showSuccessAndReload(message) {
+    document.getElementById('successMessage').innerHTML = message;
+    $('#successModal').modal('show');
+}
+
 function submitStaff() {
     const form = document.getElementById('staffForm');
     const formData = new FormData(form);

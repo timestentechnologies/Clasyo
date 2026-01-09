@@ -1,6 +1,7 @@
 {% extends 'core/admin_dashboard.html' %}
+{% load humanize %}
 {% block title %}Fee Structure{% endblock %}
-{% block page_icon %}dollar-sign{% endblock %}
+{% block page_icon %}money-bill-wave{% endblock %}
 {% block page_title %}Fee Structure{% endblock %}
 {% block page_subtitle %}Manage fee structure and payments{% endblock %}
 
@@ -15,23 +16,40 @@
 <div class="modern-card">
     <div class="table-responsive">
         <table class="table">
-            <thead><tr><th>Fee Name</th><th>Class</th><th>Type</th><th>Amount</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Class</th><th>Fee Structure</th><th>Total Amount (Ksh)</th><th>Actions</th></tr></thead>
     <tbody>
-        {% for fee in fee_structures %}
+        {% regroup fee_structures by class_name as class_group %}
+        {% for class_item in class_group %}
         <tr>
-            <td><strong>{{ fee.name }}</strong></td>
-            <td>{{ fee.class_name.name }}</td>
-            <td>{{ fee.fee_type }}</td>
-            <td>${{ fee.amount }}</td>
-            <td>
-                <button class="btn btn-sm btn-primary" onclick="editFee({{ fee.pk }})"><i class="fas fa-edit"></i></button>
-                <button class="btn btn-sm btn-danger" onclick="deleteFee({{ fee.pk }}, '{{ fee.name }}')"><i class="fas fa-trash"></i></button>
+            <td rowspan="{{ class_item.list|length }}" class="align-middle">
+                <strong>{{ class_item.grouper.name }}</strong>
+                <br>
+                <small class="text-muted">{{ class_item.list|length }} fee{{ class_item.list|length|pluralize }}</small>
             </td>
-        </tr>
+            {% for fee in class_item.list %}
+                {% if not forloop.first %}
+                <tr>
+                {% endif %}
+                    <td>
+                        <div class="mb-2">
+                            <strong>{{ fee.name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ fee.fee_type }}</small>
+                        </div>
+                    </td>
+                    <td>Ksh {{ fee.amount|floatformat:0|intcomma }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="editFee({{ fee.pk }})"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteFee({{ fee.pk }}, '{{ fee.name }}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                {% if forloop.last %}
+                </tr>
+                {% endif %}
+            {% endfor %}
         {% empty %}
         <tr>
-            <td colspan="5" class="text-center py-5">
-                <i class="fas fa-dollar-sign fa-3x text-muted mb-3 d-block"></i>
+            <td colspan="4" class="text-center py-5">
+                <i class="fas fa-money-bill-wave fa-3x text-muted mb-3 d-block"></i>
                 <p class="text-muted mb-0">No fee structures found.</p>
             </td>
         </tr>

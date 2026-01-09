@@ -16,9 +16,40 @@
     </a>
 </div>
 
+<!-- Dynamic Search and Filters -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search by item, recipient, purpose...">
+            </div>
+            <div class="col-md-3">
+                <select id="categoryFilter" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}">{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select id="recipientTypeFilter" class="form-select">
+                    <option value="">All Recipient Types</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="staff">Staff</option>
+                    <option value="student">Student</option>
+                    <option value="department">Department</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <a href="." class="btn btn-outline-secondary w-100">Reset</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modern-card">
     <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover" id="distributionTable">
                 <thead>
                     <tr>
                         <th>Date</th>
@@ -32,7 +63,16 @@
                 </thead>
                 <tbody>
                     {% for dist in distributions %}
-                    <tr>
+                    <tr
+                        data-item-id="{{ dist.item.id }}"
+                        data-item="{{ dist.item.name|lower }}"
+                        data-item-code="{{ dist.item.code|lower }}"
+                        data-category-id="{{ dist.item.category.id|default:'' }}"
+                        data-category-name="{{ dist.item.category.name|default:''|lower }}"
+                        data-recipient-type="{{ dist.recipient_type|lower }}"
+                        data-recipient="{{ dist.recipient_name|lower }}"
+                        data-purpose="{{ dist.purpose|default:''|lower }}"
+                        data-distributed-by="{{ dist.distributed_by.get_full_name|default:''|lower }}">
                         <td>{{ dist.distribution_date }}</td>
                         <td>
                             <strong>{{ dist.item.name }}</strong><br>
@@ -53,14 +93,48 @@
                         <td>{{ dist.recipient_name }}</td>
                         <td>{{ dist.purpose|default:"-" }}</td>
                         <td>{{ dist.distributed_by.get_full_name|default:"-" }}</td>
+                        <td>
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary edit-distribution-btn"
+                                data-distribution-id="{{ dist.id }}"
+                                data-item-id="{{ dist.item.id }}"
+                                data-quantity="{{ dist.quantity }}"
+                                data-recipient-type="{{ dist.recipient_type }}"
+                                data-recipient-id="{{ dist.recipient_id|default:'' }}"
+                                data-recipient-name="{{ dist.recipient_name|escapejs }}"
+                                data-distribution-date="{{ dist.distribution_date|date:'Y-m-d' }}"
+                                data-purpose="{{ dist.purpose|escapejs }}"
+                                data-notes="{{ dist.notes|escapejs }}">
+                                <i class="fas fa-pen"></i> Edit
+                            </button>
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="text-center">No distribution records found.</td>
+                        <td colspan="8" class="text-center">No distribution records found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title">Success</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="successMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -137,6 +211,87 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">Distribute Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Distribution Modal -->
+<div class="modal fade" id="editDistributionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Distribution</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editDistributionForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit_distribution">
+                <input type="hidden" name="distribution_id" id="edit_distribution_id">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Item *</label>
+                            <select name="item_id" id="edit_item_select" class="form-control" required>
+                                <option value="">Select Item</option>
+                                {% for item in items %}
+                                <option value="{{ item.id }}" data-stock="{{ item.quantity_in_stock }}" data-unit="{{ item.unit }}">
+                                    {{ item.name }} ({{ item.code }}) - Stock: {{ item.quantity_in_stock }} {{ item.unit }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Quantity *</label>
+                            <input type="number" name="quantity" id="edit_quantity" class="form-control" step="0.01" required>
+                            <small class="text-muted">Available: <span id="edit_available_stock">0</span> <span id="edit_stock_unit"></span></small>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Recipient Type *</label>
+                            <select name="recipient_type" id="edit_recipient_type" class="form-control" required>
+                                <option value="">Select Type</option>
+                                <option value="teacher">Teacher</option>
+                                <option value="staff">Staff</option>
+                                <option value="student">Student</option>
+                                <option value="department">Department</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Select Recipient *</label>
+                            <select name="recipient_id" id="edit_recipient_select" class="form-control" required>
+                                <option value="">Select Recipient</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Distribution Date *</label>
+                            <input type="date" name="distribution_date" id="edit_distribution_date" class="form-control" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Purpose</label>
+                            <input type="text" name="purpose" id="edit_purpose" class="form-control" placeholder="e.g., Teaching materials, Office supplies">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" id="edit_notes" class="form-control" rows="2"></textarea>
+                    </div>
+                    
+                    <input type="hidden" name="recipient_name" id="edit_recipient_name_hidden">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
             </form>
         </div>
@@ -226,8 +381,7 @@ document.getElementById('distributeForm').addEventListener('submit', function(e)
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('Item distributed successfully!');
-            location.reload();
+            showSuccessAndReload('Item distributed successfully!');
         } else {
             alert('Error: ' + data.error);
         }
@@ -235,6 +389,174 @@ document.getElementById('distributeForm').addEventListener('submit', function(e)
     .catch(error => {
         alert('Error: ' + error.message);
     });
+});
+
+// Edit Distribution: update available stock when item is selected
+document.getElementById('edit_item_select').addEventListener('change', function() {
+    const selected = this.options[this.selectedIndex];
+    const stock = selected.getAttribute('data-stock');
+    const unit = selected.getAttribute('data-unit');
+    document.getElementById('edit_available_stock').textContent = stock || '0';
+    document.getElementById('edit_stock_unit').textContent = unit || '';
+});
+
+// Edit Distribution: populate recipient dropdown based on type
+document.getElementById('edit_recipient_type').addEventListener('change', function() {
+    const recipientSelect = document.getElementById('edit_recipient_select');
+    recipientSelect.innerHTML = '<option value="">Select Recipient</option>';
+    
+    const type = this.value;
+    let options = [];
+    
+    if (type === 'teacher') {
+        options = teachers;
+    } else if (type === 'staff') {
+        options = staff;
+    } else if (type === 'student') {
+        options = students;
+    } else if (type === 'department') {
+        departments.forEach(function(dept) {
+            const option = document.createElement('option');
+            option.value = dept.id;
+            option.textContent = dept.name;
+            option.dataset.name = dept.name;
+            recipientSelect.appendChild(option);
+        });
+    }
+    
+    options.forEach(function(item) {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.name;
+        option.dataset.name = item.name;
+        recipientSelect.appendChild(option);
+    });
+    
+    // Update hidden recipient name when selection changes
+    recipientSelect.addEventListener('change', function() {
+        const selected = this.options[this.selectedIndex];
+        document.getElementById('edit_recipient_name_hidden').value = selected.dataset.name || selected.textContent;
+    });
+});
+
+// Edit Distribution form submission
+document.getElementById('editDistributionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch(window.location.pathname, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessAndReload('Distribution updated successfully!');
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
+});
+
+// Open Edit Distribution modal with data
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.edit-distribution-btn');
+    if (!btn) return;
+
+    document.getElementById('edit_distribution_id').value = btn.dataset.distributionId || '';
+    document.getElementById('edit_item_select').value = btn.dataset.itemId || '';
+    document.getElementById('edit_quantity').value = btn.dataset.quantity || '';
+    document.getElementById('edit_recipient_type').value = btn.dataset.recipientType || '';
+    document.getElementById('edit_distribution_date').value = btn.dataset.distributionDate || '';
+    document.getElementById('edit_purpose').value = btn.dataset.purpose || '';
+    document.getElementById('edit_notes').value = btn.dataset.notes || '';
+    document.getElementById('edit_recipient_name_hidden').value = btn.dataset.recipientName || '';
+
+    // Trigger change events to populate recipient dropdown and update stock display
+    document.getElementById('edit_item_select').dispatchEvent(new Event('change'));
+    document.getElementById('edit_recipient_type').dispatchEvent(new Event('change'));
+
+    // Set recipient selection if recipient_id is present
+    const recipientId = btn.dataset.recipientId;
+    if (recipientId) {
+        setTimeout(() => {
+            document.getElementById('edit_recipient_select').value = recipientId;
+        }, 100);
+    }
+
+    new bootstrap.Modal(document.getElementById('editDistributionModal')).show();
+});
+
+function showSuccessAndReload(message) {
+    document.getElementById('successMessage').innerHTML = message;
+    $('#successModal').modal('show');
+}
+
+// Dynamic filtering for distribution table
+document.addEventListener('DOMContentLoaded', function() {
+    var searchInput = document.getElementById('searchInput');
+    var categoryFilter = document.getElementById('categoryFilter');
+    var recipientTypeFilter = document.getElementById('recipientTypeFilter');
+    var table = document.getElementById('distributionTable');
+
+    if (!table) {
+        return;
+    }
+
+    var tbody = table.getElementsByTagName('tbody')[0];
+    if (!tbody) {
+        return;
+    }
+
+    var rows = tbody.getElementsByTagName('tr');
+
+    function filterTable() {
+        var searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+        var selectedCategory = categoryFilter ? categoryFilter.value : '';
+        var selectedRecipientType = recipientTypeFilter ? recipientTypeFilter.value.toLowerCase() : '';
+
+        for (var i = 0; i < rows.length; i++) {
+            var row = rows[i];
+            var item = (row.dataset.item || '').toLowerCase();
+            var itemCode = (row.dataset.itemCode || '').toLowerCase();
+            var recipient = (row.dataset.recipient || '').toLowerCase();
+            var purpose = (row.dataset.purpose || '').toLowerCase();
+            var distributedBy = (row.dataset.distributedBy || '').toLowerCase();
+            var categoryId = row.dataset.categoryId || '';
+            var categoryName = (row.dataset.categoryName || '').toLowerCase();
+            var recipientType = (row.dataset.recipientType || '').toLowerCase();
+
+            var show = true;
+
+            if (searchTerm) {
+                if (item.indexOf(searchTerm) === -1 &&
+                    itemCode.indexOf(searchTerm) === -1 &&
+                    categoryName.indexOf(searchTerm) === -1 &&
+                    recipient.indexOf(searchTerm) === -1 &&
+                    purpose.indexOf(searchTerm) === -1 &&
+                    distributedBy.indexOf(searchTerm) === -1) {
+                    show = false;
+                }
+            }
+
+            if (selectedCategory && categoryId !== selectedCategory) {
+                show = false;
+            }
+
+            if (selectedRecipientType && recipientType !== selectedRecipientType) {
+                show = false;
+            }
+
+            row.style.display = show ? '' : 'none';
+        }
+    }
+
+    if (searchInput) searchInput.addEventListener('input', filterTable);
+    if (categoryFilter) categoryFilter.addEventListener('change', filterTable);
+    if (recipientTypeFilter) recipientTypeFilter.addEventListener('change', filterTable);
 });
 </script>
 {% endblock %}

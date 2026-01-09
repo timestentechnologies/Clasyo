@@ -263,6 +263,31 @@ class DepartmentCreateView(LoginRequiredMixin, View):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
+class DepartmentUpdateView(LoginRequiredMixin, View):
+    model = Department
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            pk = kwargs.get('pk')
+            department = Department.objects.get(pk=pk)
+            
+            name = request.POST.get('name')
+            code = request.POST.get('code')
+            description = request.POST.get('description', '')
+            
+            department.name = name
+            department.code = code
+            department.description = description
+            department.save()
+            
+            return JsonResponse({'success': True})
+        except Department.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Department not found'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+
+@method_decorator(csrf_exempt, name='dispatch')
 class DepartmentDeleteView(LoginRequiredMixin, View):
     model = Department
     

@@ -1,5 +1,6 @@
 {% extends 'core/admin_dashboard.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block page_icon %}hand-holding-usd{% endblock %}
 {% block page_title %}Collect Fees{% endblock %}
@@ -67,28 +68,90 @@
 {% endblock %}
 
 {% block content %}
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm border-start border-4" style="border-left-color: #00bcd4 !important;">
+            <div class="card-body">
+                <h6 class="text-muted mb-1">Total Expected Fees</h6>
+                <h2 class="mb-0" id="totalExpectedCard">Ksh {{ total_expected|intcomma|default:"0" }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm border-start border-4" style="border-left-color: #00bcd4 !important;">
+            <div class="card-body">
+                <h6 class="text-muted mb-1">Total Collected</h6>
+                <h2 class="mb-0" id="totalCollectedCard">Ksh {{ total_collected|intcomma|default:"0" }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm border-start border-4" style="border-left-color: #00bcd4 !important;">
+            <div class="card-body">
+                <h6 class="text-muted mb-1">Remaining to Collect</h6>
+                <h2 class="mb-0" id="totalRemainingCard">Ksh {{ total_remaining|intcomma|default:"0" }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="row g-2">
+            <div class="col-md-3">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search students...">
+            </div>
+            <div class="col-md-3">
+                <select name="class_id" id="classFilter" class="form-select">
+                    <option value="">All Classes</option>
+                    {% for class_obj in classes %}
+                    <option value="{{ class_obj.id }}" {% if class_obj.id|stringformat:"s" == selected_class_id %}selected{% endif %}>
+                        {{ class_obj.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="balance_status" id="balanceFilter" class="form-select">
+                    <option value="">All Students</option>
+                    <option value="with_balance" {% if selected_balance_status == 'with_balance' %}selected{% endif %}>Students with Balances</option>
+                    <option value="fully_paid" {% if selected_balance_status == 'fully_paid' %}selected{% endif %}>Fully Paid Students</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <a href="." class="btn btn-outline-secondary w-100">Reset</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modern-card">
     <div class="table-responsive">
-        <table class="table">
+        <table class="table" id="paymentsTable">
             <thead>
                 <tr>
                     <th>Date</th>
                     <th>Student</th>
                     <th>Class</th>
                     <th>Fee Type</th>
-                    <th>Amount</th>
+                    <th>Amount (Ksh)</th>
+                    <th>Balance (Ksh)</th>
                     <th>Method</th>
                     <th>Status</th>
                 </tr>
             </thead>
             <tbody>
             {% for payment in payments %}
-            <tr>
+            <tr data-student-name="{{ payment.student.get_full_name|lower }}" data-class="{{ payment.student.current_class.name|default:'-'|lower }}" data-class-id="{{ payment.student.current_class.id|default:'-' }}" data-balance-status="{% if payment.running_balance > 0 %}with_balance{% else %}fully_paid{% endif %}">
                 <td>{{ payment.payment_date|date:"M d, Y" }}</td>
                 <td>{{ payment.student.get_full_name }}</td>
                 <td>{{ payment.student.current_class.name|default:"-" }}</td>
                 <td>{{ payment.fee_structure.name }}</td>
-                <td>${{ payment.paid_amount }}</td>
+                <td>Ksh {{ payment.paid_amount|floatformat:0|intcomma }}</td>
+                <td>
+                    Ksh {{ payment.running_balance|floatformat:0|intcomma|default:"0" }}
+                    {% if payment.is_current_balance %}<span class="badge bg-success ms-1">Current</span>{% endif %}
+                </td>
                 <td><span class="badge bg-info">{{ payment.payment_method }}</span></td>
                 <td>
                     {% if payment.payment_status == 'paid' %}
@@ -104,12 +167,22 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="7" class="text-center py-4">
+                <td colspan="8" class="text-center py-4">
                     <i class="fas fa-money-bill-wave fa-3x text-muted mb-3"></i>
                     <p class="text-muted">No fee payments recorded</p>
                 </td>
             </tr>
             {% endfor %}
+            
+            <!-- Totals Row -->
+            {% if payments %}
+            <tr class="table-primary fw-bold">
+                <td colspan="4">TOTALS</td>
+                <td>Ksh {{ table_total_collected|floatformat:0|intcomma }}</td>
+                <td>-</td>
+                <td colspan="2">-</td>
+            </tr>
+            {% endif %}
             </tbody>
         </table>
     </div>
@@ -127,7 +200,7 @@
                     {% csrf_token %}
                     <div class="mb-3">
                         <label>Student *</label>
-                        <select name="student_id" class="form-control" required>
+                        <select name="student_id" class="form-control" required id="studentSelect">
                             <option value="">Select Student</option>
                             {% for student in students %}
                             <option value="{{ student.id }}">{{ student.get_full_name }} - {{ student.admission_number }}</option>
@@ -136,16 +209,38 @@
                     </div>
                     <div class="mb-3">
                         <label>Fee Type *</label>
-                        <select name="fee_structure_id" class="form-control" required>
+                        <select name="fee_structure_id" class="form-control" required id="feeStructureSelect">
                             <option value="">Select Fee Type</option>
                             {% for fee in fee_structures %}
-                            <option value="{{ fee.id }}">{{ fee.name }} - ${{ fee.amount }}</option>
+                            <option value="{{ fee.id }}" data-amount="{{ fee.amount }}" data-fee-type="{{ fee.fee_type }}">{{ fee.name }} - Ksh {{ fee.amount|floatformat:0|intcomma }}</option>
                             {% endfor %}
                         </select>
                     </div>
+                    <div class="mb-3" id="balanceDisplay" style="display: none;">
+                        <div class="alert alert-info mb-2">
+                            <strong>Student Balance Information:</strong><br>
+                            <span id="balanceText"></span>
+                        </div>
+                    </div>
+                    <div class="mb-3" id="paymentHistoryDisplay" style="display: none;">
+                        <h6>Payment History</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm" id="paymentHistoryTable">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Amount Paid</th>
+                                        <th>Balance After</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="paymentHistoryBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                     <div class="mb-3">
-                        <label>Amount *</label>
-                        <input type="number" name="amount_paid" class="form-control" required step="0.01">
+                        <label>Amount (Ksh) *</label>
+                        <input type="number" name="amount_paid" class="form-control" required step="0.01" id="amountInput">
                     </div>
                     <div class="mb-3">
                         <label>Payment Date *</label>
@@ -194,21 +289,178 @@
 </div>
 
 <script>
-function submitPayment() {
-    const form = document.getElementById('feePaymentForm');
-    const formData = new FormData(form);
+// Ultra-simple test to see if JavaScript is working
+console.log('=== SCRIPT START ===');
+
+// Store student data safely at the top level
+let studentsFeeData = [];
+
+window.addEventListener('load', function() {
+    console.log('Window loaded');
     
-    fetch(window.location.pathname, {
-        method: 'POST',
-        body: formData,
-        headers: {'X-CSRFToken': '{{ csrf_token }}'}
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        }
+    const searchInput = document.getElementById('searchInput');
+    const classFilter = document.getElementById('classFilter');
+    const balanceFilter = document.getElementById('balanceFilter');
+    const table = document.getElementById('paymentsTable');
+    
+    console.log('Elements found:', {
+        searchInput: !!searchInput,
+        classFilter: !!classFilter,
+        balanceFilter: !!balanceFilter,
+        table: !!table
     });
-}
+    
+    // Try to load student data safely
+    try {
+        const dataElement = document.createElement('div');
+        dataElement.textContent = '{{ students_fee_data|escapejs }}';
+        const jsonString = dataElement.textContent;
+        
+        if (jsonString && jsonString !== '[]' && jsonString !== '') {
+            studentsFeeData = JSON.parse(jsonString);
+            console.log('Student data loaded:', studentsFeeData.length, 'students');
+        } else {
+            console.log('No student data available');
+        }
+    } catch (e) {
+        console.error('Error loading student data:', e);
+        studentsFeeData = [];
+    }
+    
+    if (table) {
+        const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+        console.log('Found', rows.length, 'table rows');
+        
+        // Simple search test
+        if (searchInput) {
+            searchInput.oninput = function() {
+                console.log('Search input changed to:', this.value);
+                const searchTerm = this.value.toLowerCase();
+                
+                for (let i = 0; i < rows.length; i++) {
+                    const row = rows[i];
+                    const studentName = (row.dataset.studentName || '').toLowerCase();
+                    
+                    if (searchTerm && !studentName.includes(searchTerm)) {
+                        row.style.display = 'none';
+                    } else {
+                        row.style.display = '';
+                    }
+                }
+                
+                console.log('Table filtered for:', searchTerm);
+                
+                // Update summary cards with complete data
+                updateSummaryCards();
+            };
+        }
+        
+        // Simple class filter test
+        if (classFilter) {
+            classFilter.onchange = function() {
+                console.log('Class filter changed to:', this.value);
+                const selectedClass = this.value;
+                
+                for (let i = 0; i < rows.length; i++) {
+                    const row = rows[i];
+                    const classId = row.dataset.classId || '';
+                    
+                    if (selectedClass && classId !== selectedClass) {
+                        row.style.display = 'none';
+                    } else {
+                        row.style.display = '';
+                    }
+                }
+                
+                console.log('Table filtered for class:', selectedClass);
+                
+                // Update summary cards with complete data
+                updateSummaryCards();
+            };
+        }
+        
+        // Simple balance filter
+        if (balanceFilter) {
+            balanceFilter.onchange = function() {
+                console.log('Balance filter changed to:', this.value);
+                const selectedBalance = this.value;
+                
+                for (let i = 0; i < rows.length; i++) {
+                    const row = rows[i];
+                    const balanceStatus = row.dataset.balanceStatus || '';
+                    
+                    if (selectedBalance && balanceStatus !== selectedBalance) {
+                        row.style.display = 'none';
+                    } else {
+                        row.style.display = '';
+                    }
+                }
+                
+                console.log('Table filtered for balance:', selectedBalance);
+                
+                // Update summary cards with complete data
+                updateSummaryCards();
+            };
+        }
+        
+        // Update summary cards function using complete student data
+        function updateSummaryCards() {
+            // Get current filter values
+            const searchTerm = searchInput.value.toLowerCase();
+            const selectedClass = classFilter.value;
+            const selectedBalance = balanceFilter.value;
+            
+            let totalExpected = 0;
+            let totalCollected = 0;
+            let totalRemaining = 0;
+            
+            // Calculate totals from complete student data (includes unpaid students)
+            for (const studentData of studentsFeeData) {
+                const studentName = (studentData.student_name || '').toLowerCase();
+                const classId = (studentData.class_id || '').toString();
+                const balance = studentData.balance || 0;
+                const hasBalance = balance > 0;
+                
+                let showStudent = true;
+                
+                // Apply same filter logic as table
+                if (searchTerm && !studentName.includes(searchTerm)) {
+                    showStudent = false;
+                }
+                
+                if (selectedClass && classId !== selectedClass) {
+                    showStudent = false;
+                }
+                
+                if (selectedBalance === 'with_balance' && !hasBalance) {
+                    showStudent = false;
+                } else if (selectedBalance === 'fully_paid' && hasBalance) {
+                    showStudent = false;
+                }
+                
+                if (showStudent) {
+                    totalExpected += studentData.fee_amount || 0;
+                    totalCollected += studentData.paid_amount || 0;
+                    totalRemaining += studentData.balance || 0;
+                }
+            }
+            
+            // Update cards with null checks
+            const expectedCard = document.getElementById('totalExpectedCard');
+            const collectedCard = document.getElementById('totalCollectedCard');
+            const remainingCard = document.getElementById('totalRemainingCard');
+            
+            if (expectedCard) expectedCard.textContent = `Ksh ${totalExpected.toLocaleString()}`;
+            if (collectedCard) collectedCard.textContent = `Ksh ${totalCollected.toLocaleString()}`;
+            if (remainingCard) remainingCard.textContent = `Ksh ${totalRemaining.toLocaleString()}`;
+            
+            console.log('Updated cards from complete data:', {totalExpected, totalCollected, totalRemaining});
+        }
+    } else {
+        console.error('Table not found');
+    }
+});
+
+console.log('=== SCRIPT END ===');
 </script>
 {% endblock %}

@@ -29,7 +29,7 @@
                 <td><span class="badge bg-secondary">{{ dept.code }}</span></td>
                 <td>{{ dept.description|default:"No description"|truncatewords:10 }}</td>
                 <td>
-                    <button class="btn btn-sm btn-primary" onclick="editDept({{ dept.pk }})">
+                    <button class="btn btn-sm btn-primary" onclick="editDept({{ dept.pk }}, event)">
                         <i class="fas fa-edit"></i>
                     </button>
                     <button class="btn btn-sm btn-danger" onclick="deleteDepartment({{ dept.pk }}, '{{ dept.name }}')">
@@ -208,7 +208,7 @@ function submitDept() {
     });
 }
 
-function editDept(id) {
+function editDept(id, event) {
     const row = event.target.closest('tr');
     const name = row.querySelector('td:nth-child(1)').textContent.trim();
     const code = row.querySelector('td:nth-child(2) .badge').textContent.trim();
@@ -227,7 +227,7 @@ function submitEditDept() {
     const formData = new FormData(form);
     const id = document.getElementById('edit_dept_id').value;
     
-    fetch(window.location.pathname + id + '/edit/', {
+    fetch(window.location.pathname + id + '/update/', {
         method: 'POST',
         body: formData,
         headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
@@ -277,9 +277,6 @@ function deleteDepartment(id, name) {
 function showSuccessAndReload(message) {
     document.getElementById('successMessage').innerHTML = message;
     $('#successModal').modal('show');
-    setTimeout(function() {
-        location.reload();
-    }, 2000);
 }
 
 function showError(message) {

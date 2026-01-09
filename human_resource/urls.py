@@ -21,6 +21,7 @@ urlpatterns = [
     # Departments
     path('departments/', views.DepartmentListView.as_view(), name='department_list'),
     path('departments/add/', views.DepartmentCreateView.as_view(), name='department_create'),
+    path('departments/<int:pk>/update/', views.DepartmentUpdateView.as_view(), name='department_update'),
     path('departments/<int:pk>/delete/', views.DepartmentDeleteView.as_view(), name='department_delete'),
     
     # Designations

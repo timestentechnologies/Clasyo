@@ -7,15 +7,47 @@
 {% block page_subtitle %}Manage leave applications and approvals{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-end mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3">
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#applyLeaveModal">
         <i class="fas fa-plus"></i> Apply Leave
     </button>
 </div>
 
+<!-- Dynamic Search and Filters -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search by employee name, reason...">
+            </div>
+            <div class="col-md-3">
+                <select name="leave_type_filter" id="leaveTypeFilter" class="form-select">
+                    <option value="">All Leave Types</option>
+                    <option value="sick">Sick Leave</option>
+                    <option value="casual">Casual Leave</option>
+                    <option value="annual">Annual Leave</option>
+                    <option value="emergency">Emergency Leave</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="status_filter" id="statusFilter" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <a href="." class="btn btn-outline-secondary w-100">Reset</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modern-card">
     <div class="table-responsive">
-        <table class="table">
+        <table class="table" id="leaveTable">
             <thead>
                 <tr>
                     <th>Employee</th>
@@ -30,7 +62,7 @@
             </thead>
             <tbody>
             {% for leave in leaves %}
-            <tr>
+            <tr data-employee="{% if leave.applicant_type == 'teacher' and leave.teacher %}{{ leave.teacher.get_full_name|lower }}{% elif leave.applicant_type == 'student' and leave.student %}{{ leave.student.get_full_name|lower }}{% elif leave.applicant_type == 'staff' and leave.staff %}{{ leave.staff.get_full_name|lower }}{% else %}unknown{% endif %}" data-leave-type="{{ leave.leave_type.name|lower }}" data-reason="{{ leave.reason|lower }}" data-status="{{ leave.status|lower }}" data-applicant-type="{{ leave.applicant_type|lower }}">
                 <td>
                     <strong>
                         {% if leave.applicant_type == 'teacher' and leave.teacher %}
@@ -211,8 +243,8 @@ function submitLeave() {
 }
 
 function showSuccessAndReload(message) {
-    alert(message);
-    setTimeout(() => location.reload(), 1000);
+    document.getElementById('successMessage').innerHTML = message;
+    $('#successModal').modal('show');
 }
 
 function showError(message) {
@@ -252,5 +284,71 @@ function rejectLeave(id) {
         });
     }
 }
+
+// Dynamic filtering for leave table
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const leaveTypeFilter = document.getElementById('leaveTypeFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const table = document.getElementById('leaveTable');
+    
+    if (!table) {
+        console.error('Leave table not found!');
+        return;
+    }
+    
+    const tbody = table.getElementsByTagName('tbody')[0];
+    if (!tbody) {
+        console.error('Table tbody not found!');
+        return;
+    }
+    
+    const rows = tbody.getElementsByTagName('tr');
+    console.log('Total rows found:', rows.length);
+
+    function filterTable() {
+        const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+        const selectedLeaveType = leaveTypeFilter ? leaveTypeFilter.value.toLowerCase() : '';
+        const selectedStatus = statusFilter ? statusFilter.value.toLowerCase() : '';
+
+        console.log('Filtering with:', { searchTerm, selectedLeaveType, selectedStatus });
+
+        let visibleCount = 0;
+        for (let row of rows) {
+            const employee = row.dataset.employee || '';
+            const leaveType = row.dataset.leaveType || '';
+            const reason = row.dataset.reason || '';
+            const status = row.dataset.status || '';
+            const applicantType = row.dataset.applicantType || '';
+
+            let showRow = true;
+
+            // Search filter
+            if (searchTerm && !employee.includes(searchTerm) && !reason.includes(searchTerm)) {
+                showRow = false;
+            }
+
+            // Leave type filter
+            if (selectedLeaveType && leaveType !== selectedLeaveType) {
+                showRow = false;
+            }
+
+            // Status filter
+            if (selectedStatus && status !== selectedStatus) {
+                showRow = false;
+            }
+
+            row.style.display = showRow ? '' : 'none';
+            if (showRow) visibleCount++;
+        }
+        
+        console.log('Rows visible after filtering:', visibleCount);
+    }
+
+    // Add event listeners for real-time filtering
+    if (searchInput) searchInput.addEventListener('input', filterTable);
+    if (leaveTypeFilter) leaveTypeFilter.addEventListener('change', filterTable);
+    if (statusFilter) statusFilter.addEventListener('change', filterTable);
+});
 </script>
 {% endblock %}

@@ -1,5 +1,6 @@
 {% extends 'core/admin_dashboard.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Purchase Orders{% endblock %}
 {% block page_icon %}shopping-cart{% endblock %}
@@ -16,9 +17,42 @@
     </a>
 </div>
 
+<!-- Dynamic Search and Filters -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search purchase orders...">
+            </div>
+            <div class="col-md-3">
+                <select name="status" id="statusFilter" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="draft">Draft</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="ordered">Ordered</option>
+                    <option value="received">Received</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="supplier" id="supplierFilter" class="form-select">
+                    <option value="">All Suppliers</option>
+                    {% for supplier in suppliers %}
+                    <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <a href="." class="btn btn-outline-secondary w-100">Reset</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modern-card">
     <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover" id="purchaseOrdersTable">
                 <thead>
                     <tr>
                         <th>PO Number</th>
@@ -32,12 +66,12 @@
                 </thead>
                 <tbody>
                     {% for po in purchase_orders %}
-                    <tr>
+                    <tr data-supplier-name="{{ po.supplier.name|lower }}" data-status="{{ po.status|lower }}" data-supplier-id="{{ po.supplier.id }}" data-po-number="{{ po.po_number|lower }}" data-order-date="{{ po.order_date }}">
                         <td><strong>{{ po.po_number }}</strong></td>
                         <td>{{ po.supplier.name }}</td>
                         <td>{{ po.order_date }}</td>
                         <td>{{ po.expected_delivery_date|default:"-" }}</td>
-                        <td>Ksh{{ po.total_amount|floatformat:2 }}</td>
+                        <td>Ksh{{ po.total_amount|intcomma }}</td>
                         <td>
                             {% if po.status == 'draft' %}
                             <span class="badge bg-secondary">Draft</span>
@@ -221,6 +255,53 @@
 </div>
 
 <script>
+// Dynamic filtering for purchase orders table
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const supplierFilter = document.getElementById('supplierFilter');
+    const table = document.getElementById('purchaseOrdersTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedStatus = statusFilter.value.toLowerCase();
+        const selectedSupplier = supplierFilter.value.toLowerCase();
+
+        for (let row of rows) {
+            const supplierName = row.dataset.supplierName || '';
+            const status = row.dataset.status || '';
+            const supplierId = row.dataset.supplierId || '';
+            const poNumber = row.dataset.poNumber || '';
+            const orderDate = row.dataset.orderDate || '';
+
+            let showRow = true;
+
+            // Search filter
+            if (searchTerm && !supplierName.includes(searchTerm) && !poNumber.includes(searchTerm)) {
+                showRow = false;
+            }
+
+            // Status filter
+            if (selectedStatus && status !== selectedStatus) {
+                showRow = false;
+            }
+
+            // Supplier filter
+            if (selectedSupplier && supplierId !== selectedSupplier) {
+                showRow = false;
+            }
+
+            row.style.display = showRow ? '' : 'none';
+        }
+    }
+
+    // Add event listeners for real-time filtering
+    searchInput.addEventListener('input', filterTable);
+    statusFilter.addEventListener('change', filterTable);
+    supplierFilter.addEventListener('change', filterTable);
+});
+
 document.getElementById('createPOForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const formData = new FormData(this);

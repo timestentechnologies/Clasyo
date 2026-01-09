@@ -7,15 +7,44 @@
 {% block page_subtitle %}Manage all teachers in your institution{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-end mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3">
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTeacherModal">
         <i class="fas fa-user-plus"></i> Add Teacher
     </button>
 </div>
 
+<!-- Dynamic Search and Filters -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search teachers by name, email...">
+            </div>
+            <div class="col-md-3">
+                <select name="department_filter" id="departmentFilter" class="form-select">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="status_filter" id="statusFilter" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <a href="." class="btn btn-outline-secondary w-100">Reset</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modern-card">
     <div class="table-responsive">
-        <table class="table">
+        <table class="table" id="teachersTable">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -28,7 +57,7 @@
             </thead>
             <tbody>
             {% for teacher in teachers %}
-            <tr>
+            <tr data-name="{{ teacher.first_name|lower }} {{ teacher.last_name|lower }}" data-email="{{ teacher.email|lower }}" data-department="{{ teacher.department.id|lower }}" data-status="{% if teacher.is_active %}active{% else %}inactive{% endif %}">
                 <td>
                     <div class="d-flex align-items-center">
                         <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px; font-size: 14px;">
@@ -319,6 +348,52 @@ function submitEditTeacher() {
         alert('Error: ' + error.message);
     });
 }
+
+// Dynamic filtering for teachers table
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const departmentFilter = document.getElementById('departmentFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const table = document.getElementById('teachersTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedDepartment = departmentFilter.value.toLowerCase();
+        const selectedStatus = statusFilter.value.toLowerCase();
+
+        for (let row of rows) {
+            const name = row.dataset.name || '';
+            const email = row.dataset.email || '';
+            const department = row.dataset.department || '';
+            const status = row.dataset.status || '';
+
+            let showRow = true;
+
+            // Search filter
+            if (searchTerm && !name.includes(searchTerm) && !email.includes(searchTerm)) {
+                showRow = false;
+            }
+
+            // Department filter
+            if (selectedDepartment && department !== selectedDepartment) {
+                showRow = false;
+            }
+
+            // Status filter
+            if (selectedStatus && status !== selectedStatus) {
+                showRow = false;
+            }
+
+            row.style.display = showRow ? '' : 'none';
+        }
+    }
+
+    // Add event listeners for real-time filtering
+    searchInput.addEventListener('input', filterTable);
+    departmentFilter.addEventListener('change', filterTable);
+    statusFilter.addEventListener('change', filterTable);
+});
 
 function deleteTeacher(id, name) {
     document.getElementById('deleteTeacherName').textContent = name;

@@ -7,15 +7,44 @@
 {% block page_subtitle %}Manage all subjects in your institution{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-end mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3">
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSubjectModal">
         <i class="fas fa-plus"></i> Add Subject
     </button>
 </div>
 
+<!-- Dynamic Search and Filters -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search subjects by name, code, description...">
+            </div>
+            <div class="col-md-3">
+                <select name="type_filter" id="typeFilter" class="form-select">
+                    <option value="">All Types</option>
+                    <option value="theory">Theory</option>
+                    <option value="practical">Practical</option>
+                    <option value="both">Theory + Practical</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="credits_filter" id="creditsFilter" class="form-select">
+                    <option value="">All Credits</option>
+                    <option value="has_credits">Has Credits</option>
+                    <option value="no_credits">No Credits</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <a href="." class="btn btn-outline-secondary w-100">Reset</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modern-card">
     <div class="table-responsive">
-        <table class="table">
+        <table class="table" id="subjectsTable">
             <thead>
                 <tr>
                     <th>Subject Name</th>
@@ -28,7 +57,7 @@
             </thead>
             <tbody>
             {% for subject in subjects %}
-            <tr>
+            <tr data-name="{{ subject.name|lower }}" data-code="{{ subject.code|lower }}" data-type="{{ subject.subject_type|lower }}" data-credits="{{ subject.credits|default:'0' }}" data-description="{{ subject.description|lower }}">
                 <td><strong>{{ subject.name }}</strong></td>
                 <td><span class="badge bg-secondary">{{ subject.code }}</span></td>
                 <td><span class="badge bg-info">{{ subject.subject_type|title }}</span></td>
@@ -239,6 +268,60 @@ function submitEditSubject() {
     .catch(error => {
         showError('Error updating subject: ' + error.message);
     });
+}
+
+// Dynamic filtering for subjects table
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const typeFilter = document.getElementById('typeFilter');
+    const creditsFilter = document.getElementById('creditsFilter');
+    const table = document.getElementById('subjectsTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedType = typeFilter.value.toLowerCase();
+        const selectedCredits = creditsFilter.value.toLowerCase();
+
+        for (let row of rows) {
+            const name = row.dataset.name || '';
+            const code = row.dataset.code || '';
+            const type = row.dataset.type || '';
+            const credits = row.dataset.credits || '';
+            const description = row.dataset.description || '';
+
+            let showRow = true;
+
+            // Search filter
+            if (searchTerm && !name.includes(searchTerm) && !code.includes(searchTerm) && !description.includes(searchTerm)) {
+                showRow = false;
+            }
+
+            // Type filter
+            if (selectedType && type !== selectedType) {
+                showRow = false;
+            }
+
+            // Credits filter
+            if (selectedCredits === 'has_credits' && credits === '0') {
+                showRow = false;
+            } else if (selectedCredits === 'no_credits' && credits !== '0') {
+                showRow = false;
+            }
+
+            row.style.display = showRow ? '' : 'none';
+        }
+    }
+
+    // Add event listeners for real-time filtering
+    searchInput.addEventListener('input', filterTable);
+    typeFilter.addEventListener('change', filterTable);
+    creditsFilter.addEventListener('change', filterTable);
+});
+
+function showSuccessAndReload(message) {
+    document.getElementById('successMessage').innerHTML = message;
+    $('#successModal').modal('show');
 }
 
 function deleteSubject(id, name) {

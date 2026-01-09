@@ -1,5 +1,6 @@
 {% extends 'core/admin_dashboard.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Expense Tracking{% endblock %}
 {% block page_icon %}dollar-sign{% endblock %}
@@ -8,7 +9,170 @@
 
 {% block content %}
 <style>
-    /* Expense type colors */
+    /* Enhanced Expense Summary Cards */
+    .expense-summary-card {
+        transition: all 0.3s ease;
+        border: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .expense-summary-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-navy), var(--accent-cyan));
+    }
+    
+    .expense-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .total-card::before {
+        background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    }
+    
+    .salary-card::before {
+        background: linear-gradient(90deg, #10b981, #34d399);
+    }
+    
+    .supplies-card::before {
+        background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    }
+    
+    .maintenance-card::before {
+        background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+    }
+    
+    .purchase-card::before {
+        background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    }
+    
+    .utility-card::before {
+        background: linear-gradient(90deg, #ef4444, #f87171);
+    }
+    
+    .transport-card::before {
+        background: linear-gradient(90deg, #06b6d4, #22d3ee);
+    }
+    
+    .card-title {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .amount-display h2, .amount-display h4 {
+        background: linear-gradient(135deg, var(--primary-navy), var(--accent-cyan));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 0;
+        line-height: 1.2;
+    }
+    
+    .amount-display h2 {
+        font-size: 2rem;
+    }
+    
+    .amount-display h4 {
+        font-size: 1.5rem;
+    }
+    
+    .icon-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+    }
+    
+    .total-icon {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
+    }
+    
+    .salary-icon {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+    }
+    
+    .supplies-icon {
+        background: linear-gradient(135deg, #3b82f6, #60a5fa);
+        color: white;
+    }
+    
+    .maintenance-icon {
+        background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+        color: white;
+    }
+    
+    .purchase-icon {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: white;
+    }
+    
+    .utility-icon {
+        background: linear-gradient(135deg, #ef4444, #f87171);
+        color: white;
+    }
+    
+    .transport-icon {
+        background: linear-gradient(135deg, #06b6d4, #22d3ee);
+        color: white;
+    }
+    
+    .trend-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .progress {
+        background-color: rgba(0,0,0,0.1);
+        border-radius: 2px;
+    }
+    
+    .progress-bar {
+        border-radius: 2px;
+        transition: width 0.6s ease;
+    }
+    
+    .bg-salary-custom { background-color: #10b981 !important; }
+    .bg-supplies-custom { background-color: #3b82f6 !important; }
+    .bg-maintenance-custom { background-color: #8b5cf6 !important; }
+    .bg-purchase-custom { background-color: #f59e0b !important; }
+    .bg-utility-custom { background-color: #ef4444 !important; }
+    .bg-transport-custom { background-color: #06b6d4 !important; }
+    
+    /* Dark mode overrides */
+    [data-theme="dark"] .expense-summary-card {
+        background: var(--bg-dark-card);
+        border: 1px solid var(--border-dark);
+    }
+    
+    [data-theme="dark"] .card-title {
+        color: var(--text-primary);
+    }
+    
+    [data-theme="dark"] .amount-display h2,
+    [data-theme="dark"] .amount-display h4 {
+        background: linear-gradient(135deg, var(--accent-cyan), #60a5fa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    [data-theme="dark"] .progress {
+        background-color: rgba(255,255,255,0.1);
+    }
     .bg-salary-light { background-color: rgba(46, 204, 113, 0.1) !important; }
     .bg-supplies-light { background-color: rgba(52, 152, 219, 0.1) !important; }
     .bg-maintenance-light { background-color: rgba(155, 89, 182, 0.1) !important; }
@@ -122,45 +286,103 @@
     </a>
 </div>
 
-    <!-- Expense Summary Cards -->
+<!-- Dynamic Search and Filters -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search expenses...">
+            </div>
+            <div class="col-md-3">
+                <select name="expense_type" id="expenseTypeFilter" class="form-select">
+                    <option value="">All Types</option>
+                    <option value="purchase">Purchase/Procurement</option>
+                    <option value="salary">Salary Payment</option>
+                    <option value="utility">Utility Bills</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="transport">Transport</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="payment_method" id="paymentMethodFilter" class="form-select">
+                    <option value="">All Methods</option>
+                    <option value="cash">Cash</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="online">Online Payment</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <a href="." class="btn btn-outline-secondary w-100">Reset</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Enhanced Expense Summary Cards -->
     <div class="row mb-4 g-3">
+        <!-- Total Expenses Card -->
         <div class="col-md-3">
-            <div class="modern-card h-100">
-                <div class="p-4 d-flex flex-column h-100">
+            <div class="modern-card h-100 expense-summary-card total-card">
+                <div class="card-body p-4 d-flex flex-column h-100">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="mb-0 text-muted">Total Expenses</h5>
-                        <div class="icon-circle bg-primary-light">
-                            <i class="fas fa-receipt text-primary"></i>
+                        <div>
+                            <h5 class="card-title mb-1">Total Expenses</h5>
+                            <small class="text-muted">All categories</small>
+                        </div>
+                        <div class="icon-circle total-icon">
+                            <i class="fas fa-chart-line"></i>
                         </div>
                     </div>
-                    <h2 class="mb-0">Ksh{{ total_expenses|floatformat:2 }}</h2>
-                    <div class="mt-auto pt-3 text-muted small">
-                        <i class="fas fa-calendar-alt me-1"></i> All time
+                    <div class="amount-display">
+                        <h2 class="mb-0 fw-bold" id="totalExpensesCard">Ksh{{ total_expenses|intcomma }}</h2>
+                    </div>
+                    <div class="mt-auto pt-3">
+                        <div class="trend-indicator">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            <small class="text-muted">All time total</small>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+        
         {% for summary in expense_summary %}
         <div class="col-md-3">
-            <div class="modern-card h-100">
-                <div class="p-4">
+            <div class="modern-card h-100 expense-summary-card {{ summary.expense_type }}-card">
+                <div class="card-body p-4 d-flex flex-column h-100">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="mb-0 text-muted">{{ summary.expense_type|title }}</h6>
-                        <span class="badge bg-{{ summary.expense_type|lower }}-light text-{{ summary.expense_type|lower }}">
+                        <div>
+                            <h6 class="card-title mb-0">{{ summary.expense_type|title }}</h6>
+                            <small class="text-muted">{{ summary.count }} transactions</small>
+                        </div>
+                        <div class="icon-circle {{ summary.expense_type }}-icon">
                             {% if summary.expense_type == 'salary' %}
                                 <i class="fas fa-users"></i>
                             {% elif summary.expense_type == 'supplies' %}
                                 <i class="fas fa-box"></i>
                             {% elif summary.expense_type == 'maintenance' %}
                                 <i class="fas fa-tools"></i>
+                            {% elif summary.expense_type == 'purchase' %}
+                                <i class="fas fa-shopping-cart"></i>
+                            {% elif summary.expense_type == 'utility' %}
+                                <i class="fas fa-bolt"></i>
+                            {% elif summary.expense_type == 'transport' %}
+                                <i class="fas fa-truck"></i>
                             {% else %}
                                 <i class="fas fa-receipt"></i>
                             {% endif %}
-                        </span>
+                        </div>
                     </div>
-                    <h4 class="mb-0">Ksh{{ summary.total|floatformat:2 }}</h4>
-                    <div class="mt-2">
-                        <span class="badge bg-light text-muted">{{ summary.count }} transactions</span>
+                    <div class="amount-display">
+                        <h4 class="mb-0 fw-bold" id="summary-{{ summary.expense_type }}-card">Ksh{{ summary.total|intcomma }}</h4>
+                    </div>
+                    <div class="mt-auto pt-2">
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar bg-{{ summary.expense_type|lower }}-custom" 
+                                 style="width: 20%"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -170,7 +392,7 @@
 
 <div class="modern-card">
     <div class="table-responsive">
-        <table class="table table-hover align-middle">
+        <table class="table table-hover align-middle" id="expensesTable">
                 <thead>
                     <tr>
                         <th>Expense #</th>
@@ -185,7 +407,7 @@
                 </thead>
                 <tbody>
                     {% for expense in expenses %}
-                    <tr>
+                    <tr data-expense-type="{{ expense.expense_type|lower }}" data-description="{{ expense.description|lower }}" data-payee="{{ expense.payee_name|lower }}" data-payment-method="{{ expense.payment_method|lower }}" data-expense-date="{{ expense.expense_date }}">
                         <td><strong>{{ expense.expense_number }}</strong></td>
                         <td>{{ expense.expense_date }}</td>
                         <td>
@@ -206,7 +428,7 @@
                         <td>{{ expense.description }}</td>
                         <td>{{ expense.payee_name }}</td>
                         <td>{{ expense.get_payment_method_display }}</td>
-                        <td><strong>Ksh{{ expense.amount|floatformat:2 }}</strong></td>
+                        <td><strong>Ksh{{ expense.amount|intcomma }}</strong></td>
                         <td>{{ expense.reference_number|default:"-" }}</td>
                     </tr>
                     {% empty %}
@@ -218,7 +440,7 @@
                 <tfoot>
                     <tr class="table-primary">
                         <th colspan="6" class="text-end">Total:</th>
-                        <th colspan="2">Ksh{{ total_expenses|floatformat:2 }}</th>
+                        <th colspan="2">Ksh{{ total_expenses|intcomma }}</th>
                     </tr>
                 </tfoot>
             </table>
@@ -305,6 +527,90 @@
 </div>
 
 <script>
+// Dynamic filtering for expenses table
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const expenseTypeFilter = document.getElementById('expenseTypeFilter');
+    const paymentMethodFilter = document.getElementById('paymentMethodFilter');
+    const table = document.getElementById('expensesTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedExpenseType = expenseTypeFilter.value.toLowerCase();
+        const selectedPaymentMethod = paymentMethodFilter.value.toLowerCase();
+
+        let totalExpenses = 0;
+        let expenseTypeTotals = {};
+
+        for (let row of rows) {
+            const description = row.dataset.description || '';
+            const payee = row.dataset.payee || '';
+            const expenseType = row.dataset.expenseType || '';
+            const paymentMethod = row.dataset.paymentMethod || '';
+            const expenseDate = row.dataset.expenseDate || '';
+            
+            // Extract amount from row
+            const amountCell = row.cells[6]; // Amount is at index 6
+            const amountText = amountCell ? amountCell.textContent : '0';
+            const amount = parseFloat(amountText.replace(/[^0-9.-]/g, '')) || 0;
+
+            let showRow = true;
+
+            // Search filter
+            if (searchTerm && !description.includes(searchTerm) && !payee.includes(searchTerm)) {
+                showRow = false;
+            }
+
+            // Expense type filter
+            if (selectedExpenseType && expenseType !== selectedExpenseType) {
+                showRow = false;
+            }
+
+            // Payment method filter
+            if (selectedPaymentMethod && paymentMethod !== selectedPaymentMethod) {
+                showRow = false;
+            }
+
+            row.style.display = showRow ? '' : 'none';
+            
+            // Add to totals if row is visible
+            if (showRow) {
+                totalExpenses += amount;
+                if (!expenseTypeTotals[expenseType]) {
+                    expenseTypeTotals[expenseType] = 0;
+                }
+                expenseTypeTotals[expenseType] += amount;
+            }
+        }
+
+        // Update summary cards
+        updateSummaryCards(totalExpenses, expenseTypeTotals);
+    }
+
+    function updateSummaryCards(totalExpenses, expenseTypeTotals) {
+        // Update total expenses card
+        const totalExpensesCard = document.getElementById('totalExpensesCard');
+        if (totalExpensesCard) {
+            totalExpensesCard.textContent = 'Ksh' + totalExpenses.toLocaleString('en-US');
+        }
+
+        // Update expense type cards
+        for (const [expenseType, total] of Object.entries(expenseTypeTotals)) {
+            const cardId = 'summary-' + expenseType + '-card';
+            const card = document.getElementById(cardId);
+            if (card) {
+                card.textContent = 'Ksh' + total.toLocaleString('en-US');
+            }
+        }
+    }
+
+    // Add event listeners for real-time filtering
+    searchInput.addEventListener('input', filterTable);
+    expenseTypeFilter.addEventListener('change', filterTable);
+    paymentMethodFilter.addEventListener('change', filterTable);
+});
+
 document.getElementById('addExpenseForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const formData = new FormData(this);

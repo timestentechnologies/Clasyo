@@ -4,14 +4,17 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 from django.views import View
 from accounts.models import User
+from datetime import datetime
 
 # Check if models exist
 try:
-    from .models import Leave
+    from .models import Leave, LeaveType
     MODELS_EXIST = True
 except ImportError:
     MODELS_EXIST = False
     class Leave:
+        pass
+    class LeaveType:
         pass
 
 
@@ -23,10 +26,13 @@ class LeaveListView(LoginRequiredMixin, ListView):
         if not MODELS_EXIST:
             return []
         user = self.request.user
-        if user.role in ['super_admin', 'school_admin']:
+        # Admins (superadmin, admin) see all leave applications
+        if user.role in ['superadmin', 'admin']:
             return Leave.objects.all().order_by('-created_at')
+        # Teachers see only their own leave applications
         elif user.role == 'teacher':
             return Leave.objects.filter(teacher=user).order_by('-created_at')
+        # Students see only their own leave applications
         elif user.role == 'student':
             from students.models import Student
             try:
@@ -34,6 +40,7 @@ class LeaveListView(LoginRequiredMixin, ListView):
                 return Leave.objects.filter(student=student).order_by('-created_at')
             except Student.DoesNotExist:
                 return Leave.objects.none()
+        # Staff see only their own leave applications
         elif user.role == 'staff':
             return Leave.objects.filter(staff=user).order_by('-created_at')
         else:
@@ -42,6 +49,10 @@ class LeaveListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
+        if MODELS_EXIST:
+            context['leave_types'] = LeaveType.objects.all()
+        else:
+            context['leave_types'] = []
         return context
 
 
@@ -51,16 +62,39 @@ class LeaveApplyView(LoginRequiredMixin, View):
             return JsonResponse({'success': False, 'error': 'Models not available'})
         try:
             from .models import LeaveType
+            leave_type_name = request.POST.get('leave_type')
+            from_date_str = request.POST.get('from_date')
+            to_date_str = request.POST.get('to_date')
+
+            if not leave_type_name:
+                return JsonResponse({'success': False, 'error': 'Leave type is required'})
+
+            if not from_date_str or not to_date_str:
+                return JsonResponse({'success': False, 'error': 'From and To dates are required'})
+
+            # Parse dates from strings (HTML date inputs use YYYY-MM-DD)
+            try:
+                from_date = datetime.strptime(from_date_str, "%Y-%m-%d").date()
+                to_date = datetime.strptime(to_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                return JsonResponse({'success': False, 'error': 'Invalid date format'})
+
+            # Get or create LeaveType by name
+            try:
+                leave_type, created = LeaveType.objects.get_or_create(name=leave_type_name.title())
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': f'Error creating leave type: {str(e)}'})
+
             leave_data = {
-                'leave_type_id': request.POST.get('leave_type'),
-                'from_date': request.POST.get('from_date'),
-                'to_date': request.POST.get('to_date'),
+                'leave_type': leave_type,
+                'from_date': from_date,
+                'to_date': to_date,
                 'reason': request.POST.get('reason'),
                 'status': 'pending'
             }
             
             # Check if admin is creating leave for someone else
-            if request.user.role in ['super_admin', 'school_admin']:
+            if request.user.role in ['superadmin', 'admin']:
                 applicant_type = request.POST.get('applicant_type')
                 applicant_id = request.POST.get('applicant_id')
                 
@@ -91,8 +125,12 @@ class LeaveApplyView(LoginRequiredMixin, View):
             elif request.user.role == 'staff':
                 leave_data['staff'] = request.user
                 leave_data['applicant_type'] = 'staff'
+            elif request.user.role in ['superadmin', 'admin']:
+                # Admin applying for themselves (treated as staff)
+                leave_data['staff'] = request.user
+                leave_data['applicant_type'] = 'staff'
             else:
-                return JsonResponse({'success': False, 'error': 'Invalid user role'})
+                return JsonResponse({'success': False, 'error': f'Invalid user role: {request.user.role}'})
             
             Leave.objects.create(**leave_data)
             return JsonResponse({'success': True})

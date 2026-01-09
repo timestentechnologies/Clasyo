@@ -63,15 +63,134 @@ class FeeStructureView(LoginRequiredMixin, ListView):
 STAFF_ROLES = ['admin', 'teacher', 'accountant', 'librarian', 'receptionist']
 
 
+def attach_student_balances(payments):
+    """Attach running balance after each payment to payment instances."""
+    if not MODELS_EXIST:
+        return payments
+
+    # Group payments by student and fee type
+    payment_groups = {}
+    for payment in payments:
+        student_id = getattr(payment, 'student_id', None)
+        fee_type = getattr(payment.fee_structure, 'fee_type', None) if hasattr(payment, 'fee_structure') else None
+        
+        if student_id and fee_type:
+            key = (student_id, fee_type)
+            if key not in payment_groups:
+                payment_groups[key] = []
+            payment_groups[key].append(payment)
+    
+    # Sort each group by payment date and calculate running balances
+    for (student_id, fee_type), group_payments in payment_groups.items():
+        # Sort by payment date
+        group_payments.sort(key=lambda x: getattr(x, 'payment_date', None))
+        
+        # Get the total fee amount for this fee type
+        try:
+            student = Student.objects.get(id=student_id)
+            fee_structure = FeeStructure.objects.get(
+                class_name_id=student.current_class_id,
+                fee_type=fee_type,
+                is_active=True
+            )
+            total_fee_amount = fee_structure.amount
+        except:
+            total_fee_amount = 0
+        
+        # Calculate running balance for each payment
+        running_balance = total_fee_amount
+        for i, payment in enumerate(group_payments):
+            running_balance -= getattr(payment, 'paid_amount', 0)
+            payment.running_balance = max(running_balance, 0)
+            # Mark the last payment as current for this student
+            payment.is_current_balance = (i == len(group_payments) - 1)
+    
+    return payments
+
+
+def calculate_fee_aggregates(class_id=None, balance_status=None):
+    """Calculate total expected, collected, and remaining fees for the school.
+
+    Expected:
+        For each class, sum active fee structures (per-student fee), then
+        multiply by the number of active students in that class.
+    Collected:
+        Sum of paid_amount for all fee collections of active students.
+    Remaining:
+        max(Expected - Collected, 0).
+
+    Optional parameters are currently ignored for aggregates, which are
+    intended to be global across all classes and students.
+    """
+    if not MODELS_EXIST:
+        return 0, 0, 0
+
+    # Active students with a class assigned
+    students_qs = Student.objects.filter(is_active=True, current_class__isnull=False)
+    if class_id:
+        students_qs = students_qs.filter(current_class_id=class_id)
+
+    class_counts = list(
+        students_qs.values('current_class_id').annotate(count=models.Count('id'))
+    )
+    if not class_counts:
+        return 0, 0, 0
+
+    class_ids = [row['current_class_id'] for row in class_counts]
+
+    # Total fees per student for each class
+    fee_totals_qs = FeeStructure.objects.filter(
+        class_name_id__in=class_ids,
+        is_active=True
+    ).values('class_name_id').annotate(total=models.Sum('amount'))
+    fee_per_class = {row['class_name_id']: row['total'] or 0 for row in fee_totals_qs}
+
+    # Expected = per-class total fee * number of students in that class
+    total_expected = 0
+    for row in class_counts:
+        cls_id = row['current_class_id']
+        student_count = row['count'] or 0
+        per_student_fee = fee_per_class.get(cls_id, 0)
+        total_expected += per_student_fee * student_count
+
+    # Total collected from active students
+    total_collected = FeeCollection.objects.filter(
+        student__is_active=True,
+        student__current_class__isnull=False
+    ).aggregate(total=models.Sum('paid_amount'))['total'] or 0
+
+    total_remaining = max(total_expected - total_collected, 0)
+
+    return total_expected, total_collected, total_remaining
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class CollectFeesView(LoginRequiredMixin, ListView):
     template_name = 'fees/collect_fees.html'
     context_object_name = 'payments'
     
     def get_queryset(self):
-        if MODELS_EXIST:
-            return FeeCollection.objects.all()
-        return []
+        if not MODELS_EXIST:
+            return []
+
+        queryset = FeeCollection.objects.select_related('student__current_class', 'fee_structure').order_by('-payment_date')
+
+        # Optional filter by class
+        class_id = self.request.GET.get('class_id')
+        if class_id:
+            queryset = queryset.filter(student__current_class_id=class_id)
+
+        # Attach student balances for all payments in the current queryset
+        payments = attach_student_balances(queryset)
+
+        # Optional filter by balance status
+        balance_status = self.request.GET.get('balance_status')
+        if balance_status == 'with_balance':
+            payments = [payment for payment in payments if getattr(payment, 'running_balance', 0) > 0]
+        elif balance_status == 'fully_paid':
+            payments = [payment for payment in payments if getattr(payment, 'running_balance', 0) <= 0]
+
+        return payments
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -85,6 +204,73 @@ class CollectFeesView(LoginRequiredMixin, ListView):
             role__in=STAFF_ROLES,
             is_active=True
         ).order_by('first_name', 'last_name')
+        try:
+            from academics.models import Class
+            context['classes'] = Class.objects.filter(is_active=True)
+        except Exception:
+            context['classes'] = []
+
+        # Preserve selected filters in the template
+        selected_class_id = self.request.GET.get('class_id', '')
+        selected_balance_status = self.request.GET.get('balance_status', '')
+        context['selected_class_id'] = selected_class_id
+        context['selected_balance_status'] = selected_balance_status
+
+        # Global fee aggregates for summary cards (all students, all grades)
+        total_expected, total_collected, total_remaining = calculate_fee_aggregates()
+        context['total_expected'] = total_expected
+        context['total_collected'] = total_collected
+        context['total_remaining'] = total_remaining
+        
+        # Calculate totals for the table
+        payments = self.get_queryset()
+        if MODELS_EXIST and payments:
+            from django.db.models import Sum
+            table_totals = payments.aggregate(
+                total_collected=Sum('paid_amount')
+            )
+            context['table_total_collected'] = table_totals['total_collected'] or 0
+        else:
+            context['table_total_collected'] = 0
+        
+        import json
+
+# Get complete student data for accurate filtering calculations
+        if MODELS_EXIST:
+            from django.db.models import Q
+            # Get all active students with their fee structures
+            students_data = []
+            active_students = Student.objects.filter(is_active=True, current_class__isnull=False)
+            
+            for student in active_students:
+                # Get all fee structures for this student's class
+                fee_structures = FeeStructure.objects.filter(
+                    class_name_id=student.current_class_id,
+                    is_active=True
+                )
+                
+                for fee_structure in fee_structures:
+                    # Calculate total paid for this student and fee type
+                    paid_amount = FeeCollection.objects.filter(
+                        student=student,
+                        fee_structure=fee_structure
+                    ).aggregate(total=Sum('paid_amount'))['total'] or 0
+                    
+                    students_data.append({
+                        'student_id': student.id,
+                        'student_name': student.get_full_name(),
+                        'class_id': student.current_class_id,
+                        'class_name': student.current_class.name,
+                        'fee_type': fee_structure.fee_type,
+                        'fee_amount': float(fee_structure.amount),
+                        'paid_amount': float(paid_amount),
+                        'balance': float(fee_structure.amount - paid_amount)
+                    })
+            
+            context['students_fee_data'] = json.dumps(students_data)
+        else:
+            context['students_fee_data'] = json.dumps([])
+            
         return context
     
     def post(self, request, *args, **kwargs):
@@ -134,18 +320,53 @@ class FeeTransactionView(LoginRequiredMixin, ListView):
     context_object_name = 'transactions'
     
     def get_queryset(self):
-        if MODELS_EXIST:
-            return FeeCollection.objects.all().order_by('-payment_date')
-        return []
+        if not MODELS_EXIST:
+            return []
+
+        queryset = FeeCollection.objects.select_related('student__current_class', 'fee_structure').order_by('-payment_date')
+
+        # Optional filter by class
+        class_id = self.request.GET.get('class_id')
+        if class_id:
+            queryset = queryset.filter(student__current_class_id=class_id)
+
+        # Attach student balances for all transactions
+        transactions = attach_student_balances(queryset)
+
+        # Optional filter by balance status
+        balance_status = self.request.GET.get('balance_status')
+        if balance_status == 'with_balance':
+            transactions = [txn for txn in transactions if getattr(txn, 'running_balance', 0) > 0]
+        elif balance_status == 'fully_paid':
+            transactions = [txn for txn in transactions if getattr(txn, 'running_balance', 0) <= 0]
+
+        return transactions
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
-        if MODELS_EXIST:
-            total_collected = FeeCollection.objects.aggregate(total=models.Sum('paid_amount'))['total'] or 0
-        else:
-            total_collected = 0
+        # Provide class list and preserve selected filters for the template
+        try:
+            from academics.models import Class
+            context['classes'] = Class.objects.filter(is_active=True)
+        except Exception:
+            context['classes'] = []
+
+        selected_class_id = self.request.GET.get('class_id', '')
+        selected_balance_status = self.request.GET.get('balance_status', '')
+        context['selected_class_id'] = selected_class_id
+        context['selected_balance_status'] = selected_balance_status
+
+        # Fee aggregates for summary cards
+        class_id_for_calc = selected_class_id or None
+        balance_status_for_calc = selected_balance_status or None
+        total_expected, total_collected, total_remaining = calculate_fee_aggregates(
+            class_id=class_id_for_calc,
+            balance_status=balance_status_for_calc
+        )
+        context['total_expected'] = total_expected
         context['total_collected'] = total_collected
+        context['total_remaining'] = total_remaining
         return context
 
 
@@ -421,3 +642,92 @@ class ConfirmPaymentView(LoginRequiredMixin, View):
                 
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class StudentBalancesView(LoginRequiredMixin, View):
+    """API endpoint to get student balances for fee collection modal"""
+    
+    def get(self, request, school_slug=None):
+        if not MODELS_EXIST:
+            return JsonResponse({'balances': {}})
+        
+        # Get all active students with their class assignments
+        students_qs = Student.objects.filter(is_active=True, current_class__isnull=False)
+        
+        # Get fee totals per class per fee type
+        class_ids = list(students_qs.values_list('current_class_id', flat=True).distinct())
+        fee_totals_qs = FeeStructure.objects.filter(
+            class_name_id__in=class_ids,
+            is_active=True
+        ).values('class_name_id', 'fee_type').annotate(total=models.Sum('amount'))
+        
+        # Organize fees by class and fee type
+        fee_per_class_type = {}
+        for row in fee_totals_qs:
+            class_id = row['class_name_id']
+            fee_type = row['fee_type']
+            amount = row['total'] or 0
+            if class_id not in fee_per_class_type:
+                fee_per_class_type[class_id] = {}
+            fee_per_class_type[class_id][fee_type] = amount
+        
+        # Get paid totals per student per fee type
+        student_ids = list(students_qs.values_list('id', flat=True))
+        paid_totals_qs = FeeCollection.objects.filter(
+            student_id__in=student_ids
+        ).values('student_id', 'fee_structure__fee_type').annotate(total=models.Sum('paid_amount'))
+        
+        # Organize paid amounts by student and fee type
+        paid_totals_map = {}
+        for row in paid_totals_qs:
+            student_id = row['student_id']
+            fee_type = row['fee_structure__fee_type']
+            amount = row['total'] or 0
+            if student_id not in paid_totals_map:
+                paid_totals_map[student_id] = {}
+            paid_totals_map[student_id][fee_type] = amount
+        
+        # Calculate balances per student per fee type
+        balances = {}
+        payment_history = {}
+        
+        for student in students_qs:
+            student_id = str(student.id)
+            class_id = student.current_class_id
+            
+            # Get all fee types for this student's class
+            class_fees = fee_per_class_type.get(class_id, {})
+            student_paid = paid_totals_map.get(student.id, {})
+            
+            # Calculate balance for each fee type
+            for fee_type, fee_amount in class_fees.items():
+                paid_amount = student_paid.get(fee_type, 0)
+                balance = max(fee_amount - paid_amount, 0)
+                
+                # Store as nested structure: {student_id: {fee_type: balance}}
+                if student_id not in balances:
+                    balances[student_id] = {}
+                balances[student_id][fee_type] = float(balance)
+                
+                # Get payment history for this student and fee type
+                payments = FeeCollection.objects.filter(
+                    student_id=student.id,
+                    fee_structure__fee_type=fee_type
+                ).order_by('payment_date')
+                
+                if student_id not in payment_history:
+                    payment_history[student_id] = {}
+                payment_history[student_id][fee_type] = []
+                
+                # Calculate running balance
+                running_balance = fee_amount
+                for payment in payments:
+                    running_balance -= payment.paid_amount
+                    payment_history[student_id][fee_type].append({
+                        'date': payment.payment_date.strftime('%Y-%m-%d'),
+                        'amount_paid': float(payment.paid_amount),
+                        'balance_after': float(running_balance)
+                    })
+        
+        return JsonResponse({'balances': balances, 'payment_history': payment_history})

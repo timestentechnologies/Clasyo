@@ -11,4 +11,5 @@ urlpatterns = [
     path('my-fees/', views.MyFeesView.as_view(), name='my_fees'),
     path('mpesa-stk/', views.MpesaStkPushView.as_view(), name='mpesa_stk'),
     path('confirm-payment/', views.ConfirmPaymentView.as_view(), name='confirm_payment'),
+    path('student-balances/', views.StudentBalancesView.as_view(), name='student_balances'),
 ]
