@@ -110,7 +110,18 @@ class AllocateRoomView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
         if MODELS_EXIST:
-            context['available_rooms'] = Room.objects.filter(is_active=True).exclude(is_full=True)
+            # Get all active rooms and filter out full ones using the method
+            available_rooms = []
+            for room in Room.objects.filter(is_active=True):
+                if not room.is_full():
+                    available_rooms.append(room)
+            context['available_rooms'] = available_rooms
+            
+            # Add students for selection dropdown
+            context['students'] = Student.objects.filter(is_active=True).order_by('first_name', 'last_name')
+        else:
+            context['available_rooms'] = []
+            context['students'] = []
         return context
 
 

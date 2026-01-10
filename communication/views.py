@@ -29,7 +29,7 @@ class NoticeListView(LoginRequiredMixin, ListView):
             return []
         user = self.request.user
         # Filter notices based on user role
-        if user.role == 'super_admin' or user.role == 'school_admin':
+        if user.role == 'superadmin' or user.role == 'admin':
             return Notice.objects.all().order_by('-created_at')
         else:
             return Notice.objects.filter(
@@ -46,6 +46,9 @@ class NoticeListView(LoginRequiredMixin, ListView):
         try:
             if not MODELS_EXIST:
                 return JsonResponse({'success': False, 'error': 'Notice model not available'})
+
+            if getattr(request.user, 'role', None) not in ('superadmin', 'admin'):
+                return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
             
             Notice.objects.create(
                 title=request.POST.get('title'),
@@ -59,6 +62,72 @@ class NoticeListView(LoginRequiredMixin, ListView):
             import traceback
             traceback.print_exc()
             return JsonResponse({'success': False, 'error': str(e)})
+
+
+class NoticeDetailView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        if not MODELS_EXIST:
+            return JsonResponse({'success': False, 'error': 'Notice model not available'})
+        try:
+            notice = Notice.objects.get(pk=kwargs.get('pk'))
+            return JsonResponse({
+                'success': True,
+                'id': notice.id,
+                'title': notice.title,
+                'content': notice.content,
+                'target_audience': notice.target_audience,
+                'priority': notice.priority,
+                'created_at': notice.created_at.isoformat(),
+                'updated_at': notice.updated_at.isoformat(),
+            })
+        except Notice.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Notice not found'}, status=404)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class NoticeUpdateView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        if not MODELS_EXIST:
+            return JsonResponse({'success': False, 'error': 'Notice model not available'})
+        if getattr(request.user, 'role', None) not in ('superadmin', 'admin'):
+            return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+        try:
+            notice = Notice.objects.get(pk=kwargs.get('pk'))
+            title = request.POST.get('title')
+            content = request.POST.get('content')
+            target_audience = request.POST.get('target_audience')
+            priority = request.POST.get('priority')
+            if title is not None:
+                notice.title = title
+            if content is not None:
+                notice.content = content
+            if target_audience is not None:
+                notice.target_audience = target_audience
+            if priority is not None:
+                notice.priority = priority
+            notice.save()
+            return JsonResponse({'success': True, 'message': 'Notice updated successfully'})
+        except Notice.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Notice not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class NoticeDeleteView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        if not MODELS_EXIST:
+            return JsonResponse({'success': False, 'error': 'Notice model not available'})
+        if getattr(request.user, 'role', None) not in ('superadmin', 'admin'):
+            return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+        try:
+            notice = Notice.objects.get(pk=kwargs.get('pk'))
+            notice.delete()
+            return JsonResponse({'success': True, 'message': 'Notice deleted successfully'})
+        except Notice.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Notice not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
 class MessageListView(LoginRequiredMixin, ListView):
@@ -141,7 +210,7 @@ class MessageSendView(LoginRequiredMixin, View):
             
             Message.objects.create(
                 sender=request.user,
-                receiver=receiver,
+                recipient=receiver,
                 subject=request.POST.get('subject'),
                 message=request.POST.get('message')
             )

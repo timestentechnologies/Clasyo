@@ -143,6 +143,36 @@
         
         <div class="card mt-3">
             <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Dormitory Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th width="30%">Hostel Required:</th>
+                        <td>
+                            {% if student.is_hostel_required %}
+                                <span class="badge bg-success">Yes</span>
+                            {% else %}
+                                <span class="badge bg-secondary">No</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if student.is_hostel_required %}
+                    <tr>
+                        <th>Dormitory:</th>
+                        <td>{{ student.dormitory.name|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Room Number:</th>
+                        <td>{{ student.room.room_number|default:"-" }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header bg-info text-white">
                 <h5 class="mb-0">Contact Information</h5>
             </div>
             <div class="card-body">

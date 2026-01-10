@@ -142,7 +142,7 @@
             </thead>
             <tbody>
             {% for payment in payments %}
-            <tr data-student-name="{{ payment.student.get_full_name|lower }}" data-class="{{ payment.student.current_class.name|default:'-'|lower }}" data-class-id="{{ payment.student.current_class.id|default:'-' }}" data-balance-status="{% if payment.running_balance > 0 %}with_balance{% else %}fully_paid{% endif %}">
+            <tr data-student-name="{{ payment.student.get_full_name|lower }}" data-admission="{{ payment.student.admission_number|lower }}" data-class="{{ payment.student.current_class.name|default:'-'|lower }}" data-class-id="{{ payment.student.current_class.id|default:'-' }}" data-balance-status="{% if payment.running_balance > 0 %}with_balance{% else %}fully_paid{% endif %}">
                 <td>{{ payment.payment_date|date:"M d, Y" }}</td>
                 <td>{{ payment.student.get_full_name }}</td>
                 <td>{{ payment.student.current_class.name|default:"-" }}</td>
@@ -327,6 +327,111 @@ window.addEventListener('load', function() {
         studentsFeeData = [];
     }
     
+    // ===============================
+    // Balance UI logic for modal form
+    // ===============================
+    const studentSelect = document.getElementById('studentSelect');
+    const feeStructureSelect = document.getElementById('feeStructureSelect');
+    const balanceDisplay = document.getElementById('balanceDisplay');
+    const balanceText = document.getElementById('balanceText');
+    const paymentHistoryDisplay = document.getElementById('paymentHistoryDisplay');
+    const paymentHistoryBody = document.getElementById('paymentHistoryBody');
+    const balancesUrl = "{% url 'fees:student_balances' school_slug=school_slug %}";
+    let balancesCache = null;
+
+    function formatCurrency(n) {
+        const num = Number(n) || 0;
+        return 'Ksh ' + num.toLocaleString();
+    }
+
+    function updateBalanceUI() {
+        if (!studentSelect || !feeStructureSelect) return;
+
+        const studentId = studentSelect.value;
+        const selectedOption = feeStructureSelect.options[feeStructureSelect.selectedIndex];
+
+        // Hide sections until we have enough data
+        if (!studentId || !selectedOption) {
+            if (balanceDisplay) balanceDisplay.style.display = 'none';
+            if (paymentHistoryDisplay) paymentHistoryDisplay.style.display = 'none';
+            return;
+        }
+
+        const feeType = selectedOption.dataset.feeType || '';
+        const feeAmount = parseFloat(selectedOption.dataset.amount || '0');
+
+        // Compute paid from preloaded studentsFeeData
+        let paid = 0;
+        if (Array.isArray(studentsFeeData) && studentsFeeData.length) {
+            const rec = studentsFeeData.find(x => String(x.student_id) === String(studentId) && String(x.fee_type) === String(feeType));
+            if (rec) paid = Number(rec.paid_amount || 0);
+        }
+
+        const balance = Math.max(feeAmount - paid, 0);
+
+        if (balanceText) {
+            balanceText.innerHTML = `${selectedOption.text} <br>Paid so far: ${formatCurrency(paid)} <br><strong>Balance: ${formatCurrency(balance)}</strong>`;
+        }
+        if (balanceDisplay) balanceDisplay.style.display = '';
+
+        // Load payment history lazily
+        loadPaymentHistory(studentId, feeType);
+    }
+
+    async function loadPaymentHistory(studentId, feeType) {
+        try {
+            if (!balancesCache) {
+                const resp = await fetch(balancesUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (!resp.ok) throw new Error('Failed to fetch balances');
+                balancesCache = await resp.json();
+            }
+
+            const allHistory = (balancesCache && balancesCache.payment_history) || {};
+            const history = (allHistory[String(studentId)] && allHistory[String(studentId)][feeType]) || [];
+
+            if (!paymentHistoryBody) return;
+            paymentHistoryBody.innerHTML = '';
+
+            if (history.length === 0) {
+                if (paymentHistoryDisplay) paymentHistoryDisplay.style.display = 'none';
+                return;
+            }
+
+            history.forEach(item => {
+                const tr = document.createElement('tr');
+                const tdDate = document.createElement('td');
+                const tdPaid = document.createElement('td');
+                const tdBal = document.createElement('td');
+                tdDate.textContent = item.date;
+                tdPaid.textContent = formatCurrency(item.amount_paid);
+                tdBal.textContent = formatCurrency(item.balance_after);
+                tr.appendChild(tdDate);
+                tr.appendChild(tdPaid);
+                tr.appendChild(tdBal);
+                paymentHistoryBody.appendChild(tr);
+            });
+
+            if (paymentHistoryDisplay) paymentHistoryDisplay.style.display = '';
+        } catch (err) {
+            console.warn('Could not load payment history:', err);
+            if (paymentHistoryDisplay) paymentHistoryDisplay.style.display = 'none';
+        }
+    }
+
+    if (studentSelect) studentSelect.addEventListener('change', updateBalanceUI);
+    if (feeStructureSelect) feeStructureSelect.addEventListener('change', updateBalanceUI);
+    
+    // Trigger once on modal show in case fields are preselected
+    const collectFeeModalEl = document.getElementById('collectFeeModal');
+    if (collectFeeModalEl) {
+        collectFeeModalEl.addEventListener('shown.bs.modal', function() {
+            updateBalanceUI();
+        });
+    }
+    
+    // Also trigger once on load to cover immediate cases
+    updateBalanceUI();
+    
     if (table) {
         const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
         console.log('Found', rows.length, 'table rows');
@@ -340,8 +445,10 @@ window.addEventListener('load', function() {
                 for (let i = 0; i < rows.length; i++) {
                     const row = rows[i];
                     const studentName = (row.dataset.studentName || '').toLowerCase();
+                    const admission = (row.dataset.admission || '').toLowerCase();
                     
-                    if (searchTerm && !studentName.includes(searchTerm)) {
+                    // Match by name OR admission (supports full or last 4 digits)
+                    if (searchTerm && !studentName.includes(searchTerm) && !admission.includes(searchTerm)) {
                         row.style.display = 'none';
                     } else {
                         row.style.display = '';

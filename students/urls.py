@@ -7,6 +7,12 @@ app_name = 'students'
 urlpatterns = [
     path('', views.StudentListView.as_view(), name='list'),
     path('add/', views.StudentCreateView.as_view(), name='add'),
+    # Import/Export
+    path('export/', views.StudentExportView.as_view(), name='export'),
+    path('template/', views.StudentTemplateView.as_view(), name='template'),
+    path('import/', views.StudentImportView.as_view(), name='import'),
+    path('import/sheets/', views.StudentImportSheetsView.as_view(), name='import_sheets'),
+    path('import/preview/', views.StudentImportPreviewView.as_view(), name='import_preview'),
     path('parents/', views.ParentListView.as_view(), name='parents'),
     path('parents/<int:pk>/', views.ParentDetailView.as_view(), name='parent_detail'),
     path('<int:pk>/', views.StudentDetailView.as_view(), name='detail'),

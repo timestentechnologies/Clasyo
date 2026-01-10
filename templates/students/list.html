@@ -12,6 +12,27 @@
         <i class="fas fa-user-plus"></i>
         Add New Student
     </button>
+    <div class="d-flex gap-2 ms-auto">
+        <a class="btn" href="{% url 'students:template' school_slug=school_slug %}"
+           style="background-color: #1E3A5F; color: #fff; border: none;">
+            <i class="fas fa-file-download"></i> Download Template
+        </a>
+        <div class="btn-group">
+            <button type="button" class="btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"
+                    style="background-color: #06B6D4; color: #fff; border: none;">
+                <i class="fas fa-file-export"></i> Export
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="{% url 'students:export' school_slug=school_slug %}?format=csv">CSV</a></li>
+                <li><a class="dropdown-item" href="{% url 'students:export' school_slug=school_slug %}?format=excel">Excel (.xlsx)</a></li>
+            </ul>
+        </div>
+        <button class="btn" data-bs-toggle="modal" data-bs-target="#importStudentsModal"
+                style="background-color: #1E3A5F; color: #fff; border: none;">
+            <i class="fas fa-file-import"></i> Import
+        </button>
+    </div>
+    
 </div>
 
 <!-- Dynamic Search and Filters -->
@@ -53,6 +74,10 @@
                         <th>Admission No</th>
                         <th>Name</th>
                         <th>Class</th>
+                        {% if students.0.dormitory or students.0.room %}
+                        <th>Dormitory</th>
+                        <th>Room</th>
+                        {% endif %}
                         <th>Email</th>
                         <th>Phone</th>
                         <th>Status</th>
@@ -74,6 +99,10 @@
                         <td><strong>{{ student.admission_number }}</strong></td>
                         <td>{{ student.get_full_name }}</td>
                         <td>{{ student.current_class|default:"-" }}</td>
+                        {% if students.0.dormitory or students.0.room %}
+                        <td>{{ student.dormitory.name|default:"-" }}</td>
+                        <td>{{ student.room.room_number|default:"-" }}</td>
+                        {% endif %}
                         <td>{{ student.email|default:"-" }}</td>
                         <td>{{ student.phone|default:"-" }}</td>
                         <td>
@@ -101,20 +130,20 @@
                                     </a>
                                 {% endif %}
                             {% endif %}
-                            <button class="btn-modern btn-sm-modern btn-primary-modern" title="View" onclick="viewStudent({{ student.pk }})">
+                            <button class="btn-modern btn-sm-modern btn-primary-modern" title="View" onclick="viewStudent('{{ student.pk }}')">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <button class="btn-modern btn-sm-modern btn-warning-modern" title="Edit" onclick="editStudent({{ student.pk }})">
+                            <button class="btn-modern btn-sm-modern btn-warning-modern" title="Edit" onclick="editStudent('{{ student.pk }}')">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn-modern btn-sm-modern btn-danger-modern" title="Delete" onclick="deleteStudent({{ student.pk }}, '{{ student.first_name }} {{ student.last_name }}')">
+                            <button class="btn-modern btn-sm-modern btn-danger-modern" title="Delete" onclick="deleteStudent('{{ student.pk }}', '{{ student.first_name }} {{ student.last_name }}')">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="text-center py-4">
+                        <td colspan="{% if students.0.dormitory or students.0.room %}10{% else %}8{% endif %}" class="text-center py-4">
                             <i class="fas fa-users fa-3x text-muted mb-3"></i>
                             <p class="text-muted">No students found. Add your first student!</p>
                             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">
@@ -328,6 +357,44 @@
     </div>
 </div>
 
+<!-- Import Students Modal -->
+<div class="modal fade" id="importStudentsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color:#1E3A5F; color:#fff;">
+                <h5 class="modal-title text-white"><i class="fas fa-file-import"></i> Import Students</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Upload CSV or Excel file</label>
+                    <input type="file" id="importFile" class="form-control" accept=".csv,.xlsx">
+                    <small class="text-muted">Use the downloaded template for correct columns and formats.</small>
+                </div>
+                <div id="sheetSelectorContainer" class="mb-3" style="display:none;">
+                    <label class="form-label">Select Excel Sheet</label>
+                    <select id="sheetSelect" class="form-select"></select>
+                </div>
+                <div id="importStatus" class="mb-2"></div>
+                <div id="importProgress" class="mb-2" style="display:none;">
+                    <div class="progress">
+                        <div id="importProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;">0%</div>
+                    </div>
+                </div>
+                <div id="importPreview" class="mb-2" style="display:none;"></div>
+                <div id="importResults" style="max-height: 40vh; overflow:auto; display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" id="startImportBtn" class="btn btn-primary" disabled>
+                    <i class="fas fa-cloud-upload-alt"></i> Start Import
+                </button>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
 <!-- View Student Modal -->
 <div class="modal fade" id="viewStudentModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -443,6 +510,8 @@ function submitAddStudent() {
             input.classList.remove('is-invalid');
         }
     });
+
+
     
     if (!isValid) {
         if (firstError) firstError.focus();
@@ -711,6 +780,234 @@ document.addEventListener('DOMContentLoaded', function() {
     searchInput.addEventListener('input', filterTable);
     classFilter.addEventListener('change', filterTable);
     statusFilter.addEventListener('change', filterTable);
+});
+
+// Import: sheets discovery, preview mapping/validation, and submit
+document.addEventListener('DOMContentLoaded', function () {
+    const importFileInput = document.getElementById('importFile');
+    const sheetContainer = document.getElementById('sheetSelectorContainer');
+    const sheetSelect = document.getElementById('sheetSelect');
+    const startImportBtn = document.getElementById('startImportBtn');
+    const importStatus = document.getElementById('importStatus');
+    const importPreview = document.getElementById('importPreview');
+    const importResults = document.getElementById('importResults');
+    const importProgress = document.getElementById('importProgress');
+    const importProgressBar = document.getElementById('importProgressBar');
+    if (!importFileInput) return;
+
+    let selectedImportFile = null;
+
+    function resetImportUI() {
+        sheetContainer.style.display = 'none';
+        sheetSelect.innerHTML = '';
+        startImportBtn.disabled = true;
+        importStatus.innerHTML = '';
+        importPreview.style.display = 'none';
+        importPreview.innerHTML = '';
+        importResults.style.display = 'none';
+        importResults.innerHTML = '';
+        if (importProgress) {
+            importProgress.style.display = 'none';
+            importProgressBar.style.width = '0%';
+            importProgressBar.textContent = '0%';
+        }
+    }
+
+    function escapeHtml(str) {
+        return (str || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function renderColumnsTable(columns) {
+        const rows = columns.map(col => `
+            <tr>
+                <td>${col.source}</td>
+                <td>${col.mapped_to || '<span class="text-danger">Unmapped</span>'}</td>
+                <td class="text-truncate" style="max-width:220px;" title="${escapeHtml(col.first_value)}">${escapeHtml(col.first_value)}</td>
+                <td>${col.is_required ? '<span class="badge bg-warning text-dark">Required</span>' : (col.is_autogenerated ? '<span class="badge bg-success">Auto</span>' : '')}</td>
+                <td>${col.status === 'mapped' ? '<span class="text-success">Mapped</span>' : '<span class="text-danger">Unmapped</span>'}</td>
+            </tr>`).join('');
+        return `
+            <div class="card">
+              <div class="card-body p-2">
+                <h6 class="mb-2">Column Mapping</h6>
+                <div class="table-responsive" style="max-height:45vh; overflow:auto;">
+                  <table class="table table-sm align-middle">
+                    <thead>
+                      <tr>
+                        <th>Source Column</th>
+                        <th>Mapped Field</th>
+                        <th>First Value</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                  </table>
+                </div>
+              </div>
+            </div>`;
+    }
+
+    function renderPreviewView(data) {
+        const stats = data.stats || { total_rows: 0, invalid_rows: 0, valid_rows: 0 };
+        const missingReq = (data.missing_required || []).map(f => `<span class="badge bg-danger me-1">${f}</span>`).join('');
+        const errorsList = (data.sample_errors || []).map(er => `<li class="list-group-item list-group-item-danger">Row ${er.row}: ${er.errors.join(', ')}</li>`).join('');
+        const columnsTable = renderColumnsTable(data.columns || []);
+        const canImport = data.can_import;
+        const pa = data.potential_actions || { updates: 0, creates: 0, unknown: 0 };
+
+        importPreview.innerHTML = `
+            <div class="alert ${canImport ? 'alert-success' : 'alert-warning'} py-2">
+                <div><strong>Preview:</strong> Total ${stats.total_rows}, Valid ${stats.valid_rows}, Errors ${stats.invalid_rows}.</div>
+                ${missingReq ? `<div class="mt-1">Missing required fields: ${missingReq}</div>` : ''}
+                <div class="mt-1"><strong>Will perform:</strong> <span class="badge bg-info text-dark me-1">Updates: ${pa.updates}</span> <span class="badge bg-primary me-1">Creates: ${pa.creates}</span> ${pa.unknown ? `<span class="badge bg-secondary">Unknown: ${pa.unknown}</span>` : ''}</div>
+            </div>
+            ${columnsTable}
+            ${errorsList ? `<div class="mt-2"><h6>Sample Errors</h6><ul class="list-group">${errorsList}</ul></div>` : ''}
+        `;
+        importPreview.style.display = '';
+        // Enable start import once preview is available (allow even with warnings)
+        startImportBtn.disabled = false;
+    }
+
+    function requestPreview(file, sheetName) {
+        const fd = new FormData();
+        fd.append('file', file);
+        if (sheetName) fd.append('sheet_name', sheetName);
+        importStatus.innerHTML = '<span class="text-muted">Analyzing file for mapping and validation...</span>';
+        fetch(window.location.pathname + 'import/preview/', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    importStatus.innerHTML = '<span class="text-success">Preview ready.</span>';
+                    renderPreviewView(data);
+                } else {
+                    importStatus.innerHTML = '<span class="text-danger">Preview failed: ' + (data.error || 'Unknown error') + '</span>';
+                }
+            })
+            .catch(err => {
+                importStatus.innerHTML = '<span class="text-danger">Preview failed: ' + err.message + '</span>';
+            });
+    }
+
+    function requestSheets(file) {
+        const fd = new FormData();
+        fd.append('file', file);
+        importStatus.innerHTML = '<span class="text-muted">Reading Excel file to list sheets...</span>';
+        fetch(window.location.pathname + 'import/sheets/', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.sheets && data.sheets.length) {
+                    sheetContainer.style.display = '';
+                    sheetSelect.innerHTML = '';
+                    data.sheets.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s; opt.textContent = s; sheetSelect.appendChild(opt);
+                    });
+                    importStatus.innerHTML = '<span class="text-success">Found ' + data.sheets.length + ' sheet(s).</span>';
+                    requestPreview(selectedImportFile, sheetSelect.value);
+                } else {
+                    sheetContainer.style.display = 'none';
+                    importStatus.innerHTML = '<span class="text-warning">No sheets detected; using first sheet.</span>';
+                    requestPreview(selectedImportFile, undefined);
+                }
+            })
+            .catch(err => {
+                importStatus.innerHTML = '<span class="text-danger">Failed to read sheets: ' + err.message + '</span>';
+            });
+    }
+
+    importFileInput.addEventListener('change', function () {
+        resetImportUI();
+        const file = this.files && this.files[0] ? this.files[0] : null;
+        selectedImportFile = file;
+        if (!file) return;
+        const name = file.name.toLowerCase();
+        if (name.endsWith('.xlsx')) {
+            requestSheets(file);
+        } else if (name.endsWith('.csv')) {
+            sheetContainer.style.display = 'none';
+            importStatus.innerHTML = '<span class="text-success">CSV file selected.</span>';
+            requestPreview(file, undefined);
+        } else {
+            importStatus.innerHTML = '<span class="text-danger">Unsupported file type. Please upload CSV or Excel (.xlsx).</span>';
+        }
+    });
+
+    sheetSelect.addEventListener('change', function () {
+        if (!selectedImportFile) return;
+        requestPreview(selectedImportFile, sheetSelect.value);
+    });
+
+    startImportBtn.addEventListener('click', function () {
+        if (!selectedImportFile) return;
+        startImportBtn.disabled = true;
+        importResults.style.display = 'none';
+        importResults.innerHTML = '';
+        importStatus.innerHTML = '<span class="text-muted"><span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Uploading file...</span>';
+        if (importProgress) {
+            importProgress.style.display = '';
+            importProgressBar.style.width = '0%';
+            importProgressBar.textContent = '0%';
+        }
+
+        const fd = new FormData();
+        fd.append('file', selectedImportFile);
+        if (sheetContainer.style.display !== 'none' && sheetSelect.value) {
+            fd.append('sheet_name', sheetSelect.value);
+        }
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', window.location.pathname + 'import/');
+        xhr.upload.onprogress = function (e) {
+            if (!e.lengthComputable || !importProgress) return;
+            const percent = Math.round((e.loaded / e.total) * 100);
+            importProgressBar.style.width = percent + '%';
+            importProgressBar.textContent = percent + '%';
+        };
+        xhr.onloadstart = function () {
+            importStatus.innerHTML = '<span class="text-muted"><span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Uploading file...</span>';
+        };
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                if (importProgress) {
+                    importProgressBar.style.width = '100%';
+                    importProgressBar.textContent = '100%';
+                }
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    let data;
+                    try { data = JSON.parse(xhr.responseText); } catch (e) { data = { success: false, error: 'Invalid server response' }; }
+                    if (data.success) {
+                        importStatus.innerHTML = '<span class="text-success">Import finished. Created ' + (data.created || 0) + ', Updated ' + (data.updated || 0) + ', Errors ' + (data.errors || 0) + '.</span>';
+                        importResults.style.display = '';
+                        if (data.error_rows && data.error_rows.length) {
+                            const list = document.createElement('ul');
+                            list.className = 'list-group';
+                            data.error_rows.forEach(er => {
+                                const li = document.createElement('li');
+                                li.className = 'list-group-item list-group-item-danger';
+                                li.textContent = 'Row ' + er.row + ': ' + er.error;
+                                list.appendChild(li);
+                            });
+                            importResults.innerHTML = '';
+                            importResults.appendChild(list);
+                        } else {
+                            importResults.innerHTML = '<div class="alert alert-success">No errors reported.</div>';
+                        }
+                        if ((data.imported || 0) > 0) {
+                            setTimeout(() => window.location.reload(), 2000);
+                        }
+                    } else {
+                        importStatus.innerHTML = '<span class="text-danger">Import failed: ' + (data.error || 'Unknown error') + '</span>';
+                    }
+                } else {
+                    importStatus.innerHTML = '<span class="text-danger">Import failed: HTTP ' + xhr.status + '</span>';
+                }
+                startImportBtn.disabled = false;
+            }
+        };
+        xhr.send(fd);
+    });
 });
 </script>
 {% endblock %}

@@ -145,6 +145,43 @@
         </div>
     </div>
     
+    <!-- Transport & Dormitory Information -->
+    <h6 class="mb-3 mt-3 text-primary"><i class="fas fa-bus"></i> Transport & Dormitory</h6>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Transport Required</label>
+            <select name="is_transport_required" class="form-control">
+                <option value="False" {% if not student.is_transport_required %}selected{% endif %}>No</option>
+                <option value="True" {% if student.is_transport_required %}selected{% endif %}>Yes</option>
+            </select>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Hostel Required</label>
+            <select name="is_hostel_required" class="form-control" id="hostelRequired">
+                <option value="False" {% if not student.is_hostel_required %}selected{% endif %}>No</option>
+                <option value="True" {% if student.is_hostel_required %}selected{% endif %}>Yes</option>
+            </select>
+        </div>
+        <div class="col-md-6 mb-3" id="dormitoryField"{% if not student.is_hostel_required %} style="display:none;"{% endif %}>
+            <label class="form-label">Dormitory</label>
+            <select name="dormitory" class="form-control" id="dormitorySelect">
+                <option value="">Select Dormitory</option>
+                {% for dormitory in dormitories %}
+                <option value="{{ dormitory.id }}" {% if student.dormitory and student.dormitory.id == dormitory.id %}selected{% endif %}>{{ dormitory.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6 mb-3" id="roomField"{% if not student.is_hostel_required %} style="display:none;"{% endif %}>
+            <label class="form-label">Room</label>
+            <select name="room" class="form-control" id="roomSelect">
+                <option value="">Select Room</option>
+                {% for room in rooms %}
+                <option value="{{ room.id }}" {% if student.room and student.room.id == room.id %}selected{% endif %}>{{ room.room_number }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    
     <!-- Guardian Details (Optional) -->
     <h6 class="mb-3 mt-3 text-primary"><i class="fas fa-user-shield"></i> Guardian Details (Optional)</h6>
     <div class="row">
@@ -168,7 +205,25 @@
 </form>
 
 <script>
-// This script will be available when the form is loaded into the modal
+// This script will be available when form is loaded into modal
+document.addEventListener('DOMContentLoaded', function() {
+    const hostelRequired = document.getElementById('hostelRequired');
+    const dormitoryField = document.getElementById('dormitoryField');
+    const roomField = document.getElementById('roomField');
+    
+    if (hostelRequired) {
+        hostelRequired.addEventListener('change', function() {
+            if (this.value === 'True') {
+                dormitoryField.style.display = 'block';
+                roomField.style.display = 'block';
+            } else {
+                dormitoryField.style.display = 'none';
+                roomField.style.display = 'none';
+            }
+        });
+    }
+});
+
 window.submitEditStudent = function(studentId) {
     const form = document.getElementById('studentEditForm');
     const formData = new FormData(form);

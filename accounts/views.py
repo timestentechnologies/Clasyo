@@ -338,6 +338,29 @@ class ProfileView(LoginRequiredMixin, DetailView):
     def get_object(self):
         return self.request.user
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Try to pass school_slug for consistent navigation
+        school_slug = getattr(self.request, 'school_slug', '')
+        if not school_slug:
+            referer = self.request.META.get('HTTP_REFERER', '')
+            if '/school/' in referer:
+                parts = referer.split('/school/')
+                if len(parts) > 1:
+                    slug_part = parts[1].split('/')[0]
+                    if slug_part:
+                        school_slug = slug_part
+        if not school_slug:
+            try:
+                from tenants.models import School
+                school = School.objects.filter(is_active=True).first()
+                if school:
+                    school_slug = school.slug
+            except Exception:
+                pass
+        context['school_slug'] = school_slug
+        return context
+
 
 class ProfileEditView(LoginRequiredMixin, UpdateView):
     """Edit user profile"""
@@ -394,12 +417,11 @@ class ChangePasswordView(LoginRequiredMixin, View):
         return school_slug
     
     def get(self, request):
-        form = self.form_class(request.user)
-        context = {
-            'form': form,
-            'school_slug': self.get_school_slug(request)
-        }
-        return render(request, self.template_name, context)
+        # Redirect to profile page where the inline change-password form now lives
+        school_slug = self.get_school_slug(request)
+        if school_slug:
+            return redirect('core:profile', school_slug=school_slug)
+        return redirect('accounts:profile')
     
     def post(self, request):
         form = self.form_class(request.user, request.POST)
@@ -408,22 +430,20 @@ class ChangePasswordView(LoginRequiredMixin, View):
             update_session_auth_hash(request, user)
             messages.success(request, 'Password changed successfully!')
             
-            # Redirect back to referer or dashboard
-            referer = request.META.get('HTTP_REFERER', '')
-            if referer and '/school/' in referer:
-                return redirect(referer)
-            
+            # Redirect back to profile page
             school_slug = self.get_school_slug(request)
             if school_slug:
-                return redirect('core:dashboard', school_slug=school_slug)
-            
-            return redirect('frontend:home')
+                return redirect('core:profile', school_slug=school_slug)
+            return redirect('accounts:profile')
         
-        context = {
-            'form': form,
-            'school_slug': self.get_school_slug(request)
-        }
-        return render(request, self.template_name, context)
+        # Invalid form: surface errors via messages and redirect back to profile
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"{field}: {error}")
+        school_slug = self.get_school_slug(request)
+        if school_slug:
+            return redirect('core:profile', school_slug=school_slug)
+        return redirect('accounts:profile')
 
 
 class UserListView(LoginRequiredMixin, UserPassesTestMixin, ListView):

@@ -5,7 +5,7 @@
 {% block page_subtitle %}View and manage notice board{% endblock %}
 
 {% block content %}
-{% if user.role in 'super_admin,school_admin' %}
+{% if user.role in 'superadmin,admin' %}
 <div class="d-flex justify-content-end mb-3">
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addNoticeModal"><i class="fas fa-plus"></i> Add Notice</button>
 </div>
@@ -14,9 +14,20 @@
 {% for notice in notices %}
 <div class="card mb-3">
     <div class="card-body">
-        <div class="d-flex justify-content-between">
-            <h5>{{ notice.title }}</h5>
-            <span class="badge bg-{% if notice.priority == 'high' %}danger{% elif notice.priority == 'medium' %}warning{% else %}info{% endif %}">{{ notice.priority|upper }}</span>
+        <div class="d-flex justify-content-between align-items-start">
+            <h5 class="mb-1">{{ notice.title }}</h5>
+            <div class="d-flex align-items-start gap-2">
+                <span class="badge bg-{% if notice.priority == 'high' %}danger{% elif notice.priority == 'medium' %}warning{% else %}info{% endif %}">{{ notice.priority|upper }}</span>
+                {% if user.role in 'superadmin,admin' %}
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Actions</button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" onclick="openEditNotice({{ notice.id }}); return false;">Edit</a></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="openDeleteNotice({{ notice.id }}, &quot;{{ notice.title|escapejs }}&quot;); return false;">Delete</a></li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
         </div>
         <p>{{ notice.content }}</p>
         <small class="text-muted">Posted: {{ notice.created_at|date:"M d, Y" }} | For: {{ notice.target_audience }}</small>
@@ -67,5 +78,122 @@ function submitNotice() {
         showError('Error posting notice: ' + error.message);
     });
 }
+
+// Edit Notice
+function openEditNotice(id) {
+    fetch(window.location.pathname + id + '/', { method: 'GET' })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) { showError(data.error || 'Failed to load notice'); return; }
+            document.getElementById('editNoticeId').value = data.id;
+            const form = document.getElementById('editNoticeForm');
+            form.querySelector('[name="title"]').value = data.title || '';
+            form.querySelector('[name="content"]').value = data.content || '';
+            form.querySelector('[name="target_audience"]').value = data.target_audience || 'all';
+            form.querySelector('[name="priority"]').value = data.priority || 'normal';
+            new bootstrap.Modal(document.getElementById('editNoticeModal')).show();
+        })
+        .catch(err => showError('Failed to load notice: ' + err.message));
+}
+
+function submitEditNotice() {
+    const id = document.getElementById('editNoticeId').value;
+    const form = document.getElementById('editNoticeForm');
+    const fd = new FormData(form);
+    fetch(window.location.pathname + id + '/edit/', {
+        method: 'POST',
+        body: fd,
+        headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) { showSuccessAndReload('Notice updated successfully'); }
+        else { showError(data.error || 'Failed to update notice'); }
+    })
+    .catch(err => showError('Failed to update notice: ' + err.message));
+}
+
+// Delete Notice
+function openDeleteNotice(id, title) {
+    document.getElementById('deleteNoticeId').value = id;
+    document.getElementById('deleteNoticeTitle').textContent = title;
+    new bootstrap.Modal(document.getElementById('deleteNoticeModal')).show();
+}
+
+function confirmDeleteNotice() {
+    const id = document.getElementById('deleteNoticeId').value;
+    fetch(window.location.pathname + id + '/delete/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) { showSuccessAndReload('Notice deleted successfully'); }
+        else { showError(data.error || 'Failed to delete notice'); }
+    })
+    .catch(err => showError('Failed to delete notice: ' + err.message));
+}
 </script>
+
+{% if user.role in 'superadmin,admin' %}
+<!-- Edit Notice Modal -->
+<div class="modal fade" id="editNoticeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header" style="background-color:#1E3A5F;color:#fff;">
+        <h5 class="modal-title">Edit Notice</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editNoticeForm">
+          {% csrf_token %}
+          <input type="hidden" id="editNoticeId">
+          <div class="mb-3"><label>Title</label><input type="text" name="title" class="form-control" required></div>
+          <div class="mb-3"><label>Content</label><textarea name="content" class="form-control" rows="4" required></textarea></div>
+          <div class="mb-3"><label>Target Audience</label>
+            <select name="target_audience" class="form-control">
+              <option value="all">All</option>
+              <option value="teacher">Teachers</option>
+              <option value="student">Students</option>
+              <option value="parent">Parents</option>
+              <option value="staff">Staff</option>
+            </select>
+          </div>
+          <div class="mb-3"><label>Priority</label>
+            <select name="priority" class="form-control">
+              <option value="normal">Normal</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="submitEditNotice()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+<!-- Delete Notice Modal -->
+<div class="modal fade" id="deleteNoticeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header" style="background-color:#1E3A5F;color:#fff;">
+        <h5 class="modal-title">Delete Notice</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete <strong id="deleteNoticeTitle"></strong>?</p>
+        <input type="hidden" id="deleteNoticeId">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" onclick="confirmDeleteNotice()">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
