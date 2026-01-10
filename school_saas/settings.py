@@ -317,7 +317,7 @@ SESSION_SAVE_EVERY_REQUEST = True
 
 # Security Settings (Enable in production)
 if not DEBUG:
-    SECURE_SSL_REDIRECT = False
+    SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
