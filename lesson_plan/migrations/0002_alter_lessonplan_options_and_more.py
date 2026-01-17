@@ -5,6 +5,45 @@ from django.db import migrations, models
 import django.db.models.deletion
 
 
+def add_approved_fields_if_missing(apps, schema_editor):
+    connection = schema_editor.connection
+    with connection.cursor() as cursor:
+        # Check if approved_at column already exists
+        cursor.execute("SHOW COLUMNS FROM lesson_plan_lessonplan LIKE 'approved_at'")
+        if cursor.fetchone():
+            # Column already exists, skip adding it
+            return
+        
+        # Add approved_at field
+        cursor.execute("""
+            ALTER TABLE lesson_plan_lessonplan 
+            ADD COLUMN approved_at DATETIME NULL
+        """)
+        
+        # Check if approved_by column already exists
+        cursor.execute("SHOW COLUMNS FROM lesson_plan_lessonplan LIKE 'approved_by'")
+        if not cursor.fetchone():
+            # Add approved_by field
+            cursor.execute("""
+                ALTER TABLE lesson_plan_lessonplan 
+                ADD COLUMN approved_by_id BIGINT NULL
+            """)
+        
+        # Check if attachments column already exists
+        cursor.execute("SHOW COLUMNS FROM lesson_plan_lessonplan LIKE 'attachments'")
+        if not cursor.fetchone():
+            # Add attachments field
+            cursor.execute("""
+                ALTER TABLE lesson_plan_lessonplan 
+                ADD COLUMN attachments VARCHAR(100) NULL
+            """)
+
+
+def reverse_approved_fields(apps, schema_editor):
+    # This is a no-op since we don't want to drop potentially existing data
+    pass
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -33,21 +72,7 @@ class Migration(migrations.Migration):
             name='lessonplantemplate',
             options={'ordering': ['-is_default', 'name'], 'verbose_name': 'Lesson Plan Template', 'verbose_name_plural': 'Lesson Plan Templates'},
         ),
-        migrations.AddField(
-            model_name='lessonplan',
-            name='approved_at',
-            field=models.DateTimeField(blank=True, null=True, verbose_name='Approved At'),
-        ),
-        migrations.AddField(
-            model_name='lessonplan',
-            name='approved_by',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='approved_lesson_plans', to=settings.AUTH_USER_MODEL),
-        ),
-        migrations.AddField(
-            model_name='lessonplan',
-            name='attachments',
-            field=models.FileField(blank=True, null=True, upload_to='lesson_plans/', verbose_name='Attachments'),
-        ),
+        migrations.RunPython(add_approved_fields_if_missing, reverse_approved_fields),
         migrations.AlterField(
             model_name='lessonplan',
             name='activities',
