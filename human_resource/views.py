@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from accounts.models import User
 from .models import Department, Designation
-from core.utils import generate_email, get_school_slug_from_request
+from core.utils import generate_email, get_school_slug_from_request, get_current_school
 
 
 class TeacherListView(LoginRequiredMixin, ListView):
@@ -15,13 +15,23 @@ class TeacherListView(LoginRequiredMixin, ListView):
     context_object_name = 'teachers'
     
     def get_queryset(self):
-        return User.objects.filter(role='teacher', is_active=True)
+        school = get_current_school(self.request)
+        qs = User.objects.filter(role='teacher', is_active=True)
+        if school:
+            qs = qs.filter(school=school)
+        return qs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
-        context['departments'] = Department.objects.filter(is_active=True)
-        context['designations'] = Designation.objects.filter(is_active=True)
+        school = get_current_school(self.request)
+        departments_qs = Department.objects.filter(is_active=True)
+        designations_qs = Designation.objects.filter(is_active=True)
+        if school:
+            departments_qs = departments_qs.filter(school=school)
+            designations_qs = designations_qs.filter(school=school)
+        context['departments'] = departments_qs
+        context['designations'] = designations_qs
         return context
 
 
@@ -50,6 +60,10 @@ class TeacherCreateView(LoginRequiredMixin, CreateView):
                 designation_id=request.POST.get('designation') or None,
                 is_active=True
             )
+            school = get_current_school(request)
+            if school:
+                teacher.school = school
+                teacher.save(update_fields=["school"])
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
@@ -61,7 +75,11 @@ class TeacherDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'teacher'
     
     def get_queryset(self):
-        return User.objects.filter(role='teacher')
+        school = get_current_school(self.request)
+        qs = User.objects.filter(role='teacher')
+        if school:
+            qs = qs.filter(school=school)
+        return qs
     
     def get(self, request, *args, **kwargs):
         teacher = self.get_object()
@@ -89,6 +107,13 @@ class TeacherDetailView(LoginRequiredMixin, DetailView):
 @method_decorator(csrf_exempt, name='dispatch')
 class TeacherUpdateView(LoginRequiredMixin, UpdateView):
     model = User
+    
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = User.objects.filter(role='teacher')
+        if school:
+            qs = qs.filter(school=school)
+        return qs
     
     def post(self, request, *args, **kwargs):
         try:
@@ -125,6 +150,13 @@ class TeacherDeleteView(LoginRequiredMixin, DeleteView):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = User.objects.filter(role='teacher')
+        if school:
+            qs = qs.filter(school=school)
+        return qs
+
 
 # Staff Views
 class StaffListView(LoginRequiredMixin, ListView):
@@ -133,13 +165,23 @@ class StaffListView(LoginRequiredMixin, ListView):
     context_object_name = 'staff'
     
     def get_queryset(self):
-        return User.objects.filter(role__in=['staff', 'accountant', 'librarian', 'driver'], is_active=True)
+        school = get_current_school(self.request)
+        qs = User.objects.filter(role__in=['staff', 'accountant', 'librarian', 'driver'], is_active=True)
+        if school:
+            qs = qs.filter(school=school)
+        return qs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
-        context['departments'] = Department.objects.filter(is_active=True)
-        context['designations'] = Designation.objects.filter(is_active=True)
+        school = get_current_school(self.request)
+        departments_qs = Department.objects.filter(is_active=True)
+        designations_qs = Designation.objects.filter(is_active=True)
+        if school:
+            departments_qs = departments_qs.filter(school=school)
+            designations_qs = designations_qs.filter(school=school)
+        context['departments'] = departments_qs
+        context['designations'] = designations_qs
         return context
 
 
@@ -166,6 +208,10 @@ class StaffCreateView(LoginRequiredMixin, View):
                 phone=request.POST.get('phone', ''),
                 is_active=True
             )
+            school = get_current_school(request)
+            if school:
+                staff.school = school
+                staff.save(update_fields=["school"])
             return JsonResponse({'success': True, 'message': 'Staff added successfully!'})
         except Exception as e:
             import traceback
@@ -176,6 +222,13 @@ class StaffCreateView(LoginRequiredMixin, View):
 class StaffDetailView(LoginRequiredMixin, DetailView):
     model = User
     template_name = 'human_resource/staff_detail.html'
+    
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = User.objects.filter(role__in=['staff', 'accountant', 'librarian', 'driver'])
+        if school:
+            qs = qs.filter(school=school)
+        return qs
     
     def get(self, request, *args, **kwargs):
         staff = self.get_object()
@@ -201,6 +254,13 @@ class StaffDetailView(LoginRequiredMixin, DetailView):
 @method_decorator(csrf_exempt, name='dispatch')
 class StaffUpdateView(LoginRequiredMixin, UpdateView):
     model = User
+    
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = User.objects.filter(role__in=['staff', 'accountant', 'librarian', 'driver'])
+        if school:
+            qs = qs.filter(school=school)
+        return qs
     
     def post(self, request, *args, **kwargs):
         try:
@@ -232,12 +292,26 @@ class StaffDeleteView(LoginRequiredMixin, DeleteView):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = User.objects.filter(role__in=['staff', 'accountant', 'librarian', 'driver'])
+        if school:
+            qs = qs.filter(school=school)
+        return qs
+
 
 # Department Views
 class DepartmentListView(LoginRequiredMixin, ListView):
     model = Department
     template_name = 'human_resource/department_list.html'
     context_object_name = 'departments'
+    
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = Department.objects.all()
+        if school:
+            qs = qs.filter(school=school)
+        return qs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -251,7 +325,9 @@ class DepartmentCreateView(LoginRequiredMixin, View):
     
     def post(self, request, *args, **kwargs):
         try:
+            school = get_current_school(request)
             Department.objects.create(
+                school=school,
                 name=request.POST.get('name'),
                 code=request.POST.get('code'),
                 description=request.POST.get('description', ''),
@@ -268,8 +344,12 @@ class DepartmentUpdateView(LoginRequiredMixin, View):
     
     def post(self, request, *args, **kwargs):
         try:
+            school = get_current_school(request)
+            qs = Department.objects.all()
+            if school:
+                qs = qs.filter(school=school)
             pk = kwargs.get('pk')
-            department = Department.objects.get(pk=pk)
+            department = qs.get(pk=pk)
             
             name = request.POST.get('name')
             code = request.POST.get('code')
@@ -293,8 +373,16 @@ class DepartmentDeleteView(LoginRequiredMixin, View):
     
     def post(self, request, *args, **kwargs):
         try:
-            self.get_object().delete()
+            school = get_current_school(request)
+            qs = Department.objects.all()
+            if school:
+                qs = qs.filter(school=school)
+            pk = kwargs.get('pk')
+            department = qs.get(pk=pk)
+            department.delete()
             return JsonResponse({'success': True})
+        except Department.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Department not found'})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 
@@ -304,6 +392,13 @@ class DesignationListView(LoginRequiredMixin, ListView):
     model = Designation
     template_name = 'human_resource/designation_list.html'
     context_object_name = 'designations'
+    
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = Designation.objects.all()
+        if school:
+            qs = qs.filter(school=school)
+        return qs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -317,7 +412,9 @@ class DesignationCreateView(LoginRequiredMixin, View):
     
     def post(self, request, *args, **kwargs):
         try:
+            school = get_current_school(request)
             Designation.objects.create(
+                school=school,
                 name=request.POST.get('name'),
                 code=request.POST.get('code'),
                 description=request.POST.get('description', ''),
@@ -335,7 +432,15 @@ class DesignationDeleteView(LoginRequiredMixin, View):
     
     def post(self, request, *args, **kwargs):
         try:
-            self.get_object().delete()
+            school = get_current_school(request)
+            qs = Designation.objects.all()
+            if school:
+                qs = qs.filter(school=school)
+            pk = kwargs.get('pk')
+            designation = qs.get(pk=pk)
+            designation.delete()
             return JsonResponse({'success': True})
+        except Designation.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Designation not found'})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})

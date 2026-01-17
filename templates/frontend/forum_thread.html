@@ -1,0 +1,280 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block title %}{{ thread.title }} • Forum{% endblock %}
+
+{% block content %}
+<style>
+.chat-card .card-header { background: linear-gradient(90deg, #E0F7FA 0%, #F5FEFF 100%); border-bottom: 1px solid #E6F4F6; }
+.chat-card .chat-body { background: #F7FBFD; height: 65vh; min-height: 380px; overflow-y: auto; padding: 16px; }
+.chat-row { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 12px; }
+.chat-row.me { flex-direction: row-reverse; }
+.chat-row .avatar { width: 36px; height: 36px; border-radius: 50%; background: #E0F7FA; border: 1px solid #4DD0E1; color: #0B4B50; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; }
+.chat-row .bubble { max-width: 78%; padding: 10px 12px; border-radius: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); word-break: break-word; }
+.chat-row.me .bubble { background: #4DD0E1; color: #ffffff; }
+.chat-row.me .bubble a { color: #ffffff; text-decoration: underline; }
+.chat-row.them .bubble { background: #ffffff; border: 1px solid #E6F4F6; }
+.chat-meta { font-size: 12px; opacity: 0.8; margin-top: 6px; }
+.chat-attach a { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 8px; border: 1px dashed #26C6DA; border-radius: 999px; }
+.composer .form-control { border-radius: 12px; }
+.composer .btn-primary { background-color: #26C6DA; border-color: #26C6DA; }
+.composer .btn-primary:hover { background-color: #00B8D4; border-color: #00B8D4; }
+.composer { position: relative; }
+.composer .icon-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #E6F4F6; background: #fff; display: inline-flex; align-items: center; justify-content: center; }
+.attach-menu { position: absolute; bottom: 64px; left: 12px; z-index: 5; width: 220px; }
+.reply-preview { position: absolute; left: 12px; right: 12px; bottom: 70px; background: #F1FCFE; border: 1px solid #E0F7FA; border-radius: 10px; padding: 10px 40px 10px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+.reply-preview .btn-close { position: absolute; right: 10px; top: 10px; }
+.reply-preview .reply-snippet { font-size: 13px; color: #0B4B50; opacity: .9; max-height: 84px; overflow: hidden; }
+.bubble .bubble-actions { text-align: right; margin-top: 6px; }
+.bubble .bubble-actions .btn { padding: 2px 8px; font-size: 12px; }
+/* Sidebars and polished composer */
+.side-sticky { position: sticky; top: 88px; }
+.sidebar-card .card-header { background: #ffffff; border-bottom: 1px solid #EEF6F8; }
+.stat-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #F1FCFE; border: 1px solid #E0F7FA; color: #0B4B50; font-weight: 600; font-size: 12px; }
+.btn-send { background: linear-gradient(135deg, #0EA5B8 0%, #26C6DA 50%, #4DD0E1 100%); color: #fff; border: none; width: 50px; height: 40px; border-radius: 999px; box-shadow: 0 6px 16px rgba(38,198,218,0.35); }
+.btn-send:hover { filter: brightness(0.98); }
+</style>
+
+<div class="container py-4">
+  <div class="row g-4">
+    <aside class="col-lg-3 d-none d-lg-block">
+      <div class="card shadow-sm sidebar-card side-sticky">
+        <div class="card-header"><strong>Topic</strong></div>
+        <div class="card-body">
+          <div class="mb-2 fw-semibold">{{ thread.title }}</div>
+          <div class="text-muted small">Started by</div>
+          <div class="mb-2">
+            {% if thread.created_by %}
+              {{ thread.created_by.get_full_name|default:thread.created_by.email }}
+            {% else %}
+              {{ thread.author_name|default:thread.author_email|default:"Guest" }}
+            {% endif %}
+          </div>
+          <div class="text-muted small">Created</div>
+          <div class="mb-3">{{ thread.created_at|date:"M d, Y H:i" }}</div>
+          <hr>
+          <div class="text-muted small mb-2">Attachments in thread</div>
+          <div class="small">
+            {% for ap in posts %}
+              {% if ap.attachment %}
+                <div class="d-flex align-items-center mb-1"><i class="fas fa-paperclip me-2 text-secondary"></i><a href="{{ ap.attachment.url }}" target="_blank">{{ ap.attachment.name|default:"Attachment" }}</a></div>
+              {% endif %}
+            {% empty %}
+              <div class="text-muted">No attachments yet</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="col-lg-6">
+      <div class="card shadow-sm chat-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <div class="fw-semibold">{{ thread.title }}</div>
+          <div class="d-flex align-items-center gap-3 small text-muted">
+            <div>Posts: <span class="fw-semibold">{{ posts|length }}</span></div>
+            <div>Views: <span class="fw-semibold">{{ thread.views_count }}</span></div>
+          </div>
+        </div>
+
+        <div class="chat-body" id="chatMessages">
+          {% for p in posts %}
+            <div class="chat-row {% if request.user.is_authenticated and p.user_id == request.user.id %}me{% else %}them{% endif %}">
+              <div class="avatar">
+                {% with name=p.user.get_full_name|default:p.author_name|default:"G" %}{{ name|first|upper }}{% endwith %}
+              </div>
+              <div class="bubble">
+                <div class="small {% if request.user.is_authenticated and p.user_id == request.user.id %}text-white-75{% else %}text-muted{% endif %}">
+                  <span class="fw-semibold">{{ p.user.get_full_name|default:p.author_name|default:"Guest" }}</span>
+                  · {{ p.created_at|date:"M d, Y H:i" }}
+                </div>
+                <div class="mt-1">{{ p.content|linebreaksbr }}</div>
+                {% if p.attachment %}
+                <div class="chat-attach mt-2">
+                  <a href="{{ p.attachment.url }}" target="_blank"><i class="fas fa-paperclip"></i> Attachment</a>
+                </div>
+                {% endif %}
+                <div class="bubble-actions">
+                  {% if not thread.is_locked %}
+                  <button type="button"
+                          class="btn btn-light btn-sm reply-btn"
+                          data-author="{{ p.user.get_full_name|default:p.author_name|default:'Guest' }}"
+                          data-snippet="{{ p.content|striptags|truncatechars:140 }}">
+                    <i class="fas fa-reply"></i> Reply
+                  </button>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% empty %}
+            <div class="text-center text-muted py-5">
+              <i class="fas fa-comment-dots fa-2x mb-3"></i>
+              <div>No messages yet. Start the conversation below.</div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="card-footer bg-white composer">
+          {% if thread.is_locked %}
+            <div class="alert alert-warning mb-0">This thread is locked. New replies are disabled.</div>
+          {% else %}
+          <form method="post" enctype="multipart/form-data" id="chatForm" class="d-flex align-items-end gap-2">
+            {% csrf_token %}
+            <input type="file" class="d-none" id="attachInput" name="attachment">
+            {% if not request.user.is_authenticated %}
+            <div class="guest-fields d-none w-100" id="guestFields">
+              <div class="row g-2 mb-2">
+                <div class="col-md-6">
+                  <input type="text" class="form-control" name="name" placeholder="Your name (optional)">
+                </div>
+                <div class="col-md-6">
+                  <input type="email" class="form-control" name="email" placeholder="you@example.com (optional)">
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+            <div class="reply-preview d-none" id="replyPreview">
+              <div class="small text-muted">Replying to <span id="replyAuthor"></span></div>
+              <div class="reply-snippet" id="replySnippet"></div>
+              <button type="button" class="btn-close" id="cancelReply" aria-label="Close"></button>
+            </div>
+
+            <button type="button" class="icon-btn" id="attachToggle" title="Attach"><i class="fas fa-paperclip"></i></button>
+            <div class="flex-grow-1">
+              <textarea class="form-control" id="chatTextarea" name="content" rows="2" placeholder="Type a message" required></textarea>
+              {% if not request.user.is_authenticated %}
+              <div class="text-end mt-1"><button type="button" class="btn btn-sm btn-outline-secondary" id="toggleGuest">Set name/email</button></div>
+              {% endif %}
+            </div>
+            <button class="btn btn-send" type="submit" title="Send"><i class="fas fa-paper-plane"></i></button>
+
+            <div class="attach-menu card d-none" id="attachMenu">
+              <ul class="list-group list-group-flush">
+                <li class="list-group-item"><button type="button" class="attach-action btn btn-link text-start w-100" data-accept="*/*"><i class="far fa-file me-2"></i>Document</button></li>
+                <li class="list-group-item"><button type="button" class="attach-action btn btn-link text-start w-100" data-accept="image/*,video/*"><i class="far fa-image me-2"></i>Photos & videos</button></li>
+              </ul>
+            </div>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <aside class="col-lg-3 d-none d-lg-block">
+      <div class="card shadow-sm sidebar-card side-sticky mb-3">
+        <div class="card-header"><strong>Thread Stats</strong></div>
+        <div class="card-body">
+          <div class="mb-2"><span class="stat-chip"><i class="far fa-eye"></i> {{ thread.views_count }} views</span></div>
+          <div class="mb-2"><span class="stat-chip"><i class="far fa-comments"></i> {{ posts|length }} posts</span></div>
+          <div class="mb-2"><span class="stat-chip"><i class="far fa-clock"></i> Updated {{ thread.last_activity|timesince }} ago</span></div>
+          <div class="text-muted small mt-3">Created {{ thread.created_at|date:"M d, Y H:i" }}</div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm sidebar-card side-sticky">
+        <div class="card-header"><strong>Quick Actions</strong></div>
+        <div class="card-body d-grid gap-2">
+          <a class="btn btn-outline-primary" href="{% url 'frontend:forum' %}"><i class="fas fa-arrow-left me-2"></i>Back to forum</a>
+          <button type="button" id="copyLink" class="btn btn-outline-secondary"><i class="far fa-copy me-2"></i>Copy link</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var body = document.getElementById('chatMessages');
+  if (body) { body.scrollTop = body.scrollHeight; }
+  var ta = document.getElementById('chatTextarea');
+  if (ta) {
+    ta.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        this.form.submit();
+      }
+    });
+  }
+
+  // Attach menu logic
+  var attachToggle = document.getElementById('attachToggle');
+  var attachMenu = document.getElementById('attachMenu');
+  var attachInput = document.getElementById('attachInput');
+  if (attachToggle && attachMenu && attachInput) {
+    attachToggle.addEventListener('click', function() {
+      attachMenu.classList.toggle('d-none');
+    });
+    document.querySelectorAll('.attach-action').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var accept = this.getAttribute('data-accept') || '*/*';
+        attachInput.setAttribute('accept', accept);
+        attachMenu.classList.add('d-none');
+        attachInput.click();
+      });
+    });
+    document.addEventListener('click', function(e) {
+      if (!attachMenu.contains(e.target) && !attachToggle.contains(e.target)) {
+        attachMenu.classList.add('d-none');
+      }
+    });
+  }
+
+  // Reply preview logic
+  var replyPreview = document.getElementById('replyPreview');
+  var replyAuthor = document.getElementById('replyAuthor');
+  var replySnippet = document.getElementById('replySnippet');
+  var cancelReply = document.getElementById('cancelReply');
+  document.querySelectorAll('.reply-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var author = this.getAttribute('data-author') || 'User';
+      var snippet = this.getAttribute('data-snippet') || '';
+      if (replyPreview && replyAuthor && replySnippet) {
+        replyAuthor.textContent = author;
+        replySnippet.textContent = snippet;
+        replyPreview.classList.remove('d-none');
+      }
+      if (ta) {
+        var quote = '> ' + author + ': ' + snippet + '\n\n';
+        if (!ta.value.startsWith('> ')) {
+          ta.value = quote + ta.value;
+        }
+        ta.focus();
+      }
+    });
+  });
+  if (cancelReply && replyPreview && ta) {
+    cancelReply.addEventListener('click', function() {
+      replyPreview.classList.add('d-none');
+      if (ta.value.startsWith('> ')) {
+        var parts = ta.value.split('\n\n');
+        parts.shift();
+        ta.value = parts.join('\n\n').trimStart();
+      }
+      ta.focus();
+    });
+  }
+
+  // Toggle guest identity fields
+  var toggleGuest = document.getElementById('toggleGuest');
+  var guestFields = document.getElementById('guestFields');
+  if (toggleGuest && guestFields) {
+    toggleGuest.addEventListener('click', function() {
+      guestFields.classList.toggle('d-none');
+    });
+  }
+
+  // Copy link action
+  var copyBtn = document.getElementById('copyLink');
+  if (copyBtn && navigator.clipboard) {
+    copyBtn.addEventListener('click', function() {
+      navigator.clipboard.writeText(window.location.href).then(function(){
+        var original = copyBtn.innerHTML;
+        copyBtn.innerHTML = '<i class="far fa-check me-2"></i>Copied!';
+        setTimeout(function(){ copyBtn.innerHTML = original; }, 1500);
+      });
+    });
+  }
+});
+</script>
+{% endblock %}

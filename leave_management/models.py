@@ -2,10 +2,12 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from accounts.models import User
 from students.models import Student
+from tenants.models import School
 
 
 class LeaveType(models.Model):
     """Leave Type Model"""
+    school = models.ForeignKey(School, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(_("Leave Type"), max_length=100)
     description = models.TextField(_("Description"), blank=True)
     max_days = models.IntegerField(_("Maximum Days"), default=10)
@@ -33,6 +35,8 @@ class Leave(models.Model):
         ('student', 'Student'),
         ('staff', 'Staff'),
     ]
+    
+    school = models.ForeignKey(School, on_delete=models.CASCADE, null=True, blank=True)
     
     # Applicant (can be teacher, student, or staff)
     applicant_type = models.CharField(_("Applicant Type"), max_length=20, choices=APPLICANT_TYPE_CHOICES)

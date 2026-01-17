@@ -5,6 +5,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.utils.crypto import get_random_string
 from django.db.models import Q
 from .models import User, Role, Permission, UserLoginLog
 from .forms import LoginForm, UserRegistrationForm, ProfileEditForm, ChangePasswordForm, UserForm, RoleForm, PermissionForm
@@ -24,7 +25,10 @@ class LoginView(View):
                 return redirect('superadmin:dashboard')
             else:
                 from tenants.models import School
-                school = School.objects.filter(is_active=True).first()
+                # Prefer the user's linked school
+                school = getattr(request.user, 'school', None)
+                if not school:
+                    school = School.objects.filter(is_active=True).first()
                 if school:
                     return redirect('core:apps_home', school_slug=school.slug)
                 
@@ -79,11 +83,11 @@ class LoginView(View):
                         messages.success(request, f'Welcome back, {user.get_full_name()}!')
                         return redirect(next_url)
                     
-                    # Other roles need a school - get from user's school or first active school
+                    # Other roles need a school - prefer user's linked school, else first active school
                     from tenants.models import School
-                    
-                    # Get the school associated with the user or first active school
-                    school = School.objects.filter(is_active=True).first()
+                    school = getattr(user, 'school', None)
+                    if not school:
+                        school = School.objects.filter(is_active=True).first()
                     
                     if school:
                         # Redirect to apps home page
@@ -148,7 +152,7 @@ class RegisterView(View):
         if form.is_valid():
             user = form.save(commit=False)
             user.is_verified = False
-            raw_password = form.cleaned_data.get('password')
+            raw_password = form.cleaned_data.get('password1')
             user.save()
             
             # Send notification and email
@@ -176,9 +180,11 @@ class SocialLoginCompleteView(LoginRequiredMixin, View):
             messages.success(request, f'Welcome back, {user.get_full_name()}!')
             return redirect('superadmin:dashboard')
 
-        # For other roles, redirect to first active school apps home (same as LoginView)
+        # For other roles, redirect to user's linked school; fallback to first active school
         from tenants.models import School
-        school = School.objects.filter(is_active=True).first()
+        school = getattr(user, 'school', None)
+        if not school:
+            school = School.objects.filter(is_active=True).first()
 
         if school:
             messages.success(request, f'Welcome back, {user.get_full_name()}!')
@@ -498,8 +504,19 @@ class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return self.request.user.is_school_admin or self.request.user.is_superadmin
     
     def form_valid(self, form):
+        password = form.cleaned_data.get('password1')
+        self.object = form.save(commit=False)
+        if not password:
+            password = get_random_string(12)
+            self.object.set_password(password)
+        self.object.save()
+        try:
+            from core.notifications import NotificationService
+            NotificationService.notify_user_created(self.object, self.request.user, password)
+        except Exception as e:
+            print(f"Error sending notification: {e}")
         messages.success(self.request, 'User created successfully!')
-        return super().form_valid(form)
+        return redirect(self.success_url)
 
 
 class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):

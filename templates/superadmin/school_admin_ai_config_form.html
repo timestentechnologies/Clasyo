@@ -178,6 +178,32 @@
 
                         <hr>
 
+                        <div id="provider-google" style="display:none;">
+                        <h5 class="mb-3">Google Gemini Settings</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.google_api_key.id_for_label }}" class="form-label">Google API Key</label>
+                                {{ form.google_api_key|add_class:"form-control" }}
+                                <small class="form-text text-muted">This overrides global Google API key when provided.</small>
+                                {% if form.google_api_key.errors %}
+                                <div class="invalid-feedback d-block">{{ form.google_api_key.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.google_model.id_for_label }}" class="form-label">Model</label>
+                                {{ form.google_model|add_class:"form-control" }}
+                                <small class="form-text text-muted">
+                                    Examples: <code>gemini-1.5-flash</code>, <code>gemini-1.5-pro</code>
+                                </small>
+                                {% if form.google_model.errors %}
+                                <div class="invalid-feedback d-block">{{ form.google_model.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        </div>
+
+                        <hr>
+
                         <div id="provider-local" style="display:none;">
                         <h5 class="mb-3">Local Model</h5>
                         <div class="mb-3">
@@ -245,14 +271,45 @@
                 </div>
                 <div class="card-body">
                     <ul class="list-unstyled mb-0">
-                        <li class="mb-2">If <strong>Use Global Settings</strong> is enabled, any empty fields here will fall back to the global AI configuration.</li>
-                        <li class="mb-2">If you provide an <strong>OpenAI API Key</strong> here, it will be used instead of the global key for this school.</li>
-                        <li class="mb-2">Only one provider is used at a time, based on the <strong>Provider</strong> selection above.</li>
+                        <li class="mb-2">If <strong>Use Global Settings</strong> is enabled, any empty fields here will fall back to global AI configuration.</li>
+                        <li class="mb-2">If you provide an <strong>OpenAI API Key</strong> here, it will be used instead of global key for this school.</li>
+                        <li class="mb-2">Only one provider is used at a time, based on <strong>Provider</strong> selection above.</li>
                     </ul>
                 </div>
             </div>
+
+            {% if global_configs %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Available Global Providers</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">These AI providers are configured globally and available for use:</p>
+                    {% for config in global_configs %}
+                    <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                        <div>
+                            <strong class="text-primary">{{ config.get_provider_display }}</strong>
+                            {% if config.provider == 'openai' and config.openai_model %}
+                                <br><small class="text-muted">Model: {{ config.openai_model }}</small>
+                            {% elif config.provider == 'azure' and config.azure_openai_deployment %}
+                                <br><small class="text-muted">Deployment: {{ config.azure_openai_deployment }}</small>
+                            {% elif config.provider == 'anthropic' and config.anthropic_model %}
+                                <br><small class="text-muted">Model: {{ config.anthropic_model }}</small>
+                            {% elif config.provider == 'google' and config.google_model %}
+                                <br><small class="text-muted">Model: {{ config.google_model }}</small>
+                            {% endif %}
+                        </div>
+                        {% if config.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
-    </div>
 </div>
 
 <script>
@@ -264,6 +321,7 @@
     openai: document.getElementById('provider-openai'),
     azure: document.getElementById('provider-azure'),
     anthropic: document.getElementById('provider-anthropic'),
+    google: document.getElementById('provider-google'),
     local: document.getElementById('provider-local')
   };
 
@@ -278,6 +336,7 @@
     const val = (provider.value || 'openai').toLowerCase();
     if (val === 'azure') return showOnly('azure');
     if (val === 'anthropic') return showOnly('anthropic');
+    if (val === 'google') return showOnly('google');
     if (val === 'local') return showOnly('local');
     return showOnly('openai');
   }
@@ -286,4 +345,60 @@
   update();
 })();
 </script>
+
+<style>
+.form-control, .form-select {
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    padding: 10px 15px;
+    width: 100%;
+    font-size: 0.9rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #4dd0e1;
+    box-shadow: 0 0 0 0.2rem rgba(77, 208, 225, 0.25);
+    outline: 0;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    display: block;
+    color: #495057;
+}
+
+.form-text {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+/* Ensure consistent height for form controls */
+.form-control, .form-select {
+    min-height: 38px;
+}
+
+/* Better spacing for form groups */
+.row .col-md-6 .form-group,
+.row .col-md-4 .form-group,
+.row .col-md-3 .form-group {
+    margin-bottom: 1rem;
+}
+
+/* Improve dropdown arrow styling */
+.form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7-7-7'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px 12px;
+    padding-right: 40px;
+}
+</style>
 {% endblock %}

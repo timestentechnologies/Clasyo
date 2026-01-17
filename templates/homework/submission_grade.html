@@ -1,0 +1,84 @@
+{% extends "dashboards/base.html" %}
+{% load static i18n %}
+
+{% block title %}{% trans "Grade Submission" %}{% endblock %}
+{% block page_title %}{% trans "Grade Submission" %}{% endblock %}
+{% block page_icon %}check-circle{% endblock %}
+{% block page_subtitle %}{{ assignment.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="modern-card mb-4">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">{% trans "Grade" %} - {{ submission.student.get_full_name }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+                        <div class="col-md-6">
+                            <label class="form-label">{% trans "Points Earned" %}</label>
+                            {{ form.points_earned }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{% trans "Grade" %}</label>
+                            {{ form.grade }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">{% trans "Feedback" %}</label>
+                            {{ form.feedback }}
+                        </div>
+                        <div class="col-12 d-flex justify-content-between mt-4 pt-3 border-top">
+                            <a href="{% url 'homework:view_submission' school_slug=school_slug pk=submission.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>{% trans "Back to Submission" %}
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="fas fa-save me-2"></i>{% trans "Save Grade" %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="modern-card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">{% trans "Submission Summary" %}</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>{% trans "Student" %}:</strong> {{ submission.student.get_full_name }}</p>
+                    <p class="mb-1"><strong>{% trans "Class" %}:</strong> {{ submission.student.current_class.name }}</p>
+                    <p class="mb-1"><strong>{% trans "Assignment" %}:</strong> {{ assignment.title }}</p>
+                    <p class="mb-1"><strong>{% trans "Submitted At" %}:</strong> {{ submission.submitted_at|date:"M d, Y H:i" }}</p>
+                    {% if submission.is_late %}
+                    <p class="mb-1"><strong>{% trans "Late" %}:</strong> <span class="badge bg-warning">{% trans "Late Submission" %}</span></p>
+                    {% endif %}
+                    <hr>
+                    {% if submission.submission_text %}
+                    <h6 class="fw-semibold mb-2">{% trans "Text Response" %}</h6>
+                    <div class="p-2 bg-light rounded small mb-3" style="max-height: 180px; overflow:auto;">
+                        {{ submission.submission_text|linebreaksbr }}
+                    </div>
+                    {% endif %}
+                    {% if submission.submission_file %}
+                    <p>
+                        <strong>{% trans "File" %}:</strong>
+                        <a href="{{ submission.submission_file.url }}" target="_blank" class="btn btn-sm btn-outline-primary ms-2">
+                            <i class="fas fa-download"></i> {% trans "Download" %}
+                        </a>
+                    </p>
+                    {% endif %}
+                    {% if submission.submission_url %}
+                    <p>
+                        <strong>{% trans "Link" %}:</strong>
+                        <a href="{{ submission.submission_url }}" target="_blank" class="ms-1">{{ submission.submission_url }}</a>
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

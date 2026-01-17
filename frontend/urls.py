@@ -15,4 +15,9 @@ urlpatterns = [
     path('documentation/', views.DocumentationView.as_view(), name='documentation'),
     path('documentation/pdf/', views.generate_pdf_documentation, name='documentation_pdf'),
     path('register/', views.SchoolRegistrationView.as_view(), name='register'),
+    # Community Forum
+    path('forum/', views.CommunityForumView.as_view(), name='forum'),
+    path('forum/thread/<int:message_id>/', views.CommunityThreadView.as_view(), name='forum_thread'),
+    # Public AI Chat API
+    path('api/ai/chat/', views.PublicAiChatApiView.as_view(), name='public_ai_chat'),
 ]

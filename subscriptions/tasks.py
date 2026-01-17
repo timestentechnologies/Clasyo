@@ -1,6 +1,7 @@
 from celery import shared_task
 from django.utils import timezone
-from .models import Subscription
+from django.contrib.auth import get_user_model
+from .models import Subscription, Invoice
 from django.core.mail import send_mail
 from django.conf import settings
 
@@ -101,3 +102,101 @@ def auto_renew_subscriptions():
         )
     
     return f"Auto-renewed {renewed_count} subscriptions"
+
+
+@shared_task
+def send_invoice_reminders():
+    """Send email notifications for invoices that are due today and those that became overdue.
+
+    - For invoices due today (status in draft/sent), send a due reminder once.
+    - For invoices past due and not paid, mark as overdue (if not already) and send an overdue reminder once.
+    """
+    today = timezone.now().date()
+
+    # Helper to collect recipient emails for a school
+    def recipients_for_school(school):
+        User = get_user_model()
+        admins = list(
+            User.objects.filter(school=school, role='admin', is_active=True)
+            .values_list('email', flat=True)
+        )
+        base = [e for e in [school.email] if e]
+        # Deduplicate while preserving order
+        seen = set()
+        ordered = []
+        for e in base + admins:
+            if e and e not in seen:
+                seen.add(e)
+                ordered.append(e)
+        return ordered
+
+    # 1) Due today reminders
+    due_today = Invoice.objects.filter(
+        status__in=['draft', 'sent'],
+        due_date=today,
+        due_reminder_sent_at__isnull=True,
+    )
+    for inv in due_today.select_related('school'):
+        recipients = recipients_for_school(inv.school)
+        if not recipients:
+            continue
+        subject = f"Invoice Due Today: {inv.invoice_number}"
+        message = (
+            f"Hello {inv.school.name},\n\n"
+            f"This is a reminder that your invoice {inv.invoice_number} for plan '{inv.plan_name}' is due today ({inv.due_date}).\n"
+            f"Amount Due: {inv.total_amount}\n\n"
+            f"Please make payment to avoid service interruption.\n\n"
+            f"Thank you,\nClasyo Billing"
+        )
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_HOST_USER),
+                recipient_list=recipients,
+                fail_silently=True,
+            )
+            inv.due_reminder_sent_at = timezone.now()
+            inv.save(update_fields=['due_reminder_sent_at'])
+        except Exception:
+            # Ignore email errors but don't mark as sent
+            pass
+
+    # 2) Overdue reminders
+    overdue = Invoice.objects.filter(
+        status__in=['draft', 'sent', 'overdue'],
+        due_date__lt=today,
+        overdue_reminder_sent_at__isnull=True,
+    )
+    for inv in overdue.select_related('school'):
+        recipients = recipients_for_school(inv.school)
+        if not recipients:
+            continue
+        subject = f"Overdue Invoice: {inv.invoice_number}"
+        message = (
+            f"Hello {inv.school.name},\n\n"
+            f"Your invoice {inv.invoice_number} for plan '{inv.plan_name}' is overdue.\n"
+            f"Due Date: {inv.due_date}\n"
+            f"Amount Due: {inv.total_amount}\n\n"
+            f"Please make payment as soon as possible to avoid any disruption.\n\n"
+            f"Thank you,\nClasyo Billing"
+        )
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_HOST_USER),
+                recipient_list=recipients,
+                fail_silently=True,
+            )
+            # Mark invoice as overdue if not already
+            updated_fields = ['overdue_reminder_sent_at']
+            inv.overdue_reminder_sent_at = timezone.now()
+            if inv.status != 'overdue':
+                inv.status = 'overdue'
+                updated_fields.append('status')
+            inv.save(update_fields=updated_fields)
+        except Exception:
+            pass
+
+    return f"Sent due reminders: {due_today.count()}, overdue reminders: {overdue.count()}"

@@ -1,3 +1,4 @@
+{% load humanize %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -110,57 +111,96 @@
                 display: none;
             }
         }
+
+        @page { size: A4; margin: 1.5cm; }
+        :root { --brand-primary:#4DD0E1; --brand-secondary:#26C6DA; --brand-accent:#4DD0E1; --bg-soft:#E0F7FA; --text-main:#111827; --text-muted:#6b7280; --border-soft:#e5e7eb; }
+        body { margin:0; font-family:'Segoe UI', Arial, sans-serif; font-size:11px; color:var(--text-main); line-height:1.5; background:var(--bg-soft); }
+        .doc-wrapper { max-width:980px; margin:24px auto; padding:0 16px; }
+        .doc-card { background:#ffffff; border-radius:18px; box-shadow:0 18px 45px rgba(15,23,42,0.12); padding:28px 32px 32px; }
+        .action-bar { display:flex; gap:10px; justify-content:flex-end; margin:0 0 14px; }
+        .action-btn { appearance:none; border:1px solid var(--border-soft); background:#ffffff; color:var(--text-main); padding:8px 14px; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer; }
+        .action-btn-secondary { background:#111827; color:#ffffff; border-color:#111827; }
+        .header { display:flex; justify-content:space-between; align-items:center; padding:18px 22px; border-radius:16px; background:linear-gradient(135deg,var(--brand-primary),var(--brand-secondary)); color:#ffffff; margin-bottom:24px; border:0; text-align:left; }
+        .logo { font-size:18px; font-weight:700; letter-spacing:0.04em; }
+        .doc-title { font-size:24px; font-weight:700; text-transform:uppercase; }
+        .doc-meta-small { font-size:10px; opacity:0.85; margin-top:2px; }
+        .doc-info { display:flex; justify-content:space-between; gap:32px; margin-bottom:24px; }
+        .info-block { width:50%; }
+        .info-block h3 { margin:0 0 8px; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); }
+        .info-block p { margin:2px 0; font-size:11px; }
+        .info-label { font-weight:600; }
+        .status-badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; }
+        .status-draft{background:#6b7280;color:#ffffff;} .status-pending{background:#f59e0b;color:#111827;} .status-approved{background:var(--brand-accent);color:#ffffff;} .status-ordered{background:var(--brand-secondary);color:#ffffff;} .status-received{background:#16a34a;color:#ffffff;} .status-cancelled{background:#dc2626;color:#ffffff;}
+        .items-table { width:100%; border-collapse:collapse; margin-bottom:24px; border-radius:12px; overflow:hidden; }
+        .items-table th { background:#E0F7FA; color:#111827; padding:10px; text-align:left; font-size:11px; border-bottom:1px solid var(--border-soft); }
+        .items-table td { padding:9px 10px; font-size:11px; border-bottom:1px solid var(--border-soft); vertical-align:top; }
+        .totals { display:flex; justify-content:flex-end; margin-bottom:24px; float:none; width:auto; }
+        .totals table { width:260px; border-collapse:separate; border-spacing:0; }
+        .totals td { padding:4px 0; }
+        .totals td:first-child { color:var(--text-muted); }
+        .totals .total-row td { border-top:0; padding:10px 12px; font-weight:700; font-size:12px; background:#111827; color:#ffffff; }
+        .totals .total-row td:first-child { border-top-left-radius:12px; border-bottom-left-radius:12px; }
+        .totals .total-row td:last-child { border-top-right-radius:12px; border-bottom-right-radius:12px; }
+        .notes { margin-top:8px; padding:14px 16px; background:#f9fafb; border-radius:12px; border-left:4px solid var(--brand-accent); font-size:11px; }
+        .notes h4 { margin:0 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); }
+        .signatures { margin-top:44px; display:flex; justify-content:space-between; gap:24px; }
+        .signature-box { flex:1; text-align:center; width:auto; min-width:0; }
+        .signature-line { border-top:1px solid var(--border-soft); margin-top:56px; padding-top:10px; color:var(--text-muted); font-size:10px; }
+        .footer { margin-top:28px; padding-top:14px; border-top:1px solid var(--border-soft); text-align:center; color:var(--text-muted); font-size:9px; }
+        @media print { body{background:#ffffff;} .doc-wrapper{margin:0;padding:0;max-width:none;} .doc-card{box-shadow:none;border-radius:0;padding:0;} .no-print{display:none;} }
     </style>
 </head>
 <body>
-    <div class="no-print" style="margin-bottom: 20px;">
-        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px;">
-            🖨️ Print
-        </button>
-        <button onclick="window.close()" style="padding: 10px 20px; font-size: 16px; margin-left: 10px;">
-            Close
-        </button>
+    <div class="no-print action-bar">
+        <button class="action-btn" onclick="window.print()">Print</button>
+        <button class="action-btn action-btn-secondary" onclick="window.close()">Close</button>
     </div>
 
-    <div class="header">
-        <h1>PURCHASE ORDER</h1>
-        <p style="font-size: 18px; margin: 10px 0;"><strong>{{ purchase_order.po_number }}</strong></p>
-    </div>
-
-    <div class="info-section">
-        <div class="info-row">
-            <div class="info-box">
-                <h3>Supplier Details</h3>
-                <p><strong>{{ purchase_order.supplier.name }}</strong></p>
-                <p>{{ purchase_order.supplier.address }}</p>
-                <p>{{ purchase_order.supplier.city }}</p>
-                {% if purchase_order.supplier.phone %}
-                <p>Phone: {{ purchase_order.supplier.phone }}</p>
-                {% endif %}
-                {% if purchase_order.supplier.email %}
-                <p>Email: {{ purchase_order.supplier.email }}</p>
-                {% endif %}
-                {% if purchase_order.supplier.tax_id %}
-                <p>Tax ID: {{ purchase_order.supplier.tax_id }}</p>
-                {% endif %}
+    <div class="doc-wrapper">
+        <div class="doc-card">
+            <div class="header">
+                <div>
+                    <div class="logo">{{ purchase_order.school.name|default:"SchoolSaaS" }}</div>
+                    <div class="doc-meta-small">Purchase Order #{{ purchase_order.po_number }}</div>
+                </div>
+                <div class="doc-title">Purchase Order</div>
             </div>
-            
-            <div class="info-box">
-                <h3>Order Information</h3>
-                <p><strong>Order Date:</strong> {{ purchase_order.order_date }}</p>
-                {% if purchase_order.expected_delivery_date %}
-                <p><strong>Expected Delivery:</strong> {{ purchase_order.expected_delivery_date }}</p>
-                {% endif %}
-                {% if purchase_order.actual_delivery_date %}
-                <p><strong>Actual Delivery:</strong> {{ purchase_order.actual_delivery_date }}</p>
-                {% endif %}
-                <p><strong>Status:</strong> <span style="text-transform: capitalize;">{{ purchase_order.get_status_display }}</span></p>
-                <p><strong>Payment Terms:</strong> {{ purchase_order.supplier.payment_terms }}</p>
-            </div>
-        </div>
-    </div>
 
-    <table>
+            <div class="doc-info">
+                <div class="info-block">
+                    <h3>Supplier Details</h3>
+                    <p><strong>{{ purchase_order.supplier.name }}</strong></p>
+                    <p>{{ purchase_order.supplier.address }}</p>
+                    <p>{{ purchase_order.supplier.city }}</p>
+                    {% if purchase_order.supplier.phone %}
+                    <p><span class="info-label">Phone:</span> {{ purchase_order.supplier.phone }}</p>
+                    {% endif %}
+                    {% if purchase_order.supplier.email %}
+                    <p><span class="info-label">Email:</span> {{ purchase_order.supplier.email }}</p>
+                    {% endif %}
+                    {% if purchase_order.supplier.tax_id %}
+                    <p><span class="info-label">Tax ID:</span> {{ purchase_order.supplier.tax_id }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="info-block">
+                    <h3>Order Information</h3>
+                    <p><span class="info-label">Order Date:</span> {{ purchase_order.order_date|date:"M d, Y" }}</p>
+                    {% if purchase_order.expected_delivery_date %}
+                    <p><span class="info-label">Expected Delivery:</span> {{ purchase_order.expected_delivery_date|date:"M d, Y" }}</p>
+                    {% endif %}
+                    {% if purchase_order.actual_delivery_date %}
+                    <p><span class="info-label">Actual Delivery:</span> {{ purchase_order.actual_delivery_date|date:"M d, Y" }}</p>
+                    {% endif %}
+                    <p>
+                        <span class="info-label">Status:</span>
+                        <span class="status-badge status-{{ purchase_order.status }}">{{ purchase_order.get_status_display }}</span>
+                    </p>
+                    <p><span class="info-label">Payment Terms:</span> {{ purchase_order.supplier.payment_terms }}</p>
+                </div>
+            </div>
+
+            <table class="items-table">
         <thead>
             <tr>
                 <th>#</th>
@@ -180,8 +220,8 @@
                 <td>{{ item.item.name }}</td>
                 <td>{{ item.item.unit }}</td>
                 <td class="text-right">{{ item.quantity }}</td>
-                <td class="text-right">Ksh{{ item.unit_price|floatformat:2 }}</td>
-                <td class="text-right">Ksh{{ item.total|floatformat:2 }}</td>
+                <td class="text-right">Ksh{{ item.unit_price|floatformat:2|intcomma }}</td>
+                <td class="text-right">Ksh{{ item.total|floatformat:2|intcomma }}</td>
             </tr>
             {% empty %}
             <tr>
@@ -195,27 +235,27 @@
         <table>
             <tr>
                 <td>Subtotal:</td>
-                <td class="text-right">Ksh{{ purchase_order.subtotal|floatformat:2 }}</td>
+                <td class="text-right">Ksh{{ purchase_order.subtotal|floatformat:2|intcomma }}</td>
             </tr>
             {% if purchase_order.tax_amount > 0 %}
             <tr>
                 <td>Tax:</td>
-                <td class="text-right">Ksh{{ purchase_order.tax_amount|floatformat:2 }}</td>
+                <td class="text-right">Ksh{{ purchase_order.tax_amount|floatformat:2|intcomma }}</td>
             </tr>
             {% endif %}
             <tr class="total-row">
                 <td>TOTAL:</td>
-                <td class="text-right">Ksh{{ purchase_order.total_amount|floatformat:2 }}</td>
+                <td class="text-right">Ksh{{ purchase_order.total_amount|floatformat:2|intcomma }}</td>
             </tr>
         </table>
     </div>
 
-    {% if purchase_order.notes %}
-    <div class="notes">
-        <h3 style="margin-top: 0;">Notes:</h3>
-        <p>{{ purchase_order.notes }}</p>
-    </div>
-    {% endif %}
+            {% if purchase_order.notes %}
+            <div class="notes">
+                <h4>Notes</h4>
+                <p>{{ purchase_order.notes }}</p>
+            </div>
+            {% endif %}
 
     <div class="signatures">
         <div class="signature-box">
@@ -243,9 +283,12 @@
         </div>
     </div>
 
-    <div class="footer">
-        <p>This is a computer-generated document. No signature is required.</p>
-        <p>Printed on: {% now "F d, Y H:i" %}</p>
+            <div class="footer">
+                <p>This is a computer-generated document. No signature is required.</p>
+                <p>Website: https://clasyo.timestentechnologies.co.ke/</p>
+                <p>Printed on: {% now "F d, Y H:i" %}</p>
+            </div>
+        </div>
     </div>
 </body>
 </html>

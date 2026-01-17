@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.db import models
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from core.utils import get_current_school
 
 # Check if models exist
 try:
@@ -35,27 +36,30 @@ class ExamListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         if MODELS_EXIST:
-            return Exam.objects.all()
+            school = get_current_school(self.request)
+            qs = Exam.objects.all()
+            if school:
+                qs = qs.filter(school=school)
+            return qs
         return []
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         school_slug = self.kwargs.get('school_slug', '')
         context['school_slug'] = school_slug
-        
-        # Add school object to context
-        from tenants.models import School
-        try:
-            school = School.objects.get(slug=school_slug, is_active=True)
-            context['school'] = school
-        except School.DoesNotExist:
-            context['school'] = None
+        school = get_current_school(self.request)
+        context['school'] = school
         
         # Add classes and subjects for the form
         if MODELS_EXIST:
             from academics.models import Class, Subject
-            context['classes'] = Class.objects.filter(is_active=True)
-            context['subjects'] = Subject.objects.filter(is_active=True)
+            classes_qs = Class.objects.filter(is_active=True)
+            subjects_qs = Subject.objects.filter(is_active=True)
+            if school:
+                classes_qs = classes_qs.filter(school=school)
+                subjects_qs = subjects_qs.filter(school=school)
+            context['classes'] = classes_qs
+            context['subjects'] = subjects_qs
         else:
             context['classes'] = []
             context['subjects'] = []
@@ -68,6 +72,7 @@ class ExamCreateView(LoginRequiredMixin, CreateView):
     
     def post(self, request, *args, **kwargs):
         try:
+            school = get_current_school(request)
             is_online = request.POST.get('is_online') == 'true'
             duration = request.POST.get('duration_minutes')
             class_id = request.POST.get('class_assigned')
@@ -76,6 +81,7 @@ class ExamCreateView(LoginRequiredMixin, CreateView):
             from academics.models import Class, Subject
             
             exam = Exam.objects.create(
+                school=school,
                 name=request.POST.get('name'),
                 exam_type=request.POST.get('exam_type'),
                 start_date=request.POST.get('start_date'),
@@ -91,10 +97,7 @@ class ExamCreateView(LoginRequiredMixin, CreateView):
             
             # Send notifications to students, teachers, and admins
             from core.notifications import NotificationService
-            from tenants.models import School
             try:
-                school_slug = self.kwargs.get('school_slug')
-                school = School.objects.get(slug=school_slug) if school_slug else None
                 if school:
                     NotificationService.notify_exam_created(exam, request.user, school)
             except Exception as e:
@@ -124,7 +127,11 @@ class GradeListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         if MODELS_EXIST:
-            return Grade.objects.all()
+            school = get_current_school(self.request)
+            qs = Grade.objects.all()
+            if school:
+                qs = qs.filter(school=school)
+            return qs
         return []
     
     def get_context_data(self, **kwargs):
@@ -142,7 +149,9 @@ class GradeCreateView(LoginRequiredMixin, CreateView):
             if not MODELS_EXIST:
                 return JsonResponse({'success': False, 'error': 'Models not available'})
             
+            school = get_current_school(request)
             Grade.objects.create(
+                school=school,
                 name=request.POST.get('name'),
                 min_percentage=float(request.POST.get('min_percentage', 0)),
                 max_percentage=float(request.POST.get('max_percentage', 100)),
@@ -163,8 +172,12 @@ class GradeDeleteView(LoginRequiredMixin, View):
         try:
             if not MODELS_EXIST:
                 return JsonResponse({'success': False, 'error': 'Models not available'})
-            
-            grade = Grade.objects.get(pk=pk)
+
+            school = get_current_school(request)
+            qs = Grade.objects.all()
+            if school:
+                qs = qs.filter(school=school)
+            grade = qs.get(pk=pk)
             grade.delete()
             return JsonResponse({'success': True, 'message': 'Grade deleted successfully!'})
         except Grade.DoesNotExist:
@@ -182,8 +195,12 @@ class GradeUpdateView(LoginRequiredMixin, View):
         try:
             if not MODELS_EXIST:
                 return JsonResponse({'success': False, 'error': 'Models not available'})
-            
-            grade = Grade.objects.get(pk=pk)
+
+            school = get_current_school(request)
+            qs = Grade.objects.all()
+            if school:
+                qs = qs.filter(school=school)
+            grade = qs.get(pk=pk)
             grade.name = request.POST.get('name', grade.name)
             grade.min_percentage = float(request.POST.get('min_percentage', grade.min_percentage))
             grade.max_percentage = float(request.POST.get('max_percentage', grade.max_percentage))
@@ -236,7 +253,11 @@ class QuestionCreateView(LoginRequiredMixin, View):
             if not MODELS_EXIST:
                 return JsonResponse({'success': False, 'error': 'Models not available'})
             
-            exam = Exam.objects.get(pk=exam_id)
+            school = get_current_school(request)
+            exam_qs = Exam.objects.all()
+            if school:
+                exam_qs = exam_qs.filter(school=school)
+            exam = exam_qs.get(pk=exam_id)
             
             # Get the highest order number
             max_order = ExamQuestion.objects.filter(exam=exam).aggregate(
@@ -290,9 +311,17 @@ class MarksEntryView(LoginRequiredMixin, TemplateView):
         
         if MODELS_EXIST:
             from academics.models import Class, Subject
-            context['exams'] = Exam.objects.all().select_related('class_assigned', 'subject')
-            context['classes'] = Class.objects.filter(is_active=True)
-            context['subjects'] = Subject.objects.filter(is_active=True)
+            school = get_current_school(self.request)
+            exams_qs = Exam.objects.all().select_related('class_assigned', 'subject')
+            classes_qs = Class.objects.filter(is_active=True)
+            subjects_qs = Subject.objects.filter(is_active=True)
+            if school:
+                exams_qs = exams_qs.filter(school=school)
+                classes_qs = classes_qs.filter(school=school)
+                subjects_qs = subjects_qs.filter(school=school)
+            context['exams'] = exams_qs
+            context['classes'] = classes_qs
+            context['subjects'] = subjects_qs
         
         return context
 
@@ -307,7 +336,11 @@ class GetStudentsForMarksEntryView(LoginRequiredMixin, View):
             
             from students.models import Student
             
-            exam = Exam.objects.get(pk=exam_id)
+            school = get_current_school(request)
+            exam_qs = Exam.objects.all()
+            if school:
+                exam_qs = exam_qs.filter(school=school)
+            exam = exam_qs.get(pk=exam_id)
             
             # Get all students in the exam's class
             students = Student.objects.filter(
@@ -364,13 +397,20 @@ class SaveMarksEntryView(LoginRequiredMixin, View):
             from decimal import Decimal
             from students.models import Student
             
-            exam = Exam.objects.get(pk=exam_id)
+            school = get_current_school(request)
+            exam_qs = Exam.objects.all()
+            if school:
+                exam_qs = exam_qs.filter(school=school)
+            exam = exam_qs.get(pk=exam_id)
             marks_data = json.loads(request.POST.get('marks', '[]'))
             total_marks = Decimal(request.POST.get('total_marks', '100'))
             
             saved_count = 0
             for mark_entry in marks_data:
-                student = Student.objects.get(pk=mark_entry['student_id'])
+                student = Student.objects.get(
+                    pk=mark_entry['student_id'],
+                    current_class=exam.class_assigned,
+                )
                 marks_obtained = Decimal(str(mark_entry.get('marks_obtained', 0)))
                 
                 # Create or update exam mark
@@ -387,10 +427,14 @@ class SaveMarksEntryView(LoginRequiredMixin, View):
                 
                 # Assign grade based on percentage
                 percentage = (marks_obtained / total_marks) * 100 if total_marks > 0 else 0
-                grade = Grade.objects.filter(
+                school = get_current_school(request)
+                grade_qs = Grade.objects.filter(
                     min_percentage__lte=percentage,
                     max_percentage__gte=percentage
-                ).first()
+                )
+                if school:
+                    grade_qs = grade_qs.filter(school=school)
+                grade = grade_qs.first()
                 mark.grade = grade
                 mark.save()
                 
@@ -423,6 +467,15 @@ class StudentExamTakeView(LoginRequiredMixin, DetailView):
     template_name = 'examinations/student_take_exam.html'
     context_object_name = 'exam'
     pk_url_kwarg = 'exam_id'
+
+    def get_queryset(self):
+        if not MODELS_EXIST:
+            return Exam.objects.none()
+        school = get_current_school(self.request)
+        qs = Exam.objects.all()
+        if school:
+            qs = qs.filter(school=school)
+        return qs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -462,7 +515,11 @@ class StudentSubmitAnswerView(LoginRequiredMixin, View):
             
             from django.utils import timezone
             student = request.user.student_profile
-            exam = Exam.objects.get(pk=exam_id)
+            school = get_current_school(request)
+            exam_qs = Exam.objects.all()
+            if school:
+                exam_qs = exam_qs.filter(school=school)
+            exam = exam_qs.get(pk=exam_id)
             question_id = request.POST.get('question_id')
             question = ExamQuestion.objects.get(pk=question_id, exam=exam)
             
@@ -514,7 +571,11 @@ class StudentSubmitExamView(LoginRequiredMixin, View):
             from decimal import Decimal
             
             student = request.user.student_profile
-            exam = Exam.objects.get(pk=exam_id)
+            school = get_current_school(request)
+            exam_qs = Exam.objects.all()
+            if school:
+                exam_qs = exam_qs.filter(school=school)
+            exam = exam_qs.get(pk=exam_id)
             
             submission = ExamSubmission.objects.get(exam=exam, student=student)
             submission.status = 'submitted'
@@ -573,9 +634,13 @@ class TeacherGradingListView(LoginRequiredMixin, ListView):
             return []
         
         # Show submitted exams that need grading
-        return ExamSubmission.objects.filter(
+        school = get_current_school(self.request)
+        qs = ExamSubmission.objects.filter(
             status__in=['submitted', 'graded']
-        ).select_related('exam', 'student', 'student__user').order_by('-submitted_at')
+        )
+        if school:
+            qs = qs.filter(exam__school=school)
+        return qs.select_related('exam', 'student', 'student__user').order_by('-submitted_at')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -589,6 +654,15 @@ class TeacherGradeSubmissionView(LoginRequiredMixin, DetailView):
     template_name = 'examinations/teacher_grade_submission.html'
     context_object_name = 'submission'
     pk_url_kwarg = 'submission_id'
+
+    def get_queryset(self):
+        if not MODELS_EXIST:
+            return ExamSubmission.objects.none()
+        school = get_current_school(self.request)
+        qs = ExamSubmission.objects.all()
+        if school:
+            qs = qs.filter(exam__school=school)
+        return qs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -613,12 +687,16 @@ class TeacherSaveGradingView(LoginRequiredMixin, View):
             from decimal import Decimal
             import json
             
-            submission = ExamSubmission.objects.get(pk=submission_id)
+            school = get_current_school(request)
+            submission_qs = ExamSubmission.objects.all()
+            if school:
+                submission_qs = submission_qs.filter(exam__school=school)
+            submission = submission_qs.get(pk=submission_id)
             
             # Update answer grades
             answers_data = json.loads(request.POST.get('answers', '[]'))
             for answer_data in answers_data:
-                answer = QuestionAnswer.objects.get(pk=answer_data['answer_id'])
+                answer = QuestionAnswer.objects.get(pk=answer_data['answer_id'], submission=submission)
                 answer.points_awarded = Decimal(str(answer_data.get('points', 0)))
                 answer.teacher_feedback = answer_data.get('feedback', '')
                 
@@ -650,10 +728,14 @@ class TeacherSaveGradingView(LoginRequiredMixin, View):
             
             # Assign grade based on percentage
             if MODELS_EXIST:
-                grade = Grade.objects.filter(
+                school = get_current_school(request)
+                grade_qs = Grade.objects.filter(
                     min_percentage__lte=submission.percentage,
                     max_percentage__gte=submission.percentage
-                ).first()
+                )
+                if school:
+                    grade_qs = grade_qs.filter(school=school)
+                grade = grade_qs.first()
                 submission.grade = grade
             
             submission.save()
@@ -679,10 +761,14 @@ class StudentResultsView(LoginRequiredMixin, ListView):
             return []
         
         student = self.request.user.student_profile
-        return ExamSubmission.objects.filter(
+        school = get_current_school(self.request)
+        qs = ExamSubmission.objects.filter(
             student=student,
             status='graded'
-        ).select_related('exam', 'grade').order_by('-submitted_at')
+        )
+        if school:
+            qs = qs.filter(exam__school=school)
+        return qs.select_related('exam', 'grade').order_by('-submitted_at')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -702,7 +788,11 @@ class StudentResultDetailView(LoginRequiredMixin, DetailView):
             return ExamSubmission.objects.none()
         
         student = self.request.user.student_profile
-        return ExamSubmission.objects.filter(student=student, status='graded')
+        school = get_current_school(self.request)
+        qs = ExamSubmission.objects.filter(student=student, status='graded')
+        if school:
+            qs = qs.filter(exam__school=school)
+        return qs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -5,8 +5,10 @@ from django.views.generic import ListView, CreateView, UpdateView, DetailView, D
 from django.urls import reverse_lazy
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+import csv
 from django.conf import settings
+from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
 from django import forms
 from .models import (
@@ -24,7 +26,8 @@ from .forms import PaymentConfigurationForm, SchoolPaymentConfigurationForm
 from .ai_forms import GlobalAIConfigurationForm, SchoolAIConfigurationForm
 from tenants.models import School
 from accounts.models import User
-from subscriptions.models import SubscriptionPlan, Subscription, Payment
+from subscriptions.models import SubscriptionPlan, Subscription, Payment, Invoice
+from core.models import AuditLog
 
 
 class SuperAdminRequiredMixin(UserPassesTestMixin):
@@ -47,7 +50,8 @@ class DashboardView(SuperAdminRequiredMixin, TemplateView):
         # Get comprehensive statistics
         from students.models import Student
         
-        total_students = Student.objects.filter(is_active=True).count()
+        # Use total rows to avoid misreporting when is_active isn't set consistently
+        total_students = Student.objects.count()
         total_teachers = User.objects.filter(role='teacher', is_active=True).count()
         total_admins = User.objects.filter(role='admin', is_active=True).count()
         
@@ -65,8 +69,18 @@ class DashboardView(SuperAdminRequiredMixin, TemplateView):
             'pending_payments': Payment.objects.filter(status='pending').count(),
         }
         
-        # Get recent schools
-        context['recent_schools'] = School.objects.all().order_by('-created_on')[:5]
+        # Get recent schools with accurate student counts (union of class.school, user.school, and created_by.school)
+        recent = list(School.objects.order_by('-created_on')[:5])
+        try:
+            for s in recent:
+                context_count = Student.objects.filter(
+                    Q(current_class__school=s) | Q(user__school=s) | Q(created_by__school=s)
+                ).distinct().count()
+                setattr(s, 'student_count', context_count)
+        except Exception:
+            for s in recent:
+                setattr(s, 'student_count', 0)
+        context['recent_schools'] = recent
         
         # Get recent subscriptions
         context['recent_subscriptions'] = Subscription.objects.select_related(
@@ -110,12 +124,29 @@ class SchoolListView(SuperAdminRequiredMixin, ListView):
         if institution_type:
             queryset = queryset.filter(institution_type=institution_type)
         
+        # Annotate with accurate student counts per school
+        from django.db.models import Count
+        queryset = queryset.annotate(
+            student_count=Count('classes__students', distinct=True)
+        )
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['institution_type_choices'] = School.INSTITUTION_TYPE_CHOICES
         context['selected_institution_type'] = self.request.GET.get('institution_type', '')
+        # Attach accurate student counts per school for current page
+        try:
+            from students.models import Student
+            schools = list(context.get('schools') or [])
+            for s in schools:
+                s.student_count = Student.objects.filter(
+                    Q(current_class__school=s) | Q(user__school=s) | Q(created_by__school=s)
+                ).distinct().count()
+            # Replace the queryset in context so template uses enriched objects
+            context['schools'] = schools
+        except Exception:
+            pass
         return context
 
 
@@ -222,6 +253,9 @@ class SchoolCreateView(SuperAdminRequiredMixin, CreateView):
                         is_active=True,
                         password=password
                     )
+                    # Link admin to this school
+                    admin_user.school = school
+                    admin_user.save(update_fields=['school'])
                     
                     # Send email with credentials
                     self.send_admin_credentials_email(
@@ -320,21 +354,21 @@ class SchoolDeleteView(SuperAdminRequiredMixin, DeleteView):
         school = self.get_object()
         
         # Count related objects
-        from students.models import Student, Parent
+        from students.models import Student
         from academics.models import Class, Subject
         from library.models import Book
         from fees.models import FeeStructure
         from examinations.models import Exam
         
         context['counts'] = {
-            'students': Student.objects.filter(school=school).count(),
-            'parents': Parent.objects.filter(school=school).count(),
+            'students': Student.objects.filter(current_class__school=school).count(),
+            'parents': User.objects.filter(role='parent', children__current_class__school=school).distinct().count(),
             'teachers': User.objects.filter(role='teacher').count(),
             'classes': Class.objects.filter(school=school).count(),
             'subjects': Subject.objects.filter(school=school).count(),
             'books': Book.objects.filter(school=school).count(),
-            'fees': FeeStructure.objects.filter(school=school).count(),
-            'exams': Exam.objects.filter(school=school).count(),
+            'fees': FeeStructure.objects.filter(class_name__school=school).count(),
+            'exams': Exam.objects.filter(Q(class_assigned__school=school) | Q(subject__school=school)).distinct().count(),
         }
         return context
     
@@ -344,35 +378,54 @@ class SchoolDeleteView(SuperAdminRequiredMixin, DeleteView):
         
         # Django will handle cascading deletes for ForeignKey with on_delete=CASCADE
         # But we'll explicitly delete to ensure cleanup
-        from students.models import Student, Parent
-        from academics.models import Class, Subject, ClassTime
+        from students.models import Student
+        from academics.models import Class, Subject
         from library.models import Book, BookIssue
         from fees.models import FeeStructure, FeeCollection
-        from examinations.models import Exam, Grade
-        from attendance.models import Attendance
-        from human_resource.models import Teacher, Staff, Department
+        from examinations.models import Exam
+        from attendance.models import StudentAttendance, StaffAttendance
+        
         
         try:
             # Delete related data
-            Student.objects.filter(school=school).delete()
-            Parent.objects.filter(school=school).delete()
+            Student.objects.filter(current_class__school=school).delete()
+            User.objects.filter(role='parent', children__current_class__school=school).distinct().delete()
             Class.objects.filter(school=school).delete()
             Subject.objects.filter(school=school).delete()
-            ClassTime.objects.filter(school=school).delete()
             Book.objects.filter(school=school).delete()
-            BookIssue.objects.filter(school=school).delete()
-            FeeStructure.objects.filter(school=school).delete()
-            FeeCollection.objects.filter(school=school).delete()
-            Exam.objects.filter(school=school).delete()
-            Grade.objects.filter(school=school).delete()
-            Attendance.objects.filter(school=school).delete()
-            Teacher.objects.filter(school=school).delete()
-            Staff.objects.filter(school=school).delete()
-            Department.objects.filter(school=school).delete()
+            BookIssue.objects.filter(book__school=school).delete()
+            FeeStructure.objects.filter(class_name__school=school).delete()
+            FeeCollection.objects.filter(fee_structure__class_name__school=school).delete()
+            Exam.objects.filter(Q(class_assigned__school=school) | Q(subject__school=school)).delete()
+            StudentAttendance.objects.filter(school=school).delete()
+            StaffAttendance.objects.filter(school=school).delete()
             
-            # Delete school admins (users with admin role)
-            # Note: Be careful not to delete the superadmin!
-            User.objects.filter(role='admin').delete()  # You may want to add school filtering here
+            # Delete school admins (users with admin role) and notify them by email
+            # Only admins linked to this school are affected
+            admin_users = list(User.objects.filter(role='admin', school=school))
+            for admin in admin_users:
+                try:
+                    subject = f'Your administrator account for {school_name} has been deleted'
+                    message = (
+                        f'Hello {admin.get_full_name()},\n\n'
+                        f'This is to inform you that the school "{school_name}" has been deleted from our system. '
+                        f'As a result, your administrator account associated with this school has been deleted.\n\n'
+                        f'If you believe this was a mistake or need assistance, please contact support.\n\n'
+                        f'Best regards,\n'
+                        f'Clasyo Team'
+                    )
+                    send_mail(
+                        subject,
+                        message,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [admin.email],
+                        fail_silently=True,
+                    )
+                except Exception:
+                    # Continue even if email fails
+                    pass
+            if admin_users:
+                User.objects.filter(id__in=[u.id for u in admin_users]).delete()
             
             # Delete subscriptions related to the school
             Subscription.objects.filter(school=school).delete()
@@ -431,6 +484,10 @@ class AdminUserCreateView(SuperAdminRequiredMixin, CreateView):
         # Get selected school
         school_id = self.request.POST.get('school')
         school = get_object_or_404(School, id=school_id) if school_id else None
+        if school:
+            # Link admin user to the selected school
+            user.school = school
+            user.save(update_fields=['school'])
         
         # Send email
         if school:
@@ -483,7 +540,7 @@ class AdminUserUpdateView(SuperAdminRequiredMixin, UpdateView):
     model = User
     template_name = 'superadmin/admin_edit.html'
     context_object_name = 'admin_user'
-    fields = ['email', 'first_name', 'last_name', 'phone', 'is_active']
+    fields = ['email', 'first_name', 'last_name', 'phone', 'is_active', 'school']
     success_url = reverse_lazy('superadmin:admins')
     
     def get_form(self, form_class=None):
@@ -494,6 +551,8 @@ class AdminUserUpdateView(SuperAdminRequiredMixin, UpdateView):
         form.fields['last_name'].widget.attrs.update({'class': 'form-control'})
         form.fields['phone'].widget.attrs.update({'class': 'form-control'})
         form.fields['is_active'].widget.attrs.update({'class': 'form-check-input'})
+        if 'school' in form.fields:
+            form.fields['school'].widget.attrs.update({'class': 'form-select'})
         return form
     
     def get_context_data(self, **kwargs):
@@ -504,6 +563,105 @@ class AdminUserUpdateView(SuperAdminRequiredMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, f'Admin "{self.object.get_full_name()}" updated successfully!')
         return super().form_valid(form)
+
+
+class AdminUserDeleteView(SuperAdminRequiredMixin, DeleteView):
+    """Delete a school admin and also delete their school and all related data"""
+    model = User
+    template_name = 'superadmin/admin_confirm_delete.html'
+    context_object_name = 'admin_user'
+    success_url = reverse_lazy('superadmin:admins')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        admin_user = self.get_object()
+        context['available_schools'] = School.objects.filter(is_active=True).order_by('name')
+        context['linked_school'] = getattr(admin_user, 'school', None)
+        return context
+
+    def delete(self, request, *args, **kwargs):
+        admin_user = self.get_object()
+        if admin_user.role != 'admin':
+            messages.error(request, 'Selected user is not a school admin.')
+            return redirect('superadmin:admins')
+
+        school = getattr(admin_user, 'school', None)
+        # If admin is not linked to a school, allow superadmin to choose one to delete
+        if not school:
+            school_id = request.POST.get('school_id')
+            if school_id:
+                school = get_object_or_404(School, id=school_id)
+        school_name = school.name if school else None
+
+        # If school exists, perform full school cleanup similar to SchoolDeleteView
+        if school:
+            from students.models import Student
+            from academics.models import Class, Subject
+            from library.models import Book, BookIssue
+            from fees.models import FeeStructure, FeeCollection
+            from examinations.models import Exam
+            from attendance.models import StudentAttendance, StaffAttendance
+
+            try:
+                # Delete related data
+                Student.objects.filter(current_class__school=school).delete()
+                User.objects.filter(role='parent', children__current_class__school=school).distinct().delete()
+                Class.objects.filter(school=school).delete()
+                Subject.objects.filter(school=school).delete()
+                Book.objects.filter(school=school).delete()
+                BookIssue.objects.filter(book__school=school).delete()
+                FeeStructure.objects.filter(class_name__school=school).delete()
+                FeeCollection.objects.filter(fee_structure__class_name__school=school).delete()
+                Exam.objects.filter(Q(class_assigned__school=school) | Q(subject__school=school)).delete()
+                StudentAttendance.objects.filter(school=school).delete()
+                StaffAttendance.objects.filter(school=school).delete()
+
+                # Notify and delete all admins for this school (including selected admin)
+                admins = list(User.objects.filter(role='admin', school=school))
+                for adm in admins:
+                    try:
+                        subject = f'Your administrator account for {school_name} has been deleted'
+                        message = (
+                            f'Hello {adm.get_full_name()},\n\n'
+                            f'The school "{school_name}" has been deleted from our system. '
+                            f'As a result, your administrator account associated with this school has been deleted.\n\n'
+                            f'If you need assistance, please contact support.\n\n'
+                            f'Best regards,\n'
+                            f'Clasyo Team'
+                        )
+                        send_mail(
+                            subject,
+                            message,
+                            settings.DEFAULT_FROM_EMAIL,
+                            [adm.email],
+                            fail_silently=True,
+                        )
+                    except Exception:
+                        pass
+
+                if admins:
+                    User.objects.filter(id__in=[u.id for u in admins]).delete()
+
+                # Delete school subscriptions
+                Subscription.objects.filter(school=school).delete()
+
+                # Finally delete the school itself
+                school.delete()
+
+                messages.success(request, f'School "{school_name}" and all related data deleted. Admin account removed.')
+            except Exception as e:
+                messages.error(request, f'Error deleting admin and school: {str(e)}')
+                return redirect('superadmin:admins')
+        else:
+            # No school linked or selected; just delete the admin
+            try:
+                admin_user.delete()
+                messages.success(request, 'Admin account deleted successfully. No school was linked or selected to delete.')
+            except Exception as e:
+                messages.error(request, f'Error deleting admin: {str(e)}')
+                return redirect('superadmin:admins')
+
+        return redirect(self.success_url)
 
 
 # Content Management Views
@@ -613,6 +771,11 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
             is_active = request.POST.get('is_active') == 'on'
             is_popular = request.POST.get('is_popular') == 'on'
             display_order = request.POST.get('display_order', '0')
+            # New pricing components
+            setup_fee = request.POST.get('setup_fee', '0')
+            data_migration_fee = request.POST.get('data_migration_fee', '0')
+            license_fee = request.POST.get('license_fee', '0')
+            training_fee = request.POST.get('training_fee', '0')
             
             # Validate required fields
             if not name or not slug or not plan_type or not price or not billing_cycle:
@@ -633,6 +796,14 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
                     max_staff = int(max_staff)
                 if display_order:
                     display_order = int(display_order)
+                if setup_fee:
+                    setup_fee = float(setup_fee)
+                if data_migration_fee:
+                    data_migration_fee = float(data_migration_fee)
+                if license_fee:
+                    license_fee = float(license_fee)
+                if training_fee:
+                    training_fee = float(training_fee)
             except ValueError:
                 messages.error(request, 'Please ensure all numeric fields contain valid numbers.')
                 return redirect('superadmin:pricing_management')
@@ -651,6 +822,10 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
                 plan.price = price
                 plan.billing_cycle = billing_cycle
                 plan.trial_days = trial_days
+                plan.setup_fee = setup_fee
+                plan.data_migration_fee = data_migration_fee
+                plan.license_fee = license_fee
+                plan.training_fee = training_fee
                 plan.max_students = max_students
                 plan.max_teachers = max_teachers
                 plan.max_staff = max_staff
@@ -674,6 +849,10 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
                     price=price,
                     billing_cycle=billing_cycle,
                     trial_days=trial_days,
+                    setup_fee=setup_fee,
+                    data_migration_fee=data_migration_fee,
+                    license_fee=license_fee,
+                    training_fee=training_fee,
                     max_students=max_students,
                     max_teachers=max_teachers,
                     max_staff=max_staff,
@@ -871,8 +1050,13 @@ class ImpersonateUserView(SuperAdminRequiredMixin, View):
         school = None
         
         if user_to_impersonate.role == 'admin':
-            # For school admin, find their school through SchoolAdmin
-            school = School.objects.filter(is_active=True).first()
+            # For school admin, use their linked school if available
+            try:
+                school = getattr(user_to_impersonate, 'school', None)
+            except Exception:
+                school = None
+            if not school:
+                school = School.objects.filter(is_active=True).first()
         elif user_to_impersonate.role == 'teacher':
             # Get teacher's school through their classes or HR record
             try:
@@ -1118,6 +1302,114 @@ class PaymentHistoryListView(SuperAdminRequiredMixin, ListView):
         context['status_choices'] = Payment.STATUS_CHOICES
         context['payment_method_choices'] = Payment.PAYMENT_METHOD_CHOICES
         return context
+
+
+class InvoiceListView(SuperAdminRequiredMixin, ListView):
+    """List all subscription invoices"""
+    model = Invoice
+    template_name = 'superadmin/invoice_list.html'
+    context_object_name = 'invoices'
+    paginate_by = 25
+
+    def get_queryset(self):
+        # Ensure trial/free invoices exist so they are visible to superadmins
+        self._ensure_trial_and_free_invoices()
+        queryset = Invoice.objects.select_related(
+            'school', 'subscription', 'payment'
+        ).order_by('-created_at')
+
+        status = self.request.GET.get('status')
+        invoice_type = self.request.GET.get('type')
+        school_search = self.request.GET.get('school')
+
+        if status:
+            queryset = queryset.filter(status=status)
+
+        if invoice_type:
+            queryset = queryset.filter(invoice_type=invoice_type)
+
+        if school_search:
+            queryset = queryset.filter(school__name__icontains=school_search)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['status_choices'] = Invoice.STATUS_CHOICES
+        context['invoice_type_choices'] = Invoice.INVOICE_TYPES
+        return context
+
+    def _ensure_trial_and_free_invoices(self):
+        """Create missing invoices for schools on trial or free plans.
+        This avoids coupling invoice creation to the school admin Billing view.
+        """
+        try:
+            from django.utils import timezone
+            # Consider all schools (including inactive) to surface historical trial/free invoices
+            schools = School.objects.all()
+            for school in schools:
+                # Determine latest subscription and effective plan
+                sub = school.subscriptions.all().order_by('-created_at').first()
+                plan = sub.plan if sub and sub.plan else getattr(school, 'subscription_plan', None)
+
+                # Trial invoice (amount 0, paid)
+                is_trial = bool(getattr(school, 'is_trial', False) or (sub and sub.is_trial))
+                if is_trial:
+                    trial_exists = Invoice.objects.filter(
+                        school=school,
+                        invoice_type='trial_end'
+                    ).exists()
+                    if not trial_exists:
+                        plan_name = getattr(plan, 'name', 'Trial')
+                        start = getattr(school, 'subscription_start_date', None) or (sub.start_date if sub else None)
+                        end = getattr(school, 'trial_end_date', None) or (sub.end_date if sub else None)
+                        Invoice.objects.create(
+                            school=school,
+                            subscription=sub,
+                            invoice_type='trial_end',
+                            plan_name=plan_name,
+                            plan_description=f"{plan_name} - Free Trial Period",
+                            amount=0,
+                            tax_amount=0,
+                            total_amount=0,
+                            due_date=timezone.now().date(),
+                            billing_start_date=start,
+                            billing_end_date=end,
+                            status='paid'
+                        )
+
+                # Free plan invoice (amount 0, paid)
+                if plan and getattr(plan, 'price', 0) == 0:
+                    free_exists = Invoice.objects.filter(
+                        school=school,
+                        invoice_type='new',
+                        total_amount=0
+                    ).exists()
+                    if not free_exists:
+                        start = None
+                        end = None
+                        if sub:
+                            start = sub.start_date
+                            end = sub.end_date
+                        elif hasattr(school, 'created_on') and school.created_on:
+                            start = school.created_on.date()
+                        Invoice.objects.create(
+                            school=school,
+                            subscription=sub if sub else None,
+                            invoice_type='new',
+                            plan_name=getattr(plan, 'name', 'Free Plan'),
+                            plan_description=f"{getattr(plan, 'name', 'Free Plan')} - Free Plan",
+                            amount=0,
+                            tax_amount=0,
+                            total_amount=0,
+                            due_date=timezone.now().date(),
+                            billing_start_date=start,
+                            billing_end_date=end,
+                            status='paid'
+                        )
+        except Exception as e:
+            # Fail-safe: do not block page rendering if backfill fails
+            print(f"Invoice backfill error: {e}")
 
 
 # School Admin Payment Configuration Views
@@ -1440,6 +1732,152 @@ class GlobalEmailConfigurationDeleteView(SuperAdminRequiredMixin, DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
+class AuditLogListView(SuperAdminRequiredMixin, ListView):
+    model = AuditLog
+    template_name = 'superadmin/audit_logs.html'
+    context_object_name = 'logs'
+    paginate_by = 50
+
+    def get_queryset(self):
+        qs = AuditLog.objects.select_related('user', 'school').all().order_by('-timestamp')
+        request = self.request
+        school_slug = request.GET.get('school')
+        user_id = request.GET.get('user')
+        method = request.GET.get('method')
+        status = request.GET.get('status')
+        q = request.GET.get('q')
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        if school_slug:
+            qs = qs.filter(school__slug=school_slug)
+        if user_id:
+            qs = qs.filter(user_id=user_id)
+        if method:
+            qs = qs.filter(method__iexact=method)
+        if status:
+            try:
+                qs = qs.filter(status_code=int(status))
+            except ValueError:
+                pass
+        if q:
+            qs = qs.filter(path__icontains=q)
+        if date_from:
+            from django.utils.dateparse import parse_datetime, parse_date
+            dt = parse_datetime(date_from) or parse_date(date_from)
+            if dt:
+                qs = qs.filter(timestamp__gte=dt)
+        if date_to:
+            from django.utils.dateparse import parse_datetime, parse_date
+            dt = parse_datetime(date_to) or parse_date(date_to)
+            if dt:
+                qs = qs.filter(timestamp__lte=dt)
+        return qs
+
+    def get(self, request, *args, **kwargs):
+        if request.GET.get('export') == 'csv':
+            qs = self.get_queryset()[:50000]
+            resp = HttpResponse(content_type='text/csv')
+            resp['Content-Disposition'] = 'attachment; filename="audit_logs.csv"'
+            writer = csv.writer(resp)
+            writer.writerow(['timestamp', 'user', 'school', 'method', 'path', 'status', 'ip', 'user_agent'])
+            for log in qs:
+                writer.writerow([
+                    log.timestamp.isoformat(),
+                    getattr(log.user, 'email', '') if log.user_id else '',
+                    getattr(log.school, 'name', '') if log.school_id else '',
+                    log.method,
+                    log.path,
+                    log.status_code,
+                    log.ip_address or '',
+                    (log.user_agent or '')[:200],
+                ])
+            return resp
+        return super().get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['schools'] = School.objects.all().order_by('name')
+        ctx['users'] = User.objects.filter(is_active=True).order_by('email')[:500]
+        return ctx
+
+
+class SchoolAuditLogListView(LoginRequiredMixin, ListView):
+    model = AuditLog
+    template_name = 'superadmin/audit_logs.html'
+    context_object_name = 'logs'
+    paginate_by = 50
+
+    def dispatch(self, request, *args, **kwargs):
+        # Allow superadmin or school admin only
+        if not request.user.is_authenticated:
+            return redirect('accounts:login')
+        if request.user.role not in ['superadmin', 'admin']:
+            messages.error(request, 'You do not have permission to access audit logs.')
+            return redirect('frontend:home')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_school(self):
+        return get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+
+    def get_queryset(self):
+        school = self.get_school()
+        qs = AuditLog.objects.select_related('user', 'school').filter(school=school).order_by('-timestamp')
+        request = self.request
+        user_id = request.GET.get('user')
+        method = request.GET.get('method')
+        status = request.GET.get('status')
+        q = request.GET.get('q')
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        if user_id:
+            qs = qs.filter(user_id=user_id)
+        if method:
+            qs = qs.filter(method__iexact=method)
+        if status:
+            try:
+                qs = qs.filter(status_code=int(status))
+            except ValueError:
+                pass
+        if q:
+            qs = qs.filter(path__icontains=q)
+        if date_from:
+            from django.utils.dateparse import parse_datetime, parse_date
+            dt = parse_datetime(date_from) or parse_date(date_from)
+            if dt:
+                qs = qs.filter(timestamp__gte=dt)
+        if date_to:
+            from django.utils.dateparse import parse_datetime, parse_date
+            dt = parse_datetime(date_to) or parse_date(date_to)
+            if dt:
+                qs = qs.filter(timestamp__lte=dt)
+        return qs
+
+    def get(self, request, *args, **kwargs):
+        if request.GET.get('export') == 'csv':
+            qs = self.get_queryset()[:50000]
+            resp = HttpResponse(content_type='text/csv')
+            resp['Content-Disposition'] = 'attachment; filename="school_audit_logs.csv"'
+            writer = csv.writer(resp)
+            writer.writerow(['timestamp', 'user', 'method', 'path', 'status', 'ip', 'user_agent'])
+            for log in qs:
+                writer.writerow([
+                    log.timestamp.isoformat(),
+                    getattr(log.user, 'email', '') if log.user_id else '',
+                    log.method,
+                    log.path,
+                    log.status_code,
+                    log.ip_address or '',
+                    (log.user_agent or '')[:200],
+                ])
+            return resp
+        return super().get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['school'] = self.get_school()
+        ctx['users'] = User.objects.filter(is_active=True, school=ctx['school']).order_by('email')[:500]
+        return ctx
+
 class GlobalDatabaseConfigurationListView(SuperAdminRequiredMixin, ListView):
     """List all global database configurations"""
     model = GlobalDatabaseConfiguration
@@ -1629,6 +2067,8 @@ class SchoolAdminAIConfigurationView(SchoolAdminRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug')
+        # Add global AI configurations to show available providers
+        context['global_configs'] = GlobalAIConfiguration.objects.all().order_by('provider')
         return context
 
     def get_form_kwargs(self):

@@ -1,5 +1,6 @@
 {% extends 'dashboards/base.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Pricing Plans - Super Admin{% endblock %}
 {% block page_title %}Pricing Plans Management{% endblock %}
@@ -23,6 +24,11 @@
                                 <th>Plan Name</th>
                                 <th>Price</th>
                                 <th>Duration</th>
+                                <th>Setup</th>
+                                <th>Data Migration</th>
+                                <th>License</th>
+                                <th>Training</th>
+                                <th>One-time Total</th>
                                 <th>Max Students</th>
                                 <th>Status</th>
                                 <th>Popular</th>
@@ -33,8 +39,13 @@
                             {% for plan in pricing_plans %}
                             <tr>
                                 <td><strong>{{ plan.name }}</strong></td>
-                                <td>Ksh {{ plan.price }}</td>
+                                <td>Ksh {{ plan.price|intcomma }}</td>
                                 <td>{{ plan.get_billing_cycle_display }}</td>
+                                <td>Ksh {{ plan.setup_fee|intcomma }}</td>
+                                <td>Ksh {{ plan.data_migration_fee|intcomma }}</td>
+                                <td>Ksh {{ plan.license_fee|intcomma }}</td>
+                                <td>Ksh {{ plan.training_fee|intcomma }}</td>
+                                <td><strong>Ksh {{ plan.one_time_total|intcomma }}</strong></td>
                                 <td>{{ plan.max_students|default:"Unlimited" }}</td>
                                 <td>
                                     {% if plan.is_active %}
@@ -64,6 +75,10 @@
                                             data-max-staff="{{ plan.max_staff|default:''|escapejs }}" 
                                             data-display-order="{{ plan.display_order }}" 
                                             data-description="{{ plan.description|escapejs }}" 
+                                            data-setup-fee="{{ plan.setup_fee }}"
+                                            data-data-migration-fee="{{ plan.data_migration_fee }}"
+                                            data-license-fee="{{ plan.license_fee }}"
+                                            data-training-fee="{{ plan.training_fee }}"
                                             data-is-active="{{ plan.is_active|yesno:'true,false' }}" 
                                             data-is-popular="{{ plan.is_popular|yesno:'true,false' }}">
                                         <i class="fas fa-edit"></i> Edit
@@ -163,6 +178,34 @@
                             <div class="mb-3">
                                 <label for="id_trial_days" class="form-label">Trial Days</label>
                                 <input type="number" class="form-control" id="id_trial_days" name="trial_days" min="0" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="id_setup_fee" class="form-label">One-time Setup Fee (KES)</label>
+                                <input type="number" class="form-control" id="id_setup_fee" name="setup_fee" step="0.01" min="0" value="0">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="id_data_migration_fee" class="form-label">Data Migration Fee (KES)</label>
+                                <input type="number" class="form-control" id="id_data_migration_fee" name="data_migration_fee" step="0.01" min="0" value="0">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="id_license_fee" class="form-label">License Fee (KES)</label>
+                                <input type="number" class="form-control" id="id_license_fee" name="license_fee" step="0.01" min="0" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="id_training_fee" class="form-label">Training Fee (KES)</label>
+                                <input type="number" class="form-control" id="id_training_fee" name="training_fee" step="0.01" min="0" value="0">
                             </div>
                         </div>
                     </div>
@@ -286,6 +329,34 @@
                         </div>
                     </div>
                     <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="edit_id_setup_fee" class="form-label">One-time Setup Fee (KES)</label>
+                                <input type="number" class="form-control" id="edit_id_setup_fee" name="setup_fee" step="0.01" min="0" value="0">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="edit_id_data_migration_fee" class="form-label">Data Migration Fee (KES)</label>
+                                <input type="number" class="form-control" id="edit_id_data_migration_fee" name="data_migration_fee" step="0.01" min="0" value="0">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="edit_id_license_fee" class="form-label">License Fee (KES)</label>
+                                <input type="number" class="form-control" id="edit_id_license_fee" name="license_fee" step="0.01" min="0" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="edit_id_training_fee" class="form-label">Training Fee (KES)</label>
+                                <input type="number" class="form-control" id="edit_id_training_fee" name="training_fee" step="0.01" min="0" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
                         <div class="col-md-3">
                             <div class="mb-3">
                                 <label for="edit_id_max_students" class="form-label">Max Students</label>
@@ -359,6 +430,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const maxStaff = this.getAttribute('data-max-staff');
             const displayOrder = this.getAttribute('data-display-order');
             const description = this.getAttribute('data-description');
+            const setupFee = this.getAttribute('data-setup-fee');
+            const dataMigrationFee = this.getAttribute('data-data-migration-fee');
+            const licenseFee = this.getAttribute('data-license-fee');
+            const trainingFee = this.getAttribute('data-training-fee');
             const isActive = this.getAttribute('data-is-active');
             const isPopular = this.getAttribute('data-is-popular');
             
@@ -375,6 +450,10 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('edit_id_max_staff').value = maxStaff || '10';
             document.getElementById('edit_id_display_order').value = displayOrder || '0';
             document.getElementById('edit_id_description').value = description || '';
+            document.getElementById('edit_id_setup_fee').value = setupFee || '0';
+            document.getElementById('edit_id_data_migration_fee').value = dataMigrationFee || '0';
+            document.getElementById('edit_id_license_fee').value = licenseFee || '0';
+            document.getElementById('edit_id_training_fee').value = trainingFee || '0';
             document.getElementById('edit_id_is_active').checked = isActive === 'true';
             document.getElementById('edit_id_is_popular').checked = isPopular === 'true';
         });

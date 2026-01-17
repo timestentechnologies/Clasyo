@@ -367,11 +367,15 @@
         color: #444;
         margin-bottom: 10px;
     }
+    /* Hide CKEditor security/EOL warning banner inside the editor */
+    .cke_notification.cke_notification_warning {
+        display: none !important;
+    }
 </style>
 {% endblock %}
 
 {% block custom_js %}
-<script src="https://cdn.ckeditor.com/4.25.1-lts/standard/ckeditor.js"></script>
+<script src="{% static 'ckeditor/ckeditor/ckeditor.js' %}"></script>
 <script>
     // Debug utility
     function debug(msg) {
@@ -387,6 +391,23 @@
     
     $(document).ready(function() {
         debug('Document ready fired');
+        if (typeof CKEDITOR !== 'undefined') {
+            CKEDITOR.config.versionCheck = false;
+            CKEDITOR.verbosity = 0;
+            CKEDITOR.on('instanceReady', function(evt) {
+                try {
+                    var container = evt.editor && evt.editor.container && evt.editor.container.$;
+                    if (container) {
+                        var nodes = container.querySelectorAll('.cke_notification, .cke_notification_warning, .cke_notifications_area');
+                        Array.prototype.forEach.call(nodes, function(node) {
+                            node.style.display = 'none';
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Failed to hide CKEditor notification:', e);
+                }
+            });
+        }
         
         // Wait for CKEditor to be available
         function initializeCKEditor() {
@@ -408,7 +429,7 @@
                             { name: 'colors', items: ['TextColor', 'BGColor'] },
                             { name: 'tools', items: ['Maximize', 'ShowBlocks'] }
                         ],
-                        removePlugins: 'elementspath,save,newpage,preview,print,templates'
+                        removePlugins: 'elementspath,save,newpage,preview,print,templates,exportpdf'
                     });
                 });
             } else {

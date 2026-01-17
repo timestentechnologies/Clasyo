@@ -1,0 +1,56 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Delete Global AI Configuration{% endblock %}
+{% block page_title %}Delete Global AI Configuration{% endblock %}
+{% block page_icon %}trash{% endblock %}
+{% block page_subtitle %}Remove AI provider configuration{% endblock %}
+
+{% block content %}
+<div class="modern-card">
+    <div class="card-body">
+        <div class="alert alert-warning" role="alert">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Warning:</strong> This action cannot be undone. Deleting this AI configuration will remove it from all schools that are currently using it.
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <h5>Configuration Details</h5>
+                <table class="table table-borderless">
+                    <tr>
+                        <td><strong>Provider:</strong></td>
+                        <td><span class="badge bg-primary">{{ config.get_provider_display }}</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Status:</strong></td>
+                        <td>
+                            {% if config.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Created:</strong></td>
+                        <td>{{ config.created_at|date:"Y-m-d H:i" }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'superadmin:ai_config_global_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Delete Configuration
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -62,6 +62,7 @@ class LessonPlan(models.Model):
         ('completed', 'Completed'),
     ]
     
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='lesson_plans', null=True, blank=True)
     title = models.CharField(_('Lesson Title'), max_length=200)
     description = models.TextField(_('Description'), blank=True)
     

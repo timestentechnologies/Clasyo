@@ -88,6 +88,8 @@ class User(AbstractUser):
                                   null=True, blank=True, related_name='employees')
     designation = models.ForeignKey('human_resource.Designation', on_delete=models.SET_NULL, 
                                    null=True, blank=True, related_name='employees')
+    school = models.ForeignKey('tenants.School', on_delete=models.SET_NULL, 
+                               null=True, blank=True, related_name='admins')
     join_date = models.DateField(_('Join Date'), blank=True, null=True)
     
     # Status

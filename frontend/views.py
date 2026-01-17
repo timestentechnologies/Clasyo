@@ -1,9 +1,14 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import TemplateView, View
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 from django.conf import settings
+from django.contrib.auth import authenticate, login
+from django.db.models import Count
+from django.core.mail import send_mail
 import os
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -14,7 +19,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from io import BytesIO
 from subscriptions.models import SubscriptionPlan
-from .models import PricingPlan, FAQ, PageContent, ContactMessage
+from .models import PricingPlan, FAQ, PageContent, ContactMessage, ForumThread, ForumPost
 
 
 class HomeView(TemplateView):
@@ -61,6 +66,26 @@ class ContactView(View):
                 subject=subject,
                 message=message
             )
+            # Email the site inbox/admins
+            try:
+                inbox = getattr(settings, 'EMAIL_HOST_USER', None) or getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+                if inbox:
+                    send_mail(
+                        subject=f"New Contact Message: {subject}",
+                        message=(
+                            f"You have a new contact message on Clasyo.\n\n"
+                            f"Name: {name}\n"
+                            f"Email: {email}\n"
+                            f"Phone: {phone or '-'}\n\n"
+                            f"Message:\n{message}"
+                        ),
+                        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', inbox),
+                        recipient_list=[inbox],
+                        fail_silently=True,
+                    )
+            except Exception:
+                # Do not block user flow on email failures
+                pass
             messages.success(request, 'Thank you for your message! We will get back to you soon.')
             return redirect('frontend:contact')
         else:
@@ -1609,9 +1634,25 @@ class SchoolRegistrationView(View):
                 is_active=True,
                 password=password
             )
+            # Link admin user to the created school
+            try:
+                user.school = school
+                user.save(update_fields=['school'])
+            except Exception:
+                pass
+            
+            try:
+                from core.notifications import NotificationService
+                NotificationService.notify_user_created(user, user, password)
+            except Exception as e:
+                print(f"Error sending notification: {e}")
             
             # Auto login
-            login(request, user)
+            auth_user = authenticate(request, email=email, password=password)
+            if auth_user is not None:
+                login(request, auth_user)
+            else:
+                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             
             messages.success(
                 request, 
@@ -1626,3 +1667,161 @@ class SchoolRegistrationView(View):
         except Exception as e:
             messages.error(request, f'Registration failed: {str(e)}')
             return redirect('frontend:home')
+
+
+class CommunityForumView(View):
+    template_name = 'frontend/forum.html'
+
+    def get(self, request):
+        q = request.GET.get('q', '').strip()
+        threads = (
+            ForumThread.objects.select_related('created_by')
+            .annotate(posts_count=Count('posts'))
+            .prefetch_related('posts__user')
+        )
+        if q:
+            threads = threads.filter(title__icontains=q)
+        threads = threads.order_by('-last_activity')
+        return render(request, self.template_name, {
+            'threads': threads,
+            'q': q,
+        })
+
+    def post(self, request):
+        title = (request.POST.get('title') or '').strip()
+        content = (request.POST.get('content') or '').strip()
+        attachment = request.FILES.get('attachment')
+        if len(title) < 3 or len(content) < 5:
+            messages.error(request, 'Please provide a valid title and message.')
+            return redirect('frontend:forum')
+
+        thread = ForumThread.objects.create(
+            title=title,
+            created_by=request.user if request.user.is_authenticated else None,
+            author_name=(request.user.get_full_name() or request.user.email) if request.user.is_authenticated else (request.POST.get('name') or ''),
+            author_email=(request.user.email if request.user.is_authenticated else (request.POST.get('email') or '')),
+        )
+        post = ForumPost.objects.create(
+            thread=thread,
+            user=request.user if request.user.is_authenticated else None,
+            author_name=thread.author_name,
+            author_email=thread.author_email,
+            content=content,
+            attachment=attachment,
+        )
+        thread.last_activity = post.created_at
+        thread.save(update_fields=['last_activity'])
+        messages.success(request, 'Thread created successfully.')
+        return redirect('frontend:forum_thread', message_id=thread.id)
+
+
+class CommunityThreadView(View):
+    template_name = 'frontend/forum_thread.html'
+
+    def get(self, request, message_id):
+        thread = get_object_or_404(ForumThread, id=message_id)
+        thread.views_count = (thread.views_count or 0) + 1
+        thread.save(update_fields=['views_count'])
+        posts = thread.posts.select_related('user').all()
+        return render(request, self.template_name, {
+            'thread': thread,
+            'posts': posts,
+        })
+
+    def post(self, request, message_id):
+        thread = get_object_or_404(ForumThread, id=message_id)
+        if thread.is_locked:
+            messages.error(request, 'This thread is locked.')
+            return redirect('frontend:forum_thread', message_id=thread.id)
+        content = (request.POST.get('content') or '').strip()
+        attachment = request.FILES.get('attachment')
+        if len(content) < 2:
+            messages.error(request, 'Please enter a message.')
+            return redirect('frontend:forum_thread', message_id=thread.id)
+        post = ForumPost.objects.create(
+            thread=thread,
+            user=request.user if request.user.is_authenticated else None,
+            author_name=(request.user.get_full_name() or request.user.email) if request.user.is_authenticated else (request.POST.get('name') or ''),
+            author_email=(request.user.email if request.user.is_authenticated else (request.POST.get('email') or '')),
+            content=content,
+            attachment=attachment,
+        )
+        thread.last_activity = post.created_at
+        thread.save(update_fields=['last_activity'])
+        messages.success(request, 'Reply posted.')
+        return redirect('frontend:forum_thread', message_id=thread.id)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class PublicAiChatApiView(View):
+    """Public AI chat API for general questions (no auth required)."""
+
+    def post(self, request):
+        import json
+        prompt = ''
+        if request.content_type == 'application/json':
+            try:
+                data = json.loads(request.body)
+                prompt = (data.get('prompt') or '').strip()
+            except (json.JSONDecodeError, TypeError):
+                prompt = ''
+        else:
+            prompt = (request.POST.get('prompt') or '').strip()
+        if not prompt:
+            return JsonResponse({'success': False, 'error': 'Prompt is required'}, status=400)
+
+        try:
+            from superadmin.models import GlobalAIConfiguration
+            global_config = GlobalAIConfiguration.objects.filter(is_active=True).first()
+            if not global_config:
+                return JsonResponse({'success': False, 'error': 'AI is not configured'}, status=503)
+            config = global_config.get_config_data()
+        except Exception:
+            return JsonResponse({'success': False, 'error': 'AI configuration not available'}, status=503)
+
+        temperature = float(config.get('temperature', 0.7))
+        max_tokens = int(config.get('max_tokens', 800))
+        system_prompt = (
+            'You are an assistant for a school management system called Clasyo. '
+            'Answer general questions about features, pricing, modules, onboarding, and contact details. '
+            "If you don't know, advise the user to contact support via timestentechnologies@gmail.com."
+        )
+
+        provider = config.get('provider', 'openai')
+        try:
+            if provider == 'openai':
+                from openai import OpenAI
+                api_key = config.get('openai_api_key')
+                if not api_key:
+                    return JsonResponse({'success': False, 'error': 'OpenAI API key missing'}, status=503)
+                client = OpenAI(api_key=api_key)
+                model = config.get('openai_model', 'gpt-3.5-turbo')
+                resp = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": prompt},
+                    ],
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                answer = resp.choices[0].message.content
+            elif provider == 'google':
+                import google.genai as genai
+                api_key = config.get('google_api_key')
+                if not api_key:
+                    return JsonResponse({'success': False, 'error': 'Google API key missing'}, status=503)
+                client = genai.Client(api_key=api_key)
+                model = config.get('google_model', 'gemini-1.5-flash')
+                response = client.models.generate_content(
+                    model=model,
+                    contents=f"System: {system_prompt}\n\nUser: {prompt}",
+                    config={"temperature": float(temperature), "max_output_tokens": int(max_tokens)},
+                )
+                answer = response.text
+            else:
+                return JsonResponse({'success': False, 'error': f'Provider {provider} not supported'}, status=400)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+        return JsonResponse({'success': True, 'answer': answer})

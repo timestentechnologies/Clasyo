@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from academics.models import Class, Section
 from students.models import Student
 from datetime import date
+from core.utils import get_current_school
 
 # Check if models exist
 try:
@@ -29,7 +30,10 @@ class MarkAttendanceView(LoginRequiredMixin, ListView):
             return []
         
         # Start with students query
+        school = get_current_school(self.request)
         queryset = Student.objects.filter(is_active=True, current_class_id=class_id)
+        if school:
+            queryset = queryset.filter(current_class__school=school)
         
         # Filter by section if provided
         if section_id:
@@ -40,7 +44,11 @@ class MarkAttendanceView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
-        context['classes'] = Class.objects.filter(is_active=True).order_by('order', 'name')
+        school = get_current_school(self.request)
+        classes_qs = Class.objects.filter(is_active=True)
+        if school:
+            classes_qs = classes_qs.filter(school=school)
+        context['classes'] = classes_qs.order_by('order', 'name')
         context['today'] = date.today()
         context['selected_date'] = self.request.GET.get('date', date.today())
         context['selected_class_id'] = self.request.GET.get('class_id', '')
@@ -53,10 +61,13 @@ class MarkAttendanceView(LoginRequiredMixin, ListView):
                 from datetime import datetime
                 selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
             
-            context['existing_attendance'] = StudentAttendance.objects.filter(
+            existing_qs = StudentAttendance.objects.filter(
                 date=selected_date,
                 student__current_class_id=context['selected_class_id']
             ).select_related('student')
+            if school:
+                existing_qs = existing_qs.filter(student__current_class__school=school)
+            context['existing_attendance'] = existing_qs
             
             print(f"Found {context['existing_attendance'].count()} existing attendance records for {selected_date}")
         
@@ -104,7 +115,8 @@ class MarkAttendanceView(LoginRequiredMixin, ListView):
                     'note': request.POST.get('note', ''),
                     'class_name': student.current_class,
                     'section': student.section,
-                    'marked_by': request.user
+                    'marked_by': request.user,
+                    'school': getattr(student.current_class, 'school', None) or getattr(request, 'school', None)
                 }
             )
             
@@ -124,14 +136,24 @@ class AttendanceReportView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         if MODELS_EXIST:
-            return StudentAttendance.objects.all()
+            school = get_current_school(self.request)
+            qs = StudentAttendance.objects.all()
+            if school:
+                qs = qs.filter(student__current_class__school=school)
+            return qs
         return []
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
-        context['classes'] = Class.objects.filter(is_active=True)
-        context['students'] = Student.objects.filter(is_active=True)
+        school = get_current_school(self.request)
+        classes_qs = Class.objects.filter(is_active=True)
+        students_qs = Student.objects.filter(is_active=True)
+        if school:
+            classes_qs = classes_qs.filter(school=school)
+            students_qs = students_qs.filter(current_class__school=school)
+        context['classes'] = classes_qs
+        context['students'] = students_qs
         return context
 
 

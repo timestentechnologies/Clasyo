@@ -81,7 +81,7 @@
                         </div>
                     </div>
 
-                    <hr class="my-4" style="border-top: 2px dashed #e9ecef;">
+                    <hr class="my-3" style="border-top: 2px dashed #e9ecef;">
 
                     <!-- Class & Subject -->
                     <div class="form-section mb-4">
@@ -141,7 +141,7 @@
                         </div>
                     </div>
 
-                    <hr class="my-4" style="border-top: 2px dashed #e9ecef;">
+                    <hr class="my-3" style="border-top: 2px dashed #e9ecef;">
 
                     <!-- Dates and Submission -->
                     <div class="form-section mb-4">
@@ -205,23 +205,25 @@
                                 </small>
                             </div>
 
-                            <div class="col-md-6">
-                                <div class="mb-2">
-                                    <label class="form-check form-switch">
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-percent text-warning me-2"></i>Late Submission Settings
+                                </label>
+                                <div class="d-flex flex-wrap align-items-center gap-3">
+                                    <div class="form-check form-switch mb-0 me-3">
                                         {{ form.allow_late_submissions }}
                                         <span class="form-check-label">Allow Late Submissions</span>
-                                    </label>
+                                    </div>
+                                    <div class="d-flex align-items-center late-penalty-group">
+                                        <span class="me-2 fw-semibold">Late Penalty (%)</span>
+                                        <div style="min-width: 120px;">
+                                            {{ form.late_penalty_percentage }}
+                                        </div>
+                                    </div>
                                 </div>
                                 {% if form.allow_late_submissions.errors %}
                                 <div class="invalid-feedback d-block">{{ form.allow_late_submissions.errors }}</div>
                                 {% endif %}
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">
-                                    <i class="fas fa-percent text-warning me-2"></i>Late Penalty (%)
-                                </label>
-                                {{ form.late_penalty_percentage }}
                                 {% if form.late_penalty_percentage.errors %}
                                 <div class="invalid-feedback d-block">{{ form.late_penalty_percentage.errors }}</div>
                                 {% endif %}
@@ -232,7 +234,7 @@
                         </div>
                     </div>
 
-                    <hr class="my-4" style="border-top: 2px dashed #e9ecef;">
+                    <hr class="my-2" style="border-top: 2px dashed #e9ecef;">
 
                     <!-- Grading -->
                     <div class="form-section mb-4">
@@ -246,9 +248,9 @@
                             </div>
                         </div>
 
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div class="mb-2">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-4">
+                                <div class="mb-0">
                                     <label class="form-check form-switch">
                                         {{ form.is_graded }}
                                         <span class="form-check-label">Assignment Is Graded</span>
@@ -259,7 +261,7 @@
                                 {% endif %}
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label fw-semibold">
                                     <i class="fas fa-star-half-alt text-danger me-2"></i>Points Possible
                                 </label>
@@ -269,7 +271,7 @@
                                 {% endif %}
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label fw-semibold">
                                     <i class="fas fa-chart-bar text-danger me-2"></i>Grading Type
                                 </label>
@@ -300,7 +302,21 @@
                                 <label class="form-label fw-semibold">
                                     <i class="fas fa-file text-info me-2"></i>Attachment
                                 </label>
-                                {{ form.attachment }}
+                                <div class="d-flex flex-wrap align-items-center gap-3">
+                                    <div class="attachment-input" style="min-width: 240px;">
+                                        {{ form.attachment }}
+                                    </div>
+                                    {% if form.instance.attachment %}
+                                    <div class="attachment-current text-muted">
+                                        <span class="fw-semibold me-1">
+                                            <i class="fas fa-paperclip"></i> Current:
+                                        </span>
+                                        <a href="{{ form.instance.attachment.url }}" target="_blank">
+                                            {{ form.instance.attachment.name }}
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
                                 {% if form.attachment.errors %}
                                 <div class="invalid-feedback d-block">{{ form.attachment.errors }}</div>
                                 {% endif %}
@@ -308,17 +324,6 @@
                                     Upload any files students will need (PDF, Word doc, etc.)
                                 </small>
                             </div>
-
-                            {% if form.instance.attachment %}
-                            <div class="col-md-12">
-                                <div class="alert alert-info">
-                                    <i class="fas fa-paperclip"></i> <strong>Current Attachment:</strong> 
-                                    <a href="{{ form.instance.attachment.url }}" target="_blank">
-                                        {{ form.instance.attachment.name }}
-                                    </a>
-                                </div>
-                            </div>
-                            {% endif %}
                         </div>
                     </div>
 
@@ -367,6 +372,8 @@
 </div>
 
 <style>
+@import url('https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css');
+
 .section-icon {
     width: 60px;
     height: 60px;
@@ -398,6 +405,18 @@
     height: 1.5rem;
 }
 
+.form-section {
+    margin-bottom: 1.5rem;
+}
+
+.form-section .row.g-3 {
+    --bs-gutter-y: 0.5rem;
+}
+
+.form-section .form-check.form-switch {
+    margin-bottom: 0.25rem;
+}
+
 .btn-primary {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border: none;
@@ -415,6 +434,8 @@
 }
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize rich text editor if available
@@ -422,6 +443,18 @@ document.addEventListener('DOMContentLoaded', function() {
         CKEDITOR.replace('id_instructions', {
             height: 300,
             toolbar: 'Full'
+        });
+    }
+    
+    // Initialize modern datetime pickers for assignment dates
+    if (typeof flatpickr !== 'undefined') {
+        document.querySelectorAll('.datetimepicker').forEach(function(el) {
+            var enableTime = el.getAttribute('data-enable-time') === 'true';
+            var dateFormat = el.getAttribute('data-date-format') || (enableTime ? 'Y-m-d H:i' : 'Y-m-d');
+            flatpickr(el, {
+                enableTime: enableTime,
+                dateFormat: dateFormat
+            });
         });
     }
     

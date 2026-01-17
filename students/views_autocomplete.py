@@ -15,14 +15,22 @@ class StudentAutocompleteView(LoginRequiredMixin, View):
         if not query:
             return JsonResponse({'results': []})
             
-        # Search in student ID, admission number, first name, last name, or email
+        from tenants.models import School
+        school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+
+        # Search in admission number, first name, last name, or email
         students = Student.objects.filter(
             Q(admission_number__icontains=query) |
             Q(user__first_name__icontains=query) |
             Q(user__last_name__icontains=query) |
             Q(user__email__icontains=query),
             user__is_active=True
-        ).select_related('user')[:10]  # Limit to 10 results
+        )
+        if school:
+            students = students.filter(
+                Q(current_class__school=school) | Q(user__school=school)
+            ).distinct()
+        students = students.select_related('user')[:10]  # Limit to 10 results
         
         results = [{
             'id': student.user.id,

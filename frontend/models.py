@@ -1,5 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.conf import settings
+from django.utils import timezone
 
 
 class PricingPlan(models.Model):
@@ -88,3 +90,49 @@ class ContactMessage(models.Model):
     
     def __str__(self):
         return f"{self.name} - {self.subject}"
+
+
+class ForumThread(models.Model):
+    title = models.CharField(max_length=255)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='forum_threads'
+    )
+    author_name = models.CharField(max_length=100, blank=True)
+    author_email = models.EmailField(blank=True)
+    is_locked = models.BooleanField(default=False)
+    views_count = models.PositiveIntegerField(default=0)
+    last_activity = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-last_activity', '-created_at']
+
+    def __str__(self):
+        return self.title
+
+
+class ForumPost(models.Model):
+    thread = models.ForeignKey(ForumThread, on_delete=models.CASCADE, related_name='posts')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='forum_posts'
+    )
+    author_name = models.CharField(max_length=100, blank=True)
+    author_email = models.EmailField(blank=True)
+    content = models.TextField()
+    attachment = models.FileField(upload_to='forum/attachments/', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Post in {self.thread.title}"

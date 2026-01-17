@@ -2,12 +2,14 @@
 {% load i18n static %}
 
 {% block title %}{{ assignment.title }} - {% trans 'Homework' %}{% endblock %}
+{% block page_title %}{{ assignment.title }}{% endblock %}
+{% block page_icon %}book{% endblock %}
+{% block page_subtitle %}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Page Heading -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">{{ assignment.title }}</h1>
+    <!-- Page Actions (no extra heading, title already in dashboard header) -->
+    <div class="d-sm-flex align-items-center justify-content-end mb-4">
         <div>
             {% if request.user == assignment.created_by or request.user.is_school_admin %}
             <a href="{% url 'homework:update' school_slug=school_slug pk=assignment.id %}" class="btn btn-sm btn-primary shadow-sm">
@@ -31,7 +33,6 @@
         <div class="card-body">
             <div class="row mb-4">
                 <div class="col-md-8">
-                    <h4>{{ assignment.title }}</h4>
                     {% if assignment.description %}
                         <div class="mt-3">
                             <h6>{% trans 'Description' %}</h6>

@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from academics.models import Class, Subject
 from students.models import Student
+from tenants.models import School
 
 
 class Exam(models.Model):
@@ -14,6 +15,7 @@ class Exam(models.Model):
         ('online', 'Online Exam'),
     )
     
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='exams', null=True, blank=True)
     name = models.CharField(max_length=200)
     exam_type = models.CharField(max_length=50, choices=EXAM_TYPES, default='midterm')
     start_date = models.DateField()
@@ -87,6 +89,7 @@ class ExamFile(models.Model):
 
 class Grade(models.Model):
     """Model for grade ranges"""
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='grades', null=True, blank=True)
     name = models.CharField(max_length=10)  # A+, A, B+, etc.
     min_percentage = models.DecimalField(max_digits=5, decimal_places=2)
     max_percentage = models.DecimalField(max_digits=5, decimal_places=2)

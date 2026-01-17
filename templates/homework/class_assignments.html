@@ -1,0 +1,215 @@
+{% extends "dashboards/base.html" %}
+{% load static i18n %}
+
+{% block title %}{{ class.name }} - {% trans "Homework Assignments" %}{% endblock %}
+{% block page_title %}{{ class.name }} - {% trans "Homework Assignments" %}{% endblock %}
+{% block page_icon %}book{% endblock %}
+{% block page_subtitle %}{% trans "Manage assignments for this class" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Actions (no duplicate heading, title already in dashboard header) -->
+    <div class="d-sm-flex align-items-center justify-content-end mb-4">
+        <div>
+            <a href="{% url 'homework:dashboard' school_slug=school_slug %}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-th-large"></i> {% trans "Homework Dashboard" %}
+            </a>
+            <a href="{% url 'homework:class_submissions' school_slug=school_slug class_id=class.id %}" class="btn btn-secondary">
+                <i class="fas fa-file-alt"></i> {% trans "View Submissions" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="modern-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">{% trans "Filters" %}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">{% trans "Subject" %}</label>
+                            <select name="subject_id" class="form-control">
+                                <option value="">{% trans "All Subjects" %}</option>
+                                {% for subject in subjects %}
+                                <option value="{{ subject.id }}" {% if current_filters.subject_id == subject.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ subject.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{% trans "Status" %}</label>
+                            <select name="status" class="form-control">
+                                <option value="">{% trans "All Statuses" %}</option>
+                                {% for value, label in status_choices %}
+                                <option value="{{ value }}" {% if current_filters.status == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{% trans "Sort By" %}</label>
+                            <select name="sort" class="form-control">
+                                <option value="-due_date" {% if current_filters.sort == "-due_date" or not current_filters.sort %}selected{% endif %}>{% trans "Due Date (Newest)" %}</option>
+                                <option value="due_date" {% if current_filters.sort == "due_date" %}selected{% endif %}>{% trans "Due Date (Oldest)" %}</option>
+                                <option value="assigned_date" {% if current_filters.sort == "assigned_date" %}selected{% endif %}>{% trans "Assigned Date (Oldest)" %}</option>
+                                <option value="-assigned_date" {% if current_filters.sort == "-assigned_date" %}selected{% endif %}>{% trans "Assigned Date (Newest)" %}</option>
+                                <option value="subject__name" {% if current_filters.sort == "subject__name" %}selected{% endif %}>{% trans "Subject Name" %}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12 mt-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter"></i> {% trans "Apply Filters" %}
+                            </button>
+                            <a href="{% url 'homework:class_assignments' school_slug=school_slug class_id=class.id %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> {% trans "Clear Filters" %}
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- /Filters -->
+
+    <!-- Assignments Table -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="modern-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">{% trans "Assignments" %} ({{ assignments|length }})</h4>
+                    {% if request.user.is_teacher or request.user.is_school_admin %}
+                    <a href="{% url 'homework:create' school_slug=school_slug %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus"></i> {% trans "New Assignment" %}
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if assignments %}
+                    <div class="table-responsive">
+                        <table class="table table-striped custom-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Title" %}</th>
+                                    <th>{% trans "Subject" %}</th>
+                                    <th>{% trans "Due Date" %}</th>
+                                    <th>{% trans "Status" %}</th>
+                                    <th class="text-right">{% trans "Actions" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assignment in assignments %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'homework:detail' school_slug=school_slug pk=assignment.id %}">
+                                            {{ assignment.title }}
+                                        </a>
+                                        <br>
+                                        <small class="text-muted">{% trans "Assigned" %}: {{ assignment.assigned_date|date:"M d, Y" }}</small>
+                                    </td>
+                                    <td>{{ assignment.subject.name|default:"-" }}</td>
+                                    <td>
+                                        {{ assignment.due_date|date:"M d, Y H:i" }}
+                                        {% if assignment.is_past_due %}
+                                        <br><span class="badge bg-danger">{% trans "Overdue" %}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if assignment.status == 'published' %}bg-success{% elif assignment.status == 'closed' %}bg-secondary{% else %}bg-info{% endif %}">
+                                            {{ assignment.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td class="text-right">
+                                        <div class="dropdown dropdown-action">
+                                            <a href="#" class="action-icon dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </a>
+                                            <div class="dropdown-menu dropdown-menu-right">
+                                                <a class="dropdown-item" href="{% url 'homework:detail' school_slug=school_slug pk=assignment.id %}">
+                                                    <i class="fas fa-eye m-r-5"></i> {% trans "View" %}
+                                                </a>
+                                                {% if request.user == assignment.created_by or request.user.is_school_admin %}
+                                                <a class="dropdown-item" href="{% url 'homework:update' school_slug=school_slug pk=assignment.id %}">
+                                                    <i class="fas fa-edit m-r-5"></i> {% trans "Edit" %}
+                                                </a>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {% if is_paginated %}
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{% trans "First" %}</a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{% trans "Previous" %}</a>
+                                    </li>
+                                    {% endif %}
+
+                                    <li class="page-item active">
+                                        <span class="page-link">
+                                            {% blocktrans %}Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}{% endblocktrans %}
+                                        </span>
+                                    </li>
+
+                                    {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{% trans "Next" %}</a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{% trans "Last" %}</a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% else %}
+                    <div class="text-center py-5">
+                        <img src="{% static 'img/icons/no-data.svg' %}" alt="No Data" style="width: 100px; opacity: 0.5">
+                        <h5 class="mt-3 text-muted">{% trans "No assignments found for this class" %}</h5>
+                        <p class="text-muted">{% trans "Create a new homework assignment to get started." %}</p>
+                        {% if request.user.is_teacher or request.user.is_school_admin %}
+                        <a href="{% url 'homework:create' school_slug=school_slug %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> {% trans "Create Assignment" %}
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- /Assignments Table -->
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    $(document).ready(function() {
+        if($.fn.DataTable){
+            $('.custom-table').DataTable({
+                "order": [[2, "desc"]],
+                "pageLength": 25,
+                "responsive": true
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -8,20 +8,14 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Page Header -->
-    <div class="page-header">
-        <div class="row align-items-center">
-            <div class="col">
-                <h3 class="page-title">{{ class.name }} - Submissions</h3>
-            </div>
-            <div class="col-auto float-right ml-auto">
-                <a href="{% url 'homework:class_assignments' school_slug=school_slug class_id=class.id %}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to Assignments
-                </a>
-            </div>
+    <!-- Page Actions (no duplicate heading, title already in dashboard header) -->
+    <div class="d-sm-flex align-items-center justify-content-end mb-4">
+        <div>
+            <a href="{% url 'homework:class_assignments' school_slug=school_slug class_id=class.id %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Assignments
+            </a>
         </div>
     </div>
-    <!-- /Page Header -->
 
     <!-- Filters -->
     <div class="row">

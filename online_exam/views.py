@@ -9,6 +9,7 @@ from django.db.models import Q, Count, Sum, Avg
 from django.core.paginator import Paginator
 from django.utils.translation import gettext as _
 import random
+from core.utils import get_current_school
 
 from .models import OnlineExam, ExamQuestion, QuestionChoice, ExamAttempt, StudentAnswer
 from students.models import Student
@@ -26,6 +27,7 @@ class OnlineExamDashboardView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
         user = self.request.user
+        school = get_current_school(self.request)
         
         # Different dashboard content based on user role
         if user.is_student:
@@ -34,70 +36,103 @@ class OnlineExamDashboardView(LoginRequiredMixin, TemplateView):
             if student:
                 # Current exams
                 now = timezone.now()
-                context['current_exams'] = OnlineExam.objects.filter(
+                current_qs = OnlineExam.objects.filter(
                     class_ref=student.current_class,
                     is_published=True,
                     start_time__lte=now,
                     end_time__gte=now
-                ).order_by('end_time')
+                )
+                if school:
+                    current_qs = current_qs.filter(school=school)
+                context['current_exams'] = current_qs.order_by('end_time')
                 
                 # Upcoming exams
-                context['upcoming_exams'] = OnlineExam.objects.filter(
+                upcoming_qs = OnlineExam.objects.filter(
                     class_ref=student.current_class,
                     is_published=True,
                     start_time__gt=now
-                ).order_by('start_time')[:5]
+                )
+                if school:
+                    upcoming_qs = upcoming_qs.filter(school=school)
+                context['upcoming_exams'] = upcoming_qs.order_by('start_time')[:5]
                 
                 # Recent attempts
-                context['recent_attempts'] = ExamAttempt.objects.filter(
+                attempts_qs = ExamAttempt.objects.filter(
                     student=student,
                     is_completed=True
-                ).order_by('-submitted_at')[:5]
+                )
+                if school:
+                    attempts_qs = attempts_qs.filter(exam__school=school)
+                context['recent_attempts'] = attempts_qs.order_by('-submitted_at')[:5]
                 
                 # Stats
-                total_attempts = ExamAttempt.objects.filter(student=student, is_completed=True).count()
+                total_attempts = attempts_qs.count()
                 context['stats'] = {
                     'total_attempts': total_attempts,
-                    'exams_passed': ExamAttempt.objects.filter(student=student, is_completed=True, passed=True).count(),
-                    'average_score': ExamAttempt.objects.filter(student=student, is_completed=True).aggregate(avg=Avg('percentage'))['avg']
+                    'exams_passed': attempts_qs.filter(passed=True).count(),
+                    'average_score': attempts_qs.aggregate(avg=Avg('percentage'))['avg']
                 }
         
         elif user.is_teacher or user.is_school_admin:
             # Teacher dashboard
             # Recent exams created by this teacher
             if user.is_school_admin:
-                recent_exams = OnlineExam.objects.all().order_by('-created_at')[:5]
+                recent_qs = OnlineExam.objects.all()
+                if school:
+                    recent_qs = recent_qs.filter(school=school)
+                recent_exams = recent_qs.order_by('-created_at')[:5]
             else:
-                recent_exams = OnlineExam.objects.filter(created_by=user).order_by('-created_at')[:5]
+                recent_qs = OnlineExam.objects.filter(created_by=user)
+                if school:
+                    recent_qs = recent_qs.filter(school=school)
+                recent_exams = recent_qs.order_by('-created_at')[:5]
             
             context['recent_exams'] = recent_exams
             
             # Active exams
             now = timezone.now()
-            context['active_exams'] = OnlineExam.objects.filter(
+            active_qs = OnlineExam.objects.filter(
                 is_published=True,
                 start_time__lte=now,
                 end_time__gte=now
-            ).order_by('end_time')
+            )
+            if school:
+                active_qs = active_qs.filter(school=school)
+            context['active_exams'] = active_qs.order_by('end_time')
             
             # Exams requiring grading
             if user.is_school_admin:
-                grading_exams = OnlineExam.objects.filter(
+                grading_qs = OnlineExam.objects.filter(
                     attempts__status='submitted'
                 ).distinct()
             else:
-                grading_exams = OnlineExam.objects.filter(
+                grading_qs = OnlineExam.objects.filter(
                     created_by=user,
                     attempts__status='submitted'
                 ).distinct()
+            if school:
+                grading_qs = grading_qs.filter(school=school)
+            context['grading_exams'] = grading_qs
             
-            context['grading_exams'] = grading_exams
-            
-            # Stats
+            # Stats (scoped to current school)
+            exams_qs = OnlineExam.objects.all()
+            if school:
+                exams_qs = exams_qs.filter(school=school)
+            if not user.is_school_admin:
+                exams_qs = exams_qs.filter(created_by=user)
+
+            attempts_qs = ExamAttempt.objects.all()
+            if school:
+                attempts_qs = attempts_qs.filter(exam__school=school)
+            completed_attempts_qs = attempts_qs.filter(is_completed=True)
+            completed_count = completed_attempts_qs.count()
+            pass_count = completed_attempts_qs.filter(passed=True).count()
+            pass_rate = (pass_count / completed_count * 100) if completed_count else 0
+
             context['stats'] = {
-                'total_exams': OnlineExam.objects.filter(created_by=user).count() if not user.is_school_admin else OnlineExam.objects.all().count(),
-                'total_attempts': ExamAttempt.objects.count(),
-                'pass_rate': ExamAttempt.objects.filter(passed=True).count() / max(ExamAttempt.objects.filter(is_completed=True).count(), 1) * 100
+                'total_exams': exams_qs.count(),
+                'total_attempts': attempts_qs.count(),
+                'pass_rate': pass_rate,
             }
         
         return context
@@ -112,7 +147,10 @@ class OnlineExamListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         user = self.request.user
+        school = get_current_school(self.request)
         queryset = OnlineExam.objects.all()
+        if school:
+            queryset = queryset.filter(school=school)
         
         # Filter by user role
         if user.is_student:
@@ -156,10 +194,16 @@ class OnlineExamListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
+        school = get_current_school(self.request)
         
         # Filter options
-        context['subjects'] = Subject.objects.filter(is_active=True)
-        context['classes'] = Class.objects.filter(is_active=True)
+        subjects_qs = Subject.objects.filter(is_active=True)
+        classes_qs = Class.objects.filter(is_active=True)
+        if school:
+            subjects_qs = subjects_qs.filter(school=school)
+            classes_qs = classes_qs.filter(school=school)
+        context['subjects'] = subjects_qs
+        context['classes'] = classes_qs
         context['status_choices'] = OnlineExam.STATUS_CHOICES
         
         # Current filters
@@ -177,6 +221,13 @@ class OnlineExamDetailView(LoginRequiredMixin, DetailView):
     model = OnlineExam
     template_name = 'online_exam/online_exam_detail.html'
     context_object_name = 'exam'
+    
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = OnlineExam.objects.all()
+        if school:
+            qs = qs.filter(school=school)
+        return qs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -242,6 +293,7 @@ class OnlineExamCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
+        school = get_current_school(self.request)
         
         # Enhanced form field styling and widgets
         form.fields['title'].widget.attrs.update({'class': 'form-control'})
@@ -262,25 +314,25 @@ class OnlineExamCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         # Filter subjects for teachers
         user = self.request.user
         if user.is_teacher and not user.is_school_admin:
-            form.fields['subject'].queryset = Subject.objects.filter(
+            subj_qs = Subject.objects.filter(
                 subject_assignments__teacher=user,
                 is_active=True
             ).distinct()
+            if school:
+                subj_qs = subj_qs.filter(school=school)
+            form.fields['subject'].queryset = subj_qs
+        else:
+            subj_qs = Subject.objects.filter(is_active=True)
+            if school:
+                subj_qs = subj_qs.filter(school=school)
+            form.fields['subject'].queryset = subj_qs
         
         return form
     
     def form_valid(self, form):
         # Set the creator
         form.instance.created_by = self.request.user
-        
-        # Associate with school
-        school_slug = self.kwargs.get('school_slug')
-        from tenants.models import School
-        try:
-            school = School.objects.get(slug=school_slug)
-            form.instance.school = school
-        except School.DoesNotExist:
-            pass
+        form.instance.school = get_current_school(self.request)
         
         # Auto-publish if requested
         publish_now = self.request.POST.get('publish_now') == 'on'
@@ -443,11 +495,11 @@ class PreviewExamView(LoginRequiredMixin, UserPassesTestMixin, View):
         exam_id = self.kwargs.get('pk')
         
         # Get the exam with related data
-        exam = get_object_or_404(
-            OnlineExam.objects.select_related('subject', 'class_ref', 'section')
-                            .prefetch_related('questions__choices'),
-            pk=exam_id
-        )
+        school = get_current_school(request)
+        exam_qs = OnlineExam.objects.select_related('subject', 'class_ref', 'section').prefetch_related('questions__choices')
+        if school:
+            exam_qs = exam_qs.filter(school=school)
+        exam = get_object_or_404(exam_qs, pk=exam_id)
         
         # Get questions with their choices
         questions = exam.questions.all().order_by('order')
@@ -474,13 +526,21 @@ class ToggleExamStatusView(LoginRequiredMixin, UserPassesTestMixin, View):
     
     def test_func(self):
         exam_id = self.kwargs.get('pk')
-        exam = get_object_or_404(OnlineExam, pk=exam_id)
+        school = get_current_school(self.request)
+        exam_qs = OnlineExam.objects.all()
+        if school:
+            exam_qs = exam_qs.filter(school=school)
+        exam = get_object_or_404(exam_qs, pk=exam_id)
         return self.request.user == exam.created_by or self.request.user.is_school_admin
     
     def post(self, request, *args, **kwargs):
         school_slug = self.kwargs.get('school_slug')
         exam_id = self.kwargs.get('pk')
-        exam = get_object_or_404(OnlineExam, pk=exam_id)
+        school = get_current_school(request)
+        exam_qs = OnlineExam.objects.all()
+        if school:
+            exam_qs = exam_qs.filter(school=school)
+        exam = get_object_or_404(exam_qs, pk=exam_id)
         
         # Toggle the is_published status instead of is_active
         exam.is_published = not exam.is_published
@@ -502,13 +562,21 @@ class ManageQuestionsView(LoginRequiredMixin, UserPassesTestMixin, View):
     
     def test_func(self):
         exam_id = self.kwargs.get('exam_id')
-        exam = get_object_or_404(OnlineExam, pk=exam_id)
+        school = get_current_school(self.request)
+        exam_qs = OnlineExam.objects.all()
+        if school:
+            exam_qs = exam_qs.filter(school=school)
+        exam = get_object_or_404(exam_qs, pk=exam_id)
         return self.request.user == exam.created_by or self.request.user.is_school_admin
     
     def get(self, request, *args, **kwargs):
         school_slug = self.kwargs.get('school_slug')
         exam_id = self.kwargs.get('exam_id')
-        exam = get_object_or_404(OnlineExam, pk=exam_id)
+        school = get_current_school(request)
+        exam_qs = OnlineExam.objects.all()
+        if school:
+            exam_qs = exam_qs.filter(school=school)
+        exam = get_object_or_404(exam_qs, pk=exam_id)
         
         # Load questions for this exam, ordered by "order" then id
         question_list = exam.questions.all().order_by('order', 'id')
@@ -564,7 +632,11 @@ class AddQuestionView(LoginRequiredMixin, UserPassesTestMixin, View):
     def post(self, request, *args, **kwargs):
         school_slug = self.kwargs.get('school_slug')
         exam_id = self.kwargs.get('exam_id')
-        exam = get_object_or_404(OnlineExam, pk=exam_id)
+        school = get_current_school(request)
+        exam_qs = OnlineExam.objects.all()
+        if school:
+            exam_qs = exam_qs.filter(school=school)
+        exam = get_object_or_404(exam_qs, pk=exam_id)
         
         form = ExamQuestionForm(request.POST)
         choice_formset = QuestionChoiceFormSet(request.POST, request.FILES)
@@ -725,7 +797,11 @@ class UpdateQuestionOrderView(LoginRequiredMixin, UserPassesTestMixin, View):
 
     def post(self, request, *args, **kwargs):
         exam_id = self.kwargs.get('exam_id')
-        exam = get_object_or_404(OnlineExam, pk=exam_id)
+        school = get_current_school(request)
+        exam_qs = OnlineExam.objects.all()
+        if school:
+            exam_qs = exam_qs.filter(school=school)
+        exam = get_object_or_404(exam_qs, pk=exam_id)
 
         order_string = request.POST.get('order', '')
         if not order_string:

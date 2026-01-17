@@ -1,3 +1,4 @@
+{% load humanize %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -117,100 +118,146 @@
                 display: none;
             }
         }
+
+        @page { size: A4; margin: 1.5cm; }
+        :root { --brand-primary:#4DD0E1; --brand-secondary:#26C6DA; --brand-accent:#4DD0E1; --bg-soft:#E0F7FA; --text-main:#111827; --text-muted:#6b7280; --border-soft:#e5e7eb; }
+        body { margin:0; font-family:'Segoe UI', Arial, sans-serif; font-size:11px; color:var(--text-main); line-height:1.5; background:var(--bg-soft); }
+        .doc-wrapper { max-width:980px; margin:24px auto; padding:0 16px; }
+        .doc-card { background:#ffffff; border-radius:18px; box-shadow:0 18px 45px rgba(15,23,42,0.12); padding:28px 32px 32px; }
+        .action-bar { display:flex; gap:10px; justify-content:flex-end; margin:0 0 14px; }
+        .action-btn { appearance:none; border:1px solid var(--border-soft); background:#ffffff; color:var(--text-main); padding:8px 14px; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer; }
+        .action-btn-secondary { background:#111827; color:#ffffff; border-color:#111827; }
+        .header { display:flex; justify-content:space-between; align-items:flex-start; padding:18px 22px; border-radius:16px; background:linear-gradient(135deg,var(--brand-primary),var(--brand-secondary)); color:#ffffff; margin-bottom:24px; border:0; text-align:left; }
+        .logo { font-size:18px; font-weight:700; letter-spacing:0.04em; }
+        .doc-title { font-size:24px; font-weight:700; text-transform:uppercase; }
+        .doc-meta-small { font-size:10px; opacity:0.85; margin-top:2px; }
+        .doc-info { display:flex; justify-content:space-between; gap:32px; margin-bottom:24px; }
+        .info-block { width:50%; }
+        .info-block h3 { margin:0 0 8px; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); }
+        .info-block p { margin:2px 0; font-size:11px; }
+        .info-label { font-weight:600; }
+        .status-badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; }
+        .status-paid{background:#16a34a;color:#ffffff;} .status-pending{background:#f59e0b;color:#111827;} .status-cancelled{background:#dc2626;color:#ffffff;}
+        .payment-details { background:#f9fafb; padding:14px 16px; border-radius:12px; border:1px solid var(--border-soft); margin:0 0 20px; }
+        .details-table { width:100%; border-collapse:separate; border-spacing:0; }
+        .details-table td { padding:9px 0; border-bottom:1px solid var(--border-soft); }
+        .details-table tr:last-child td { border-bottom:0; }
+        .label { font-weight:600; color:var(--text-muted); width:auto; }
+        .value { width:auto; }
+        .text-right { text-align:right; }
+        .details-table tr.total-row td { background:#111827; color:#ffffff; border-bottom:0; padding:11px 12px; }
+        .details-table tr.total-row td.label { color:#ffffff; }
+        .details-table tr.total-row td:first-child { border-top-left-radius:12px; border-bottom-left-radius:12px; }
+        .details-table tr.total-row td:last-child { border-top-right-radius:12px; border-bottom-right-radius:12px; }
+        .notes { margin-top:8px; padding:14px 16px; background:#f9fafb; border-radius:12px; border-left:4px solid var(--brand-accent); font-size:11px; }
+        .notes h4 { margin:0 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); }
+        .signatures { margin-top:44px; display:flex; justify-content:space-between; gap:24px; }
+        .signature-box { flex:1; text-align:center; width:auto; min-width:0; }
+        .signature-line { border-top:1px solid var(--border-soft); margin-top:56px; padding-top:10px; color:var(--text-muted); font-size:10px; }
+        .footer { margin-top:28px; padding-top:14px; border-top:1px solid var(--border-soft); text-align:center; color:var(--text-muted); font-size:9px; }
+        @media print { body{background:#ffffff;} .doc-wrapper{margin:0;padding:0;max-width:none;} .doc-card{box-shadow:none;border-radius:0;padding:0;} .no-print{display:none;} }
     </style>
 </head>
 <body>
-    <div class="no-print" style="margin-bottom: 20px;">
-        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px;">
-            🖨️ Print Receipt
-        </button>
-        <button onclick="window.close()" style="padding: 10px 20px; font-size: 16px; margin-left: 10px;">
-            Close
-        </button>
+    <div class="no-print action-bar">
+        <button class="action-btn" onclick="window.print()">Print Receipt</button>
+        <button class="action-btn action-btn-secondary" onclick="window.close()">Close</button>
     </div>
 
-    <div class="header">
-        <h1>SALARY PAYMENT RECEIPT</h1>
-        <p style="font-size: 18px; margin: 10px 0;"><strong>{{ payment.payment_number }}</strong></p>
-        <p>
-            {% if payment.status == 'paid' %}
-            <span class="status-badge status-paid">PAID</span>
-            {% else %}
-            <span class="status-badge status-pending">PENDING</span>
+    <div class="doc-wrapper">
+        <div class="doc-card">
+            <div class="header">
+                <div>
+                    <div class="logo">{{ payment.school.name|default:"SchoolSaaS" }}</div>
+                    <div class="doc-meta-small">Payment #{{ payment.payment_number }}</div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="doc-title">Salary Receipt</div>
+                    <div style="margin-top: 6px;">
+                        {% if payment.status == 'paid' %}
+                        <span class="status-badge status-paid">PAID</span>
+                        {% elif payment.status == 'cancelled' %}
+                        <span class="status-badge status-cancelled">CANCELLED</span>
+                        {% else %}
+                        <span class="status-badge status-pending">PENDING</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="doc-info">
+                <div class="info-block">
+                    <h3>Employee Details</h3>
+                    <p><span class="info-label">Name:</span> {{ payment.staff_name }}</p>
+                    <p><span class="info-label">Type:</span> {{ payment.get_staff_type_display }}</p>
+                    <p><span class="info-label">Payment Month:</span> {{ payment.payment_month|date:"F Y" }}</p>
+                </div>
+
+                <div class="info-block">
+                    <h3>Payment Information</h3>
+                    <p><span class="info-label">Payment Date:</span> {{ payment.payment_date|date:"M d, Y" }}</p>
+                    <p><span class="info-label">Payment Method:</span> {{ payment.get_payment_method_display }}</p>
+                    {% if payment.reference_number %}
+                    <p><span class="info-label">Reference:</span> {{ payment.reference_number }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="payment-details">
+                <table class="details-table">
+                    <tr>
+                        <td class="label">Basic Salary</td>
+                        <td class="value text-right">Ksh{{ payment.basic_salary|floatformat:2|intcomma }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Allowances</td>
+                        <td class="value text-right">+Ksh{{ payment.allowances|floatformat:2|intcomma }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Gross Salary</td>
+                        <td class="value text-right"><strong>Ksh{{ payment.basic_salary|add:payment.allowances|floatformat:2|intcomma }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Deductions</td>
+                        <td class="value text-right">-Ksh{{ payment.deductions|floatformat:2|intcomma }}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td class="label">NET SALARY</td>
+                        <td class="value text-right">Ksh{{ payment.net_salary|floatformat:2|intcomma }}</td>
+                    </tr>
+                </table>
+            </div>
+
+            {% if payment.notes %}
+            <div class="notes">
+                <h4>Notes</h4>
+                <p>{{ payment.notes }}</p>
+            </div>
             {% endif %}
-        </p>
-    </div>
 
-    <div class="receipt-info">
-        <div class="info-box">
-            <h3>Employee Details</h3>
-            <p><strong>Name:</strong> {{ payment.staff_name }}</p>
-            <p><strong>Type:</strong> {{ payment.get_staff_type_display }}</p>
-            <p><strong>Payment Month:</strong> {{ payment.payment_month|date:"F Y" }}</p>
-        </div>
-        
-        <div class="info-box">
-            <h3>Payment Information</h3>
-            <p><strong>Payment Date:</strong> {{ payment.payment_date }}</p>
-            <p><strong>Payment Method:</strong> {{ payment.get_payment_method_display }}</p>
-            {% if payment.reference_number %}
-            <p><strong>Reference:</strong> {{ payment.reference_number }}</p>
-            {% endif %}
-        </div>
-    </div>
+            <div class="signatures">
+                <div class="signature-box">
+                    <div class="signature-line">
+                        Employee Signature
+                    </div>
+                </div>
 
-    <div class="payment-details">
-        <table>
-            <tr>
-                <td class="label">Basic Salary</td>
-                <td class="value">Ksh{{ payment.basic_salary|floatformat:2 }}</td>
-            </tr>
-            <tr>
-                <td class="label">Allowances</td>
-                <td class="value">+Ksh{{ payment.allowances|floatformat:2 }}</td>
-            </tr>
-            <tr>
-                <td class="label">Gross Salary</td>
-                <td class="value"><strong>Ksh{{ payment.basic_salary|add:payment.allowances|floatformat:2 }}</strong></td>
-            </tr>
-            <tr>
-                <td class="label">Deductions</td>
-                <td class="value">-Ksh{{ payment.deductions|floatformat:2 }}</td>
-            </tr>
-            <tr class="total-row">
-                <td class="label">NET SALARY</td>
-                <td class="value">Ksh{{ payment.net_salary|floatformat:2 }}</td>
-            </tr>
-        </table>
-    </div>
+                <div class="signature-box">
+                    <div class="signature-line">
+                        Authorized By<br>
+                        {% if payment.created_by %}
+                        {{ payment.created_by.get_full_name }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
 
-    {% if payment.notes %}
-    <div class="notes">
-        <h3 style="margin-top: 0;">Notes:</h3>
-        <p>{{ payment.notes }}</p>
-    </div>
-    {% endif %}
-
-    <div class="signature">
-        <div class="signature-box">
-            <div class="signature-line">
-                Employee Signature
+            <div class="footer">
+                <p>This is a computer-generated receipt. Please retain this for your records.</p>
+                <p>Website: https://clasyo.timestentechnologies.co.ke/</p>
+                <p>Printed on: {% now "F d, Y H:i" %}</p>
             </div>
         </div>
-        
-        <div class="signature-box">
-            <div class="signature-line">
-                Authorized By<br>
-                {% if payment.created_by %}
-                {{ payment.created_by.get_full_name }}
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <div class="footer">
-        <p>This is a computer-generated receipt. Please retain this for your records.</p>
-        <p>Printed on: {% now "F d, Y H:i" %}</p>
     </div>
 </body>
 </html>

@@ -9,6 +9,7 @@ from django.db.models import Q, Count, Sum, Avg
 from django.utils.translation import gettext as _
 from django.core.paginator import Paginator
 import json
+from core.utils import get_current_school
 
 from .models import HomeworkAssignment, HomeworkSubmission, HomeworkComment, HomeworkResource
 from students.models import Student
@@ -60,6 +61,7 @@ class HomeworkDashboardView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         school_slug = self.kwargs.get('school_slug', '')
+        school = get_current_school(self.request)
         today = timezone.now().date()
         
         # Different dashboard content based on user role
@@ -100,37 +102,52 @@ class HomeworkDashboardView(LoginRequiredMixin, TemplateView):
         elif user.is_teacher:
             # Teacher dashboard
             # Recent assignments created by this teacher
-            context['recent_assignments'] = HomeworkAssignment.objects.filter(
-                created_by=user
-            ).order_by('-created_at')[:5]
+            recent_qs = HomeworkAssignment.objects.filter(created_by=user)
+            if school:
+                recent_qs = recent_qs.filter(school=school)
+            context['recent_assignments'] = recent_qs.order_by('-created_at')[:5]
             
             # Assignments due soon
-            context['due_soon_assignments'] = HomeworkAssignment.objects.filter(
+            due_soon_qs = HomeworkAssignment.objects.filter(
                 created_by=user,
                 due_date__gte=today,
                 due_date__lte=today + timezone.timedelta(days=3),
                 status='published'
-            ).order_by('due_date')
+            )
+            if school:
+                due_soon_qs = due_soon_qs.filter(school=school)
+            context['due_soon_assignments'] = due_soon_qs.order_by('due_date')
             
             # Submissions to grade
-            context['submissions_to_grade'] = HomeworkSubmission.objects.filter(
+            submissions_qs = HomeworkSubmission.objects.filter(
                 homework__created_by=user,
                 status__in=['submitted', 'late']
-            ).order_by('submitted_at')
+            )
+            if school:
+                submissions_qs = submissions_qs.filter(homework__school=school)
+            context['submissions_to_grade'] = submissions_qs.order_by('submitted_at')
             
             # Recently graded
-            context['recently_graded'] = HomeworkSubmission.objects.filter(
+            recent_graded_qs = HomeworkSubmission.objects.filter(
                 homework__created_by=user,
                 status='graded',
                 graded_by=user
-            ).order_by('-graded_at')[:5]
+            )
+            if school:
+                recent_graded_qs = recent_graded_qs.filter(homework__school=school)
+            context['recently_graded'] = recent_graded_qs.order_by('-graded_at')[:5]
         
         else:
             # Admin dashboard - overview of system
-            context['total_assignments'] = HomeworkAssignment.objects.count()
-            context['active_assignments'] = HomeworkAssignment.objects.filter(status='published').count()
-            context['total_submissions'] = HomeworkSubmission.objects.filter(status__in=['submitted', 'late', 'graded', 'returned']).count()
-            context['recent_assignments'] = HomeworkAssignment.objects.order_by('-created_at')[:10]
+            ha_qs = HomeworkAssignment.objects.all()
+            hs_qs = HomeworkSubmission.objects.filter(status__in=['submitted', 'late', 'graded', 'returned'])
+            if school:
+                ha_qs = ha_qs.filter(school=school)
+                hs_qs = hs_qs.filter(homework__school=school)
+            context['total_assignments'] = ha_qs.count()
+            context['active_assignments'] = ha_qs.filter(status='published').count()
+            context['total_submissions'] = hs_qs.count()
+            context['recent_assignments'] = ha_qs.order_by('-created_at')[:10]
         
         context['school_slug'] = school_slug
         return context
@@ -145,6 +162,9 @@ class HomeworkAssignmentListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         queryset = HomeworkAssignment.objects.all()
+        school = get_current_school(self.request)
+        if school:
+            queryset = queryset.filter(school=school)
         user = self.request.user
         
         # Filter by role
@@ -189,8 +209,14 @@ class HomeworkAssignmentListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
-        context['classes'] = Class.objects.filter(is_active=True)
-        context['subjects'] = Subject.objects.filter(is_active=True)
+        school = get_current_school(self.request)
+        classes_qs = Class.objects.filter(is_active=True)
+        subjects_qs = Subject.objects.filter(is_active=True)
+        if school:
+            classes_qs = classes_qs.filter(school=school)
+            subjects_qs = subjects_qs.filter(school=school)
+        context['classes'] = classes_qs
+        context['subjects'] = subjects_qs
         context['status_choices'] = HomeworkAssignment.STATUS_CHOICES
         
         # Get any active filters
@@ -214,33 +240,70 @@ class HomeworkAssignmentCreateView(LoginRequiredMixin, CreateView):
     
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
+        school = get_current_school(self.request)
         
         # Enhanced form field styling and widgets
         form.fields['title'].widget.attrs.update({'class': 'form-control', 'placeholder': _('Assignment Title')})
         form.fields['description'].widget = forms.Textarea(attrs={'class': 'form-control', 'rows': 3})
         form.fields['instructions'].widget = forms.Textarea(attrs={'class': 'form-control rich-editor', 'rows': 5})
         
-        # Date and time fields
-        form.fields['assigned_date'].widget = forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
-        form.fields['due_date'].widget = forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'})
-        form.fields['due_date'].input_formats = ['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M']
+        # Date and time fields (use modern JS datetime picker instead of native browser controls)
+        form.fields['assigned_date'].widget = forms.DateInput(
+            format='%Y-%m-%d',
+            attrs={
+                'class': 'form-control datetimepicker',
+                'data-enable-time': 'false',
+                'data-date-format': 'Y-m-d',
+                'placeholder': _('Select assigned date'),
+            },
+        )
+        form.fields['due_date'].widget = forms.DateTimeInput(
+            format='%Y-%m-%d %H:%M',
+            attrs={
+                'class': 'form-control datetimepicker',
+                'data-enable-time': 'true',
+                'data-date-format': 'Y-m-d H:i',
+                'placeholder': _('Select due date & time'),
+            },
+        )
+        form.fields['due_date'].input_formats = ['%Y-%m-%d %H:%M']
         
         # Academic references
         form.fields['class_ref'].widget.attrs.update({'class': 'form-select select2'})
         form.fields['section'].widget.attrs.update({'class': 'form-select select2'})
         form.fields['subject'].widget.attrs.update({'class': 'form-select select2'})
         form.fields['academic_year'].widget.attrs.update({'class': 'form-select'})
+
+        form.fields['submission_type'].widget.attrs.update({'class': 'form-select'})
+        form.fields['max_attempts'].widget.attrs.update({'class': 'form-control'})
+        form.fields['late_penalty_percentage'].widget.attrs.update({'class': 'form-control'})
+        form.fields['is_graded'].widget.attrs.update({'class': 'form-check-input'})
+        form.fields['allow_late_submissions'].widget.attrs.update({'class': 'form-check-input'})
+        form.fields['points'].widget.attrs.update({'class': 'form-control'})
+        form.fields['grading_type'].widget.attrs.update({'class': 'form-select'})
+        form.fields['attachment'].widget = forms.FileInput(attrs={'class': 'form-control'})
         
         # Filter academic years to only active ones
-        form.fields['academic_year'].queryset = AcademicYear.objects.filter(is_active=True)
+        ay_qs = AcademicYear.objects.filter(is_active=True)
+        if school:
+            ay_qs = ay_qs.filter(school=school)
+        form.fields['academic_year'].queryset = ay_qs
         
         # Filter subjects for teachers
         user = self.request.user
         if user.is_teacher and not user.is_school_admin:
-            form.fields['subject'].queryset = Subject.objects.filter(
+            subj_qs = Subject.objects.filter(
                 subject_assignments__teacher=user,
                 is_active=True
             ).distinct()
+            if school:
+                subj_qs = subj_qs.filter(school=school)
+            form.fields['subject'].queryset = subj_qs
+        else:
+            subj_qs = Subject.objects.filter(is_active=True)
+            if school:
+                subj_qs = subj_qs.filter(school=school)
+            form.fields['subject'].queryset = subj_qs
         
         # Handle section choices dynamically (to be enhanced with AJAX)
         if 'class_ref' in self.request.POST:
@@ -254,15 +317,7 @@ class HomeworkAssignmentCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         # Set the creator
         form.instance.created_by = self.request.user
-        
-        # Associate with school
-        school_slug = self.kwargs.get('school_slug')
-        from tenants.models import School
-        try:
-            school = School.objects.get(slug=school_slug)
-            form.instance.school = school
-        except School.DoesNotExist:
-            pass
+        form.instance.school = get_current_school(self.request)
         
         # Auto-publish if requested
         publish_now = self.request.POST.get('publish_now') == 'on'
@@ -366,17 +421,42 @@ class HomeworkAssignmentUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         form.fields['description'].widget = forms.Textarea(attrs={'class': 'form-control', 'rows': 3})
         form.fields['instructions'].widget = forms.Textarea(attrs={'class': 'form-control rich-editor', 'rows': 5})
         
-        # Date and time fields
-        form.fields['assigned_date'].widget = forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
-        form.fields['due_date'].widget = forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'})
-        form.fields['due_date'].input_formats = ['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M']
+        # Date and time fields (use modern JS datetime picker instead of native browser controls)
+        form.fields['assigned_date'].widget = forms.DateInput(
+            format='%Y-%m-%d',
+            attrs={
+                'class': 'form-control datetimepicker',
+                'data-enable-time': 'false',
+                'data-date-format': 'Y-m-d',
+                'placeholder': _('Select assigned date'),
+            },
+        )
+        form.fields['due_date'].widget = forms.DateTimeInput(
+            format='%Y-%m-%d %H:%M',
+            attrs={
+                'class': 'form-control datetimepicker',
+                'data-enable-time': 'true',
+                'data-date-format': 'Y-m-d H:i',
+                'placeholder': _('Select due date & time'),
+            },
+        )
+        form.fields['due_date'].input_formats = ['%Y-%m-%d %H:%M']
         
         # Academic references
         form.fields['class_ref'].widget.attrs.update({'class': 'form-select select2'})
         form.fields['section'].widget.attrs.update({'class': 'form-select select2'})
         form.fields['subject'].widget.attrs.update({'class': 'form-select select2'})
         form.fields['academic_year'].widget.attrs.update({'class': 'form-select'})
-        
+
+        form.fields['submission_type'].widget.attrs.update({'class': 'form-select'})
+        form.fields['max_attempts'].widget.attrs.update({'class': 'form-control'})
+        form.fields['late_penalty_percentage'].widget.attrs.update({'class': 'form-control'})
+        form.fields['is_graded'].widget.attrs.update({'class': 'form-check-input'})
+        form.fields['allow_late_submissions'].widget.attrs.update({'class': 'form-check-input'})
+        form.fields['points'].widget.attrs.update({'class': 'form-control'})
+        form.fields['grading_type'].widget.attrs.update({'class': 'form-select'})
+        form.fields['attachment'].widget = forms.FileInput(attrs={'class': 'form-control'})
+
         # Filter academic years to only active ones
         form.fields['academic_year'].queryset = AcademicYear.objects.filter(is_active=True)
         
@@ -605,7 +685,7 @@ class HomeworkSubmissionGradeView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
     
     def get_success_url(self):
-        return reverse('homework:submission_detail', kwargs={
+        return reverse('homework:view_submission', kwargs={
             'school_slug': self.kwargs.get('school_slug', ''),
             'pk': self.object.id
         })
@@ -973,7 +1053,7 @@ class AddCommentView(LoginRequiredMixin, CreateView):
         return redirect(self.get_success_url())
     
     def get_success_url(self):
-        return reverse('homework:submission_detail', kwargs={
+        return reverse('homework:view_submission', kwargs={
             'school_slug': self.kwargs.get('school_slug', ''),
             'pk': self.submission.id
         })

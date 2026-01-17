@@ -17,7 +17,7 @@ class NotificationService:
     @staticmethod
     def get_superadmins():
         """Get all superadmin users"""
-        return User.objects.filter(role='super_admin', is_active=True)
+        return User.objects.filter(role='superadmin', is_active=True)
     
     @staticmethod
     def create_notification(user, title, message, notification_type='info', link=None):

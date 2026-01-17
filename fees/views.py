@@ -8,6 +8,7 @@ from students.models import Student
 from accounts.models import User
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from core.utils import get_current_school
 
 # Check if models exist
 try:
@@ -28,14 +29,26 @@ class FeeStructureView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         if MODELS_EXIST:
-            return FeeStructure.objects.all()
+            school_slug = self.kwargs.get('school_slug', '')
+            from tenants.models import School
+            school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+            qs = FeeStructure.objects.all()
+            if school:
+                qs = qs.filter(class_name__school=school)
+            return qs
         return []
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
         from academics.models import Class
-        context['classes'] = Class.objects.filter(is_active=True)
+        school_slug = self.kwargs.get('school_slug', '')
+        from tenants.models import School
+        school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+        if school:
+            context['classes'] = Class.objects.filter(is_active=True, school=school)
+        else:
+            context['classes'] = Class.objects.filter(is_active=True)
         return context
     
     def post(self, request, *args, **kwargs):
@@ -88,11 +101,15 @@ def attach_student_balances(payments):
         # Get the total fee amount for this fee type
         try:
             student = Student.objects.get(id=student_id)
-            fee_structure = FeeStructure.objects.get(
+            fee_structure_qs = FeeStructure.objects.filter(
                 class_name_id=student.current_class_id,
                 fee_type=fee_type,
                 is_active=True
             )
+            # Extra safety: if class has a school, ensure fee structure matches that school via class
+            if getattr(student, 'current_class', None) and getattr(student.current_class, 'school_id', None):
+                fee_structure_qs = fee_structure_qs.filter(class_name__school_id=student.current_class.school_id)
+            fee_structure = fee_structure_qs.get()
             total_fee_amount = fee_structure.amount
         except:
             total_fee_amount = 0
@@ -108,7 +125,7 @@ def attach_student_balances(payments):
     return payments
 
 
-def calculate_fee_aggregates(class_id=None, balance_status=None):
+def calculate_fee_aggregates(class_id=None, balance_status=None, school=None):
     """Calculate total expected, collected, and remaining fees for the school.
 
     Expected:
@@ -127,6 +144,8 @@ def calculate_fee_aggregates(class_id=None, balance_status=None):
 
     # Active students with a class assigned
     students_qs = Student.objects.filter(is_active=True, current_class__isnull=False)
+    if school:
+        students_qs = students_qs.filter(current_class__school=school)
     if class_id:
         students_qs = students_qs.filter(current_class_id=class_id)
 
@@ -157,7 +176,10 @@ def calculate_fee_aggregates(class_id=None, balance_status=None):
     total_collected = FeeCollection.objects.filter(
         student__is_active=True,
         student__current_class__isnull=False
-    ).aggregate(total=models.Sum('paid_amount'))['total'] or 0
+    )
+    if school:
+        total_collected = total_collected.filter(student__current_class__school=school)
+    total_collected = total_collected.aggregate(total=models.Sum('paid_amount'))['total'] or 0
 
     total_remaining = max(total_expected - total_collected, 0)
 
@@ -174,6 +196,17 @@ class CollectFeesView(LoginRequiredMixin, ListView):
             return []
 
         queryset = FeeCollection.objects.select_related('student__current_class', 'fee_structure').order_by('-payment_date')
+
+        # Scope to current school
+        school = get_current_school(self.request)
+        if school:
+            queryset = queryset.filter(student__current_class__school=school)
+
+        school_slug = self.kwargs.get('school_slug', '')
+        from tenants.models import School
+        school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+        if school:
+            queryset = queryset.filter(student__current_class__school=school)
 
         # Optional filter by class
         class_id = self.request.GET.get('class_id')
@@ -195,9 +228,20 @@ class CollectFeesView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
-        context['students'] = Student.objects.filter(is_active=True)
+        school_slug = self.kwargs.get('school_slug', '')
+        from tenants.models import School
+        school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+        if school:
+            context['students'] = Student.objects.filter(is_active=True).filter(
+                models.Q(current_class__school=school) | models.Q(user__school=school)
+            ).distinct()
+        else:
+            context['students'] = Student.objects.filter(is_active=True)
         if MODELS_EXIST:
-            context['fee_structures'] = FeeStructure.objects.filter(is_active=True)
+            if school:
+                context['fee_structures'] = FeeStructure.objects.filter(is_active=True, class_name__school=school)
+            else:
+                context['fee_structures'] = FeeStructure.objects.filter(is_active=True)
         else:
             context['fee_structures'] = []
         context['fee_collectors'] = User.objects.filter(
@@ -206,7 +250,10 @@ class CollectFeesView(LoginRequiredMixin, ListView):
         ).order_by('first_name', 'last_name')
         try:
             from academics.models import Class
-            context['classes'] = Class.objects.filter(is_active=True)
+            if school:
+                context['classes'] = Class.objects.filter(is_active=True, school=school)
+            else:
+                context['classes'] = Class.objects.filter(is_active=True)
         except Exception:
             context['classes'] = []
 
@@ -216,8 +263,8 @@ class CollectFeesView(LoginRequiredMixin, ListView):
         context['selected_class_id'] = selected_class_id
         context['selected_balance_status'] = selected_balance_status
 
-        # Global fee aggregates for summary cards (all students, all grades)
-        total_expected, total_collected, total_remaining = calculate_fee_aggregates()
+        # Global fee aggregates for summary cards (scoped to current school)
+        total_expected, total_collected, total_remaining = calculate_fee_aggregates(school=school)
         context['total_expected'] = total_expected
         context['total_collected'] = total_collected
         context['total_remaining'] = total_remaining
@@ -241,6 +288,11 @@ class CollectFeesView(LoginRequiredMixin, ListView):
             # Get all active students with their fee structures
             students_data = []
             active_students = Student.objects.filter(is_active=True, current_class__isnull=False)
+            school_slug = self.kwargs.get('school_slug', '')
+            from tenants.models import School
+            school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+            if school:
+                active_students = active_students.filter(current_class__school=school)
             
             for student in active_students:
                 # Get all fee structures for this student's class
@@ -325,6 +377,11 @@ class FeeTransactionView(LoginRequiredMixin, ListView):
 
         queryset = FeeCollection.objects.select_related('student__current_class', 'fee_structure').order_by('-payment_date')
 
+        # Scope to current school
+        school = get_current_school(self.request)
+        if school:
+            queryset = queryset.filter(student__current_class__school=school)
+
         # Optional filter by class
         class_id = self.request.GET.get('class_id')
         if class_id:
@@ -345,10 +402,15 @@ class FeeTransactionView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
+        school = get_current_school(self.request)
+        context['school'] = school
         # Provide class list and preserve selected filters for the template
         try:
             from academics.models import Class
-            context['classes'] = Class.objects.filter(is_active=True)
+            if school:
+                context['classes'] = Class.objects.filter(is_active=True, school=school)
+            else:
+                context['classes'] = Class.objects.filter(is_active=True)
         except Exception:
             context['classes'] = []
 
@@ -362,7 +424,8 @@ class FeeTransactionView(LoginRequiredMixin, ListView):
         balance_status_for_calc = selected_balance_status or None
         total_expected, total_collected, total_remaining = calculate_fee_aggregates(
             class_id=class_id_for_calc,
-            balance_status=balance_status_for_calc
+            balance_status=balance_status_for_calc,
+            school=get_current_school(self.request)
         )
         context['total_expected'] = total_expected
         context['total_collected'] = total_collected

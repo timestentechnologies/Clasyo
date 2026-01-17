@@ -156,6 +156,7 @@ class ClassRoom(models.Model):
         ('other', 'Other'),
     ]
     
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='classrooms', null=True, blank=True)
     name = models.CharField(_("Room Name"), max_length=100)
     room_number = models.CharField(_("Room Number"), max_length=50, unique=True)
     room_type = models.CharField(_("Room Type"), max_length=20, choices=ROOM_TYPE_CHOICES)
@@ -185,6 +186,7 @@ class ClassRoom(models.Model):
 
 class ClassTime(models.Model):
     """Class Time Periods"""
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='class_times', null=True, blank=True)
     name = models.CharField(_("Period Name"), max_length=100)
     start_time = models.TimeField(_("Start Time"))
     end_time = models.TimeField(_("End Time"))
@@ -232,6 +234,8 @@ class ClassRoutine(models.Model):
     # Academic Year
     academic_year = models.ForeignKey('core.AcademicYear', on_delete=models.CASCADE,
                                      related_name='class_routines')
+    
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='class_routines', null=True, blank=True)
     
     notes = models.TextField(_("Notes"), blank=True)
     is_active = models.BooleanField(_("Is Active"), default=True)

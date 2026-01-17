@@ -6,6 +6,7 @@ from django.db import models
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from students.models import Student
+from core.utils import get_current_school
 
 # Check if models exist
 try:
@@ -28,11 +29,15 @@ class NoticeListView(LoginRequiredMixin, ListView):
         if not MODELS_EXIST:
             return []
         user = self.request.user
+        school = get_current_school(self.request)
+        qs = Notice.objects.all()
+        if school:
+            qs = qs.filter(created_by__school=school)
         # Filter notices based on user role
         if user.role == 'superadmin' or user.role == 'admin':
-            return Notice.objects.all().order_by('-created_at')
+            return qs.order_by('-created_at')
         else:
-            return Notice.objects.filter(
+            return qs.filter(
                 models.Q(target_audience='all') | 
                 models.Q(target_audience=user.role)
             ).order_by('-created_at')
@@ -69,7 +74,11 @@ class NoticeDetailView(LoginRequiredMixin, View):
         if not MODELS_EXIST:
             return JsonResponse({'success': False, 'error': 'Notice model not available'})
         try:
-            notice = Notice.objects.get(pk=kwargs.get('pk'))
+            school = get_current_school(request)
+            notice_qs = Notice.objects.all()
+            if school:
+                notice_qs = notice_qs.filter(created_by__school=school)
+            notice = notice_qs.get(pk=kwargs.get('pk'))
             return JsonResponse({
                 'success': True,
                 'id': notice.id,
@@ -92,7 +101,11 @@ class NoticeUpdateView(LoginRequiredMixin, View):
         if getattr(request.user, 'role', None) not in ('superadmin', 'admin'):
             return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
         try:
-            notice = Notice.objects.get(pk=kwargs.get('pk'))
+            school = get_current_school(request)
+            notice_qs = Notice.objects.all()
+            if school:
+                notice_qs = notice_qs.filter(created_by__school=school)
+            notice = notice_qs.get(pk=kwargs.get('pk'))
             title = request.POST.get('title')
             content = request.POST.get('content')
             target_audience = request.POST.get('target_audience')
@@ -121,7 +134,11 @@ class NoticeDeleteView(LoginRequiredMixin, View):
         if getattr(request.user, 'role', None) not in ('superadmin', 'admin'):
             return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
         try:
-            notice = Notice.objects.get(pk=kwargs.get('pk'))
+            school = get_current_school(request)
+            notice_qs = Notice.objects.all()
+            if school:
+                notice_qs = notice_qs.filter(created_by__school=school)
+            notice = notice_qs.get(pk=kwargs.get('pk'))
             notice.delete()
             return JsonResponse({'success': True, 'message': 'Notice deleted successfully'})
         except Notice.DoesNotExist:
@@ -138,10 +155,13 @@ class MessageListView(LoginRequiredMixin, ListView):
         if not MODELS_EXIST:
             return []
         user = self.request.user
-        # Return messages sent to or from the user
-        return Message.objects.filter(
-            models.Q(sender=user) | models.Q(recipient=user)
-        ).order_by('-created_at')
+        school = get_current_school(self.request)
+        qs = Message.objects.filter(models.Q(sender=user) | models.Q(recipient=user))
+        if school:
+            qs = qs.filter(models.Q(sender__school=school) | models.Q(recipient__school=school))
+        # Show only root messages (exclude replies in main list)
+        qs = qs.filter(parent_message__isnull=True)
+        return qs.order_by('-created_at')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -168,12 +188,33 @@ class MessageDetailView(LoginRequiredMixin, DetailView):
         if not MODELS_EXIST:
             return JsonResponse({'success': False, 'error': 'Models not available'})
         try:
-            message = Message.objects.get(pk=kwargs['pk'])
+            school = get_current_school(request)
+            message_qs = Message.objects.all()
+            if school:
+                message_qs = message_qs.filter(models.Q(sender__school=school) | models.Q(recipient__school=school))
+            message = message_qs.get(pk=kwargs['pk'])
+            # Build thread: original + replies (ascending by time)
+            replies = []
+            for r in message.replies.all().order_by('created_at'):
+                replies.append({
+                    'id': r.id,
+                    'sender': r.sender.get_full_name() or r.sender.email,
+                    'sender_id': r.sender_id,
+                    'message': r.message,
+                    'created_at': r.created_at.isoformat(),
+                    'created_at_display': r.created_at.strftime('%b %d, %Y %I:%M %p')
+                })
             return JsonResponse({
-                'sender': message.sender.get_full_name(),
+                'success': True,
+                'id': message.id,
+                'sender': message.sender.get_full_name() or message.sender.email,
+                'sender_id': message.sender_id,
+                'recipient': message.recipient.get_full_name() or message.recipient.email,
                 'subject': message.subject,
                 'message': message.message,
-                'created_at': message.created_at.strftime('%B %d, %Y %I:%M %p')
+                'created_at': message.created_at.isoformat(),
+                'created_at_display': message.created_at.strftime('%b %d, %Y %I:%M %p'),
+                'replies': replies,
             })
         except Message.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Message not found'})
@@ -227,6 +268,7 @@ class RecipientListView(LoginRequiredMixin, View):
     def get(self, request, recipient_type, *args, **kwargs):
         try:
             from accounts.models import User
+            school = get_current_school(request)
             
             if recipient_type == 'student':
                 users = User.objects.filter(role='student')
@@ -238,6 +280,9 @@ class RecipientListView(LoginRequiredMixin, View):
                 users = User.objects.filter(role='staff')
             else:
                 return JsonResponse({'success': False, 'error': 'Invalid recipient type'})
+            
+            if school:
+                users = users.filter(school=school)
             
             recipients = [{
                 'id': u.id,
@@ -257,7 +302,11 @@ class MessageDeleteView(LoginRequiredMixin, DeleteView):
         if not MODELS_EXIST:
             return JsonResponse({'success': False, 'error': 'Models not available'})
         try:
-            message = Message.objects.get(pk=kwargs['pk'])
+            school = get_current_school(request)
+            message_qs = Message.objects.all()
+            if school:
+                message_qs = message_qs.filter(models.Q(sender__school=school) | models.Q(recipient__school=school))
+            message = message_qs.get(pk=kwargs['pk'])
             message.delete()
             return JsonResponse({'success': True})
         except Message.DoesNotExist:

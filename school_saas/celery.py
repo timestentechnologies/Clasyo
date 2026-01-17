@@ -20,6 +20,10 @@ app.conf.beat_schedule = {
         'task': 'subscriptions.tasks.check_subscription_expiry',
         'schedule': crontab(hour=0, minute=0),  # Run daily at midnight
     },
+    'send-invoice-reminders': {
+        'task': 'subscriptions.tasks.send_invoice_reminders',
+        'schedule': crontab(hour=8, minute=0),  # Daily at 8 AM
+    },
     'send-fee-reminders': {
         'task': 'fees.tasks.send_fee_reminders',
         'schedule': crontab(hour=9, minute=0, day_of_month=1),  # First day of month at 9 AM

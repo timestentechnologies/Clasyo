@@ -1,0 +1,93 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block title %}Community Forum{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h1 class="page-title">Community Forum</h1>
+    <p class="page-subtitle">Discuss Clasyo, ask questions, share tips. Public threads and replies.</p>
+  </div>
+</div>
+
+<div class="container py-5">
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card shadow-sm mb-4">
+        <div class="card-body">
+          <form class="row g-2" method="get">
+            <div class="col-md-9">
+              <input type="text" class="form-control" name="q" placeholder="Search threads..." value="{{ q }}">
+            </div>
+            <div class="col-md-3 d-grid">
+              <button class="btn btn-primary" type="submit"><i class="fas fa-search me-2"></i>Search</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">Recent Threads</h5>
+        </div>
+        <div class="list-group list-group-flush">
+          {% for t in threads %}
+          <a href="{% url 'frontend:forum_thread' message_id=t.id %}" class="list-group-item list-group-item-action">
+            <div class="d-flex w-100 justify-content-between">
+              <h6 class="mb-1">{{ t.title }}</h6>
+              <small class="text-muted">{{ t.last_activity|timesince }} ago</small>
+            </div>
+            <p class="mb-1 small text-muted">{{ t.posts_count }} posts • {{ t.views_count }} views</p>
+          </a>
+          {% empty %}
+          <div class="p-4 text-center text-muted">
+            <i class="fas fa-comments fa-2x mb-3"></i>
+            <div>No threads yet. Be the first to start a discussion.</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">Start a New Thread</h5>
+        </div>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label">Title</label>
+              <input type="text" class="form-control" name="title" required>
+            </div>
+            {% if not request.user.is_authenticated %}
+            <div class="mb-3">
+              <label class="form-label">Your Name</label>
+              <input type="text" class="form-control" name="name" placeholder="Optional but recommended">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Your Email</label>
+              <input type="email" class="form-control" name="email" placeholder="Optional">
+            </div>
+            {% endif %}
+            <div class="mb-3">
+              <label class="form-label">Message</label>
+              <textarea class="form-control" name="content" rows="5" required></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Attachment</label>
+              <input type="file" class="form-control" name="attachment">
+              <div class="form-text">Max 10MB. Supported: any file type permitted by server.</div>
+            </div>
+            <div class="d-grid">
+              <button class="btn btn-primary" type="submit"><i class="fas fa-paper-plane me-2"></i>Post Thread</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

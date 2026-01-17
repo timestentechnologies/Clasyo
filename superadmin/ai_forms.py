@@ -12,6 +12,7 @@ class GlobalAIConfigurationForm(forms.ModelForm):
             'openai_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
             'azure_openai_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
             'anthropic_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
+            'google_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
             'local_model_path': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
@@ -26,5 +27,6 @@ class SchoolAIConfigurationForm(forms.ModelForm):
             'openai_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
             'azure_openai_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
             'anthropic_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
+            'google_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
             'local_model_path': forms.TextInput(attrs={'class': 'form-control'}),
         }

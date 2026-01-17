@@ -88,7 +88,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="{{ form.start_time.id_for_label }}">Start Date & Time <span class="text-danger">*</span></label>
-                                    {{ form.start_time|add_class:"form-control datetimepicker" }}
+                                    {{ form.start_time|add_class:"form-control" }}
                                     {% if form.start_time.errors %}
                                     <div class="text-danger">{{ form.start_time.errors }}</div>
                                     {% endif %}
@@ -97,7 +97,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="{{ form.end_time.id_for_label }}">End Date & Time <span class="text-danger">*</span></label>
-                                    {{ form.end_time|add_class:"form-control datetimepicker" }}
+                                    {{ form.end_time|add_class:"form-control" }}
                                     {% if form.end_time.errors %}
                                     <div class="text-danger">{{ form.end_time.errors }}</div>
                                     {% endif %}
@@ -829,12 +829,28 @@
     .theme-dark .flatpickr-calendar .flatpickr-time .flatpickr-am-pm:hover {
         background: #374151;
     }
+
+    /* Final override: hide any Flatpickr arrow elements that may render as large symbols */
+    .flatpickr-calendar .arrowUp,
+    .flatpickr-calendar .arrowDown,
+    .flatpickr-calendar svg {
+        display: none !important;
+        border: 0 !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+
+    /* Extra safety: remove any pseudo-element arrows inside the Flatpickr calendar */
+    .flatpickr-calendar *::before,
+    .flatpickr-calendar *::after {
+        content: none !important;
+        border: 0 !important;
+    }
 </style>
 {% endblock %}
 
 {% block custom_js %}
 <script src="https://cdn.ckeditor.com/4.25.1/standard/ckeditor.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
     $(document).ready(function() {
         // Initialize rich text editors
@@ -845,41 +861,11 @@
                 });
             });
         }
-        
-        // Initialize datetime pickers
-        if (typeof flatpickr !== 'undefined') {
-            $(".datetimepicker").flatpickr({
-                enableTime: true,
-                dateFormat: "Y-m-d H:i",
-            });
-        }
-        
+
         // Initialize Select2
-        if($.fn.select2) {
+        if ($.fn.select2) {
             $('.select2').select2();
         }
-        
-        // Validate passing marks against total marks
-        $('#id_passing_marks').on('change', function() {
-            var passingMarks = parseFloat($(this).val());
-            var totalMarks = parseFloat($('#id_total_marks').val());
-            
-            if(passingMarks > totalMarks) {
-                alert('Passing marks cannot be greater than total marks');
-                $(this).val(totalMarks);
-            }
-        });
-        
-        // Validate end date against start date
-        $('#id_end_date').on('change', function() {
-            var startDate = new Date($('#id_start_date').val());
-            var endDate = new Date($(this).val());
-            
-            if(endDate < startDate) {
-                alert('End date cannot be before start date');
-                $(this).val($('#id_start_date').val());
-            }
-        });
     });
 </script>
 {% endblock %}

@@ -21,6 +21,6 @@ LessonPlanResourceFormSet = forms.inlineformset_factory(
     LessonPlan, 
     LessonPlanResource,
     form=LessonPlanResourceForm,
-    extra=1,
+    extra=0,
     can_delete=True
 )

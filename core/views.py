@@ -13,6 +13,7 @@ from pathlib import Path
 from django.conf import settings as django_settings
 from django.utils import timezone
 from tenants.models import School
+from core.utils import get_current_school
 from superadmin.models import (
     SchoolSMSConfiguration,
     SchoolEmailConfiguration,
@@ -137,17 +138,47 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             from students.models import Student
             from accounts.models import User
             from academics.models import Class
-            
-            context['total_students'] = Student.objects.filter(is_active=True).count()
-            context['total_teachers'] = User.objects.filter(
-                role='teacher', 
-                is_active=True
-            ).count()
-            context['total_classes'] = Class.objects.filter(is_active=True).count()
-            context['total_staff'] = User.objects.filter(
-                role__in=['teacher', 'staff', 'accountant'], 
-                is_active=True
-            ).count()
+            from django.db.models import Q
+
+            school = context.get('school')
+
+            # Students and classes scoped to school
+            if school:
+                context['total_students'] = Student.objects.filter(
+                    is_active=True,
+                ).filter(
+                    Q(current_class__school=school) | Q(user__school=school)
+                ).distinct().count()
+                context['total_classes'] = Class.objects.filter(
+                    is_active=True,
+                    school=school,
+                ).count()
+            else:
+                # Fallback (should not happen if URL has correct slug)
+                context['total_students'] = 0
+                context['total_classes'] = 0
+
+            # Teachers: prefer direct user.school link; also include teachers linked via classes/sections/assignments
+            if school:
+                teacher_qs = User.objects.filter(role='teacher', is_active=True).filter(
+                    Q(school=school) |
+                    Q(class_sections__class_name__school=school) |
+                    Q(assigned_subjects__class_name__school=school)
+                ).distinct()
+                context['total_teachers'] = teacher_qs.count()
+
+                # Other staff roles directly linked to the school via User.school
+                staff_roles = ['staff', 'accountant', 'librarian', 'receptionist']
+                other_staff_qs = User.objects.filter(
+                    role__in=staff_roles,
+                    is_active=True,
+                    school=school,
+                ).distinct()
+                context['total_staff'] = context['total_teachers'] + other_staff_qs.count()
+            else:
+                context['total_teachers'] = 0
+                context['total_staff'] = 0
+
             context['pending_tasks'] = ToDoList.objects.filter(
                 user=user, is_completed=False
             ).count()
@@ -610,10 +641,16 @@ class CalendarEventListView(LoginRequiredMixin, ListView):
     model = CalendarEvent
 
     def get_queryset(self):
-        user = self.request.user
+        from tenants.models import School
+        school_slug = self.kwargs.get('school_slug')
+        try:
+            school = School.objects.get(slug=school_slug)
+        except School.DoesNotExist:
+            return CalendarEvent.objects.none()
+        # Scope events to the current school only
         return CalendarEvent.objects.filter(
-            Q(is_public=True) | Q(participants=user) | Q(created_by=user)
-        )
+            Q(created_by__school=school) | Q(participants__school=school)
+        ).distinct()
 
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -818,6 +855,13 @@ class AcademicYearListView(LoginRequiredMixin, ListView):
     template_name = 'core/academic_years.html'
     context_object_name = 'academic_years'
     
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = AcademicYear.objects.all()
+        if school:
+            qs = qs.filter(school=school)
+        return qs
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
@@ -832,8 +876,9 @@ class AcademicYearCreateView(View):
         try:
             if not request.user.is_authenticated:
                 return JsonResponse({'success': False, 'error': 'Not authenticated'})
-                
+            
             AcademicYear.objects.create(
+                school=get_current_school(request),
                 name=request.POST.get('name'),
                 start_date=request.POST.get('start_date'),
                 end_date=request.POST.get('end_date'),
@@ -855,8 +900,12 @@ class AcademicYearUpdateView(View):
             if not request.user.is_authenticated:
                 return JsonResponse({'success': False, 'error': 'Not authenticated'})
             
+            school = get_current_school(request)
+            qs = AcademicYear.objects.all()
+            if school:
+                qs = qs.filter(school=school)
             try:
-                year = AcademicYear.objects.get(pk=pk)
+                year = qs.get(pk=pk)
             except AcademicYear.DoesNotExist:
                 return JsonResponse({'success': False, 'error': 'Academic year not found'})
                 
@@ -878,8 +927,12 @@ class AcademicYearUpdateView(View):
             if not request.user.is_authenticated:
                 return JsonResponse({'success': False, 'error': 'Not authenticated'})
             
+            school = get_current_school(request)
+            qs = AcademicYear.objects.all()
+            if school:
+                qs = qs.filter(school=school)
             try:
-                year = AcademicYear.objects.get(pk=pk)
+                year = qs.get(pk=pk)
             except AcademicYear.DoesNotExist:
                 return JsonResponse({'success': False, 'error': 'Academic year not found'})
                 
@@ -905,8 +958,12 @@ class AcademicYearDeleteView(View):
             if not request.user.is_authenticated:
                 return JsonResponse({'success': False, 'error': 'Not authenticated'})
             
+            school = get_current_school(request)
+            qs = AcademicYear.objects.all()
+            if school:
+                qs = qs.filter(school=school)
             try:
-                year = AcademicYear.objects.get(pk=pk)
+                year = qs.get(pk=pk)
             except AcademicYear.DoesNotExist:
                 return JsonResponse({'success': False, 'error': 'Academic year not found'})
                 
@@ -923,8 +980,11 @@ class SessionListView(LoginRequiredMixin, View):
     def get(self, request, year_id, *args, **kwargs):
         try:
             print(f"[DEBUG] SessionListView - Fetching sessions for year_id: {year_id}")
+            school = get_current_school(request)
             sessions = Session.objects.filter(academic_year_id=year_id)
-            print(f"[DEBUG] Found {sessions.count()} sessions")
+            if school:
+                sessions = sessions.filter(academic_year__school=school)
+            print(f"[DEBUG] Found {sessions.count()} sessions (scoped)")
             data = [{
                 'id': s.id,
                 'name': s.name,
@@ -974,7 +1034,11 @@ class SessionCreateView(View):
             
             # Verify academic year exists
             try:
-                year = AcademicYear.objects.get(pk=academic_year_id)
+                school = get_current_school(request)
+                year_qs = AcademicYear.objects.all()
+                if school:
+                    year_qs = year_qs.filter(school=school)
+                year = year_qs.get(pk=academic_year_id)
                 print(f"[DEBUG] Found academic year: {year}")
             except AcademicYear.DoesNotExist:
                 print(f"[DEBUG] Academic year not found: {academic_year_id}")
@@ -1004,8 +1068,12 @@ class SessionDeleteView(View):
             if not request.user.is_authenticated:
                 return JsonResponse({'success': False, 'error': 'Not authenticated'})
             
+            school = get_current_school(request)
+            qs = Session.objects.select_related('academic_year')
+            if school:
+                qs = qs.filter(academic_year__school=school)
             try:
-                session = Session.objects.get(pk=pk)
+                session = qs.get(pk=pk)
             except Session.DoesNotExist:
                 return JsonResponse({'success': False, 'error': 'Session not found'})
                 
@@ -1044,10 +1112,16 @@ class EventsView(LoginRequiredMixin, ListView):
     context_object_name = 'events'
     
     def get_queryset(self):
-        user = self.request.user
+        from tenants.models import School
+        school_slug = self.kwargs.get('school_slug')
+        try:
+            school = School.objects.get(slug=school_slug)
+        except School.DoesNotExist:
+            return CalendarEvent.objects.none()
+        # Only events belonging to the current school
         return CalendarEvent.objects.filter(
-            Q(is_public=True) | Q(participants=user) | Q(created_by=user)
-        ).order_by('start_date')
+            Q(created_by__school=school) | Q(participants__school=school)
+        ).distinct().order_by('start_date')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1147,12 +1221,13 @@ class StopImpersonationView(View):
 
     def get(self, request, *args, **kwargs):
         if hasattr(request, 'original_user') and request.original_user:
-            from django.contrib.auth import login
-            from django.contrib.auth.models import User
+            from django.contrib.auth import login, get_user_model
 
-            user = get_object_or_404(User, id=request.original_user)
-            login(request, user)
-            messages.success(request, f'Stopped impersonating {user.get_full_name() or user.username}')
+            UserModel = get_user_model()
+            user = get_object_or_404(UserModel, id=request.original_user)
+            # Ensure backend is specified since multiple auth backends are configured
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            messages.success(request, f'Stopped impersonating {user.get_full_name() or user.email}')
             return redirect('core:dashboard')
         return redirect('core:dashboard')
 
@@ -1432,8 +1507,8 @@ class InvoiceDownloadView(LoginRequiredMixin, View):
     
     def dispatch(self, request, *args, **kwargs):
         """Only allow school admins to access invoices"""
-        if not request.user.is_school_admin:
-            messages.error(request, "Access denied. This page is for school admins only.")
+        if not (request.user.is_school_admin or request.user.is_superadmin):
+            messages.error(request, "Access denied.")
             return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
         return super().dispatch(request, *args, **kwargs)
     
@@ -1448,8 +1523,9 @@ class InvoiceDownloadView(LoginRequiredMixin, View):
         from reportlab.pdfbase import pdfmetrics
         from reportlab.pdfbase.ttfonts import TTFont
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Flowable
         from reportlab.lib import colors
+        from reportlab.lib.enums import TA_RIGHT
         import io
         
         try:
@@ -1459,158 +1535,282 @@ class InvoiceDownloadView(LoginRequiredMixin, View):
             # Create PDF buffer
             buffer = io.BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=A4, 
-                                  leftMargin=72, rightMargin=72,
-                                  topMargin=72, bottomMargin=72)
+                                  leftMargin=42, rightMargin=42,
+                                  topMargin=42, bottomMargin=42)
             styles = getSampleStyleSheet()
             story = []
+
+            class RoundedCard(Flowable):
+                def __init__(self, flowables, width, padding=12, bg_color=colors.white, border_color=None, radius=10):
+                    super().__init__()
+                    self.flowables = flowables
+                    self.width = width
+                    self.padding = padding
+                    self.bg_color = bg_color
+                    self.border_color = border_color
+                    self.radius = radius
+
+                    inner_width = max(0, self.width - (self.padding * 2))
+                    for f in self.flowables:
+                        if hasattr(f, 'wrap'):
+                            try:
+                                f.wrap(inner_width, 100000)
+                            except Exception:
+                                pass
+
+                def wrap(self, availWidth, availHeight):
+                    inner_width = max(0, self.width - (self.padding * 2))
+                    total_height = self.padding
+                    for f in self.flowables:
+                        w, h = f.wrap(inner_width, availHeight)
+                        total_height += h
+                    total_height += self.padding
+                    return self.width, total_height
+
+                def draw(self):
+                    w, h = self.wrap(self.width, 100000)
+                    self.canv.saveState()
+                    self.canv.setFillColor(self.bg_color)
+                    if self.border_color:
+                        self.canv.setStrokeColor(self.border_color)
+                        self.canv.setLineWidth(1)
+                    else:
+                        self.canv.setStrokeColor(self.bg_color)
+                        self.canv.setLineWidth(0)
+
+                    try:
+                        self.canv.roundRect(0, 0, w, h, self.radius, stroke=1 if self.border_color else 0, fill=1)
+                    except Exception:
+                        self.canv.rect(0, 0, w, h, stroke=1 if self.border_color else 0, fill=1)
+
+                    x = self.padding
+                    y = h - self.padding
+                    inner_width = max(0, w - (self.padding * 2))
+                    for f in self.flowables:
+                        fw, fh = f.wrap(inner_width, y)
+                        y -= fh
+                        f.drawOn(self.canv, x, y)
+
+                    self.canv.restoreState()
             
-            # Custom colors
-            navy_blue = colors.HexColor('#003366')
-            cyan = colors.HexColor('#00CED1')
-            light_cyan = colors.HexColor('#E0FFFF')
-            
-            # Custom styles
+            brand_primary = colors.HexColor('#4DD0E1')
+            brand_secondary = colors.HexColor('#26C6DA')
+            brand_accent = colors.HexColor('#4DD0E1')
+            bg_soft = colors.HexColor('#E0F7FA')
+            card_soft = colors.HexColor('#f9fafb')
+            text_main = colors.HexColor('#111827')
+            text_muted = colors.HexColor('#6b7280')
+            border_soft = colors.HexColor('#e5e7eb')
+
+            def fmt_ksh(value):
+                try:
+                    return f"Ksh {value:,.2f}"
+                except Exception:
+                    return f"Ksh {value}"
+
             title_style = ParagraphStyle(
-                'CustomTitle',
+                'InvoiceTitle',
                 parent=styles['Title'],
-                textColor=navy_blue,
-                fontSize=18,
-                spaceAfter=12,
+                textColor=colors.white,
+                fontSize=16,
+                leading=18,
+                spaceAfter=0,
             )
-            
-            heading_style = ParagraphStyle(
-                'CustomHeading',
-                parent=styles['Heading2'],
-                textColor=cyan,
-                fontSize=14,
-                spaceAfter=12,
-            )
-            
-            normal_style = ParagraphStyle(
-                'CustomNormal',
+            header_left_style = ParagraphStyle(
+                'InvoiceHeaderLeft',
                 parent=styles['Normal'],
-                textColor=navy_blue,
+                textColor=colors.white,
                 fontSize=10,
+                leading=13,
             )
-            
-            # Header with company info
-            header_data = [
-                [Paragraph("Clasyo by Timesten Technologies Ltd.", title_style), 
-                 Paragraph(f"Invoice #{invoice.invoice_number}", heading_style)],
-                ["", Paragraph(f"Date: {invoice.invoice_date.strftime('%B %d, %Y')}", normal_style)],
-            ]
-            
-            header_table = Table(header_data, colWidths=[4*inch, 3*inch])
+            header_right_style = ParagraphStyle(
+                'InvoiceHeaderRight',
+                parent=styles['Normal'],
+                textColor=colors.white,
+                fontSize=16,
+                leading=18,
+                alignment=TA_RIGHT,
+                fontName='Helvetica-Bold',
+            )
+            normal_style = ParagraphStyle(
+                'InvoiceNormal',
+                parent=styles['Normal'],
+                textColor=text_main,
+                fontSize=10,
+                leading=14,
+            )
+            meta_label_style = ParagraphStyle(
+                'InvoiceMetaLabel',
+                parent=styles['Normal'],
+                textColor=text_muted,
+                fontSize=9,
+                leading=12,
+                fontName='Helvetica-Bold',
+            )
+            meta_value_style = ParagraphStyle(
+                'InvoiceMetaValue',
+                parent=styles['Normal'],
+                textColor=text_main,
+                fontSize=9,
+                leading=12,
+            )
+            section_heading_style = ParagraphStyle(
+                'InvoiceSectionHeading',
+                parent=styles['Normal'],
+                textColor=brand_primary,
+                fontSize=11,
+                leading=13,
+                fontName='Helvetica-Bold',
+                spaceAfter=8,
+            )
+
+            invoice_date_text = invoice.invoice_date.strftime('%b %d, %Y') if invoice.invoice_date else ''
+            due_date_text = invoice.due_date.strftime('%b %d, %Y') if invoice.due_date else ''
+            status_display = invoice.get_status_display().upper() if hasattr(invoice, 'get_status_display') else str(getattr(invoice, 'status', '')).upper()
+            status_color = colors.HexColor('#16a34a')
+            if str(getattr(invoice, 'status', '')).lower() in ['pending', 'unpaid']:
+                status_color = colors.HexColor('#f59e0b')
+            if str(getattr(invoice, 'status', '')).lower() in ['overdue', 'cancelled', 'canceled', 'failed']:
+                status_color = colors.HexColor('#dc2626')
+
+            header_table = Table(
+                [[
+                    Paragraph(
+                        f"<b>Clasyo</b> by Timesten Technologies Ltd.<br/><font size='9'>Subscription Invoice</font>",
+                        header_left_style,
+                    ),
+                    Paragraph(
+                        f"INVOICE<br/><font size='9'>#{invoice.invoice_number}</font>",
+                        header_right_style,
+                    ),
+                ]],
+                colWidths=[doc.width * 0.62, doc.width * 0.38],
+            )
             header_table.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                # Remove the problematic LINEBELOW style
-                ('LINEBELOW', (1, 0), (1, 1), 1, navy_blue),  # Simplified line style
-]))
-            story.append(header_table)
-            story.append(Spacer(1, 20))
-            
-            # Bill To section
-            story.append(Paragraph("Bill To:", heading_style))
-            story.append(Paragraph(f"{school.name}", normal_style))
-            if hasattr(school, 'address') and school.address:
-                story.append(Paragraph(school.address, normal_style))
-            if hasattr(school, 'phone') and school.phone:
-                story.append(Paragraph(f"Phone: {school.phone}", normal_style))
-            if hasattr(school, 'email') and school.email:
-                story.append(Paragraph(f"Email: {school.email}", normal_style))
-            story.append(Spacer(1, 20))
-            
-            # Invoice Details section
-            story.append(Paragraph("Invoice Details:", heading_style))
-            
-            # Invoice info table
-            info_data = [
-                ['Invoice Date:', invoice.invoice_date.strftime('%B %d, %Y')],
-                ['Due Date:', invoice.due_date.strftime('%B %d, %Y')],
-                ['Status:', invoice.get_status_display().title()],
-            ]
-            
-            if invoice.paid_date:
-                info_data.append(['Paid Date:', invoice.paid_date.strftime('%B %d, %Y %H:%M')])
-            
-            info_table = Table(info_data, colWidths=[2*inch, 3*inch])
-            info_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (0, -1), light_cyan),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-                ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 10),
-                ('LEFTPADDING', (0, 0), (-1, -1), 8),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-                ('TOPPADDING', (0, 0), (-1, -1), 6),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('LEFTPADDING', (0, 0), (-1, -1), 14),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 14),
+                ('TOPPADDING', (0, 0), (-1, -1), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
             ]))
-            story.append(info_table)
-            story.append(Spacer(1, 20))
+            story.append(RoundedCard([header_table], width=doc.width, padding=0, bg_color=brand_primary, border_color=None, radius=14))
+            story.append(Spacer(1, 16))
+            
+            school_name = getattr(school, 'name', '') or ''
+            school_address = getattr(school, 'address', '') or ''
+            school_phone = getattr(school, 'phone', '') or ''
+            school_email = getattr(school, 'email', '') or ''
+
+            bill_to_html_lines = [
+                "<font size='9' color='#6b7280'><b>BILL TO</b></font>",
+                f"<b>{school_name}</b>",
+            ]
+            if school_address:
+                bill_to_html_lines.append(school_address)
+            if school_phone:
+                bill_to_html_lines.append(f"Phone: {school_phone}")
+            if school_email:
+                bill_to_html_lines.append(f"Email: {school_email}")
+
+            details_html_lines = [
+                "<font size='9' color='#6b7280'><b>INVOICE DETAILS</b></font>",
+                f"Invoice Date: {invoice_date_text or '-'}",
+                f"Due Date: {due_date_text or '-'}",
+                f"Status: <font color='{status_color.hexval()}'><b>{status_display or '-'}</b></font>",
+            ]
+            if invoice.paid_date:
+                details_html_lines.append(f"Paid Date: {invoice.paid_date.strftime('%b %d, %Y %H:%M')}")
+
+            info_blocks_table = Table(
+                [[
+                    Paragraph('<br/>'.join(bill_to_html_lines), normal_style),
+                    Paragraph('<br/>'.join(details_html_lines), normal_style),
+                ]],
+                colWidths=[doc.width * 0.55, doc.width * 0.45],
+            )
+            info_blocks_table.setStyle(TableStyle([
+                ('INNERGRID', (0, 0), (-1, -1), 0.5, border_soft),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 12),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+                ('TOPPADDING', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ]))
+            story.append(RoundedCard([info_blocks_table], width=doc.width, padding=0, bg_color=card_soft, border_color=border_soft, radius=12))
+            story.append(Spacer(1, 18))
             
             # Invoice items table
             item_data = [
                 [
-                    Paragraph('Description', normal_style), 
-                    Paragraph('Period', normal_style), 
-                    Paragraph('Qty', normal_style), 
-                    Paragraph('Unit Price', normal_style), 
-                    Paragraph('Amount', normal_style)
+                    Paragraph('<b>Description</b>', meta_value_style),
+                    Paragraph('<b>Period</b>', meta_value_style),
+                    Paragraph('<b>Qty</b>', meta_value_style),
+                    Paragraph('<b>Unit Price</b>', meta_value_style),
+                    Paragraph('<b>Amount</b>', meta_value_style)
                 ],
                 [
                     f"{invoice.plan_name}\n{invoice.plan_description}",
                     f"{invoice.billing_start_date.strftime('%b %d, %Y')} - {invoice.billing_end_date.strftime('%b %d, %Y')}" if invoice.billing_start_date and invoice.billing_end_date else "Current period",
                     "1",
-                    f"Ksh {invoice.amount:.2f}",
-                    f"Ksh {invoice.amount:.2f}"
+                    fmt_ksh(invoice.amount),
+                    fmt_ksh(invoice.amount)
                 ]
             ]
             
             if invoice.tax_amount > 0:
-                item_data.append(['Tax', '', '', '', f"Ksh {invoice.tax_amount:.2f}"])
+                item_data.append(['Tax', '', '', '', fmt_ksh(invoice.tax_amount)])
             
             # Total row
-            total_amount_display = "FREE" if invoice.total_amount == 0 else f"Ksh {invoice.total_amount:.2f}"
+            total_amount_display = "FREE" if invoice.total_amount == 0 else fmt_ksh(invoice.total_amount)
             item_data.append([
                 'Total', '', '', '', 
                 total_amount_display
             ])
             
-            item_table = Table(item_data, colWidths=[3*inch, 1.5*inch, 0.8*inch, 1*inch, 1*inch])
+            item_card_padding = 8
+            item_table_width = max(0, doc.width - (item_card_padding * 2))
+            item_table = Table(item_data, colWidths=[
+                item_table_width * 0.42,
+                item_table_width * 0.22,
+                item_table_width * 0.08,
+                item_table_width * 0.14,
+                item_table_width * 0.14,
+            ])
             item_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), navy_blue),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('BACKGROUND', (0, 0), (-1, 0), bg_soft),
+                ('TEXTCOLOR', (0, 0), (-1, 0), text_main),
                 ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('ALIGN', (2, 0), (-1, -1), 'CENTER'),
+                ('ALIGN', (2, 1), (2, -1), 'CENTER'),
+                ('ALIGN', (3, 1), (4, -1), 'RIGHT'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                ('TOPPADDING', (0, 0), (-1, 0), 10),
                 ('BACKGROUND', (0, 1), (-1, -2), colors.white),
-                ('BACKGROUND', (0, -1), (-1, -1), light_cyan),
+                ('BACKGROUND', (0, -1), (-1, -1), text_main),
+                ('TEXTCOLOR', (0, -1), (-1, -1), colors.white),
                 ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-                ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
                 ('FONTSIZE', (0, 1), (-1, -1), 10),
-                ('GRID', (0, 0), (-1, -1), 1, navy_blue),
-                ('LEFTPADDING', (0, 0), (-1, -1), 8),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-                ('TOPPADDING', (0, 0), (-1, -1), 8),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('INNERGRID', (0, 0), (-1, -1), 0.6, border_soft),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 1), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
             ]))
-            story.append(item_table)
+            story.append(RoundedCard([item_table], width=doc.width, padding=item_card_padding, bg_color=colors.white, border_color=border_soft, radius=12))
             
             if invoice.notes:
                 story.append(Spacer(1, 20))
-                story.append(Paragraph("Notes:", heading_style))
+                story.append(Paragraph("Notes", section_heading_style))
                 story.append(Paragraph(invoice.notes, normal_style))
             
             # Footer
             story.append(Spacer(1, 40))
-            story.append(Paragraph("This is a computer-generated invoice. No signature is required.", normal_style))
-            story.append(Paragraph("Thank you for your business with Clasyo!", heading_style))
+            story.append(Paragraph("This is a computer-generated invoice. No signature is required.", ParagraphStyle('InvoiceFooter', parent=styles['Normal'], textColor=text_muted, fontSize=9, leading=12)))
+            story.append(Paragraph("Thank you for your business with Clasyo!", ParagraphStyle('InvoiceFooterAccent', parent=styles['Normal'], textColor=brand_accent, fontSize=10, leading=12, fontName='Helvetica-Bold')))
             story.append(Spacer(1, 10))
-            story.append(Paragraph("For questions, contact us at clasyo@timestentechnologies.co.ke", normal_style))
+            story.append(Paragraph("For questions, contact us at clasyo@timestentechnologies.co.ke", ParagraphStyle('InvoiceFooterSmall', parent=styles['Normal'], textColor=text_muted, fontSize=9, leading=12)))
+            story.append(Paragraph("Website: https://clasyo.timestentechnologies.co.ke/", ParagraphStyle('InvoiceFooterSmallUrl', parent=styles['Normal'], textColor=text_muted, fontSize=9, leading=12)))
             
             # Build PDF
             doc.build(story)
@@ -1638,7 +1838,7 @@ class InvoicePreviewView(LoginRequiredMixin, View):
     
     def dispatch(self, request, *args, **kwargs):
         """Only allow school admins to access invoices"""
-        if not request.user.is_school_admin:
+        if not (request.user.is_school_admin or request.user.is_superadmin):
             return JsonResponse({'success': False, 'error': 'Access denied'})
         return super().dispatch(request, *args, **kwargs)
     
@@ -1675,9 +1875,11 @@ class InvoicePreviewView(LoginRequiredMixin, View):
                     'plan_description': invoice.plan_description,
                     'billing_period': billing_period,
                     'amount': float(invoice.amount),
-                    'amount_display': 'FREE' if invoice.amount == 0 else f'Ksh {invoice.amount:.2f}',
+                    'amount_display': 'FREE' if invoice.amount == 0 else f'Ksh {invoice.amount:,.2f}',
                     'tax_amount': float(invoice.tax_amount),
+                    'tax_amount_display': f'Ksh {invoice.tax_amount:,.2f}',
                     'total_amount': float(invoice.total_amount),
+                    'total_amount_display': 'FREE' if invoice.total_amount == 0 else f'Ksh {invoice.total_amount:,.2f}',
                     'notes': invoice.notes,
                     'invoice_type': invoice.invoice_type,
                     'invoice_type_display': invoice.get_invoice_type_display()
@@ -1732,6 +1934,11 @@ class AiChatApiView(LoginRequiredMixin, View):
             context_data = self.get_school_context(school, school_config)
             print(f"Context data keys: {list(context_data.keys())}")
 
+            # Prepare shared generation settings
+            temperature = float(config.get('temperature', 0.7))
+            max_tokens = int(config.get('max_tokens', 1000))
+            system_prompt = self.build_system_prompt(context_data)
+
             # Import OpenAI safely so missing dependency returns JSON instead of an HTML error page
             try:
                 from openai import OpenAI
@@ -1743,32 +1950,140 @@ class AiChatApiView(LoginRequiredMixin, View):
 
             provider = config.get('provider', 'openai')
             print(f"Provider: {provider}")
-            if provider != 'openai':
-                return JsonResponse({'success': False, 'error': 'Only OpenAI provider supported for now'})
-            openai_api_key = config.get('openai_api_key') or ''
-            print(f"OpenAI API key present: {bool(openai_api_key)}")
-            if not openai_api_key:
-                return JsonResponse({'success': False, 'error': 'OpenAI API key is not configured'}, status=503)
             
-            client = OpenAI(api_key=openai_api_key)
-            model = config.get('openai_model', 'gpt-3.5-turbo')
-            temperature = float(config.get('temperature', 0.7))
-            max_tokens = int(config.get('max_tokens', 1000))
+            # Initialize client based on provider
+            client = None
+            if provider == 'openai':
+                if not config.get('openai_api_key'):
+                    return JsonResponse({'success': False, 'error': 'OpenAI API key is not configured'}, status=503)
+                try:
+                    from openai import OpenAI
+                    client = OpenAI(api_key=config.get('openai_api_key'))
+                except ImportError:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'OpenAI Python library is not installed on the server.'
+                    }, status=500)
+                model = config.get('openai_model', 'gpt-3.5-turbo')
+                
+            elif provider == 'azure':
+                if not config.get('azure_openai_api_key'):
+                    return JsonResponse({'success': False, 'error': 'Azure OpenAI API key is not configured'}, status=503)
+                try:
+                    from openai import AzureOpenAI
+                    client = AzureOpenAI(
+                        api_key=config.get('azure_openai_api_key'),
+                        azure_endpoint=config.get('azure_openai_endpoint'),
+                        api_version="2023-12-01-preview"
+                    )
+                except ImportError:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'OpenAI Python library is not installed on the server.'
+                    }, status=500)
+                model = config.get('azure_openai_deployment', 'gpt-35-turbo')
+                
+            elif provider == 'anthropic':
+                if not config.get('anthropic_api_key'):
+                    return JsonResponse({'success': False, 'error': 'Anthropic API key is not configured'}, status=503)
+                try:
+                    from anthropic import Anthropic
+                    client = Anthropic(api_key=config.get('anthropic_api_key'))
+                except ImportError:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Anthropic Python library is not installed on the server.'
+                    }, status=500)
+                model = config.get('anthropic_model', 'claude-2')
+                
+            elif provider == 'google':
+                if not config.get('google_api_key'):
+                    return JsonResponse({'success': False, 'error': 'Google API key is not configured'}, status=503)
+                try:
+                    import google.genai as genai
+                    # Create a Google GenAI client; actual generate_content call happens later
+                    client = genai.Client(api_key=config.get('google_api_key'))
+                except ImportError:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Google Gen AI library is not installed on the server.'
+                    }, status=500)
+                # Store the model name to use in the shared call section
+                model = config.get('google_model', 'gemini-1.5-flash')
+                
+            elif provider == 'local':
+                return JsonResponse({'success': False, 'error': 'Local model provider not implemented yet'}, status=503)
+                
+            else:
+                return JsonResponse({'success': False, 'error': f'Provider {provider} is not supported'}, status=400)
             
-            # Build system prompt with context
-            system_prompt = self.build_system_prompt(context_data)
-            print(f"Calling OpenAI with model={model}, temperature={temperature}, max_tokens={max_tokens}")
-            response = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {'role': 'system', 'content': system_prompt},
-                    {'role': 'user', 'content': prompt}
-                ],
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
-            answer = response.choices[0].message.content
-            return JsonResponse({'success': True, 'answer': answer})
+            # Call appropriate API based on provider
+            try:
+                if provider == 'openai':
+                    print(f"Calling OpenAI with model={model}, temperature={temperature}, max_tokens={max_tokens}")
+                    response = client.chat.completions.create(
+                        model=model,
+                        messages=[
+                            {'role': 'system', 'content': system_prompt},
+                            {'role': 'user', 'content': prompt}
+                        ],
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                    )
+                    answer = response.choices[0].message.content
+                    
+                elif provider == 'azure':
+                    print(f"Calling Azure OpenAI with model={model}, temperature={temperature}, max_tokens={max_tokens}")
+                    response = client.chat.completions.create(
+                        model=model,
+                        messages=[
+                            {'role': 'system', 'content': system_prompt},
+                            {'role': 'user', 'content': prompt}
+                        ],
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                    )
+                    answer = response.choices[0].message.content
+                    
+                elif provider == 'anthropic':
+                    print(f"Calling Anthropic with model={model}, temperature={temperature}, max_tokens={max_tokens}")
+                    response = client.messages.create(
+                        model=model,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        messages=[
+                            {'role': 'system', 'content': system_prompt},
+                            {'role': 'user', 'content': prompt}
+                        ]
+                    )
+                    answer = response.content[0].text
+                    
+                elif provider == 'google':
+                    print(f"Calling Google Gemini with model={model}, temperature={temperature}, max_tokens={max_tokens}")
+                    # Combine system prompt and user prompt for Gemini
+                    contents = f"System: {system_prompt}\n\nUser: {prompt}"
+                    # Use the google-genai 0.3.0 API: pass settings via the `config` dict
+                    import google.genai as genai
+                    response = client.models.generate_content(
+                        model=model,
+                        contents=contents,
+                        config={
+                            "temperature": float(temperature),
+                            "max_output_tokens": int(max_tokens),
+                        },
+                    )
+                    answer = response.text
+                    
+                else:
+                    return JsonResponse({'success': False, 'error': f'Provider {provider} not implemented'}, status=501)
+                    
+                return JsonResponse({'success': True, 'answer': answer})
+                    
+            except School.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'School not found'}, status=404)
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': str(e)}, status=500)
+                
         except School.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'School not found'}, status=404)
         except Exception as e:

@@ -106,6 +106,48 @@
         margin-bottom: 1.2rem;
         text-align: center;
     }
+    /* One-time fees block */
+    .one-time-section {
+        background: #f8fafc;
+        border: 1px solid #edf2f7;
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        margin: 0.75rem 0 1rem;
+    }
+    .one-time-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.35rem 0;
+        color: #4a5568;
+        font-size: 0.9rem;
+    }
+    .one-time-item .label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .one-time-item i {
+        color: #4DD0E1;
+        font-size: 0.95rem;
+    }
+    .fee-badge {
+        background: #edf2f7;
+        color: #1E3A5F;
+        border-radius: 9999px;
+        padding: 2px 8px;
+        font-weight: 600;
+        font-size: 0.75rem;
+    }
+    .fee-badge.free {
+        background: #e6fffa;
+        color: #0f766e;
+    }
+    .fee-amount {
+        font-weight: 700;
+        color: #1E3A5F;
+        font-size: 0.95rem;
+    }
     
     .plan-features {
         list-style: none;
@@ -234,6 +276,46 @@
                     <div class="plan-name">{{ plan.name }}</div>
                     <div class="plan-price">Ksh {{ plan.price|intcomma }}</div>
                     <div class="plan-duration">per {{ plan.get_billing_cycle_display|lower }}</div>
+                    <div class="one-time-section">
+                        {% if plan.plan_type == 'free_trial' %}
+                        <div class="one-time-item">
+                            <div class="label"><i class="fas fa-gift"></i><span>Free Trial</span></div>
+                            <span class="fee-badge">{{ plan.trial_days|default:7 }} days</span>
+                        </div>
+                        {% endif %}
+                        <div class="one-time-item">
+                            <div class="label"><i class="fas fa-cogs"></i><span>One-time Setup</span></div>
+                            {% if plan.setup_fee > 0 %}
+                                <span class="fee-amount">Ksh {{ plan.setup_fee|intcomma }}</span>
+                            {% else %}
+                                <span class="fee-badge free">Free</span>
+                            {% endif %}
+                        </div>
+                        <div class="one-time-item">
+                            <div class="label"><i class="fas fa-database"></i><span>Data Migration</span></div>
+                            {% if plan.data_migration_fee > 0 %}
+                                <span class="fee-amount">Ksh {{ plan.data_migration_fee|intcomma }}</span>
+                            {% else %}
+                                <span class="fee-badge free">Free</span>
+                            {% endif %}
+                        </div>
+                        <div class="one-time-item">
+                            <div class="label"><i class="fas fa-id-badge"></i><span>License Fee</span></div>
+                            {% if plan.license_fee > 0 %}
+                                <span class="fee-amount">Ksh {{ plan.license_fee|intcomma }}</span>
+                            {% else %}
+                                <span class="fee-badge free">Free</span>
+                            {% endif %}
+                        </div>
+                        <div class="one-time-item">
+                            <div class="label"><i class="fas fa-chalkboard-teacher"></i><span>Training Fee</span></div>
+                            {% if plan.training_fee > 0 %}
+                                <span class="fee-amount">Ksh {{ plan.training_fee|intcomma }}</span>
+                            {% else %}
+                                <span class="fee-badge free">Free</span>
+                            {% endif %}
+                        </div>
+                    </div>
                     
                     <ul class="plan-features">
                         {% if plan.max_students %}

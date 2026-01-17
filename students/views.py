@@ -29,7 +29,22 @@ class StudentListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         queryset = super().get_queryset()
-        return queryset.filter(is_active=True).order_by('-created_at')
+        school_slug = self.kwargs.get('school_slug', '')
+        from tenants.models import School
+        school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+        # Optional status filter: 'active' or 'inactive'. Default: show all statuses
+        status = self.request.GET.get('status', '').strip().lower()
+        if school:
+            base = queryset.filter(
+                Q(current_class__school=school) | Q(user__school=school) | Q(parent_user__school=school) | Q(created_by__school=school)
+            ).distinct()
+        else:
+            base = queryset
+        if status == 'active':
+            base = base.filter(is_active=True)
+        elif status == 'inactive':
+            base = base.filter(is_active=False)
+        return base.order_by('-created_at')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -44,10 +59,14 @@ class StudentListView(LoginRequiredMixin, ListView):
         except School.DoesNotExist:
             context['school'] = None
         
-        # Add classes and sections for the form
+        # Add classes and sections for the form (scoped to this school)
         from academics.models import Class, Section
-        context['classes'] = Class.objects.filter(is_active=True)
-        context['sections'] = Section.objects.filter(is_active=True)
+        if context.get('school'):
+            context['classes'] = Class.objects.filter(is_active=True, school=context['school'])
+            context['sections'] = Section.objects.filter(is_active=True, class_name__school=context['school'])
+        else:
+            context['classes'] = Class.objects.filter(is_active=True)
+            context['sections'] = Section.objects.filter(is_active=True)
         
         # Add dormitories and rooms for the form
         try:
@@ -74,10 +93,17 @@ class StudentDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
         
-        # Add classes and sections for edit form
+        # Add classes and sections for edit form (scoped to this school)
         from academics.models import Class, Section
-        context['classes'] = Class.objects.filter(is_active=True)
-        context['sections'] = Section.objects.filter(is_active=True)
+        from tenants.models import School
+        school_slug = self.kwargs.get('school_slug', '')
+        school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+        if school:
+            context['classes'] = Class.objects.filter(is_active=True, school=school)
+            context['sections'] = Section.objects.filter(is_active=True, class_name__school=school)
+        else:
+            context['classes'] = Class.objects.filter(is_active=True)
+            context['sections'] = Section.objects.filter(is_active=True)
         
         return context
 
@@ -133,6 +159,10 @@ class StudentCreateView(CreateView):
                     'error': f'A user with email {email} already exists. Please use a different email.'
                 })
             
+            from tenants.models import School
+            school_slug = self.kwargs.get('school_slug', '')
+            school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+
             user = User.objects.create(
                 email=email,
                 password='student123',  # Will be hashed
@@ -142,6 +172,8 @@ class StudentCreateView(CreateView):
                 is_active=True
             )
             user.set_password('student123')  # Hash the password properly
+            if school:
+                user.school = school
             user.save()
             
             # Get admission date or use today
@@ -183,9 +215,28 @@ class StudentCreateView(CreateView):
                             is_active=True
                         )
                         parent_user.set_password('parent123')  # Default password
-                        parent_user.save()
+                        if parent_user and school and not getattr(parent_user, 'school', None):
+                            parent_user.school = school
+                            parent_user.save(update_fields=['school'])
                     except Exception as e:
                         print(f"[WARNING] Could not create parent account: {e}")
+
+            # Resolve current class/section scoped to school
+            from academics.models import Class, Section
+            current_class = None
+            section = None
+            current_class_id = request.POST.get('current_class')
+            if current_class_id:
+                if school:
+                    current_class = Class.objects.filter(id=current_class_id, school=school).first()
+                else:
+                    current_class = Class.objects.filter(id=current_class_id).first()
+            section_id = request.POST.get('section')
+            if section_id:
+                if school:
+                    section = Section.objects.filter(id=section_id, class_name__school=school).first()
+                else:
+                    section = Section.objects.filter(id=section_id).first()
             
             # Create student with all fields including parent details
             student = Student.objects.create(
@@ -218,6 +269,8 @@ class StudentCreateView(CreateView):
                 guardian_email=request.POST.get('guardian_email', ''),
                 guardian_relation=request.POST.get('guardian_relation', ''),
                 parent_user=parent_user,  # Link to parent user account
+                current_class=current_class,
+                section=section,
                 created_by=request.user
             )
             
@@ -246,8 +299,15 @@ class StudentUpdateView(UpdateView):
         context['school_slug'] = self.kwargs.get('school_slug', '')
         context['student'] = self.get_object()
         from academics.models import Class, Section
-        context['classes'] = Class.objects.filter(is_active=True)
-        context['sections'] = Section.objects.filter(is_active=True)
+        from tenants.models import School
+        school_slug = self.kwargs.get('school_slug', '')
+        school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+        if school:
+            context['classes'] = Class.objects.filter(is_active=True, school=school)
+            context['sections'] = Section.objects.filter(is_active=True, class_name__school=school)
+        else:
+            context['classes'] = Class.objects.filter(is_active=True)
+            context['sections'] = Section.objects.filter(is_active=True)
         
         # Add dormitories and rooms for the form
         try:
@@ -307,18 +367,32 @@ class StudentUpdateView(UpdateView):
             current_class_id = request.POST.get('current_class')
             if current_class_id:
                 from academics.models import Class
-                try:
-                    student.current_class_id = current_class_id
-                except:
-                    pass
+                from tenants.models import School
+                school_slug = self.kwargs.get('school_slug', '')
+                school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+                if school:
+                    current_class = Class.objects.filter(id=current_class_id, school=school).first()
+                else:
+                    current_class = Class.objects.filter(id=current_class_id).first()
+                if current_class:
+                    student.current_class = current_class
+                else:
+                    student.current_class = None
             
             section_id = request.POST.get('section')
             if section_id:
                 from academics.models import Section
-                try:
-                    student.section_id = section_id
-                except:
-                    pass
+                from tenants.models import School
+                school_slug = self.kwargs.get('school_slug', '')
+                school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+                if school:
+                    section = Section.objects.filter(id=section_id, class_name__school=school).first()
+                else:
+                    section = Section.objects.filter(id=section_id).first()
+                if section:
+                    student.section = section
+                else:
+                    student.section = None
             
             # Update parent details
             student.father_name = request.POST.get('father_name', student.father_name)
@@ -420,7 +494,17 @@ class ParentListView(LoginRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        return User.objects.filter(role='parent', is_active=True).order_by('first_name')
+        school_slug = self.kwargs.get('school_slug', '')
+        from tenants.models import School
+        school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+        qs = User.objects.filter(role='parent').order_by('-created_at')
+        if school:
+            qs = qs.filter(
+                Q(school=school) |
+                Q(children__current_class__school=school) |
+                Q(children__user__school=school)
+            ).distinct()
+        return qs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -437,8 +521,13 @@ class ParentDetailView(LoginRequiredMixin, DetailView):
             if parent.role != 'parent':
                 return JsonResponse({'success': False, 'error': 'Not a parent user'})
             
-            # Get children (students linked to this parent)
+            # Get children (students linked to this parent) scoped to this school
+            school_slug = self.kwargs.get('school_slug', '')
+            from tenants.models import School
+            school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
             children = Student.objects.filter(parent_user=parent)
+            if school:
+                children = children.filter(Q(current_class__school=school) | Q(user__school=school)).distinct()
             children_data = [{
                 'name': f"{child.first_name} {child.last_name}",
                 'admission_number': child.admission_number
@@ -463,7 +552,14 @@ class ParentDetailView(LoginRequiredMixin, DetailView):
 class StudentExportView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         fmt = request.GET.get('format', 'csv').lower()
-        students = Student.objects.select_related('current_class', 'section').all()
+        school_slug = kwargs.get('school_slug', '')
+        from tenants.models import School
+        school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+        students = Student.objects.select_related('current_class', 'section')
+        if school:
+            students = students.filter(Q(current_class__school=school) | Q(user__school=school) | Q(parent_user__school=school) | Q(created_by__school=school)).distinct()
+        else:
+            students = students.all()
         headers = [
             'admission_number', 'first_name', 'last_name', 'gender', 'date_of_birth', 'admission_date',
             'current_class', 'section', 'email', 'current_address', 'city', 'state', 'postal_code',
@@ -685,10 +781,17 @@ class StudentImportPreviewView(LoginRequiredMixin, View):
             except Exception:
                 return pd.Series([False] * len(series))
 
-        # Preload reference names for existence checks
+        # Preload reference names for existence checks (prefer school-scoped)
         from academics.models import Class, Section
-        class_names = set([n.lower() for n in Class.objects.values_list('name', flat=True)])
-        section_names = set([n.lower() for n in Section.objects.values_list('name', flat=True)])
+        school_slug = kwargs.get('school_slug', '')
+        from tenants.models import School
+        school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+        if school:
+            class_names = set([n.lower() for n in Class.objects.filter(school=school).values_list('name', flat=True)])
+            section_names = set([n.lower() for n in Section.objects.filter(class_name__school=school).values_list('name', flat=True)])
+        else:
+            class_names = set([n.lower() for n in Class.objects.values_list('name', flat=True)])
+            section_names = set([n.lower() for n in Section.objects.values_list('name', flat=True)])
 
         # Validate rows
         for idx in range(total_rows):
@@ -813,6 +916,9 @@ class StudentImportView(LoginRequiredMixin, View):
         df = df.fillna('')
         required = ['first_name', 'last_name', 'date_of_birth', 'gender', 'admission_date', 'current_class', 'current_address', 'city', 'state']
         from academics.models import Class, Section
+        from tenants.models import School
+        school_slug = kwargs.get('school_slug', '')
+        school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
         success_count = 0
         created_count = 0
         updated_count = 0
@@ -830,8 +936,12 @@ class StudentImportView(LoginRequiredMixin, View):
                 adm_dt = adm_dt.date()
                 class_name = str(row.get('current_class', '')).strip()
                 section_name = str(row.get('section', '')).strip()
-                current_class = Class.objects.filter(name__iexact=class_name).first() if class_name else None
-                section = Section.objects.filter(name__iexact=section_name).first() if section_name else None
+                if school:
+                    current_class = Class.objects.filter(name__iexact=class_name, school=school).first() if class_name else None
+                    section = Section.objects.filter(name__iexact=section_name, class_name__school=school).first() if section_name else None
+                else:
+                    current_class = Class.objects.filter(name__iexact=class_name).first() if class_name else None
+                    section = Section.objects.filter(name__iexact=section_name).first() if section_name else None
                 admission_number = str(row.get('admission_number', '')).strip() or None
                 email = str(row.get('email', '')).strip()
                 first_name = str(row.get('first_name', '')).strip()
@@ -851,7 +961,13 @@ class StudentImportView(LoginRequiredMixin, View):
                     if not user:
                         user = User.objects.create(email=email, first_name=first_name, last_name=last_name, role='student', is_active=True)
                         user.set_password('student123')
+                        if school:
+                            user.school = school
                         user.save()
+                # Ensure imported student's user is linked to this school
+                if school and not getattr(user, 'school', None):
+                    user.school = school
+                    user.save(update_fields=['school'])
                 parent_user = None
                 father_email = str(row.get('father_email', '')).strip()
                 mother_email = str(row.get('mother_email', '')).strip()
@@ -869,7 +985,13 @@ class StudentImportView(LoginRequiredMixin, View):
                     if not parent_user:
                         parent_user = User.objects.create(email=parent_email, first_name=parent_first_name or 'Parent', last_name=parent_last_name or last_name, role='parent', phone=row.get('father_phone', '') or row.get('mother_phone', ''), is_active=True)
                         parent_user.set_password('parent123')
+                        if school:
+                            parent_user.school = school
                         parent_user.save()
+                # Ensure imported parent user is linked to this school
+                if parent_user and school and not getattr(parent_user, 'school', None):
+                    parent_user.school = school
+                    parent_user.save(update_fields=['school'])
                 data = {
                     'user': user,
                     'first_name': first_name,

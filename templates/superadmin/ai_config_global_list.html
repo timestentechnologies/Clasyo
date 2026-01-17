@@ -1,0 +1,94 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Global AI Configurations{% endblock %}
+{% block page_title %}Global AI Configurations{% endblock %}
+{% block page_icon %}robot{% endblock %}
+{% block page_subtitle %}Manage AI providers and settings for all schools{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'superadmin:ai_config_global_add' %}" class="btn btn-primary">
+    <i class="fas fa-plus"></i> Add AI Configuration
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="modern-card">
+    <div class="card-header">
+        <h4><i class="fas fa-robot"></i> AI Configurations</h4>
+        <p class="text-muted mb-0">Configure AI providers that will be available to all schools</p>
+    </div>
+    <div class="card-body">
+        {% if configs %}
+        <div class="table-responsive">
+            <table class="table modern-table">
+                <thead>
+                    <tr>
+                        <th>Provider</th>
+                        <th>Model</th>
+                        <th>Status</th>
+                        <th>Temperature</th>
+                        <th>Max Tokens</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for config in configs %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-primary">{{ config.get_provider_display }}</span>
+                        </td>
+                        <td>
+                            {% if config.provider == 'openai' %}
+                                {{ config.openai_model|default:"Not set" }}
+                            {% elif config.provider == 'azure' %}
+                                {{ config.azure_openai_deployment|default:"Not set" }}
+                            {% elif config.provider == 'anthropic' %}
+                                {{ config.anthropic_model|default:"Not set" }}
+                            {% elif config.provider == 'google' %}
+                                {{ config.google_model|default:"Not set" }}
+                            {% elif config.provider == 'local' %}
+                                {{ config.local_model_path|default:"Not set" }}
+                            {% else %}
+                                Not set
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if config.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ config.temperature }}</td>
+                        <td>{{ config.max_tokens }}</td>
+                        <td>{{ config.created_at|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'superadmin:ai_config_global_edit' config.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'superadmin:ai_config_global_delete' config.pk %}" class="btn btn-sm btn-outline-danger" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-robot fa-3x text-muted mb-3"></i>
+            <h5>No AI Configurations Found</h5>
+            <p class="text-muted">Get started by adding your first AI configuration.</p>
+            <a href="{% url 'superadmin:ai_config_global_add' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add AI Configuration
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,338 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Global AI Configuration{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Global AI Configuration{% endblock %}
+{% block page_icon %}robot{% endblock %}
+{% block page_subtitle %}{% if form.instance.pk %}Update AI provider settings{% else %}Configure a new AI provider for all schools{% endif %}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'superadmin:ai_config_global_list' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-left"></i> Back to Configurations
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="modern-card">
+    <div class="card-body">
+        <form method="post" id="aiConfigForm">
+            {% csrf_token %}
+            
+            <!-- Basic Settings -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="{{ form.provider.id_for_label }}" class="form-label">
+                            <i class="fas fa-server"></i> AI Provider
+                        </label>
+                        {{ form.provider|add_class:"form-select" }}
+                        {% if form.provider.errors %}
+                            <div class="text-danger">{{ form.provider.errors }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">Select the AI provider to configure</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="{{ form.is_active.id_for_label }}" class="form-label">
+                            <i class="fas fa-toggle-on"></i> Status
+                        </label>
+                        <div class="form-check form-switch mt-2">
+                            {{ form.is_active }}
+                            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                Enable this AI configuration
+                            </label>
+                        </div>
+                        {% if form.is_active.errors %}
+                            <div class="text-danger">{{ form.is_active.errors }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">When enabled, this configuration will be available to all schools</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Provider-specific settings -->
+            <div id="provider-settings">
+                <!-- OpenAI Settings -->
+                <div id="openai-settings" class="provider-section" style="display: none;">
+                    <h5><i class="fas fa-cog"></i> OpenAI Settings</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.openai_api_key.id_for_label }}" class="form-label">API Key</label>
+                                {{ form.openai_api_key }}
+                                {% if form.openai_api_key.errors %}
+                                    <div class="text-danger">{{ form.openai_api_key.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">Your OpenAI API key</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.openai_model.id_for_label }}" class="form-label">Model</label>
+                                {{ form.openai_model|add_class:"form-control" }}
+                                {% if form.openai_model.errors %}
+                                    <div class="text-danger">{{ form.openai_model.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">e.g., gpt-4, gpt-3.5-turbo</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Azure OpenAI Settings -->
+                <div id="azure-settings" class="provider-section" style="display: none;">
+                    <h5><i class="fas fa-cog"></i> Azure OpenAI Settings</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.azure_openai_api_key.id_for_label }}" class="form-label">API Key</label>
+                                {{ form.azure_openai_api_key }}
+                                {% if form.azure_openai_api_key.errors %}
+                                    <div class="text-danger">{{ form.azure_openai_api_key.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.azure_openai_endpoint.id_for_label }}" class="form-label">Endpoint</label>
+                                {{ form.azure_openai_endpoint|add_class:"form-control" }}
+                                {% if form.azure_openai_endpoint.errors %}
+                                    <div class="text-danger">{{ form.azure_openai_endpoint.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.azure_openai_deployment.id_for_label }}" class="form-label">Deployment Name</label>
+                                {{ form.azure_openai_deployment|add_class:"form-control" }}
+                                {% if form.azure_openai_deployment.errors %}
+                                    <div class="text-danger">{{ form.azure_openai_deployment.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Anthropic Settings -->
+                <div id="anthropic-settings" class="provider-section" style="display: none;">
+                    <h5><i class="fas fa-cog"></i> Anthropic Settings</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.anthropic_api_key.id_for_label }}" class="form-label">API Key</label>
+                                {{ form.anthropic_api_key }}
+                                {% if form.anthropic_api_key.errors %}
+                                    <div class="text-danger">{{ form.anthropic_api_key.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.anthropic_model.id_for_label }}" class="form-label">Model</label>
+                                {{ form.anthropic_model|add_class:"form-control" }}
+                                {% if form.anthropic_model.errors %}
+                                    <div class="text-danger">{{ form.anthropic_model.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">e.g., claude-2, claude-instant-1</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Google Gemini Settings -->
+                <div id="google-settings" class="provider-section" style="display: none;">
+                    <h5><i class="fas fa-cog"></i> Google Gemini Settings</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.google_api_key.id_for_label }}" class="form-label">API Key</label>
+                                {{ form.google_api_key }}
+                                {% if form.google_api_key.errors %}
+                                    <div class="text-danger">{{ form.google_api_key.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">Your Google AI Studio API key</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.google_model.id_for_label }}" class="form-label">Model</label>
+                                {{ form.google_model|add_class:"form-control" }}
+                                {% if form.google_model.errors %}
+                                    <div class="text-danger">{{ form.google_model.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">e.g., gemini-1.5-flash, gemini-1.5-pro</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Local Model Settings -->
+                <div id="local-settings" class="provider-section" style="display: none;">
+                    <h5><i class="fas fa-cog"></i> Local Model Settings</h5>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.local_model_path.id_for_label }}" class="form-label">Model Path</label>
+                                {{ form.local_model_path|add_class:"form-control" }}
+                                {% if form.local_model_path.errors %}
+                                    <div class="text-danger">{{ form.local_model_path.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">Path to local model files</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- General Settings -->
+            <h5 class="mt-4"><i class="fas fa-sliders-h"></i> General Settings</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="{{ form.temperature.id_for_label }}" class="form-label">Temperature</label>
+                        {{ form.temperature|add_class:"form-control" }}
+                        {% if form.temperature.errors %}
+                            <div class="text-danger">{{ form.temperature.errors }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">Controls randomness (0.0 to 2.0)</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="{{ form.max_tokens.id_for_label }}" class="form-label">Max Tokens</label>
+                        {{ form.max_tokens|add_class:"form-control" }}
+                        {% if form.max_tokens.errors %}
+                            <div class="text-danger">{{ form.max_tokens.errors }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">Maximum tokens in response</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'superadmin:ai_config_global_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> {% if form.instance.pk %}Update{% else %}Create{% endif %} Configuration
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const providerSelect = document.getElementById('{{ form.provider.id_for_label }}');
+    const providerSections = {
+        'openai': document.getElementById('openai-settings'),
+        'azure': document.getElementById('azure-settings'),
+        'anthropic': document.getElementById('anthropic-settings'),
+        'google': document.getElementById('google-settings'),
+        'local': document.getElementById('local-settings')
+    };
+
+    function showProviderSettings(provider) {
+        // Hide all sections
+        Object.values(providerSections).forEach(section => {
+            if (section) section.style.display = 'none';
+        });
+        
+        // Show selected section
+        if (providerSections[provider]) {
+            providerSections[provider].style.display = 'block';
+        }
+    }
+
+    // Show initial settings based on current selection
+    if (providerSelect.value) {
+        showProviderSettings(providerSelect.value);
+    }
+
+    // Handle provider change
+    providerSelect.addEventListener('change', function() {
+        showProviderSettings(this.value);
+    });
+});
+</script>
+
+<style>
+.provider-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.provider-section h5 {
+    color: #495057;
+    margin-bottom: 15px;
+}
+
+.form-control, .form-select {
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    padding: 10px 15px;
+    width: 100%;
+    font-size: 0.9rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #4dd0e1;
+    box-shadow: 0 0 0 0.2rem rgba(77, 208, 225, 0.25);
+    outline: 0;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    display: block;
+    color: #495057;
+}
+
+.form-text {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.form-check-input:checked {
+    background-color: #4dd0e1;
+    border-color: #4dd0e1;
+}
+
+/* Ensure consistent height for form controls */
+.form-control, .form-select {
+    min-height: 38px;
+}
+
+/* Better spacing for form groups */
+.row .col-md-6 .form-group,
+.row .col-md-4 .form-group,
+.row .col-md-3 .form-group {
+    margin-bottom: 1rem;
+}
+
+/* Improve dropdown arrow styling */
+.form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7-7-7-7'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px 12px;
+    padding-right: 40px;
+}
+</style>
+{% endblock %}

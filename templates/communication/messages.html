@@ -336,6 +336,7 @@ function viewMessage(id) {
         document.getElementById('replyForm').querySelector('input[name="message_id"]').value = id;
 
         // Format message thread with chat-like interface
+        const currentUserId = {{ request.user.id|default:'0' }};
         let messagesHtml = `
         <div class="d-flex flex-column h-100">
             <div class="p-3 border-bottom">
@@ -347,10 +348,13 @@ function viewMessage(id) {
             </div>
             
             <div class="flex-grow-1 overflow-auto p-3" style="max-height: 400px;">
-                <!-- Original Message -->
-                <div class="message-bubble sent mb-3">
+                <!-- Original Message -->`;
+
+        const isOriginalFromCurrentUser = data.sender_id === currentUserId;
+        messagesHtml += `
+                <div class="message-bubble ${isOriginalFromCurrentUser ? 'sent' : 'received'} mb-3">
                     <div class="message-sender text-muted small">${data.sender}</div>
-                    <div class="message-content message-sent">
+                    <div class="message-content ${isOriginalFromCurrentUser ? 'message-sent' : 'message-received'}">
                         ${data.message.replace(/\n/g, '<br>')}
                     </div>
                     <div class="message-time text-muted small text-end mt-1">
@@ -361,7 +365,7 @@ function viewMessage(id) {
         // Add replies if any
         if (data.replies && data.replies.length > 0) {
             data.replies.forEach(reply => {
-                const isCurrentUser = reply.sender_id === {{ request.user.id|default:'0' }};
+                const isCurrentUser = reply.sender_id === currentUserId;
                 messagesHtml += `
                 <div class="message-bubble ${isCurrentUser ? 'sent' : 'received'} mb-3">
                     <div class="message-sender text-muted small">${reply.sender}</div>
@@ -380,7 +384,8 @@ function viewMessage(id) {
         </div>`;
 
         document.getElementById('messageDetails').innerHTML = messagesHtml;
-        const modal = new bootstrap.Modal(document.getElementById('viewMessageModal'));
+        const viewEl = document.getElementById('viewMessageModal');
+        const modal = (bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(viewEl) : new bootstrap.Modal(viewEl));
         modal.show();
         
         // Scroll to bottom of messages
@@ -403,7 +408,7 @@ function sendReply(event, messageId) {
     fetch(`/school/{{ school_slug }}/communication/messages/${messageId}/reply/`, {
         method: 'POST',
         body: formData,
-        headers: { 'X-CSRFTToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+        headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
     })
     .then(response => response.json())
     .then(data => {
@@ -458,29 +463,102 @@ document.addEventListener('DOMContentLoaded', function() {
     if (replyForm) {
         replyForm.addEventListener('submit', handleReplyFormSubmit);
     }
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', confirmDeleteMessage);
+    }
+
+    // Ensure modal backdrops are cleaned up and page is interactive after closing
+    function cleanupModalArtifacts() {
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('padding-right');
+    }
+    const viewModalEl = document.getElementById('viewMessageModal');
+    if (viewModalEl) {
+        // Fallback: also handle 'hide' event in case 'hidden' doesn't fire in some edge cases
+        viewModalEl.addEventListener('hide.bs.modal', () => {
+            cleanupModalArtifacts();
+            setTimeout(() => window.location.reload(), 0);
+        });
+        viewModalEl.addEventListener('hidden.bs.modal', () => {
+            cleanupModalArtifacts();
+            // Reload to update read status and table state
+            window.location.reload();
+        });
+        // Extra fallback: clicking close buttons triggers cleanup + reload
+        viewModalEl.querySelectorAll('[data-bs-dismiss="modal"], .btn-close').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setTimeout(() => {
+                    cleanupModalArtifacts();
+                    window.location.reload();
+                }, 50);
+            });
+        });
+    }
+    const deleteModalEl = document.getElementById('deleteMessageModal');
+    if (deleteModalEl) {
+        deleteModalEl.addEventListener('hidden.bs.modal', cleanupModalArtifacts);
+    }
 });
 
 function deleteMessage(id) {
-    if (confirm('Are you sure you want to delete this message?')) {
-        fetch(`/school/{{ school_slug }}/communication/messages/${id}/delete/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showSuccessAndReload('Message deleted successfully!');
-            } else {
-                showError(data.error || 'Failed to delete message');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showError('Failed to delete message: ' + error.message);
-        });
+    // Open confirmation modal and stash the id on the confirm button
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    if (confirmBtn) {
+        confirmBtn.dataset.messageId = id;
+        const modal = new bootstrap.Modal(document.getElementById('deleteMessageModal'));
+        modal.show();
     }
 }
+
+// Handle confirmed deletion from modal
+function confirmDeleteMessage() {
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    const id = confirmBtn?.dataset?.messageId;
+    if (!id) return;
+    const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    fetch(`/school/{{ school_slug }}/communication/messages/${id}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrf
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modalEl = document.getElementById('deleteMessageModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal?.hide();
+            showSuccessAndReload('Message deleted successfully!');
+        } else {
+            showError(data.error || 'Failed to delete message');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showError('Failed to delete message: ' + error.message);
+    });
+}
+// Delete confirmation modal
 </script>
+
+<!-- Delete Message Confirmation Modal -->
+<div class="modal fade" id="deleteMessageModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Delete Message</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete this message? This action cannot be undone.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" id="confirmDeleteBtn" class="btn btn-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

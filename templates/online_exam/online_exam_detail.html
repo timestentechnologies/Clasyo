@@ -17,6 +17,9 @@
             <a style="color:white"class="btn btn-info" href="/school/{{ school_slug }}/online-exam/"><i class="fas fa-laptop-code"></i> Exam Dasboard</a>
             </div>
             <div class="col-auto float-right ml-auto">
+                {% if user.is_teacher or user.is_school_admin or exam.created_by == user %}
+                <a href="{% url 'online_exam:manage_questions' school_slug=school_slug exam_id=exam.id %}" class="btn btn-info"><i class="fas fa-tasks me-2"></i> Manage Questions</a>
+                {% endif %}
                 {% if perms.online_exam.change_onlineexam or user.is_school_admin or exam.created_by == user %}
                 <a href="{% url 'online_exam:update' school_slug=school_slug pk=exam.id %}" class="btn btn-info"><i class="fas fa-edit me-2"></i> Edit</a>
                 {% endif %}
@@ -202,69 +205,6 @@
         </div>
     </div>
     
-    {% if user.is_teacher or user.is_school_admin or exam.created_by == user %}
-    <!-- Questions Section -->
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <div class="modern-card">
-                <div class="card-header">
-                    <h4 class="card-title">Questions</h4>
-                    <a href="{% url 'online_exam:add_question' school_slug=school_slug exam_id=exam.id %}" class="btn btn-sm btn-primary"><i class="fas fa-plus-circle me-2"></i>Add Question</a>
-                </div>
-                <div class="card-body">
-                    {% if questions %}
-                    <div class="accordion" id="questionAccordion">
-                        {% for question in questions %}
-                        <div class="card mb-2">
-                            <div class="card-header" id="heading{{ question.id }}">
-                                <h5 class="mb-0 d-flex justify-content-between align-items-center">
-                                    <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapse{{ question.id }}" aria-expanded="false" aria-controls="collapse{{ question.id }}">
-                                        Q{{ forloop.counter }}. {{ question.text|truncatechars:100 }} ({{ question.marks }} marks)
-                                    </button>
-                                    <div>
-                                        <a href="{% url 'online_exam:edit_question' school_slug=school_slug exam_id=exam.id question_id=question.id %}" class="btn btn-sm btn-info"><i class="fas fa-pencil-alt"></i></a>
-                                        <a href="{% url 'online_exam:delete_question' school_slug=school_slug exam_id=exam.id question_id=question.id %}" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
-                                    </div>
-                                </h5>
-                            </div>
-                            <div id="collapse{{ question.id }}" class="collapse" aria-labelledby="heading{{ question.id }}" data-parent="#questionAccordion">
-                                <div class="card-body">
-                                    <p><strong>Question:</strong> {{ question.text }}</p>
-                                    <p><strong>Type:</strong> {{ question.get_question_type_display }}</p>
-                                    <p><strong>Marks:</strong> {{ question.marks }}</p>
-                                    
-                                    {% if question.question_type == 'mcq' or question.question_type == 'multi' %}
-                                    <div class="mt-3">
-                                        <h6>Options:</h6>
-                                        <ul class="list-group">
-                                            {% for choice in question.choices.all %}
-                                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                {{ choice.text }}
-                                                {% if choice.is_correct %}
-                                                <span class="badge badge-success">Correct</span>
-                                                {% endif %}
-                                            </li>
-                                            {% endfor %}
-                                        </ul>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <div class="text-center py-4">
-                        <p class="text-muted">No questions added yet.</p>
-                        <a href="{% url 'online_exam:add_question' school_slug=school_slug exam_id=exam.id %}" class="btn btn-primary"><i class="fas fa-plus-circle me-2"></i>Add First Question</a>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- /Questions Section -->
-    {% endif %}
 </div>
 {% endblock %}
 

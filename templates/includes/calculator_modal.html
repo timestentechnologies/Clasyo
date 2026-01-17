@@ -1,0 +1,254 @@
+{% load static %}
+<div class="modal fade" id="calculatorModal" tabindex="-1" aria-labelledby="calculatorModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header" style="background: linear-gradient(135deg, #1E3A5F 0%, #06B6D4 100%); color:white;">
+        <h5 class="modal-title" id="calculatorModalLabel" style="color:#ffffff !important;"><i class="fas fa-calculator me-2"></i>Clasyo Scientific Calculator</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="calcContainer" class="container-fluid">
+          <div class="row g-2 mb-2">
+            <div class="col-12">
+              <div class="p-2 border rounded d-flex flex-column" style="background:#0f172a0a;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <div>
+                    <span id="calcAngleMode" class="badge bg-info">RAD</span>
+                    <span id="calcMemInd" class="badge bg-secondary ms-2" style="display:none;">M</span>
+                  </div>
+                  <div class="text-muted small" id="calcStatus"></div>
+                </div>
+                <input id="calcDisplay" class="form-control text-end" type="text" readonly value="" style="font-size:1.25rem; letter-spacing:0.5px;">
+              </div>
+            </div>
+          </div>
+          <div class="row g-2" id="calcGrid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+#calcGrid { user-select: none; }
+#calcGrid .btn { width: 100%; font-weight: 600; }
+#calcGrid .btn-op { background: #e2e8f0; }
+#calcGrid .btn-fn { background: #f1f5f9; }
+#calcGrid .btn-eq { background: linear-gradient(135deg, #06B6D4 0%, #22D3EE 100%); color:#fff; }
+[data-theme="dark"] #calcGrid .btn-op, .theme-dark #calcGrid .btn-op { background:#334155; color:#e5e7eb; }
+[data-theme="dark"] #calcGrid .btn-fn, .theme-dark #calcGrid .btn-fn { background:#1f2937; color:#e5e7eb; }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjs@11.11.0/lib/browser/math.js"></script>
+<script>
+(function(){
+  let expr = '';
+  let memory = null;
+  let angleMode = 'RAD';
+  const display = document.getElementById('calcDisplay');
+  const memInd = document.getElementById('calcMemInd');
+  const angleBadge = document.getElementById('calcAngleMode');
+  const status = document.getElementById('calcStatus');
+  const grid = document.getElementById('calcGrid');
+
+  let mathReady = false;
+  function getMath(){
+    const m = window.math;
+    if (!m) {
+      status.textContent = 'Calculator engine not loaded';
+      return null;
+    }
+    if (!mathReady) {
+      try {
+        m.import({
+          sind: x => m.sin(m.unit(x, 'deg')),
+          cosd: x => m.cos(m.unit(x, 'deg')),
+          tand: x => m.tan(m.unit(x, 'deg')),
+          asind: x => m.divide(m.asin(x), m.unit(1,'rad')).toNumber()*180/Math.PI,
+          acosd: x => m.divide(m.acos(x), m.unit(1,'rad')).toNumber()*180/Math.PI,
+          atand: x => m.divide(m.atan(x), m.unit(1,'rad')).toNumber()*180/Math.PI
+        }, { override: true });
+      } catch(_) { /* ignore import errors */ }
+      mathReady = true;
+    }
+    return m;
+  }
+
+  function setExpr(s){ expr = s; display.value = expr; status.textContent = ''; }
+  function append(t){ setExpr(expr + t); }
+  function back(){ setExpr(expr.slice(0, -1)); }
+  function clearAll(){ setExpr(''); }
+  function setAngle(mode){ angleMode = mode; angleBadge.textContent = mode; }
+  function toggleAngle(){ setAngle(angleMode === 'RAD' ? 'DEG' : 'RAD'); }
+  function setMemory(val){ memory = val; memInd.style.display = (memory !== null) ? '' : 'none'; }
+
+  function toInternal(s){
+    let e = s;
+    e = e.replace(/×/g,'*').replace(/÷/g,'/');
+    e = e.replace(/π/g,'pi');
+    e = e.replace(/√/g,'sqrt');
+    e = e.replace(/x²/g,'^2');
+    e = e.replace(/\u221a/g,'sqrt');
+    if (angleMode === 'DEG') {
+      // Replace arc functions first, then basic trig without using lookbehind
+      e = e.replace(/\basin\(/g,'asind(');
+      e = e.replace(/\bacos\(/g,'acosd(');
+      e = e.replace(/\batan\(/g,'atand(');
+      e = e.replace(/\bsin\(/g,'sind(');
+      e = e.replace(/\bcos\(/g,'cosd(');
+      e = e.replace(/\btan\(/g,'tand(');
+    }
+    e = e.replace(/log\(/g,'log10(');
+    e = e.replace(/ln\(/g,'log(');
+    e = e.replace(/EE/g,'e');
+    return e;
+  }
+
+  function evaluate(){
+    if (!expr) return;
+    try {
+      const m = getMath(); if (!m) return;
+      const res = m.evaluate(toInternal(expr));
+      const val = typeof res === 'number' ? res : (res.value !== undefined ? res.value : res);
+      setExpr(String(val));
+    } catch(err){ status.textContent = 'Error'; }
+  }
+
+  function toggleSign(){
+    if (!expr) { append('-'); return; }
+    const m = expr.match(/([\d\.]+)(?!.*[\d\.])/);
+    if (m){
+      const start = m.index;
+      const num = m[0];
+      const before = expr.slice(0, start);
+      const after = expr.slice(start + num.length);
+      if (num.startsWith('-')) setExpr(before + num.slice(1) + after);
+      else setExpr(before + '(-' + num + ')' + after);
+    } else append('(-');
+  }
+
+  function percent(){ setExpr(expr + '/100'); }
+  function square(){ append('x²'); }
+  function sqrt(){ append('√('); }
+  function reciprocal(){ append('1/('); }
+  function power(){ append('^'); }
+  function factorial(){ append('!'); }
+
+  const layout = [
+    ['MC','MR','M+','M-','DEG/RAD','AC','⌫'],
+    ['π','e','(',')','%','÷'],
+    ['sin','cos','tan','ln','log','^'],
+    ['7','8','9','√','x²','×'],
+    ['4','5','6','!','1/x','-'],
+    ['1','2','3','±','.','+'],
+    ['0','00','=','']
+  ];
+
+  function render(){
+    grid.innerHTML = '';
+    layout.forEach((row, ri)=>{
+      const cols = row.length;
+      row.forEach((label, i)=>{
+        if (!label) return;
+        const col = document.createElement('div');
+        col.className = 'col-2';
+        if (ri === layout.length-1 && label==='='){ col.className='col-4'; }
+        if (ri === layout.length-1 && (label==='0'||label==='00')){ col.className='col-2'; }
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-light';
+        if ('+-×÷^='.includes(label) || label==='AC' || label==='⌫' || label==='%') btn.classList.add('btn-op');
+        if (['sin','cos','tan','ln','log','√','x²','!','1/x','π','e','DEG/RAD'].includes(label)) btn.classList.add('btn-fn');
+        if (label==='=') btn.classList.add('btn-eq');
+        btn.textContent = label;
+        btn.addEventListener('click', ()=> onPress(label));
+        col.appendChild(btn);
+        grid.appendChild(col);
+      });
+    });
+  }
+
+  function evalSilent(){
+    try {
+      if (!expr) return null;
+      const m = getMath(); if (!m) return null;
+      const res = m.evaluate(toInternal(expr));
+      const val = typeof res === 'number' ? res : (res && res.value !== undefined ? res.value : res);
+      const n = Number(val);
+      return Number.isFinite(n) ? n : null;
+    } catch(_){ return null; }
+  }
+
+  function onPress(label){
+    switch(label){
+      case 'AC': clearAll(); break;
+      case '⌫': back(); break;
+      case '=': evaluate(); break;
+      case 'MC': setMemory(null); break;
+      case 'MR': if (memory !== null) append(String(memory)); break;
+      case 'M+': {
+        const v = evalSilent();
+        if (v !== null) setMemory((memory || 0) + v);
+        break;
+      }
+      case 'M-': {
+        const v = evalSilent();
+        if (v !== null) setMemory((memory || 0) - v);
+        break;
+      }
+      case '+': case '-': case '×': case '÷': case '^': append(label); break;
+      case '(': case ')': case '.': case '0': case '00': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': append(label); break;
+      case 'sin': append('sin('); break;
+      case 'cos': append('cos('); break;
+      case 'tan': append('tan('); break;
+      case 'ln': append('ln('); break;
+      case 'log': append('log('); break;
+      case '√': sqrt(); break;
+      case 'x²': square(); break;
+      case '!': factorial(); break;
+      case '1/x': reciprocal(); break;
+      case '%': percent(); break;
+      case 'π': append('π'); break;
+      case 'e': append('e'); break;
+      case '±': toggleSign(); break;
+      case 'DEG/RAD': toggleAngle(); break;
+    }
+  }
+
+  function keyHandler(e){
+    const k = e.key;
+    if (/^[0-9()]$/.test(k)) append(k);
+    else if (k === '.') append('.');
+    else if (k === '+') append('+');
+    else if (k === '-') append('-');
+    else if (k === '*') append('×');
+    else if (k === '/') append('÷');
+    else if (k === '^') append('^');
+    else if (k === 'Enter') evaluate();
+    else if (k === 'Backspace') back();
+    else if (k.toLowerCase() === 'c') clearAll();
+  }
+
+  // Render buttons immediately
+  render();
+
+  // Safely attach modal events after ensuring element exists
+  (function attachModalHandlers(){
+    const modalEl = document.getElementById('calculatorModal');
+    if (modalEl) {
+      modalEl.addEventListener('shown.bs.modal', function(){ display && display.focus && display.focus(); });
+    } else {
+      document.addEventListener('DOMContentLoaded', function(){
+        const el = document.getElementById('calculatorModal');
+        if (el) el.addEventListener('shown.bs.modal', function(){ display && display.focus && display.focus(); });
+      });
+    }
+  })();
+
+  document.addEventListener('keydown', function(e){
+    const el = document.getElementById('calculatorModal');
+    const isOpen = !!(el && el.classList && el.classList.contains('show'));
+    if (isOpen) keyHandler(e);
+  });
+})();
+</script>

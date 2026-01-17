@@ -32,6 +32,14 @@ class SubscriptionPlan(models.Model):
                                 validators=[MinValueValidator(0)])
     billing_cycle = models.CharField(_("Billing Cycle"), max_length=20, choices=BILLING_CYCLE_CHOICES)
     trial_days = models.IntegerField(_("Trial Days"), default=0)
+    setup_fee = models.DecimalField(_("One-time Setup Fee"), max_digits=10, decimal_places=2,
+                                    default=0, validators=[MinValueValidator(0)])
+    data_migration_fee = models.DecimalField(_("Data Migration Fee"), max_digits=10, decimal_places=2,
+                                             default=0, validators=[MinValueValidator(0)])
+    license_fee = models.DecimalField(_("License Fee"), max_digits=10, decimal_places=2,
+                                      default=0, validators=[MinValueValidator(0)])
+    training_fee = models.DecimalField(_("Training Fee"), max_digits=10, decimal_places=2,
+                                       default=0, validators=[MinValueValidator(0)])
     
     # Limits
     max_students = models.IntegerField(_("Max Students"), default=100)
@@ -101,6 +109,11 @@ class SubscriptionPlan(models.Model):
             pass
 
         return items
+
+    @property
+    def one_time_total(self):
+        """Total of all one-time fees for this plan."""
+        return self.setup_fee + self.data_migration_fee + self.license_fee + self.training_fee
 
 
 class Subscription(models.Model):
@@ -386,6 +399,8 @@ class Invoice(models.Model):
     # Additional fields
     notes = models.TextField(blank=True)
     pdf_file = models.FileField(upload_to='invoices/', null=True, blank=True)
+    due_reminder_sent_at = models.DateTimeField(null=True, blank=True)
+    overdue_reminder_sent_at = models.DateTimeField(null=True, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -436,7 +436,7 @@
 <div class="modal fade" id="invoicePreviewModal" tabindex="-1" aria-labelledby="invoicePreviewModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header" style="background-color: #003366; color: white;">
+            <div class="modal-header" style="background-color: #4DD0E1; color: white;">
                 <h5 style="color: white;" class="modal-title" id="invoicePreviewModalLabel">
                     <i class="fas fa-file-invoice me-2"></i>Invoice Preview
                 </h5>
@@ -1115,23 +1115,23 @@ function previewInvoice(invoiceId) {
 }
 
 function displayInvoicePreview(invoice) {
-    const statusColor = invoice.status === 'paid' ? '#00CED1' : '#003366';
+    const statusColor = invoice.status === 'paid' ? '#26C6DA' : '#4DD0E1';
     const totalDisplay = invoice.total_amount === 0 ? 'FREE' : `Ksh ${invoice.total_amount}`;
     
     document.getElementById('invoicePreviewContent').innerHTML = `
         <div style="font-family: Arial, sans-serif; color: #333;">
             <!-- Header -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #003366;">
-                <h2 style="color: #003366; margin: 0;">Clasyo by Timesten Technologies Ltd.</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #4DD0E1;">
+                <h2 style="color: #4DD0E1; margin: 0;">Clasyo by Timesten Technologies Ltd.</h2>
                 <div style="text-align: right;">
-                    <h3 style="color: #00CED1; margin: 0;">Invoice #${invoice.invoice_number}</h3>
-                    <p style="color: #003366; margin: 5px 0;">Date: ${invoice.invoice_date}</p>
+                    <h3 style="color: #26C6DA; margin: 0;">Invoice #${invoice.invoice_number}</h3>
+                    <p style="color: #4DD0E1; margin: 5px 0;">Date: ${invoice.invoice_date}</p>
                 </div>
             </div>
             
             <!-- Bill To -->
             <div style="margin-bottom: 25px;">
-                <h4 style="color: #003366; margin-bottom: 10px;">Bill To:</h4>
+                <h4 style="color: #4DD0E1; margin-bottom: 10px;">Bill To:</h4>
                 <p style="margin: 5px 0;"><strong>${invoice.school_name}</strong></p>
                 ${invoice.school_address ? `<p style="margin: 5px 0;">${invoice.school_address}</p>` : ''}
                 ${invoice.school_phone ? `<p style="margin: 5px 0;">Phone: ${invoice.school_phone}</p>` : ''}
@@ -1140,23 +1140,23 @@ function displayInvoicePreview(invoice) {
             
             <!-- Invoice Details -->
             <div style="margin-bottom: 25px;">
-                <h4 style="color: #003366; margin-bottom: 15px;">Invoice Details:</h4>
+                <h4 style="color: #4DD0E1; margin-bottom: 15px;">Invoice Details:</h4>
                 <table style="width: 100%; border-collapse: collapse;">
                     <tr>
-                        <td style="background-color: #E0F7F7; padding: 10px; font-weight: bold; width: 30%;">Invoice Date:</td>
+                        <td style="background-color: #E0F7FA; padding: 10px; font-weight: bold; width: 30%;">Invoice Date:</td>
                         <td style="padding: 10px;">${invoice.invoice_date}</td>
                     </tr>
                     <tr>
-                        <td style="background-color: #E0F7F7; padding: 10px; font-weight: bold;">Due Date:</td>
+                        <td style="background-color: #E0F7FA; padding: 10px; font-weight: bold;">Due Date:</td>
                         <td style="padding: 10px;">${invoice.due_date}</td>
                     </tr>
                     <tr>
-                        <td style="background-color: #E0F7F7; padding: 10px; font-weight: bold;">Status:</td>
+                        <td style="background-color: #E0F7FA; padding: 10px; font-weight: bold;">Status:</td>
                         <td style="padding: 10px; color: ${statusColor}; font-weight: bold;">${invoice.status_display}</td>
                     </tr>
                     ${invoice.paid_date ? `
                     <tr>
-                        <td style="background-color: #E0F7F7; padding: 10px; font-weight: bold;">Paid Date:</td>
+                        <td style="background-color: #E0F7FA; padding: 10px; font-weight: bold;">Paid Date:</td>
                         <td style="padding: 10px;">${invoice.paid_date}</td>
                     </tr>
                     ` : ''}
@@ -1165,10 +1165,10 @@ function displayInvoicePreview(invoice) {
             
             <!-- Invoice Items -->
             <div style="margin-bottom: 25px;">
-                <h4 style="color: #003366; margin-bottom: 15px;">Invoice Items:</h4>
-                <table style="width: 100%; border-collapse: collapse; border: 1px solid #003366;">
+                <h4 style="color: #4DD0E1; margin-bottom: 15px;">Invoice Items:</h4>
+                <table style="width: 100%; border-collapse: collapse; border: 1px solid #4DD0E1;">
                     <thead>
-                        <tr style="background-color: #003366; color: white;">
+                        <tr style="background-color: #4DD0E1; color: white;">
                             <th style="padding: 12px; text-align: left;">Description</th>
                             <th style="padding: 12px; text-align: left;">Period</th>
                             <th style="padding: 12px; text-align: center;">Qty</th>
@@ -1178,24 +1178,24 @@ function displayInvoicePreview(invoice) {
                     </thead>
                     <tbody>
                         <tr>
-                            <td style="padding: 12px; border: 1px solid #003366;">
+                            <td style="padding: 12px; border: 1px solid #4DD0E1;">
                                 <strong>${invoice.plan_name}</strong><br>
                                 <small>${invoice.plan_description}</small>
                             </td>
-                            <td style="padding: 12px; border: 1px solid #003366;">${invoice.billing_period}</td>
-                            <td style="padding: 12px; border: 1px solid #003366; text-align: center;">1</td>
-                            <td style="padding: 12px; border: 1px solid #003366; text-align: right;">${invoice.amount_display}</td>
-                            <td style="padding: 12px; border: 1px solid #003366; text-align: right;">${invoice.amount_display}</td>
+                            <td style="padding: 12px; border: 1px solid #4DD0E1;">${invoice.billing_period}</td>
+                            <td style="padding: 12px; border: 1px solid #4DD0E1; text-align: center;">1</td>
+                            <td style="padding: 12px; border: 1px solid #4DD0E1; text-align: right;">${invoice.amount_display}</td>
+                            <td style="padding: 12px; border: 1px solid #4DD0E1; text-align: right;">${invoice.amount_display}</td>
                         </tr>
                         ${invoice.tax_amount > 0 ? `
                         <tr>
-                            <td colspan="4" style="padding: 12px; border: 1px solid #003366; text-align: right;">Tax:</td>
-                            <td style="padding: 12px; border: 1px solid #003366; text-align: right;">Ksh ${invoice.tax_amount}</td>
+                            <td colspan="4" style="padding: 12px; border: 1px solid #4DD0E1; text-align: right;">Tax:</td>
+                            <td style="padding: 12px; border: 1px solid #4DD0E1; text-align: right;">${invoice.tax_amount_display || ('Ksh ' + invoice.tax_amount)}</td>
                         </tr>
                         ` : ''}
-                        <tr style="background-color: #E0F7F7; font-weight: bold;">
-                            <td colspan="4" style="padding: 12px; border: 1px solid #003366; text-align: right;">Total:</td>
-                            <td style="padding: 12px; border: 1px solid #003366; text-align: right; color: #003366;">${totalDisplay}</td>
+                        <tr style="background-color: #E0F7FA; font-weight: bold;">
+                            <td colspan="4" style="padding: 12px; border: 1px solid #4DD0E1; text-align: right;">Total:</td>
+                            <td style="padding: 12px; border: 1px solid #4DD0E1; text-align: right; color: #4DD0E1;">${invoice.total_amount_display || totalDisplay}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1203,16 +1203,16 @@ function displayInvoicePreview(invoice) {
             
             ${invoice.notes ? `
             <div style="margin-bottom: 25px;">
-                <h4 style="color: #003366; margin-bottom: 10px;">Notes:</h4>
+                <h4 style="color: #4DD0E1; margin-bottom: 10px;">Notes:</h4>
                 <p style="margin: 5px 0;">${invoice.notes}</p>
             </div>
             ` : ''}
             
             <!-- Footer -->
             <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; font-size: 12px;">
-                <p style="color: #003366; margin: 5px 0;">This is a computer-generated invoice. No signature is required.</p>
-                <p style="color: #00CED1; margin: 5px 0;">Thank you for your business with Clasyo!</p>
-                <p style="color: #003366; margin: 5px 0;">For questions, contact us at billing@clasyo.com</p>
+                <p style="color: #4DD0E1; margin: 5px 0;">This is a computer-generated invoice. No signature is required.</p>
+                <p style="color: #26C6DA; margin: 5px 0;">Thank you for your business with Clasyo!</p>
+                <p style="color: #4DD0E1; margin: 5px 0;">Website: https://clasyo.timestentechnologies.co.ke/</p>
             </div>
         </div>
     `;

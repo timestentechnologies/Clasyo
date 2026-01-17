@@ -16,6 +16,7 @@ from django.utils.decorators import method_decorator
 from .models import BookCategory, Publisher, Author, Book, BookCopy, BookIssue
 from students.models import Student
 from django import forms
+from core.utils import get_current_school
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -28,7 +29,10 @@ class GetAvailableCopiesView(LoginRequiredMixin, View):
             return JsonResponse({'error': 'Book ID is required'}, status=400)
             
         try:
-            book = Book.objects.get(id=book_id, school=request.school)
+            school = get_current_school(request)
+            if not school:
+                return JsonResponse({'error': 'School not found'}, status=400)
+            book = Book.objects.get(id=book_id, school=school)
             available_copies = book.copies.filter(status='available')
             
             copies_data = [{
@@ -93,27 +97,43 @@ class LibraryDashboardView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
         
+        school = get_current_school(self.request)
         # Get recent books
-        context['recent_books'] = Book.objects.all().order_by('-created_at')[:10]
+        recent_books = Book.objects.all()
+        if school:
+            recent_books = recent_books.filter(school=school)
+        context['recent_books'] = recent_books.order_by('-created_at')[:10]
         
         # Get statistics
-        context['total_books'] = Book.objects.count()
-        context['total_categories'] = BookCategory.objects.count()
-        context['total_authors'] = Author.objects.count()
-        context['total_publishers'] = Publisher.objects.count()
+        books_qs = Book.objects.all()
+        categories_qs = BookCategory.objects.all()
+        authors_qs = Author.objects.all()
+        publishers_qs = Publisher.objects.all()
+        if school:
+            books_qs = books_qs.filter(school=school)
+            categories_qs = categories_qs.filter(school=school)
+            authors_qs = authors_qs.filter(school=school)
+            publishers_qs = publishers_qs.filter(school=school)
+        context['total_books'] = books_qs.count()
+        context['total_categories'] = categories_qs.count()
+        context['total_authors'] = authors_qs.count()
+        context['total_publishers'] = publishers_qs.count()
         
         # Count books by status
-        context['available_books'] = Book.objects.filter(status='available').count()
-        context['issued_books'] = Book.objects.filter(status='issued').count()
+        context['available_books'] = books_qs.filter(status='available').count()
+        context['issued_books'] = books_qs.filter(status='issued').count()
         
         # Get recent issues
-        context['recent_issues'] = BookIssue.objects.filter(status='issued').order_by('-issue_date')[:10]
+        issues_qs = BookIssue.objects.filter(status='issued')
+        if school:
+            issues_qs = issues_qs.filter(book__school=school)
+        context['recent_issues'] = issues_qs.order_by('-issue_date')[:10]
         
         # Get overdue books
-        context['overdue_issues'] = BookIssue.objects.filter(
-            status='issued',
-            due_date__lt=timezone.now().date()
-        ).order_by('due_date')
+        overdue_qs = BookIssue.objects.filter(status='issued', due_date__lt=timezone.now().date())
+        if school:
+            overdue_qs = overdue_qs.filter(book__school=school)
+        context['overdue_issues'] = overdue_qs.order_by('due_date')
         
         return context
 
@@ -126,7 +146,10 @@ class BookListView(LoginRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
+        school = get_current_school(self.request)
         queryset = Book.objects.all()
+        if school:
+            queryset = queryset.filter(school=school)
         
         # Apply filters
         category_id = self.request.GET.get('category')
@@ -160,9 +183,17 @@ class BookListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
-        context['categories'] = BookCategory.objects.all()
-        context['authors'] = Author.objects.all()
-        context['publishers'] = Publisher.objects.all()
+        school = get_current_school(self.request)
+        categories_qs = BookCategory.objects.all()
+        authors_qs = Author.objects.all()
+        publishers_qs = Publisher.objects.all()
+        if school:
+            categories_qs = categories_qs.filter(school=school)
+            authors_qs = authors_qs.filter(school=school)
+            publishers_qs = publishers_qs.filter(school=school)
+        context['categories'] = categories_qs
+        context['authors'] = authors_qs
+        context['publishers'] = publishers_qs
         context['status_choices'] = Book.BOOK_STATUS_CHOICES
         
         # Current filters
@@ -180,6 +211,13 @@ class BookDetailView(LoginRequiredMixin, DetailView):
     model = Book
     template_name = 'library/book_detail.html'
     context_object_name = 'book'
+    
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = Book.objects.all()
+        if school:
+            qs = qs.filter(school=school)
+        return qs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -206,6 +244,13 @@ class BookCategoryListView(LoginRequiredMixin, ListView):
     template_name = 'library/category_list.html'
     context_object_name = 'categories'
     
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = BookCategory.objects.all()
+        if school:
+            qs = qs.filter(school=school)
+        return qs
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
@@ -220,7 +265,10 @@ class AuthorListView(LoginRequiredMixin, ListView):
     paginate_by = 30
     
     def get_queryset(self):
+        school = get_current_school(self.request)
         queryset = Author.objects.all()
+        if school:
+            queryset = queryset.filter(school=school)
         
         # Apply search filter
         search = self.request.GET.get('search')
@@ -243,7 +291,10 @@ class PublisherListView(LoginRequiredMixin, ListView):
     paginate_by = 30
     
     def get_queryset(self):
+        school = get_current_school(self.request)
         queryset = Publisher.objects.all()
+        if school:
+            queryset = queryset.filter(school=school)
         
         # Apply search filter
         search = self.request.GET.get('search')
@@ -266,7 +317,10 @@ class BookIssueListView(LoginRequiredMixin, ListView):
     paginate_by = 25
     
     def get_queryset(self):
+        school = get_current_school(self.request)
         queryset = BookIssue.objects.all().select_related('book', 'student', 'user')
+        if school:
+            queryset = queryset.filter(book__school=school)
         
         # Apply filters
         status = self.request.GET.get('status')
@@ -325,15 +379,7 @@ class BookCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         # Set creator
         form.instance.created_by = self.request.user
-        
-        # Associate with school
-        school_slug = self.kwargs.get('school_slug')
-        from tenants.models import School
-        try:
-            school = School.objects.get(slug=school_slug)
-            form.instance.school = school
-        except School.DoesNotExist:
-            pass
+        form.instance.school = get_current_school(self.request)
         
         messages.success(self.request, _('Book created successfully'))
         return super().form_valid(form)
@@ -361,6 +407,13 @@ class BookUpdateView(LoginRequiredMixin, UpdateView):
               'price', 'quantity', 'available_quantity', 'cover_image', 'digital_copy',
               'is_digital', 'is_reference', 'loan_period_days', 'max_renewals']
     
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = Book.objects.all()
+        if school:
+            qs = qs.filter(school=school)
+        return qs
+    
     def form_valid(self, form):
         messages.success(self.request, _('Book updated successfully'))
         return super().form_valid(form)
@@ -383,6 +436,13 @@ class BookDeleteView(LoginRequiredMixin, DeleteView):
     model = Book
     template_name = 'library/confirm_delete.html'
     
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = Book.objects.all()
+        if school:
+            qs = qs.filter(school=school)
+        return qs
+    
     def get_success_url(self):
         return reverse('library:book_list', kwargs={'school_slug': self.kwargs.get('school_slug', '')})
     
@@ -399,7 +459,11 @@ class BookReturnView(LoginRequiredMixin, View):
     
     def post(self, request, *args, **kwargs):
         issue_id = kwargs.get('pk')
-        issue = get_object_or_404(BookIssue, pk=issue_id, status='issued')
+        school = get_current_school(request)
+        qs = BookIssue.objects.filter(pk=issue_id, status='issued')
+        if school:
+            qs = qs.filter(book__school=school)
+        issue = get_object_or_404(qs)
         
         # Update issue status
         issue.status = 'returned'
@@ -422,7 +486,11 @@ class BookRenewView(LoginRequiredMixin, View):
     
     def post(self, request, *args, **kwargs):
         issue_id = kwargs.get('pk')
-        issue = get_object_or_404(BookIssue, pk=issue_id, status='issued')
+        school = get_current_school(request)
+        qs = BookIssue.objects.filter(pk=issue_id, status='issued')
+        if school:
+            qs = qs.filter(book__school=school)
+        issue = get_object_or_404(qs)
         
         # Get renewal days from post or use default
         days = request.POST.get('days')
@@ -446,6 +514,7 @@ class MyBooksView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         user = self.request.user
+        school = get_current_school(self.request)
         
         # Get student if user is a student
         student = None
@@ -454,9 +523,12 @@ class MyBooksView(LoginRequiredMixin, ListView):
         
         # Get book issues
         if student:
-            return BookIssue.objects.filter(student=student).select_related('book')
+            qs = BookIssue.objects.filter(student=student).select_related('book')
         else:
-            return BookIssue.objects.filter(user=user).select_related('book')
+            qs = BookIssue.objects.filter(user=user).select_related('book')
+        if school:
+            qs = qs.filter(book__school=school)
+        return qs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -482,10 +554,11 @@ class OverdueReportView(LoginRequiredMixin, ListView):
     context_object_name = 'overdue_issues'
     
     def get_queryset(self):
-        return BookIssue.objects.filter(
-            status='issued',
-            due_date__lt=timezone.now().date()
-        ).select_related('book', 'student', 'user').order_by('due_date')
+        school = get_current_school(self.request)
+        qs = BookIssue.objects.filter(status='issued', due_date__lt=timezone.now().date()).select_related('book', 'student', 'user')
+        if school:
+            qs = qs.filter(book__school=school)
+        return qs.order_by('due_date')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -512,19 +585,29 @@ class PopularBooksReportView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
+        school = get_current_school(self.request)
         
         # Most issued books
-        context['most_issued'] = Book.objects.annotate(
+        books_qs = Book.objects.all()
+        if school:
+            books_qs = books_qs.filter(school=school)
+        context['most_issued'] = books_qs.annotate(
             issue_count=Count('issues')
         ).order_by('-issue_count')[:10]
         
         # Most issued by category
-        context['by_category'] = BookCategory.objects.annotate(
+        categories_qs = BookCategory.objects.all()
+        if school:
+            categories_qs = categories_qs.filter(school=school)
+        context['by_category'] = categories_qs.annotate(
             issue_count=Count('books__issues')
         ).order_by('-issue_count')
         
         # Recent issues
-        context['recent_issues'] = BookIssue.objects.all().order_by('-issue_date')[:20]
+        issues_qs = BookIssue.objects.all()
+        if school:
+            issues_qs = issues_qs.filter(book__school=school)
+        context['recent_issues'] = issues_qs.order_by('-issue_date')[:20]
         
         return context
 
@@ -620,8 +703,11 @@ class BookIssueCreateView(LoginRequiredMixin, CreateView):
         form.fields['student'].widget.attrs.update({'class': 'form-select select2'})
         form.fields['due_date'].widget = forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
         
-        # Filter available books only
-        form.fields['book'].queryset = Book.objects.filter(available_quantity__gt=0)
+        school = get_current_school(self.request)
+        qs = Book.objects.filter(available_quantity__gt=0)
+        if school:
+            qs = qs.filter(school=school)
+        form.fields['book'].queryset = qs
         
         # Filter book copies based on selected book (to be enhanced with AJAX)
         if 'book' in self.request.GET:

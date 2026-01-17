@@ -1,0 +1,116 @@
+{% extends "dashboards/base.html" %}
+{% load static i18n %}
+
+{% block title %}{% trans "Submit Homework" %} - {{ assignment.title }}{% endblock %}
+{% block page_title %}{% trans "Submit Homework" %}{% endblock %}
+{% block page_icon %}paper-plane{% endblock %}
+{% block page_subtitle %}{{ assignment.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="modern-card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">{% trans "Your Submission" %}</h4>
+                    {% if is_late %}
+                    <span class="badge bg-danger">{% trans "Late" %}</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" class="row g-3">
+                        {% csrf_token %}
+
+                        {% if show_text %}
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-align-left text-primary me-2"></i>
+                                {% trans "Text Response" %}
+                            </label>
+                            {{ form.submission_text }}
+                        </div>
+                        {% endif %}
+
+                        {% if show_file %}
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-file-upload text-success me-2"></i>
+                                {% trans "File Upload" %}
+                            </label>
+                            {{ form.submission_file }}
+                            <small class="form-text text-muted">
+                                {% trans "Attach your work as a file (PDF, DOC, images, etc.)" %}
+                            </small>
+                        </div>
+                        {% endif %}
+
+                        {% if show_url %}
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-link text-info me-2"></i>
+                                {% trans "Link / URL" %}
+                            </label>
+                            {{ form.submission_url }}
+                            <small class="form-text text-muted">
+                                {% trans "Paste a link to your work (e.g. Google Docs, website)." %}
+                            </small>
+                        </div>
+                        {% endif %}
+
+                        <div class="col-12 d-flex justify-content-between mt-4 pt-3 border-top">
+                            <a href="{% url 'homework:detail' school_slug=school_slug pk=assignment.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>{% trans "Back to Assignment" %}
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="fas fa-paper-plane me-2"></i>{% trans "Submit" %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="modern-card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">{% trans "Assignment Info" %}</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{% trans "Class" %}</span>
+                            <span>{{ assignment.class_ref.name }}</span>
+                        </li>
+                        {% if assignment.section %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{% trans "Section" %}</span>
+                            <span>{{ assignment.section.name }}</span>
+                        </li>
+                        {% endif %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{% trans "Subject" %}</span>
+                            <span>{{ assignment.subject.name }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{% trans "Due Date" %}</span>
+                            <span class="{% if assignment.is_past_due %}text-danger{% endif %}">
+                                {{ assignment.due_date|date:"M d, Y H:i" }}
+                            </span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{% trans "Submission Type" %}</span>
+                            <span>{{ assignment.get_submission_type_display }}</span>
+                        </li>
+                        {% if assignment.points %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{% trans "Points" %}</span>
+                            <span>{{ assignment.points }}</span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "dashboards/base.html" %}
+{% load static i18n %}
+
+{% block title %}{% trans "My Homework" %}{% endblock %}
+{% block page_title %}{% trans "My Homework" %}{% endblock %}
+{% block page_icon %}book{% endblock %}
+{% block page_subtitle %}{% trans "Assignments for your class" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Filters / Tabs -->
+    <div class="modern-card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">{% trans "Filters" %}</h5>
+        </div>
+        <div class="card-body">
+            <div class="btn-group" role="group">
+                {% for key, label in {
+                    'all': _('All'),
+                    'upcoming': _('Upcoming'),
+                    'past': _('Past'),
+                    'submitted': _('Submitted'),
+                    'not_submitted': _('Not Submitted'),
+                    'graded': _('Graded')
+                }.items %}
+                <a href="?filter={{ key }}" class="btn btn-sm {% if current_filter == key %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ label }}</a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignments List -->
+    <div class="modern-card">
+        <div class="card-header">
+            <h4 class="card-title mb-0">{% trans "Assignments" %}</h4>
+        </div>
+        <div class="card-body">
+            {% if assignments %}
+            <div class="table-responsive">
+                <table class="table table-striped custom-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>{% trans "Title" %}</th>
+                            <th>{% trans "Subject" %}</th>
+                            <th>{% trans "Due Date" %}</th>
+                            <th>{% trans "Status" %}</th>
+                            <th class="text-right">{% trans "Action" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for assignment in assignments %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'homework:detail' school_slug=school_slug pk=assignment.id %}">{{ assignment.title }}</a>
+                            </td>
+                            <td>{{ assignment.subject.name }}</td>
+                            <td>
+                                {{ assignment.due_date|date:"M d, Y H:i" }}
+                                {% if assignment.is_past_due %}
+                                <br><span class="badge bg-danger">{% trans "Overdue" %}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if assignment.student_submission %}
+                                    {% if assignment.student_submission.status in ('graded','returned') %}
+                                        <span class="badge bg-success">{% trans "Graded" %}</span>
+                                    {% else %}
+                                        <span class="badge bg-info">{% trans "Submitted" %}</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-warning">{% trans "Not Submitted" %}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right">
+                                {% if assignment.student_submission %}
+                                    <a href="{% url 'homework:view_submission' school_slug=school_slug pk=assignment.student_submission.id %}" class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-eye"></i> {% trans "View" %}
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'homework:submit' school_slug=school_slug assignment_id=assignment.id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-paper-plane"></i> {% trans "Submit" %}
+                                    </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <img src="{% static 'img/icons/no-data.svg' %}" alt="No Data" style="width: 100px; opacity: 0.5">
+                <h5 class="mt-3 text-muted">{% trans "No assignments found" %}</h5>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

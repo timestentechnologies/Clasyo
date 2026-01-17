@@ -252,6 +252,110 @@
         footer a:hover {
             color: white;
         }
+
+        .whatsapp-float {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            width: 56px;
+            height: 56px;
+            border-radius: 999px;
+            background: #25D366;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+            z-index: 1060;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .whatsapp-float:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px rgba(0,0,0,0.22);
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        .whatsapp-float i {
+            font-size: 28px;
+        }
+
+        @media (max-width: 576px) {
+            .whatsapp-float { right: 14px; bottom: 14px; width: 52px; height: 52px; }
+            .whatsapp-float i { font-size: 26px; }
+        }
+        /* AI chat widget (bottom-left) */
+        .ai-float {
+            position: fixed;
+            left: 18px;
+            bottom: 18px;
+            width: 56px;
+            height: 56px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #1E3A5F 0%, #4DD0E1 100%);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+            z-index: 1060;
+            border: 0;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .ai-float:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(0,0,0,0.22); }
+        .ai-float i { font-size: 24px; }
+        @media (max-width: 576px) { .ai-float { left: 14px; bottom: 14px; width: 52px; height: 52px; } }
+
+        .ai-chat-panel {
+            position: fixed;
+            left: 18px;
+            bottom: 84px;
+            width: 340px;
+            max-width: calc(100vw - 36px);
+            height: 440px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 1061;
+            border: 1px solid #e2e8f0;
+        }
+        .ai-chat-panel.open { display: flex; }
+        .ai-chat-header {
+            background: linear-gradient(135deg, #1E3A5F 0%, #4DD0E1 100%);
+            color: #fff;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 600;
+        }
+        .ai-chat-body { flex: 1; padding: 12px; overflow-y: auto; background: #f8fafc; }
+        .ai-msg { display: flex; margin-bottom: 10px; }
+        .ai-msg.user { justify-content: flex-end; }
+        .ai-bubble { max-width: 80%; padding: 10px 12px; border-radius: 14px; font-size: 0.95rem; }
+        .ai-msg.user .ai-bubble { background: #1E3A5F; color: #fff; border-bottom-right-radius: 6px; }
+        .ai-msg.bot .ai-bubble { background: #ffffff; border: 1px solid #e2e8f0; color: #1a202c; border-bottom-left-radius: 6px; }
+        /* Typing indicator */
+        .ai-bubble.ai-thinking { display: inline-flex; align-items: center; gap: 4px; }
+        .ai-bubble.ai-thinking .dot { width: 6px; height: 6px; border-radius: 50%; background: #94a3b8; opacity: 0.6; animation: aiTyping 1.2s infinite ease-in-out; }
+        .ai-bubble.ai-thinking .dot:nth-child(2) { animation-delay: .2s; }
+        .ai-bubble.ai-thinking .dot:nth-child(3) { animation-delay: .4s; }
+        @keyframes aiTyping { 0%, 80%, 100% { transform: translateY(0); opacity: .4; } 40% { transform: translateY(-3px); opacity: 1; } }
+        .ai-chat-input { padding: 10px; background: #fff; border-top: 1px solid #e2e8f0; }
+        .ai-chat-input .input-group-text { background: #fff; border-right: 0; }
+        .ai-chat-input input { border-left: 0; }
+        .ai-chat-input .form-control:focus { outline: none !important; box-shadow: none !important; border-color: #e2e8f0 !important; }
+        .ai-chat-input .btn:focus, .ai-chat-input .btn:active { outline: none !important; box-shadow: none !important; }
+        .ai-chat-input .input-group { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+        .ai-chat-input .input-group-text, .ai-chat-input .form-control, .ai-chat-input .btn { border: 0 !important; }
+        .ai-chat-input .input-group:focus-within { box-shadow: none !important; border-color: #cbd5e1; }
+        .ai-close { background: transparent; border: 0; color: #fff; opacity: 0.9; }
+        .ai-close:hover { opacity: 1; }
         
         .section-title {
             font-size: 2.5rem;
@@ -292,6 +396,9 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'faq' %}active{% endif %}" href="{% url 'frontend:faq' %}">FAQ</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'forum' %}active{% endif %}" href="{% url 'frontend:forum' %}">Forum</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'contact' %}active{% endif %}" href="{% url 'frontend:contact' %}">Contact</a>
@@ -362,6 +469,7 @@
                 <div class="col-md-2 mb-4">
                     <h6 class="text-white mb-3">Quick Links</h6>
                     <ul class="list-unstyled">
+                        <li class="mb-2"><a href="{% url 'frontend:forum' %}">Forum</a></li>
                         <li class="mb-2"><a href="{% url 'frontend:privacy' %}">Privacy Policy</a></li>
                         <li class="mb-2"><a href="{% url 'frontend:terms' %}">Terms of Service</a></li>
                         <li class="mb-2"><a href="{% url 'frontend:license' %}">License</a></li>
@@ -395,7 +503,97 @@
 
     {% include 'frontend/modals.html' %}
 
+    <a class="whatsapp-float" href="https://wa.me/254718883983" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
+    <button class="ai-float" id="aiChatToggle" type="button" aria-label="Ask Clasyo AI">
+        <i class="fas fa-robot"></i>
+    </button>
+    <div class="ai-chat-panel" id="aiChatPanel" aria-hidden="true">
+        <div class="ai-chat-header">
+            <span><i class="fas fa-robot me-2"></i>Ask Clasyo AI</span>
+            <button class="ai-close" id="aiChatClose" aria-label="Close AI chat"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="ai-chat-body" id="aiChatBody">
+            <div class="ai-msg bot"><div class="ai-bubble">Hi! Ask me about Clasyo features, pricing, modules, onboarding, and more.</div></div>
+        </div>
+        <div class="ai-chat-input">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-message"></i></span>
+                <input type="text" class="form-control" id="aiChatInput" placeholder="Type your question..." />
+                <button class="btn btn-primary" id="aiChatSend" type="button"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const panel = document.getElementById('aiChatPanel');
+        const toggleBtn = document.getElementById('aiChatToggle');
+        const closeBtn = document.getElementById('aiChatClose');
+        const bodyEl = document.getElementById('aiChatBody');
+        const inputEl = document.getElementById('aiChatInput');
+        const sendBtn = document.getElementById('aiChatSend');
+
+        function openPanel() {
+            panel.classList.add('open');
+            inputEl.focus();
+        }
+        function closePanel() { panel.classList.remove('open'); }
+        function addMsg(role, text) {
+            const wrap = document.createElement('div');
+            wrap.className = 'ai-msg ' + (role === 'user' ? 'user' : 'bot');
+            const bubble = document.createElement('div');
+            bubble.className = 'ai-bubble';
+            bubble.textContent = text;
+            wrap.appendChild(bubble);
+            bodyEl.appendChild(wrap);
+            bodyEl.scrollTop = bodyEl.scrollHeight;
+        }
+        async function ask() {
+            const prompt = (inputEl.value || '').trim();
+            if (!prompt) return;
+            addMsg('user', prompt);
+            inputEl.value = '';
+            sendBtn.disabled = true;
+            // show thinking indicator
+            const thinkingWrap = document.createElement('div');
+            thinkingWrap.className = 'ai-msg bot';
+            const thinkingBubble = document.createElement('div');
+            thinkingBubble.className = 'ai-bubble ai-thinking';
+            thinkingBubble.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+            thinkingWrap.appendChild(thinkingBubble);
+            bodyEl.appendChild(thinkingWrap);
+            bodyEl.scrollTop = bodyEl.scrollHeight;
+            try {
+                const resp = await fetch('/api/ai/chat/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+                const data = await resp.json();
+                if (thinkingWrap && thinkingWrap.parentNode) thinkingWrap.parentNode.removeChild(thinkingWrap);
+                if (data && data.success) {
+                    addMsg('bot', data.answer || '');
+                } else {
+                    addMsg('bot', data && data.error ? ('Error: ' + data.error) : 'Sorry, I could not answer that.');
+                }
+            } catch (e) {
+                if (thinkingWrap && thinkingWrap.parentNode) thinkingWrap.parentNode.removeChild(thinkingWrap);
+                addMsg('bot', 'Network error. Please try again.');
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+
+        toggleBtn.addEventListener('click', openPanel);
+        closeBtn.addEventListener('click', closePanel);
+        sendBtn.addEventListener('click', ask);
+        inputEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') ask(); });
+    });
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

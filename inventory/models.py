@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from decimal import Decimal
+from tenants.models import School
 
 User = get_user_model()
 
@@ -17,6 +18,7 @@ class ItemCategory(models.Model):
         ('other', 'Other'),
     ]
     
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='item_categories', null=True, blank=True)
     name = models.CharField(_("Category Name"), max_length=100)
     category_type = models.CharField(_("Type"), max_length=20, choices=CATEGORY_CHOICES)
     description = models.TextField(_("Description"), blank=True)
@@ -34,6 +36,7 @@ class ItemCategory(models.Model):
 
 class Item(models.Model):
     """Inventory Item/Product"""
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='items', null=True, blank=True)
     name = models.CharField(_("Item Name"), max_length=200)
     code = models.CharField(_("Item Code"), max_length=50, unique=True)
     category = models.ForeignKey(ItemCategory, on_delete=models.SET_NULL, null=True, related_name='items')
@@ -65,6 +68,7 @@ class Item(models.Model):
 
 class Supplier(models.Model):
     """Supplier/Vendor"""
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='suppliers', null=True, blank=True)
     name = models.CharField(_("Supplier Name"), max_length=200)
     contact_person = models.CharField(_("Contact Person"), max_length=100, blank=True)
     email = models.EmailField(_("Email"), blank=True)
@@ -97,6 +101,7 @@ class PurchaseOrder(models.Model):
         ('cancelled', 'Cancelled'),
     ]
     
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='purchase_orders', null=True, blank=True)
     po_number = models.CharField(_("PO Number"), max_length=50, unique=True)
     supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name='purchase_orders')
     status = models.CharField(_("Status"), max_length=20, choices=STATUS_CHOICES, default='draft')
@@ -160,6 +165,7 @@ class ItemDistribution(models.Model):
         ('department', 'Department'),
     ]
     
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='item_distributions', null=True, blank=True)
     item = models.ForeignKey(Item, on_delete=models.PROTECT, related_name='distributions')
     quantity = models.DecimalField(_("Quantity"), max_digits=10, decimal_places=2)
     recipient_type = models.CharField(_("Recipient Type"), max_length=20, choices=RECIPIENT_TYPE_CHOICES)
@@ -198,6 +204,7 @@ class Expense(models.Model):
         ('online', 'Online Payment'),
     ]
     
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='expenses', null=True, blank=True)
     expense_number = models.CharField(_("Expense Number"), max_length=50, unique=True)
     expense_type = models.CharField(_("Expense Type"), max_length=20, choices=EXPENSE_TYPE_CHOICES)
     description = models.CharField(_("Description"), max_length=300)
@@ -233,6 +240,7 @@ class StaffPayment(models.Model):
         ('cancelled', 'Cancelled'),
     ]
     
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='staff_payments', null=True, blank=True)
     payment_number = models.CharField(_("Payment Number"), max_length=50, unique=True)
     staff_type = models.CharField(_("Staff Type"), max_length=20, choices=STAFF_TYPE_CHOICES)
     staff_id = models.IntegerField(_("Staff/Teacher ID"))
@@ -263,9 +271,14 @@ class StaffPayment(models.Model):
         # Calculate net salary
         self.net_salary = self.basic_salary + self.allowances - self.deductions
         
+        # Ensure StaffPayment.school is set if creator has a school
+        if not self.school and getattr(self.created_by, 'school', None):
+            self.school = self.created_by.school
+
         # Create expense record if paid
         if self.status == 'paid' and not self.expense:
             expense = Expense.objects.create(
+                school=self.school or getattr(self.created_by, 'school', None),
                 expense_number=f"EXP-{self.payment_number}",
                 expense_type='salary',
                 description=f"Salary payment for {self.staff_name}",

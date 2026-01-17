@@ -1,6 +1,7 @@
 """Utility functions for the core application"""
 from django.utils.text import slugify
 from accounts.models import User
+from tenants.models import School
 
 
 def generate_email(first_name, last_name, school_slug, role='student'):
@@ -63,3 +64,13 @@ def get_school_slug_from_request(request):
     
     # Default fallback
     return 'school'
+
+
+def get_current_school(request):
+    if hasattr(request, 'school') and request.school:
+        return request.school
+    slug = get_school_slug_from_request(request)
+    try:
+        return School.objects.get(slug=slug, is_active=True)
+    except School.DoesNotExist:
+        return None

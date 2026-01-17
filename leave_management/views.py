@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.views import View
 from accounts.models import User
 from datetime import datetime
+from core.utils import get_current_school
 
 # Check if models exist
 try:
@@ -26,23 +27,27 @@ class LeaveListView(LoginRequiredMixin, ListView):
         if not MODELS_EXIST:
             return []
         user = self.request.user
+        school = get_current_school(self.request)
+        qs = Leave.objects.all()
+        if school:
+            qs = qs.filter(school=school)
         # Admins (superadmin, admin) see all leave applications
         if user.role in ['superadmin', 'admin']:
-            return Leave.objects.all().order_by('-created_at')
+            return qs.order_by('-created_at')
         # Teachers see only their own leave applications
         elif user.role == 'teacher':
-            return Leave.objects.filter(teacher=user).order_by('-created_at')
+            return qs.filter(teacher=user).order_by('-created_at')
         # Students see only their own leave applications
         elif user.role == 'student':
             from students.models import Student
             try:
                 student = Student.objects.get(user=user)
-                return Leave.objects.filter(student=student).order_by('-created_at')
+                return qs.filter(student=student).order_by('-created_at')
             except Student.DoesNotExist:
                 return Leave.objects.none()
         # Staff see only their own leave applications
         elif user.role == 'staff':
-            return Leave.objects.filter(staff=user).order_by('-created_at')
+            return qs.filter(staff=user).order_by('-created_at')
         else:
             return Leave.objects.none()
     
@@ -50,7 +55,11 @@ class LeaveListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
         if MODELS_EXIST:
-            context['leave_types'] = LeaveType.objects.all()
+            school = get_current_school(self.request)
+            leave_types_qs = LeaveType.objects.all()
+            if school:
+                leave_types_qs = leave_types_qs.filter(school=school)
+            context['leave_types'] = leave_types_qs
         else:
             context['leave_types'] = []
         return context
@@ -81,11 +90,20 @@ class LeaveApplyView(LoginRequiredMixin, View):
 
             # Get or create LeaveType by name
             try:
-                leave_type, created = LeaveType.objects.get_or_create(name=leave_type_name.title())
+                school = get_current_school(request)
+                leave_type, created = LeaveType.objects.get_or_create(
+                    name=leave_type_name.title(),
+                    defaults={'school': school} if school else {}
+                )
+                # If existing LeaveType lacks school, set it now
+                if not created and school and not leave_type.school:
+                    leave_type.school = school
+                    leave_type.save(update_fields=['school'])
             except Exception as e:
                 return JsonResponse({'success': False, 'error': f'Error creating leave type: {str(e)}'})
 
             leave_data = {
+                'school': school,
                 'leave_type': leave_type,
                 'from_date': from_date,
                 'to_date': to_date,
@@ -145,7 +163,11 @@ class LeaveApproveView(LoginRequiredMixin, View):
         if not MODELS_EXIST:
             return JsonResponse({'success': False, 'error': 'Models not available'})
         try:
-            leave = Leave.objects.get(pk=pk)
+            school = get_current_school(request)
+            qs = Leave.objects.all()
+            if school:
+                qs = qs.filter(school=school)
+            leave = qs.get(pk=pk)
             leave.status = 'approved'
             leave.approved_by = request.user
             leave.save()
@@ -159,7 +181,11 @@ class LeaveRejectView(LoginRequiredMixin, View):
         if not MODELS_EXIST:
             return JsonResponse({'success': False, 'error': 'Models not available'})
         try:
-            leave = Leave.objects.get(pk=pk)
+            school = get_current_school(request)
+            qs = Leave.objects.all()
+            if school:
+                qs = qs.filter(school=school)
+            leave = qs.get(pk=pk)
             leave.status = 'rejected'
             leave.approved_by = request.user
             leave.save()
@@ -171,7 +197,11 @@ class LeaveRejectView(LoginRequiredMixin, View):
 # API Views for fetching teachers, students, and staff
 class TeachersAPIView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
-        teachers = User.objects.filter(role='teacher', is_active=True).values('id', 'first_name', 'last_name')
+        school = get_current_school(request)
+        teachers_qs = User.objects.filter(role='teacher', is_active=True)
+        if school:
+            teachers_qs = teachers_qs.filter(school=school)
+        teachers = teachers_qs.values('id', 'first_name', 'last_name')
         data = [{'id': t['id'], 'name': f"{t['first_name']} {t['last_name']}"} for t in teachers]
         return JsonResponse(data, safe=False)
 
@@ -179,15 +209,21 @@ class TeachersAPIView(LoginRequiredMixin, View):
 class StudentsAPIView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         from students.models import Student
-        students = Student.objects.filter(is_active=True).select_related('user').values(
-            'id', 'first_name', 'last_name'
-        )
+        school = get_current_school(request)
+        students_qs = Student.objects.filter(is_active=True).select_related('user')
+        if school:
+            students_qs = students_qs.filter(current_class__school=school)
+        students = students_qs.values('id', 'first_name', 'last_name')
         data = [{'id': s['id'], 'name': f"{s['first_name']} {s['last_name']}"} for s in students]
         return JsonResponse(data, safe=False)
 
 
 class StaffAPIView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
-        staff = User.objects.filter(role='staff', is_active=True).values('id', 'first_name', 'last_name')
+        school = get_current_school(request)
+        staff_qs = User.objects.filter(role='staff', is_active=True)
+        if school:
+            staff_qs = staff_qs.filter(school=school)
+        staff = staff_qs.values('id', 'first_name', 'last_name')
         data = [{'id': s['id'], 'name': f"{s['first_name']} {s['last_name']}"} for s in staff]
         return JsonResponse(data, safe=False)

@@ -850,6 +850,7 @@ class GlobalAIConfiguration(models.Model):
             ('openai', 'OpenAI'),
             ('azure', 'Azure OpenAI'),
             ('anthropic', 'Anthropic'),
+            ('google', 'Google Gemini'),
             ('local', 'Local Model'),
         ],
         verbose_name=_('AI Provider')
@@ -916,6 +917,24 @@ class GlobalAIConfiguration(models.Model):
         verbose_name=_('Anthropic Model')
     )
     
+    # Google Gemini settings
+    google_api_key = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Google API Key'),
+        help_text=_('Your Google AI Studio API key')
+    )
+    
+    google_model = models.CharField(
+        max_length=100,
+        default='gemini-1.5-flash',
+        blank=True,
+        null=True,
+        verbose_name=_('Google Model'),
+        help_text=_('Default model to use for Google Gemini (e.g., gemini-1.5-flash, gemini-1.5-pro)')
+    )
+    
     # Local model settings
     local_model_path = models.CharField(
         max_length=500,
@@ -961,6 +980,8 @@ class GlobalAIConfiguration(models.Model):
             'azure_openai_deployment': self.azure_openai_deployment,
             'anthropic_api_key': self.anthropic_api_key,
             'anthropic_model': self.anthropic_model,
+            'google_api_key': self.google_api_key,
+            'google_model': self.google_model,
             'local_model_path': self.local_model_path,
             'temperature': self.temperature,
             'max_tokens': self.max_tokens,
@@ -997,6 +1018,7 @@ class SchoolAIConfiguration(models.Model):
             ('openai', 'OpenAI'),
             ('azure', 'Azure OpenAI'),
             ('anthropic', 'Anthropic'),
+            ('google', 'Google Gemini'),
             ('local', 'Local Model'),
         ],
         blank=True,
@@ -1056,6 +1078,23 @@ class SchoolAIConfiguration(models.Model):
         blank=True,
         null=True,
         verbose_name=_('Anthropic Model (Override)')
+    )
+    
+    # Google Gemini overrides
+    google_api_key = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Google API Key (Override)'),
+        help_text=_('Override global Google API key')
+    )
+    
+    google_model = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name=_('Google Model (Override)'),
+        help_text=_('Override global Google model')
     )
     
     # Local model overrides
@@ -1128,13 +1167,15 @@ class SchoolAIConfiguration(models.Model):
                 'azure_openai_deployment': self.azure_openai_deployment,
                 'anthropic_api_key': self.anthropic_api_key,
                 'anthropic_model': self.anthropic_model,
+                'google_api_key': self.google_api_key,
+                'google_model': self.google_model,
                 'local_model_path': self.local_model_path,
                 'temperature': self.temperature if self.temperature is not None else 0.7,
                 'max_tokens': self.max_tokens if self.max_tokens is not None else 1000,
             }
             return config
             
-        if self.use_global_settings and not self.provider:
+        if self.use_global_settings:
             return global_config.get_config_data()
             
         config = global_config.get_config_data()
@@ -1159,6 +1200,11 @@ class SchoolAIConfiguration(models.Model):
             config['anthropic_api_key'] = self.anthropic_api_key
         if self.anthropic_model:
             config['anthropic_model'] = self.anthropic_model
+            
+        if self.google_api_key:
+            config['google_api_key'] = self.google_api_key
+        if self.google_model:
+            config['google_model'] = self.google_model
             
         if self.local_model_path:
             config['local_model_path'] = self.local_model_path

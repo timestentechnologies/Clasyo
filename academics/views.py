@@ -4,6 +4,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy, reverse
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
+from core.utils import get_current_school
 from .models import Class, Section, Subject, ClassRoutine, ClassTime, ClassRoom, StudyMaterial, Assignment
 from accounts.models import User
 from tenants.models import School
@@ -40,6 +42,12 @@ class ClassListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         queryset = super().get_queryset()
+        school_slug = self.kwargs.get('school_slug', '')
+        school = None
+        if school_slug:
+            school = School.objects.filter(slug=school_slug, is_active=True).first()
+        if school:
+            queryset = queryset.filter(school=school)
         education_level = self.request.GET.get('education_level')
         if education_level:
             queryset = queryset.filter(education_level=education_level)
@@ -101,6 +109,12 @@ class ClassCreateView(LoginRequiredMixin, CreateView):
     
     def form_valid(self, form):
         # Save the class first
+        school_slug = self.kwargs.get('school_slug', '')
+        school = None
+        if school_slug:
+            school = School.objects.filter(slug=school_slug, is_active=True).first()
+        if school:
+            form.instance.school = school
         self.object = form.save()
         
         # Handle sections
@@ -244,10 +258,22 @@ class SectionListView(LoginRequiredMixin, ListView):
     template_name = 'academics/section_list.html'
     context_object_name = 'sections'
     
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = Section.objects.filter(is_active=True)
+        if school:
+            qs = qs.filter(class_name__school=school)
+        return qs
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
-        context['classes'] = Class.objects.filter(is_active=True)
+        school_slug = self.kwargs.get('school_slug', '')
+        school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+        if school:
+            context['classes'] = Class.objects.filter(is_active=True, school=school)
+        else:
+            context['classes'] = Class.objects.filter(is_active=True)
         return context
 
 
@@ -287,6 +313,13 @@ class SubjectListView(LoginRequiredMixin, ListView):
     template_name = 'academics/subject_list.html'
     context_object_name = 'subjects'
     
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = Subject.objects.filter(is_active=True)
+        if school:
+            qs = qs.filter(school=school)
+        return qs
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
@@ -301,13 +334,15 @@ class SubjectCreateView(LoginRequiredMixin, CreateView):
     
     def post(self, request, *args, **kwargs):
         try:
+            school = get_current_school(request)
             Subject.objects.create(
                 name=request.POST.get('name'),
                 code=request.POST.get('code'),
                 subject_type=request.POST.get('subject_type', 'theory'),
                 description=request.POST.get('description', ''),
                 credits=request.POST.get('credits', 1),
-                is_active=request.POST.get('is_active') == 'on'
+                is_active=request.POST.get('is_active') == 'on',
+                school=school
             )
             return JsonResponse({'success': True})
         except Exception as e:
@@ -351,11 +386,31 @@ class ClassRoutineView(LoginRequiredMixin, ListView):
     template_name = 'academics/routine.html'
     context_object_name = 'routines'
     
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = ClassRoutine.objects.all()
+        if school:
+            qs = qs.filter(class_name__school=school)
+        return qs
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
         context['days'] = ClassRoutine.WEEKDAY_CHOICES
-        context['classes'] = Class.objects.filter(is_active=True)
+        school = get_current_school(self.request)
+        # Filter classes by school
+        classes_qs = Class.objects.filter(is_active=True)
+        if school:
+            classes_qs = classes_qs.filter(school=school)
+        context['classes'] = classes_qs
+        # Filter rooms and periods by school for form dropdowns
+        rooms_qs = ClassRoom.objects.filter(is_active=True)
+        periods_qs = ClassTime.objects.filter(is_active=True)
+        if school:
+            rooms_qs = rooms_qs.filter(school=school)
+            periods_qs = periods_qs.filter(school=school)
+        context['rooms'] = rooms_qs
+        context['periods'] = periods_qs
         return context
 
 
@@ -363,6 +418,10 @@ class ClassRoutineCreateView(LoginRequiredMixin, CreateView):
     model = ClassRoutine
     template_name = 'academics/routine_form.html'
     fields = '__all__'
+    
+    def form_valid(self, form):
+        form.instance.school = get_current_school(self.request)
+        return super().form_valid(form)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -385,13 +444,21 @@ class ClassTimeListView(LoginRequiredMixin, ListView):
         return context
     
     def get_queryset(self):
-        return ClassTime.objects.filter(is_active=True).order_by('order', 'start_time')
+        school = get_current_school(self.request)
+        qs = ClassTime.objects.filter(is_active=True)
+        if school:
+            qs = qs.filter(school=school)
+        return qs.order_by('order', 'start_time')
 
 
 class ClassTimeCreateView(LoginRequiredMixin, CreateView):
     model = ClassTime
     template_name = 'academics/class_time_form.html'
     fields = ['name', 'start_time', 'end_time', 'is_break', 'order', 'is_active']
+    
+    def form_valid(self, form):
+        form.instance.school = get_current_school(self.request)
+        return super().form_valid(form)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -407,6 +474,13 @@ class ClassTimeUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'academics/class_time_form.html'
     fields = ['name', 'start_time', 'end_time', 'is_break', 'order', 'is_active']
     
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = ClassTime.objects.all()
+        if school:
+            qs = qs.filter(school=school)
+        return qs
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
@@ -419,7 +493,11 @@ class ClassTimeUpdateView(LoginRequiredMixin, UpdateView):
 class ClassTimeDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk, *args, **kwargs):
         try:
-            class_time = ClassTime.objects.get(pk=pk)
+            school = get_current_school(request)
+            qs = ClassTime.objects.all()
+            if school:
+                qs = qs.filter(school=school)
+            class_time = qs.get(pk=pk)
             class_time.delete()
             return JsonResponse({'success': True})
         except ClassTime.DoesNotExist:
@@ -440,13 +518,21 @@ class ClassRoomListView(LoginRequiredMixin, ListView):
         return context
     
     def get_queryset(self):
-        return ClassRoom.objects.filter(is_active=True).order_by('building', 'floor', 'room_number')
+        school = get_current_school(self.request)
+        qs = ClassRoom.objects.filter(is_active=True)
+        if school:
+            qs = qs.filter(school=school)
+        return qs.order_by('building', 'floor', 'room_number')
 
 
 class ClassRoomCreateView(LoginRequiredMixin, CreateView):
     model = ClassRoom
     template_name = 'academics/classroom_form.html'
     fields = ['room_number', 'name', 'room_type', 'capacity', 'floor', 'building', 'is_active']
+    
+    def form_valid(self, form):
+        form.instance.school = get_current_school(self.request)
+        return super().form_valid(form)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -462,6 +548,13 @@ class ClassRoomUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'academics/classroom_form.html'
     fields = ['room_number', 'name', 'room_type', 'capacity', 'floor', 'building', 'is_active']
     
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = ClassRoom.objects.all()
+        if school:
+            qs = qs.filter(school=school)
+        return qs
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
@@ -474,7 +567,11 @@ class ClassRoomUpdateView(LoginRequiredMixin, UpdateView):
 class ClassRoomDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk, *args, **kwargs):
         try:
-            classroom = ClassRoom.objects.get(pk=pk)
+            school = get_current_school(request)
+            qs = ClassRoom.objects.all()
+            if school:
+                qs = qs.filter(school=school)
+            classroom = qs.get(pk=pk)
             classroom.delete()
             return JsonResponse({'success': True})
         except ClassRoom.DoesNotExist:
@@ -487,6 +584,17 @@ class StudyMaterialListView(LoginRequiredMixin, ListView):
     model = StudyMaterial
     template_name = 'academics/study_materials.html'
     context_object_name = 'materials'
+    
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = StudyMaterial.objects.all()
+        if school:
+            qs = qs.filter(
+                Q(class_name__school=school) |
+                Q(section__class_name__school=school) |
+                Q(subject__school=school)
+            ).distinct()
+        return qs
 
 
 class StudyMaterialUploadView(LoginRequiredMixin, CreateView):
@@ -500,6 +608,17 @@ class AssignmentListView(LoginRequiredMixin, ListView):
     model = Assignment
     template_name = 'academics/assignments.html'
     context_object_name = 'assignments'
+    
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = Assignment.objects.all()
+        if school:
+            qs = qs.filter(
+                Q(class_name__school=school) |
+                Q(section__class_name__school=school) |
+                Q(subject__school=school)
+            ).distinct()
+        return qs
 
 
 class AssignmentCreateView(LoginRequiredMixin, CreateView):
@@ -537,8 +656,12 @@ def get_teachers_api(request, school_slug=None):
         }, status=401)
     
     try:
-        # Get all teachers (you can add tenant filtering later if needed)
-        teachers = User.objects.filter(role='teacher', is_active=True).values('id', 'first_name', 'last_name', 'email')
+        # Scope teachers to current school
+        school = get_current_school(request)
+        teachers_qs = User.objects.filter(role='teacher', is_active=True)
+        if school:
+            teachers_qs = teachers_qs.filter(school=school)
+        teachers = teachers_qs.values('id', 'first_name', 'last_name', 'email')
         
         teachers_list = [
             {

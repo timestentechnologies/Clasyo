@@ -1,10 +1,12 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator
+from tenants.models import School
 
 
 class AcademicYear(models.Model):
     """Academic Year Model"""
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='academic_years', null=True, blank=True)
     name = models.CharField(_("Academic Year"), max_length=100)
     start_date = models.DateField(_("Start Date"))
     end_date = models.DateField(_("End Date"))
@@ -23,8 +25,12 @@ class AcademicYear(models.Model):
     
     def save(self, *args, **kwargs):
         if self.is_active:
-            # Deactivate all other academic years
-            AcademicYear.objects.filter(is_active=True).update(is_active=False)
+            # Deactivate other active academic years for the same school only
+            qs = AcademicYear.objects.filter(is_active=True)
+            if self.school_id:
+                qs = qs.filter(school_id=self.school_id)
+            qs = qs.exclude(pk=self.pk)
+            qs.update(is_active=False)
         super().save(*args, **kwargs)
 
 
@@ -73,6 +79,29 @@ class Holiday(models.Model):
     
     def __str__(self):
         return self.title
+
+
+class AuditLog(models.Model):
+    timestamp = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs')
+    school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs')
+    path = models.CharField(max_length=512)
+    method = models.CharField(max_length=10)
+    status_code = models.PositiveIntegerField()
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    action = models.CharField(max_length=255, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['timestamp']),
+            models.Index(fields=['school', '-timestamp']),
+        ]
+
+    def __str__(self):
+        return f"{self.method} {self.path} {self.status_code}"
 
 
 class Weekend(models.Model):

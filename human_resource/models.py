@@ -1,9 +1,11 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from tenants.models import School
 
 
 class Department(models.Model):
     """Department model for HR"""
+    school = models.ForeignKey(School, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(_('Department Name'), max_length=200)
     code = models.CharField(_('Department Code'), max_length=50, unique=True)
     description = models.TextField(_('Description'), blank=True)
@@ -24,6 +26,7 @@ class Department(models.Model):
 
 class Designation(models.Model):
     """Designation/Position model for HR"""
+    school = models.ForeignKey(School, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(_('Designation Name'), max_length=200)
     code = models.CharField(_('Designation Code'), max_length=50, unique=True)
     description = models.TextField(_('Description'), blank=True)

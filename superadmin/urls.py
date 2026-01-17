@@ -19,6 +19,7 @@ urlpatterns = [
     path('admins/', views.AdminUserListView.as_view(), name='admins'),
     path('admins/create/', views.AdminUserCreateView.as_view(), name='admin_create'),
     path('admins/<int:pk>/edit/', views.AdminUserUpdateView.as_view(), name='admin_edit'),
+    path('admins/<int:pk>/delete/', views.AdminUserDeleteView.as_view(), name='admin_delete'),
     
     # Subscriptions
     path('subscriptions/', views.SubscriptionListView.as_view(), name='subscriptions'),
@@ -51,6 +52,13 @@ urlpatterns = [
     path('payments/<uuid:payment_id>/approve/', views.PaymentApproveView.as_view(), name='payment_approve'),
     path('payments/<uuid:payment_id>/reject/', views.PaymentRejectView.as_view(), name='payment_reject'),
     path('payments/history/', views.PaymentHistoryListView.as_view(), name='payment_history'),
+
+    # Invoices
+    path('invoices/', views.InvoiceListView.as_view(), name='invoices'),
+    
+    # Audit Logs
+    path('logs/', views.AuditLogListView.as_view(), name='audit_logs'),
+    path('school/<slug:school_slug>/logs/', views.SchoolAuditLogListView.as_view(), name='school_audit_logs'),
     
     # School Admin Payment Configurations
     path('school/<slug:school_slug>/payment-config/', views.SchoolPaymentConfigurationListView.as_view(), name='school_payment_config_list'),

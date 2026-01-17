@@ -1,0 +1,45 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Delete School Admin{% endblock %}
+{% block page_title %}Delete School Administrator{% endblock %}
+{% block page_icon %}user-times{% endblock %}
+{% block page_subtitle %}This action will also delete the associated school and all its data{% endblock %}
+
+{% block content %}
+<div class="modern-card">
+  <div class="alert alert-danger">
+    <strong>Danger:</strong> You are about to delete the admin account <strong>{{ admin_user.get_full_name }}</strong>
+    ({{ admin_user.email }}){% if admin_user.school %} for school <strong>{{ admin_user.school.name }}</strong>{% endif %}.
+    <br/>This will also permanently delete the associated school and all its related data (students, classes, fees, exams, books, attendance, etc.).
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    {% if not linked_school %}
+      <div class="mb-3">
+        <label class="form-label">Select School to Delete (required)</label>
+        <select name="school_id" class="form-select" required>
+          <option value="">-- Select School --</option>
+          {% for school in available_schools %}
+            <option value="{{ school.id }}">{{ school.name }}</option>
+          {% endfor %}
+        </select>
+        <small class="form-text text-muted">The selected school and all its related data will be deleted together with this admin account.</small>
+      </div>
+    {% else %}
+      <div class="mb-3">
+        <label class="form-label">Linked School</label>
+        <input type="text" class="form-control" value="{{ linked_school.name }}" disabled />
+        <input type="hidden" name="school_id" value="{{ linked_school.id }}" />
+      </div>
+    {% endif %}
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-danger">
+        <i class="fas fa-trash"></i> Yes, delete admin and school
+      </button>
+      <a href="{% url 'superadmin:admins' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
