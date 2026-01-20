@@ -36,7 +36,7 @@ class StudentListView(LoginRequiredMixin, ListView):
         status = self.request.GET.get('status', '').strip().lower()
         if school:
             base = queryset.filter(
-                Q(current_class__school=school) | Q(user__school=school) | Q(parent_user__school=school) | Q(created_by__school=school)
+                Q(school=school) | Q(current_class__school=school) | Q(user__school=school) | Q(parent_user__school=school) | Q(created_by__school=school)
             ).distinct()
         else:
             base = queryset
@@ -271,6 +271,7 @@ class StudentCreateView(CreateView):
                 parent_user=parent_user,  # Link to parent user account
                 current_class=current_class,
                 section=section,
+                school=school,
                 created_by=request.user
             )
             
@@ -393,6 +394,16 @@ class StudentUpdateView(UpdateView):
                     student.section = section
                 else:
                     student.section = None
+            
+            # Ensure student is linked to a school if missing
+            if not getattr(student, 'school', None):
+                try:
+                    if student.current_class and getattr(student.current_class, 'school', None):
+                        student.school = student.current_class.school
+                    elif student.user and getattr(student.user, 'school', None):
+                        student.school = student.user.school
+                except Exception:
+                    pass
             
             # Update parent details
             student.father_name = request.POST.get('father_name', student.father_name)
@@ -1029,10 +1040,14 @@ class StudentImportView(LoginRequiredMixin, View):
                     if student:
                         for k, v in data.items():
                             setattr(student, k, v)
+                        # Backfill school on existing student if missing
+                        if school and not getattr(student, 'school', None):
+                            student.school = school
                         student.save()
                         updated_count += 1
                     else:
-                        student = Student.objects.create(**data)
+                        # Ensure new student is linked to this school
+                        student = Student.objects.create(**data, school=school)
                         created_count += 1
                 success_count += 1
             except Exception as e:

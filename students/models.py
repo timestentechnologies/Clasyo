@@ -87,6 +87,8 @@ class Student(models.Model):
                                      null=True, blank=True, related_name='students')
     section = models.ForeignKey('academics.Section', on_delete=models.SET_NULL, 
                                null=True, blank=True, related_name='students')
+    # Tenant (School) linkage
+    school = models.ForeignKey('tenants.School', on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
     
     # Admission Details
     admission_date = models.DateField(_("Admission Date"))
