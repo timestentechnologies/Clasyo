@@ -293,8 +293,9 @@ class CollectFeesView(LoginRequiredMixin, ListView):
             context['table_total_collected'] = 0
         
         import json
+        from django.db.models import Sum
 
-# Get complete student data for accurate filtering calculations
+        # Get complete student data for accurate filtering calculations
         if MODELS_EXIST:
             from django.db.models import Q
             # Get all active students with their fee structures
