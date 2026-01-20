@@ -12,4 +12,6 @@ urlpatterns = [
     path('reclassify/', views.ReclassifyDepositsView.as_view(), name='reclassify'),
     path('accounts/create/', views.AccountCreateView.as_view(), name='account_create'),
     path('accounts/<int:pk>/update/', views.AccountUpdateView.as_view(), name='account_update'),
+    path('accounts/<int:pk>/delete/', views.AccountDeleteView.as_view(), name='account_delete'),
+    path('accounts/<int:pk>/breakdown/', views.AccountBreakdownView.as_view(), name='account_breakdown'),
 ]

@@ -155,6 +155,12 @@ class MakePaymentForm(forms.Form):
 
 
 class AccountForm(forms.ModelForm):
+    is_active = forms.TypedChoiceField(
+        choices=((True, 'Active'), (False, 'Inactive')),
+        coerce=lambda x: True if x in (True, 'True', '1', 1) else False,
+        widget=forms.Select,
+        label=_('Active')
+    )
     class Meta:
         model = Account
         fields = ['code', 'name', 'account_type', 'sub_type', 'opening_balance', 'is_active']

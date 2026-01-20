@@ -1,16 +1,16 @@
-from django.shortcuts import render, redirect
-from django.views.generic import TemplateView, FormView, ListView, CreateView, UpdateView
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views.generic import TemplateView, FormView, ListView, CreateView, UpdateView, View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.urls import reverse, reverse_lazy
 from django.contrib import messages
 from django.db import transaction as db_transaction
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, Exists, OuterRef
 from django.utils import timezone
 from decimal import Decimal
 
 from core.utils import get_current_school
 from core.models import AcademicYear
-from .models import Account, Transaction, JournalEntry, JournalEntryLine, ensure_default_accounts_for_school
+from .models import Account, Transaction, JournalEntry, JournalEntryLine, ensure_default_accounts_for_school, DEFAULT_ACCOUNTS
 from .backfill import backfill_school_finance
 from .forms import ReceiveDonationForm, MakePaymentForm, AccountForm
 
@@ -64,9 +64,14 @@ class ChartOfAccountsView(FinanceAccessMixin, ListView):
 
     def get_queryset(self):
         school = get_current_school(self.request)
-        qs = Account.objects.all().order_by('code')
+        qs = Account.objects.all()
         if school:
             qs = qs.filter(school=school)
+        qs = qs.annotate(
+            has_posted=Exists(
+                JournalEntryLine.objects.filter(account=OuterRef('pk'), entry__posted=True)
+            )
+        ).order_by('code')
         return qs
 
     def get_context_data(self, **kwargs):
@@ -138,6 +143,74 @@ def get_account_by_code_or_name(school, code, name):
 
 
     
+
+
+class AccountDeleteView(FinanceAccessMixin, View):
+    def post(self, request, *args, **kwargs):
+        school = get_current_school(request)
+        qs = Account.objects.all()
+        if school:
+            qs = qs.filter(school=school)
+        account = get_object_or_404(qs, pk=kwargs.get('pk'))
+        # Prevent deletion of default seeded accounts
+        default_codes = {code for code, *_ in DEFAULT_ACCOUNTS}
+        if account.code in default_codes:
+            messages.error(request, 'Cannot delete a default system account')
+            return redirect('finance:accounts', school_slug=kwargs.get('school_slug', ''))
+        # Prevent deletion if there are related posted journal lines
+        if account.journal_lines.filter(entry__posted=True).exists():
+            messages.error(request, 'Cannot delete account with existing transactions')
+            return redirect('finance:accounts', school_slug=kwargs.get('school_slug', ''))
+        try:
+            account.delete()
+            messages.success(request, 'Account deleted')
+        except Exception:
+            messages.error(request, 'Unable to delete account')
+        return redirect('finance:accounts', school_slug=kwargs.get('school_slug', ''))
+
+
+class AccountBreakdownView(FinanceAccessMixin, View):
+    def get(self, request, *args, **kwargs):
+        school = get_current_school(request)
+        qs = Account.objects.all()
+        if school:
+            qs = qs.filter(school=school)
+        account = get_object_or_404(qs, pk=kwargs.get('pk'))
+
+        lines_qs = (
+            JournalEntryLine.objects
+            .select_related('entry', 'account')
+            .prefetch_related('entry__lines__account')
+            .filter(account=account, entry__posted=True)
+            .order_by('-entry__date', '-entry_id', '-id')
+        )
+        agg = lines_qs.aggregate(total_debit=Sum('debit'), total_credit=Sum('credit'))
+        posted_count = lines_qs.count()
+        last_date = lines_qs.values_list('entry__date', flat=True).first()
+
+        items = []
+        for ln in list(lines_qs[:20]):
+            others = [ol for ol in ln.entry.lines.all() if ol.id != ln.id]
+            counter = ", ".join(f"{ol.account.code} - {ol.account.name}" for ol in others)
+            items.append({
+                'date': ln.entry.date,
+                'reference': ln.entry.reference,
+                'memo': ln.entry.memo,
+                'description': ln.description,
+                'debit': ln.debit,
+                'credit': ln.credit,
+                'counter': counter,
+            })
+
+        ctx = {
+            'account': account,
+            'posted_count': posted_count,
+            'total_debit': agg.get('total_debit') or Decimal('0.00'),
+            'total_credit': agg.get('total_credit') or Decimal('0.00'),
+            'last_date': last_date,
+            'lines': items,
+        }
+        return render(request, 'finance/account_breakdown.html', ctx)
 
 
 class ReceiveDonationView(FinanceAccessMixin, FormView):

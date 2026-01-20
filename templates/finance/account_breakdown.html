@@ -1,0 +1,87 @@
+{% load humanize %}
+<div class="modal-header">
+  <h5 class="modal-title">{{ account.code }} - {{ account.name }}</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+  <div class="row g-3 mb-2">
+    <div class="col-md-3">
+      <div class="small text-muted">Type</div>
+      <div>{{ account.get_account_type_display }}</div>
+    </div>
+    <div class="col-md-3">
+      <div class="small text-muted">Sub-Type</div>
+      <div>{{ account.get_sub_type_display }}</div>
+    </div>
+    <div class="col-md-3">
+      <div class="small text-muted">Status</div>
+      <div>
+        {% if account.is_active %}
+          <span class="badge bg-success">Active</span>
+        {% else %}
+          <span class="badge bg-secondary">Inactive</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="small text-muted">Current Balance</div>
+      <div>{{ account.current_balance|floatformat:2|intcomma }}</div>
+    </div>
+  </div>
+  <div class="row g-3 mb-3">
+    <div class="col-md-3">
+      <div class="small text-muted">Opening Balance</div>
+      <div>{{ account.opening_balance|floatformat:2|intcomma }}</div>
+    </div>
+    <div class="col-md-3">
+      <div class="small text-muted">Total Debit</div>
+      <div>{{ total_debit|floatformat:2|intcomma }}</div>
+    </div>
+    <div class="col-md-3">
+      <div class="small text-muted">Total Credit</div>
+      <div>{{ total_credit|floatformat:2|intcomma }}</div>
+    </div>
+    <div class="col-md-3">
+      <div class="small text-muted">Last Activity</div>
+      <div>{% if last_date %}{{ last_date|date:"Y-m-d" }}{% else %}-{% endif %}</div>
+    </div>
+  </div>
+
+  <h6 class="mt-2">Recent Posted Entries</h6>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr>
+          <th style="width: 100px;">Date</th>
+          <th style="width: 120px;">Reference</th>
+          <th>Description</th>
+          <th class="text-end" style="width: 120px;">Debit</th>
+          <th class="text-end" style="width: 120px;">Credit</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ln in lines %}
+          <tr>
+            <td>{{ ln.date|date:"Y-m-d" }}</td>
+            <td>{{ ln.reference|default:"-" }}</td>
+            <td>
+              <div class="fw-semibold">{{ ln.description|default:ln.memo|default:"-" }}</div>
+              {% if ln.counter %}
+                <div class="text-muted small">Counter: {{ ln.counter }}</div>
+              {% endif %}
+            </td>
+            <td class="text-end">{{ ln.debit|floatformat:2|intcomma }}</td>
+            <td class="text-end">{{ ln.credit|floatformat:2|intcomma }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-muted">No posted entries for this account.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+</div>
