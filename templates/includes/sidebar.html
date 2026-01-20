@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 
 <!-- Sidebar Overlay for Mobile -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -235,7 +235,7 @@
         {# ===         ADMIN ONLY SECTIONS      === #}
         {# ========================================= #}
         
-        {% if user.role == 'admin' %}
+        {% if user.role == 'admin' or user.role == 'accountant' %}
         <div class="menu-section-title">Human Resource</div>
         
         <li class="{% if '/teachers/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/hr/teachers/">
@@ -264,6 +264,10 @@
         </a></li>
 
         <div class="menu-section-title">Finance</div>
+        <li class="{% if '/finance/' in request.path %}active{% endif %}"><a href="{% if school_slug %}/school/{{ school_slug }}/finance/{% else %}#{% endif %}">
+            <i class="fas fa-coins"></i>
+            <span>Accounting</span>
+        </a></li>
 
         <li class="{% if '/fees/' in request.path and '/collect/' not in request.path and '/transactions/' not in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/fees/">
             <i class="fas fa-money-bill-wave"></i>
@@ -280,11 +284,6 @@
             <span>Transactions</span>
         </a></li>
 
-        <li class="{% if '/payment-config/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'superadmin:school_payment_config_list' school_slug=school_slug %}{% else %}#{% endif %}">
-            <i class="fas fa-credit-card"></i>
-            <span>Payment Configurations</span>
-        </a></li>
-
         <li class="{% if '/inventory/expenses/' in request.path %}active{% endif %}"><a href="{% if school_slug %}/school/{{ school_slug }}/inventory/expenses/{% else %}#{% endif %}">
             <i class="fas fa-dollar-sign"></i>
             <span>Expenses</span>
@@ -294,7 +293,10 @@
             <i class="fas fa-money-check-alt"></i>
             <span>Staff Payments</span>
         </a></li>
-
+        <li class="{% if '/payment-config/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'superadmin:school_payment_config_list' school_slug=school_slug %}{% else %}#{% endif %}">
+            <i class="fas fa-credit-card"></i>
+            <span>Payment Configurations</span>
+        </a></li>
         <div class="menu-section-title">Procurement</div>
 
         <li class="{% if '/inventory/' in request.path and '/expenses/' not in request.path and '/payments/' not in request.path and '/suppliers/' not in request.path and '/purchase-orders/' not in request.path and '/distributions/' not in request.path %}active{% endif %}"><a href="{% if school_slug %}/school/{{ school_slug }}/inventory/{% else %}#{% endif %}">

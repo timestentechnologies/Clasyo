@@ -1,0 +1,101 @@
+{% extends 'dashboards/base.html' %}
+{% load humanize %}
+{% block title %}Reclassify Fee Deposits{% endblock %}
+{% block extra_css %}
+<style>
+  :root { --primary-color: #26c6da; }
+  .finance-tabs.nav-tabs { border-bottom: 0; gap: 8px; }
+  .finance-tabs .nav-link { color: var(--primary-color); background: rgba(38,198,218,0.10); border: 0; border-radius: 999px; padding: 8px 14px; }
+  .finance-tabs .nav-link:hover { background: rgba(38,198,218,0.18); color: var(--primary-color); }
+  .finance-tabs .nav-link.active { background: var(--primary-color); color: #fff; box-shadow: 0 6px 20px rgba(38,198,218,.25); }
+  .page-header .fa-coins { color: var(--primary-color) !important; }
+</style>
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header mb-3">
+  <div class="d-flex align-items-center">
+    <i class="fas fa-coins text-primary me-2"></i>
+    <h1 class="page-title mb-0">Finance &amp; Accounting</h1>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<ul class="nav nav-tabs finance-tabs mb-3">
+  <li class="nav-item"><a class="nav-link" href="{% url 'finance:dashboard' school_slug=school_slug %}">Dashboard</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'fees:collect_fees' school_slug=school_slug %}">Collect Fees</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'finance:donations' school_slug=school_slug %}">Donations</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'inventory:expense_list' school_slug=school_slug %}">Expenses</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'inventory:staff_payment_list' school_slug=school_slug %}">Staff Payments</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'finance:accounts' school_slug=school_slug %}">Chart of Accounts</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'finance:ledger' school_slug=school_slug %}">General Ledger</a></li>
+  <li class="nav-item"><a class="nav-link {% if active_tab == 'reports' %}active{% endif %}" href="{% url 'finance:reports' school_slug=school_slug %}">Reports</a></li>
+</ul>
+
+<div class="alert alert-info">
+  <strong>Reclassify Fee Deposits</strong> moves posted fee deposit totals from a source account to a destination account with a single journal entry. Typical use: move deposits from Cash (1000) to Bank – Tuition (1010).
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <form method="get" class="row g-3 mb-3">
+      <div class="col-md-3">
+        <label class="form-label">From</label>
+        <input type="date" name="from" value="{{ date_from }}" class="form-control">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">To</label>
+        <input type="date" name="to" value="{{ date_to }}" class="form-control">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Source Account</label>
+        <select name="source_id" class="form-select">
+          {% for acc in accounts %}
+            <option value="{{ acc.id }}" {% if source_acc and acc.id == source_acc.id %}selected{% endif %}>{{ acc.code }} - {{ acc.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Destination Account</label>
+        <select name="dest_id" class="form-select">
+          {% for acc in accounts %}
+            <option value="{{ acc.id }}" {% if dest_acc and acc.id == dest_acc.id %}selected{% endif %}>{{ acc.code }} - {{ acc.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 d-flex align-items-end">
+        <button class="btn btn-outline-primary" type="submit"><i class="fas fa-sync"></i> Preview</button>
+      </div>
+    </form>
+
+    <div class="row">
+      <div class="col-md-6">
+        <div class="list-group">
+          <div class="list-group-item d-flex justify-content-between">
+            <span>Eligible Amount to Reclassify</span>
+            <strong>{{ eligible_amount|floatformat:2|intcomma }}</strong>
+          </div>
+          <div class="list-group-item">
+            <small class="text-muted">Calculated as sum of posted fee deposits into the source account within the selected period, less any prior reclassification JEs created by this tool.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr>
+    <form method="post" class="row g-3">
+      {% csrf_token %}
+      <input type="hidden" name="from" value="{{ date_from }}">
+      <input type="hidden" name="to" value="{{ date_to }}">
+      <input type="hidden" name="source_id" value="{{ source_acc.id }}">
+      <input type="hidden" name="dest_id" value="{{ dest_acc.id }}">
+      <div class="col-12">
+        <button class="btn btn-primary" type="submit" {% if not eligible_amount or eligible_amount == 0 %}disabled{% endif %}>
+          <i class="fas fa-exchange-alt"></i> Reclassify Now
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

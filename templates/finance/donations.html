@@ -1,0 +1,73 @@
+{% extends 'dashboards/base.html' %}
+{% load humanize %}
+{% load widget_tweaks %}
+{% block title %}Receive Donation{% endblock %}
+{% block extra_css %}
+<style>
+  :root { --primary-color: #26c6da; }
+  .finance-tabs.nav-tabs { border-bottom: 0; gap: 8px; }
+  .finance-tabs .nav-link { color: var(--primary-color); background: rgba(38,198,218,0.10); border: 0; border-radius: 999px; padding: 8px 14px; }
+  .finance-tabs .nav-link:hover { background: rgba(38,198,218,0.18); color: var(--primary-color); }
+  .finance-tabs .nav-link.active { background: var(--primary-color); color: #fff; box-shadow: 0 6px 20px rgba(38,198,218,.25); }
+  .page-header .fa-coins { color: var(--primary-color) !important; }
+</style>
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header mb-3">
+  <div class="d-flex align-items-center">
+    <i class="fas fa-coins text-primary me-2"></i>
+    <h1 class="page-title mb-0">Finance &amp; Accounting</h1>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<ul class="nav nav-tabs finance-tabs mb-3">
+  <li class="nav-item"><a class="nav-link" href="{% url 'finance:dashboard' school_slug=school_slug %}">Dashboard</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'fees:collect_fees' school_slug=school_slug %}">Collect Fees</a></li>
+  <li class="nav-item"><a class="nav-link active" href="#">Donations</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'inventory:expense_list' school_slug=school_slug %}">Expenses</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'inventory:staff_payment_list' school_slug=school_slug %}">Staff Payments</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'finance:accounts' school_slug=school_slug %}">Chart of Accounts</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'finance:ledger' school_slug=school_slug %}">General Ledger</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'finance:reports' school_slug=school_slug %}">Reports</a></li>
+</ul>
+
+<div class="card">
+  <div class="card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Donor Name</label>
+          {% render_field form.donor_name class="form-control" %}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Donation Type</label>
+          {% render_field form.donation_type class="form-select" %}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Date</label>
+          {% render_field form.date class="form-control" %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Amount</label>
+          {% render_field form.amount class="form-control" step="0.01" %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Deposit Account (Donations Account)</label>
+          {% render_field form.deposit_account class="form-select" %}
+        </div>
+        <div class="col-md-12">
+          <label class="form-label">Notes</label>
+          {% render_field form.notes class="form-control" rows="3" %}
+        </div>
+      </div>
+      <div class="mt-3">
+        <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Post Donation</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

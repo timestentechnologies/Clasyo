@@ -131,6 +131,13 @@ A comprehensive, multi-tenant School Management System built with Django, design
 - **Chat History**
 - **Block/Unblock Users**
 - **Pinned Messages**
+ 
+#### AI Capabilities
+- **AI Assistant**: Context-aware help across modules (fees, finance, academics)
+- **Natural-language Insights**: Ask questions like “Why is Cash negative?” and get reconciliations
+- **Report Generation**: Generate summaries and explain trends in plain language
+- **Public AI Chat API**: `/api/ai/chat/` for integrations
+- **Safety**: Permissions-aware and tenant-scoped responses
 
 #### Library Management
 - **Book Catalog**: Complete book database
@@ -151,6 +158,14 @@ A comprehensive, multi-tenant School Management System built with Django, design
 - **Item Issue**: Issue to departments
 - **Item Sell**
 - **Stock Reports**
+
+#### Finance & Accounting
+- **Chart of Accounts**: Assets, Liabilities, Equity, Income, Expenses
+- **Double-entry Journal Entries**: Balanced debits/credits with validation
+- **General Ledger**: Running balances and counter accounts per entry
+- **Financial Reports**: Trial Balance, Income Statement, Balance Sheet summaries
+- **Real-time Posting**: Fees, expenses, payments posted instantly via signals; historical backfill
+- **Deposit Selection**: Choose Cash/Bank at fee collection; reclassify deposits utility
 
 #### Transport Management
 - **Route Management**: Define transport routes

@@ -140,6 +140,13 @@
                                     <div class="mb-3">
                                         {{ form.authors|as_crispy_field }}
                                     </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Or add new authors</label>
+                                        <select id="id_new_authors" name="new_authors" class="form-select" multiple>
+                                            <!-- Type names and press Enter to add -->
+                                        </select>
+                                        <div class="form-text">Type author names and press Enter to add. You can mix with selected existing authors.</div>
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
@@ -151,6 +158,11 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         {{ form.publisher|as_crispy_field }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Or type a new publisher</label>
+                                        <input type="text" name="new_publisher_name" id="id_new_publisher_name" class="form-control" placeholder="New Publisher Name (optional)">
+                                        <div class="form-text">Leave empty to use the selected publisher above.</div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -168,6 +180,11 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         {{ form.category|as_crispy_field }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Or type a new category</label>
+                                        <input type="text" name="new_category_name" id="id_new_category_name" class="form-control" placeholder="New Category Name (optional)">
+                                        <div class="form-text">Leave empty to use the selected category above.</div>
                                     </div>
                                 </div>
                             </div>
@@ -357,6 +374,14 @@ $(document).ready(function() {
         width: '100%',
         placeholder: 'Select an option',
         allowClear: true
+    });
+    // Enable free-tag entry for new authors field
+    $('#id_new_authors').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        tags: true,
+        tokenSeparators: [','],
+        placeholder: 'Type author names and press Enter'
     });
     
     // Set current date as default for acquisition date if empty

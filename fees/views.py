@@ -9,6 +9,8 @@ from accounts.models import User
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from core.utils import get_current_school
+from finance.models import Account
+from finance.backfill import backfill_school_finance
 
 # Check if models exist
 try:
@@ -257,6 +259,16 @@ class CollectFeesView(LoginRequiredMixin, ListView):
         except Exception:
             context['classes'] = []
 
+        # Deposit accounts (Cash/Bank) for Option B selection
+        try:
+            school = get_current_school(self.request)
+            deposit_qs = Account.objects.filter(is_active=True, sub_type__in=['cash','bank'])
+            if school:
+                deposit_qs = deposit_qs.filter(school=school)
+            context['deposit_accounts'] = deposit_qs.order_by('code')
+        except Exception:
+            context['deposit_accounts'] = Account.objects.none()
+
         # Preserve selected filters in the template
         selected_class_id = self.request.GET.get('class_id', '')
         selected_balance_status = self.request.GET.get('balance_status', '')
@@ -358,8 +370,13 @@ class CollectFeesView(LoginRequiredMixin, ListView):
                 receipt_number=request.POST.get('transaction_id', ''),
                 notes=request.POST.get('note', ''),
                 collected_by=collected_by,
+                deposit_account_id=request.POST.get('deposit_account_id') or None,
                 payment_status='paid' if float(paid_amount) >= float(fee_structure.amount) else 'partial'
             )
+            # Immediately ensure finance postings are up to date for this school
+            school = get_current_school(request)
+            if school:
+                backfill_school_finance(school, force=True)
             return JsonResponse({'success': True})
         except Exception as e:
             import traceback

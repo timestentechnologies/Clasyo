@@ -61,6 +61,8 @@ class FeeCollection(models.Model):
     due_date = models.DateField(_("Due Date"))
     receipt_number = models.CharField(_("Receipt Number"), max_length=100, unique=True, null=True, blank=True)
     notes = models.TextField(_("Notes"), blank=True)
+    # Optional: selected deposit account (Cash/Bank) for this collection
+    deposit_account = models.ForeignKey('finance.Account', on_delete=models.SET_NULL, null=True, blank=True, related_name='fee_collections')
     collected_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='collected_fees')
     created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
     

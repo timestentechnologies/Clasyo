@@ -14,6 +14,7 @@ from .models import (
     ItemDistribution, Expense, StaffPayment
 )
 from core.utils import get_current_school
+from accounts.models import User
 
 
 # ============= INVENTORY MANAGEMENT =============
@@ -71,7 +72,6 @@ class InventoryListView(LoginRequiredMixin, ListView):
                 return JsonResponse({'success': False, 'error': 'Not authenticated'})
 
             school = get_current_school(request)
-            
             action = request.POST.get('action')
             
             if action == 'add_item':
@@ -507,114 +507,86 @@ class StaffPaymentView(LoginRequiredMixin, ListView):
         
         # Import models
         from human_resource.models import Teacher, Staff
-        from accounts.models import User
         
-        # Initialize empty lists
+        # Build teacher and staff lists from HR profiles, scoped to current school
         teachers = []
         staff_members = []
+        current_school = get_current_school(self.request)
         
-        try:
-            # Get the current tenant (school) from the request
-            current_tenant = getattr(self.request, 'tenant', None)
-            print(f"Current tenant: {current_tenant}")
-            current_school = get_current_school(self.request)
-            
-            if current_tenant:
-                # Get all active users in the current tenant
-                school_users = User.objects.filter(is_active=True)
-                if current_school:
-                    school_users = school_users.filter(school=current_school)
-                print(f"Active users in tenant: {school_users.count()}")
-                
-                if school_users.exists():
-                    # Print all users and their roles for debugging
-                    print("All users and their roles:")
-                    for user in school_users:
-                        print(f"- {user.get_full_name()} (ID: {user.id}): Role={getattr(user, 'role', 'N/A')}, is_staff={user.is_staff}, is_superuser={user.is_superuser}")
-                    
-                    # Get all active users with teacher or staff role
-                    teachers = []
-                    staff_members = []
-                    
-                    # Try different role field names that might be used
-                    possible_teacher_roles = ['teacher', 'staff', 'is_teacher', 'is_staff']
-                    possible_staff_roles = ['staff', 'employee', 'is_staff', 'is_employee']
-                    
-                    # Check which role fields exist on the User model
-                    user_fields = [f.name for f in school_users.model._meta.get_fields()]
-                    print(f"Available user fields: {user_fields}")
-                    
-                    # Find which role field to use
-                    role_field = None
-                    for field in ['role', 'user_type', 'type']:
-                        if field in user_fields:
-                            role_field = field
-                            break
-                    
-                    if role_field:
-                        print(f"Using role field: {role_field}")
-                        # Get users with teacher role
-                        teacher_users = school_users.filter(**{f"{role_field}__in": ['teacher', 'is_teacher']})
-                        # Get users with staff role (excluding teachers)
-                        staff_users = school_users.filter(**{f"{role_field}__in": ['staff', 'is_staff', 'employee']})
-                    else:
-                        print("No explicit role field found, falling back to is_staff")
-                        teacher_users = school_users.filter(is_staff=True)
-                        staff_users = school_users.filter(is_staff=True)  # Same as teachers for now
-                    
-                    print(f"Found {teacher_users.count()} teachers and {staff_users.count()} staff users")
-                    
-                    # Format teacher data
-                    for user in teacher_users:
-                        teachers.append({
-                            'id': user.id,
-                            'first_name': user.first_name,
-                            'last_name': user.last_name or '',
-                            'basic_salary': '0',  # Default value
-                            'allowances': '0',    # Default value
-                            'employee_id': getattr(user, 'employee_id', f'TEACH-{user.id}'),
-                            'user_id': user.id
-                        })
-                    
-                    # Format staff data
-                    for user in staff_users:
-                        # Skip if already in teachers to avoid duplicates
-                        if user.id not in [t['user_id'] for t in teachers]:
-                            staff_members.append({
-                                'id': user.id,
-                                'first_name': user.first_name,
-                                'last_name': user.last_name or '',
-                                'basic_salary': '0',  # Default value
-                                'allowances': '0',    # Default value
-                                'employee_id': getattr(user, 'employee_id', f'STAFF-{user.id}'),
-                                'user_id': user.id
-                            })
-                    
-                    print(f"Found {len(teachers)} teachers and {len(staff_members)} staff in tenant")
-                else:
-                    print("No active users found in the current tenant")
-            else:
-                print("No tenant found in the request")
-                
-        except Exception as e:
-            import traceback
-            print("Error in get_context_data:")
-            print(str(e))
-            print(traceback.format_exc())
+        # Teachers
+        teacher_qs = Teacher.objects.select_related('user').filter(is_active=True, user__is_active=True)
+        if current_school:
+            teacher_qs = teacher_qs.filter(user__school=current_school)
+        for t in teacher_qs:
+            teachers.append({
+                'id': t.user_id,
+                'first_name': t.first_name,
+                'last_name': t.last_name or '',
+                'basic_salary': str(t.basic_salary or 0),
+                'allowances': str(t.allowances or 0),
+                'employee_id': t.employee_id,
+                'user_id': t.user_id,
+            })
+        # Fallback: include active teacher Users without HR profile
+        existing_teacher_user_ids = {t['user_id'] for t in teachers}
+        user_teachers_qs = User.objects.filter(role='teacher', is_active=True)
+        if current_school:
+            user_teachers_qs = user_teachers_qs.filter(school=current_school)
+        if existing_teacher_user_ids:
+            user_teachers_qs = user_teachers_qs.exclude(id__in=existing_teacher_user_ids)
+        for u in user_teachers_qs:
+            teachers.append({
+                'id': u.id,
+                'first_name': u.first_name,
+                'last_name': u.last_name or '',
+                'basic_salary': '0',
+                'allowances': '0',
+                'employee_id': u.employee_id or f"TCHR-{u.id}",
+                'user_id': u.id,
+            })
         
-        # Don't convert to JSON string here - the json_script template filter will handle it
+        # Staff (non-teaching)
+        staff_qs = Staff.objects.select_related('user').filter(is_active=True, user__is_active=True)
+        if current_school:
+            staff_qs = staff_qs.filter(user__school=current_school)
+        for s in staff_qs:
+            staff_members.append({
+                'id': s.user_id,
+                'first_name': s.first_name,
+                'last_name': s.last_name or '',
+                'basic_salary': str(s.basic_salary or 0),
+                'allowances': str(s.allowances or 0),
+                'employee_id': s.employee_id,
+                'user_id': s.user_id,
+            })
+        # Fallback: include active staff Users without HR profile
+        existing_staff_user_ids = {s['user_id'] for s in staff_members}
+        staff_roles = ['staff', 'accountant', 'librarian', 'driver']
+        user_staff_qs = User.objects.filter(role__in=staff_roles, is_active=True)
+        if current_school:
+            user_staff_qs = user_staff_qs.filter(school=current_school)
+        if existing_staff_user_ids:
+            user_staff_qs = user_staff_qs.exclude(id__in=existing_staff_user_ids)
+        for u in user_staff_qs:
+            staff_members.append({
+                'id': u.id,
+                'first_name': u.first_name,
+                'last_name': u.last_name or '',
+                'basic_salary': '0',
+                'allowances': '0',
+                'employee_id': u.employee_id or f"STF-{u.id}",
+                'user_id': u.id,
+            })
+        
+        # Provide to template; json_script will serialize
         context['teachers_json'] = teachers
         context['staff_json'] = staff_members
         
-        # Debug output
-        print("Teachers data being sent to template:", teachers)
-        print("Staff data being sent to template:", staff_members)
-        
-        # Add debug info to template
+        # Add simple debug info counts
         context['debug_info'] = {
             'teachers_count': len(teachers),
             'staff_count': len(staff_members),
-            'school': str(current_tenant) if current_tenant else 'None'
+            'school': str(current_school) if current_school else 'None'
         }
         
         # Calculate totals for the current school regardless of tenant middleware
@@ -649,7 +621,79 @@ class StaffPaymentView(LoginRequiredMixin, ListView):
                 return JsonResponse({'success': False, 'error': 'Not authenticated'})
 
             school = get_current_school(request)
+            action = request.POST.get('action')
+
+            # Update/edit an existing staff payment (e.g., change status)
+            if action == 'edit_payment':
+                payments_qs = StaffPayment.objects.all()
+                if school is not None:
+                    payments_qs = payments_qs.filter(school=school)
+                else:
+                    payments_qs = payments_qs.filter(school__isnull=True)
+
+                payment_id = request.POST.get('payment_id')
+                if not payment_id:
+                    return JsonResponse({'success': False, 'error': 'Missing payment_id'}, status=400)
+                try:
+                    payment = payments_qs.get(id=payment_id)
+                except StaffPayment.DoesNotExist:
+                    return JsonResponse({'success': False, 'error': 'Payment not found'}, status=404)
+
+                # Allowed updates
+                status_val = request.POST.get('status')
+                payment_method = request.POST.get('payment_method')
+                reference_number = request.POST.get('reference_number', '')
+                notes = request.POST.get('notes', '')
+                payment_date = request.POST.get('payment_date')
+                # Amount fields (optional)
+                basic_salary_val = request.POST.get('basic_salary')
+                allowances_val = request.POST.get('allowances')
+                deductions_val = request.POST.get('deductions')
+
+                if status_val:
+                    payment.status = status_val
+                if payment_method:
+                    payment.payment_method = payment_method
+                payment.reference_number = reference_number
+                payment.notes = notes
+                if payment_date:
+                    payment.payment_date = payment_date
+                # Update amounts if provided
+                try:
+                    if basic_salary_val is not None and basic_salary_val != '':
+                        payment.basic_salary = Decimal(basic_salary_val)
+                    if allowances_val is not None and allowances_val != '':
+                        payment.allowances = Decimal(allowances_val)
+                    if deductions_val is not None and deductions_val != '':
+                        payment.deductions = Decimal(deductions_val)
+                except Exception as _:
+                    return JsonResponse({'success': False, 'error': 'Invalid amount values provided.'}, status=400)
+
+                payment.save()
+                return JsonResponse({'success': True, 'message': 'Payment updated successfully'})
             
+            # Parse key fields (create new payment)
+            staff_type = request.POST.get('staff_type')
+            staff_id = request.POST.get('staff_id')
+            staff_name = request.POST.get('staff_name')
+            
+            # Format payment_month to ensure it's a valid date (YYYY-MM-DD)
+            payment_month = request.POST.get('payment_month')
+            if payment_month and len(payment_month) == 7 and payment_month[4] == '-':  # Format: YYYY-MM
+                payment_month = f"{payment_month}-01"  # Convert to YYYY-MM-01
+
+            # Prevent duplicate payments for the same person and month (scoped to school)
+            existing_qs = StaffPayment.objects.all()
+            if school is not None:
+                existing_qs = existing_qs.filter(school=school)
+            else:
+                existing_qs = existing_qs.filter(school__isnull=True)
+            if existing_qs.filter(staff_type=staff_type, staff_id=staff_id, payment_month=payment_month).exists():
+                return JsonResponse({
+                    'success': False,
+                    'error': 'A payment for this person and month already exists. Duplicate payments are not allowed.'
+                }, status=409)
+
             # Generate payment number
             last_payment = StaffPayment.objects.order_by('-payment_number').first()
             if last_payment and last_payment.payment_number.startswith('PAY-'):
@@ -666,17 +710,12 @@ class StaffPaymentView(LoginRequiredMixin, ListView):
             allowances = Decimal(request.POST.get('allowances', 0) or 0)
             deductions = Decimal(request.POST.get('deductions', 0) or 0)
             
-            # Format payment_month to ensure it's a valid date (YYYY-MM-DD)
-            payment_month = request.POST.get('payment_month')
-            if payment_month and len(payment_month) == 7 and payment_month[4] == '-':  # Format: YYYY-MM
-                payment_month = f"{payment_month}-01"  # Convert to YYYY-MM-01
-            
             payment = StaffPayment.objects.create(
                 school=school,
                 payment_number=payment_number,
-                staff_type=request.POST.get('staff_type'),
-                staff_id=request.POST.get('staff_id'),
-                staff_name=request.POST.get('staff_name'),
+                staff_type=staff_type,
+                staff_id=staff_id,
+                staff_name=staff_name,
                 payment_month=payment_month,
                 basic_salary=basic_salary,
                 allowances=allowances,

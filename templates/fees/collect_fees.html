@@ -260,6 +260,16 @@
                         </select>
                     </div>
                     <div class="mb-3">
+                        <label>Deposit Account *</label>
+                        <select name="deposit_account_id" id="depositAccountSelect" class="form-control" required>
+                            <option value="">Select Cash/Bank Account</option>
+                            {% for acc in deposit_accounts %}
+                            <option value="{{ acc.id }}" data-code="{{ acc.code }}" data-subtype="{{ acc.sub_type }}">{{ acc.code }} - {{ acc.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Choose where to deposit this fee (Cash or a specific Bank account).</small>
+                    </div>
+                    <div class="mb-3">
                         <label>Collected By *</label>
                         <select name="collected_by_id" class="form-control" required>
                             <option value="">Select Staff Member</option>
@@ -294,6 +304,45 @@ console.log('=== SCRIPT START ===');
 
 // Store student data safely at the top level
 let studentsFeeData = [];
+// Submit fee payment (AJAX)
+function submitPayment() {
+    try {
+        const form = document.getElementById('feePaymentForm');
+        if (!form) { alert('Form not found'); return; }
+        const fd = new FormData(form);
+        // Basic validation
+        if (!fd.get('student_id')) { alert('Please select a student'); return; }
+        if (!fd.get('fee_structure_id')) { alert('Please select a fee type'); return; }
+        if (!fd.get('amount_paid')) { alert('Please enter amount'); return; }
+        if (!fd.get('deposit_account_id')) { alert('Please select a deposit account'); return; }
+        const csrftoken = fd.get('csrfmiddlewaretoken');
+        fetch("{% url 'fees:collect_fees' school_slug=school_slug %}", {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrftoken,
+            },
+            body: fd,
+        }).then(r => r.json())
+          .then(data => {
+              if (data && data.success) {
+                  // Hide modal and reload
+                  try {
+                      const modalEl = document.getElementById('collectFeeModal');
+                      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                      modal.hide();
+                  } catch (e) {}
+                  location.reload();
+              } else {
+                  alert((data && data.error) || 'Failed to record payment');
+              }
+          })
+          .catch(err => alert('Network error: ' + err));
+    } catch (e) {
+        console.error(e);
+        alert('Error: ' + (e && e.message ? e.message : e));
+    }
+}
 
 window.addEventListener('load', function() {
     console.log('Window loaded');
@@ -322,6 +371,28 @@ window.addEventListener('load', function() {
         } else {
             console.log('No student data available');
         }
+
+    // Default deposit account based on payment method
+    function applyDepositDefault() {
+        try {
+            if (!paymentMethodSelect || !depositAccountSelect) return;
+            const method = (paymentMethodSelect.value || '').toLowerCase();
+            // Prefer code 1000 for cash; 1010 otherwise
+            let targetCode = method === 'cash' ? '1000' : '1010';
+            let chosen = null;
+            for (const opt of (depositAccountSelect.options || [])) {
+                if (opt.value && opt.dataset && opt.dataset.code === targetCode) {
+                    chosen = opt.value; break;
+                }
+            }
+            if (!chosen) {
+                for (const opt of (depositAccountSelect.options || [])) {
+                    if (opt.value) { chosen = opt.value; break; }
+                }
+            }
+            if (chosen) depositAccountSelect.value = chosen;
+        } catch (e) {}
+    }
     } catch (e) {
         console.error('Error loading student data:', e);
         studentsFeeData = [];
@@ -338,6 +409,8 @@ window.addEventListener('load', function() {
     const paymentHistoryBody = document.getElementById('paymentHistoryBody');
     const balancesUrl = "{% url 'fees:student_balances' school_slug=school_slug %}";
     let balancesCache = null;
+    const paymentMethodSelect = document.querySelector('select[name="payment_method"]');
+    const depositAccountSelect = document.getElementById('depositAccountSelect');
 
     function formatCurrency(n) {
         const num = Number(n) || 0;
@@ -420,17 +493,20 @@ window.addEventListener('load', function() {
 
     if (studentSelect) studentSelect.addEventListener('change', updateBalanceUI);
     if (feeStructureSelect) feeStructureSelect.addEventListener('change', updateBalanceUI);
+    if (paymentMethodSelect) paymentMethodSelect.addEventListener('change', applyDepositDefault);
     
     // Trigger once on modal show in case fields are preselected
     const collectFeeModalEl = document.getElementById('collectFeeModal');
     if (collectFeeModalEl) {
         collectFeeModalEl.addEventListener('shown.bs.modal', function() {
             updateBalanceUI();
+            applyDepositDefault();
         });
     }
     
     // Also trigger once on load to cover immediate cases
     updateBalanceUI();
+    applyDepositDefault();
     
     if (table) {
         const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');

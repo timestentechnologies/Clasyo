@@ -180,6 +180,47 @@
                                 {% endfor %}
                             </select>
                         </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Employee ID</label>
+                            <input type="text" name="employee_id" class="form-control" placeholder="Auto-generated" disabled>
+                            <small class="text-muted">Will be generated automatically after saving</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Basic Salary</label>
+                            <input type="number" step="0.01" name="basic_salary" class="form-control" value="0">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Allowances</label>
+                            <input type="number" step="0.01" name="allowances" class="form-control" value="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date of Joining</label>
+                            <input type="date" name="date_of_joining" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Employment Type</label>
+                            <select name="employment_type" class="form-select">
+                                <option value="permanent">Permanent</option>
+                                <option value="contract">Contract</option>
+                                <option value="temporary">Temporary</option>
+                            </select>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Address</label>
+                            <textarea name="address" class="form-control" rows="2" placeholder="Address"></textarea>
+                        </div>
+                        <div class="col-12 mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="teacherIsActive" name="is_active" checked>
+                            <label class="form-check-label" for="teacherIsActive">Active</label>
+                        </div>
+
+                        <!-- Optional/hidden fields requested -->
+                        <input type="hidden" name="created_at" value="">
+                        <input type="hidden" name="updated_at" value="">
+                        <input type="hidden" name="department_id" value="">
+                        <input type="hidden" name="designation_id" value="">
+                        <input type="hidden" name="user_id" value="">
+                        <input type="hidden" name="id" value="">
                     </div>
                 </form>
             </div>
@@ -243,6 +284,13 @@
 <script>
 function submitAddTeacher() {
     const form = document.getElementById('teacherAddForm');
+    // Mirror selected IDs into *_id fields if present
+    const deptSelect = form.querySelector('[name="department"]');
+    const desigSelect = form.querySelector('[name="designation"]');
+    const deptId = form.querySelector('[name="department_id"]');
+    const desigId = form.querySelector('[name="designation_id"]');
+    if (deptSelect && deptId) deptId.value = deptSelect.value || '';
+    if (desigSelect && desigId) desigId.value = desigSelect.value || '';
     const formData = new FormData(form);
     
     fetch(window.location.pathname + 'add/', {
@@ -291,30 +339,91 @@ function editTeacher(id) {
             const editForm = `
                 <form id="editTeacherForm">
                     <input type="hidden" name="teacher_id" value="${teacher.id}">
-                    <div class="mb-3">
-                        <label class="form-label">First Name *</label>
-                        <input type="text" name="first_name" class="form-control" value="${teacher.first_name}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Last Name *</label>
-                        <input type="text" name="last_name" class="form-control" value="${teacher.last_name}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email *</label>
-                        <input type="email" name="email" class="form-control" value="${teacher.email}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Password</label>
-                        <input type="text" name="password" class="form-control" value="teacher123">
-                        <small class="text-muted">Default: teacher123 - You can edit to change</small>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Phone</label>
-                        <input type="tel" name="phone" class="form-control" value="${teacher.phone}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">First Name *</label>
+                            <input type="text" name="first_name" class="form-control" value="${teacher.first_name}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Last Name *</label>
+                            <input type="text" name="last_name" class="form-control" value="${teacher.last_name}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email *</label>
+                            <input type="email" name="email" class="form-control" value="${teacher.email}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="tel" name="phone" class="form-control" value="${teacher.phone}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Department</label>
+                            <select name="department" id="editDepartment" class="form-select">
+                                <option value="">Select Department</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Designation</label>
+                            <select name="designation" id="editDesignation" class="form-select">
+                                <option value="">Select Designation</option>
+                                {% for desig in designations %}
+                                <option value="{{ desig.id }}">{{ desig.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Employee ID</label>
+                            <input type="text" class="form-control" value="${teacher.employee_id || ''}" disabled>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Basic Salary</label>
+                            <input type="number" step="0.01" name="basic_salary" class="form-control" value="${teacher.basic_salary || '0'}">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Allowances</label>
+                            <input type="number" step="0.01" name="allowances" class="form-control" value="${teacher.allowances || '0'}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date of Joining</label>
+                            <input type="date" name="date_of_joining" class="form-control" value="${teacher.date_of_joining || ''}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Employment Type</label>
+                            <select name="employment_type" id="editEmploymentType" class="form-select">
+                                <option value="permanent">Permanent</option>
+                                <option value="contract">Contract</option>
+                                <option value="temporary">Temporary</option>
+                            </select>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Address</label>
+                            <textarea name="address" class="form-control" rows="2">${teacher.address || ''}</textarea>
+                        </div>
+                        <div class="col-12 mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="editIsActive" name="is_active">
+                            <label class="form-check-label" for="editIsActive">Active</label>
+                        </div>
+                        <div class="col-12 mb-2">
+                            <label class="form-label">Password</label>
+                            <input type="text" name="password" class="form-control" value="teacher123">
+                            <small class="text-muted">Default: teacher123 - You can edit to change</small>
+                        </div>
                     </div>
                 </form>
             `;
             document.getElementById('editTeacherContent').innerHTML = editForm;
+            // Set selected values for selects and checkbox
+            const deptSelect = document.getElementById('editDepartment');
+            if (deptSelect) deptSelect.value = teacher.department_id || '';
+            const desigSelect = document.getElementById('editDesignation');
+            if (desigSelect) desigSelect.value = teacher.designation_id || '';
+            const empType = document.getElementById('editEmploymentType');
+            if (empType) empType.value = teacher.employment_type || 'permanent';
+            const activeCb = document.getElementById('editIsActive');
+            if (activeCb) activeCb.checked = !!teacher.is_active;
             new bootstrap.Modal(document.getElementById('editTeacherModal')).show();
         } else {
             alert('Failed to load teacher: ' + (data.error || 'Unknown error'));

@@ -377,12 +377,41 @@ class BookCreateView(LoginRequiredMixin, CreateView):
               'is_digital', 'is_reference', 'loan_period_days', 'max_renewals']
     
     def form_valid(self, form):
-        # Set creator
-        form.instance.created_by = self.request.user
-        form.instance.school = get_current_school(self.request)
-        
+        # Prepare instance
+        school = get_current_school(self.request)
+        obj = form.save(commit=False)
+        obj.created_by = self.request.user
+        obj.school = school
+
+        # Handle dynamic publisher/category from free-text inputs
+        new_publisher_name = (self.request.POST.get('new_publisher_name') or '').strip()
+        new_category_name = (self.request.POST.get('new_category_name') or '').strip()
+
+        if new_publisher_name:
+            existing_pub = Publisher.objects.filter(school=school, name__iexact=new_publisher_name).first()
+            obj.publisher = existing_pub or Publisher.objects.create(school=school, name=new_publisher_name)
+
+        if new_category_name:
+            existing_cat = BookCategory.objects.filter(school=school, name__iexact=new_category_name).first()
+            obj.category = existing_cat or BookCategory.objects.create(school=school, name=new_category_name)
+
+        # Save book first
+        obj.save()
+
+        # Save existing many2many selections
+        form.instance = obj
+        form.save_m2m()
+
+        # Handle dynamic authors
+        new_authors = [a.strip() for a in self.request.POST.getlist('new_authors') if a and a.strip()]
+        for author_name in new_authors:
+            existing_auth = Author.objects.filter(school=school, name__iexact=author_name).first()
+            author = existing_auth or Author.objects.create(school=school, name=author_name)
+            obj.authors.add(author)
+
         messages.success(self.request, _('Book created successfully'))
-        return super().form_valid(form)
+        self.object = obj
+        return redirect(self.get_success_url())
     
     def get_success_url(self):
         return reverse('library:book_detail', kwargs={
@@ -415,8 +444,35 @@ class BookUpdateView(LoginRequiredMixin, UpdateView):
         return qs
     
     def form_valid(self, form):
+        school = get_current_school(self.request)
+        obj = form.save(commit=False)
+
+        # Handle dynamic publisher/category
+        new_publisher_name = (self.request.POST.get('new_publisher_name') or '').strip()
+        new_category_name = (self.request.POST.get('new_category_name') or '').strip()
+
+        if new_publisher_name:
+            existing_pub = Publisher.objects.filter(school=school, name__iexact=new_publisher_name).first()
+            obj.publisher = existing_pub or Publisher.objects.create(school=school, name=new_publisher_name)
+
+        if new_category_name:
+            existing_cat = BookCategory.objects.filter(school=school, name__iexact=new_category_name).first()
+            obj.category = existing_cat or BookCategory.objects.create(school=school, name=new_category_name)
+
+        obj.save()
+        form.instance = obj
+        form.save_m2m()
+
+        # New authors appended
+        new_authors = [a.strip() for a in self.request.POST.getlist('new_authors') if a and a.strip()]
+        for author_name in new_authors:
+            existing_auth = Author.objects.filter(school=school, name__iexact=author_name).first()
+            author = existing_auth or Author.objects.create(school=school, name=author_name)
+            obj.authors.add(author)
+
         messages.success(self.request, _('Book updated successfully'))
-        return super().form_valid(form)
+        self.object = obj
+        return redirect(self.get_success_url())
     
     def get_success_url(self):
         return reverse('library:book_detail', kwargs={

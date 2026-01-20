@@ -4,8 +4,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from decimal import Decimal
+from datetime import datetime
 from accounts.models import User
-from .models import Department, Designation
+from .models import Department, Designation, Teacher, Staff
 from core.utils import generate_email, get_school_slug_from_request, get_current_school
 
 
@@ -55,7 +57,7 @@ class TeacherCreateView(LoginRequiredMixin, CreateView):
                 first_name=first_name,
                 last_name=last_name,
                 role='teacher',
-                phone=request.POST.get('phone_number', ''),
+                phone=request.POST.get('phone') or request.POST.get('phone_number', ''),
                 department_id=request.POST.get('department') or None,
                 designation_id=request.POST.get('designation') or None,
                 is_active=True
@@ -64,6 +66,40 @@ class TeacherCreateView(LoginRequiredMixin, CreateView):
             if school:
                 teacher.school = school
                 teacher.save(update_fields=["school"])
+
+            # Auto-generate employee id on User for consistency
+            employee_id = f"TCHR-{teacher.id}"
+            teacher.employee_id = employee_id
+            teacher.save(update_fields=["employee_id"]) 
+
+            # Create HR Teacher profile
+            dept_id = request.POST.get('department') or None
+            desig_id = request.POST.get('designation') or None
+            basic_salary = Decimal(request.POST.get('basic_salary') or 0)
+            allowances = Decimal(request.POST.get('allowances') or 0)
+            doj_str = request.POST.get('date_of_joining')
+            date_of_joining = datetime.strptime(doj_str, '%Y-%m-%d').date() if doj_str else None
+            employment_type = request.POST.get('employment_type') or 'permanent'
+            phone = request.POST.get('phone') or request.POST.get('phone_number', '')
+            address = request.POST.get('address', '')
+            is_active = str(request.POST.get('is_active', 'on')).lower() in ['1', 'true', 'on', 'yes']
+
+            Teacher.objects.create(
+                user=teacher,
+                first_name=first_name,
+                last_name=last_name,
+                employee_id=employee_id or f"TCHR-{teacher.id}",
+                department_id=dept_id,
+                designation_id=desig_id,
+                basic_salary=basic_salary,
+                allowances=allowances,
+                date_of_joining=date_of_joining or datetime.today().date(),
+                employment_type=employment_type,
+                phone=str(phone or ''),
+                email=email,
+                address=address,
+                is_active=is_active,
+            )
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
@@ -86,6 +122,11 @@ class TeacherDetailView(LoginRequiredMixin, DetailView):
         
         # Return JSON for AJAX requests
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            # Include HR profile details if present
+            try:
+                profile = teacher.teacher_profile
+            except Teacher.DoesNotExist:
+                profile = None
             return JsonResponse({
                 'success': True,
                 'teacher': {
@@ -95,8 +136,16 @@ class TeacherDetailView(LoginRequiredMixin, DetailView):
                     'email': teacher.email,
                     'phone': str(teacher.phone) if teacher.phone else '',
                     'department': teacher.department.name if teacher.department else '',
+                    'department_id': teacher.department_id,
                     'designation': teacher.designation.name if teacher.designation else '',
-                    'is_active': teacher.is_active
+                    'designation_id': teacher.designation_id,
+                    'is_active': teacher.is_active,
+                    'employee_id': getattr(profile, 'employee_id', ''),
+                    'basic_salary': str(getattr(profile, 'basic_salary', '0')),
+                    'allowances': str(getattr(profile, 'allowances', '0')),
+                    'date_of_joining': getattr(profile, 'date_of_joining', None).isoformat() if getattr(profile, 'date_of_joining', None) else '',
+                    'employment_type': getattr(profile, 'employment_type', ''),
+                    'address': getattr(profile, 'address', ''),
                 }
             })
         
@@ -124,7 +173,15 @@ class TeacherUpdateView(LoginRequiredMixin, UpdateView):
             teacher.first_name = request.POST.get('first_name')
             teacher.last_name = request.POST.get('last_name')
             teacher.email = request.POST.get('email')
-            teacher.phone = request.POST.get('phone', '')
+            teacher.phone = request.POST.get('phone') or request.POST.get('phone_number', '')
+            # Update active and department/designation on User
+            teacher.is_active = str(request.POST.get('is_active', teacher.is_active)).lower() in ['1', 'true', 'on', 'yes']
+            dept_val = request.POST.get('department')
+            desig_val = request.POST.get('designation')
+            if dept_val is not None:
+                teacher.department_id = dept_val or None
+            if desig_val is not None:
+                teacher.designation_id = desig_val or None
             
             # Handle password update if provided
             password = request.POST.get('password', '').strip()
@@ -132,6 +189,46 @@ class TeacherUpdateView(LoginRequiredMixin, UpdateView):
                 teacher.set_password(password)
             
             teacher.save()
+
+            # Sync HR Teacher profile including HR fields
+            profile, _ = Teacher.objects.get_or_create(
+                user=teacher,
+                defaults={
+                    'first_name': teacher.first_name,
+                    'last_name': teacher.last_name,
+                    'employee_id': f"TCHR-{teacher.id}",
+                    'date_of_joining': datetime.today().date(),
+                }
+            )
+            profile.first_name = teacher.first_name
+            profile.last_name = teacher.last_name
+            profile.email = teacher.email
+            profile.phone = str(teacher.phone or '')
+            profile.department_id = teacher.department_id
+            profile.designation_id = teacher.designation_id
+            # HR specific fields
+            basic_salary = request.POST.get('basic_salary')
+            allowances = request.POST.get('allowances')
+            doj_str = request.POST.get('date_of_joining')
+            employment_type = request.POST.get('employment_type')
+            address = request.POST.get('address')
+            prof_active = request.POST.get('is_active')
+            if basic_salary not in (None, ''):
+                profile.basic_salary = Decimal(basic_salary)
+            if allowances not in (None, ''):
+                profile.allowances = Decimal(allowances)
+            if doj_str:
+                try:
+                    profile.date_of_joining = datetime.strptime(doj_str, '%Y-%m-%d').date()
+                except ValueError:
+                    pass
+            if employment_type:
+                profile.employment_type = employment_type
+            if address is not None:
+                profile.address = address
+            if prof_active is not None:
+                profile.is_active = str(prof_active).lower() in ['1', 'true', 'on', 'yes']
+            profile.save()
             return JsonResponse({'success': True, 'message': 'Teacher updated successfully'})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
@@ -206,12 +303,48 @@ class StaffCreateView(LoginRequiredMixin, View):
                 last_name=last_name,
                 role=role,
                 phone=request.POST.get('phone', ''),
+                department_id=request.POST.get('department') or None,
+                designation_id=request.POST.get('designation') or None,
                 is_active=True
             )
             school = get_current_school(request)
             if school:
                 staff.school = school
                 staff.save(update_fields=["school"])
+
+            # Auto-generate employee id on User for consistency
+            employee_id = f"STF-{staff.id}"
+            staff.employee_id = employee_id
+            staff.save(update_fields=["employee_id"]) 
+
+            # Create HR Staff profile
+            dept_id = request.POST.get('department') or None
+            desig_id = request.POST.get('designation') or None
+            basic_salary = Decimal(request.POST.get('basic_salary') or 0)
+            allowances = Decimal(request.POST.get('allowances') or 0)
+            doj_str = request.POST.get('date_of_joining')
+            date_of_joining = datetime.strptime(doj_str, '%Y-%m-%d').date() if doj_str else None
+            employment_type = request.POST.get('employment_type') or 'permanent'
+            phone = request.POST.get('phone', '')
+            address = request.POST.get('address', '')
+            is_active = str(request.POST.get('is_active', 'on')).lower() in ['1', 'true', 'on', 'yes']
+
+            Staff.objects.create(
+                user=staff,
+                first_name=first_name,
+                last_name=last_name,
+                employee_id=employee_id or f"STF-{staff.id}",
+                department_id=dept_id,
+                designation_id=desig_id,
+                basic_salary=basic_salary,
+                allowances=allowances,
+                date_of_joining=date_of_joining or datetime.today().date(),
+                employment_type=employment_type,
+                phone=str(phone or ''),
+                email=email,
+                address=address,
+                is_active=is_active,
+            )
             return JsonResponse({'success': True, 'message': 'Staff added successfully!'})
         except Exception as e:
             import traceback
@@ -270,6 +403,14 @@ class StaffUpdateView(LoginRequiredMixin, UpdateView):
             staff.email = request.POST.get('email')
             staff.phone = request.POST.get('phone', '')
             staff.role = request.POST.get('role', staff.role)
+            # Update active and department/designation on User
+            staff.is_active = str(request.POST.get('is_active', staff.is_active)).lower() in ['1', 'true', 'on', 'yes']
+            dept_val = request.POST.get('department')
+            desig_val = request.POST.get('designation')
+            if dept_val is not None:
+                staff.department_id = dept_val or None
+            if desig_val is not None:
+                staff.designation_id = desig_val or None
             
             # Handle password update
             password = request.POST.get('password', '').strip()
@@ -277,6 +418,46 @@ class StaffUpdateView(LoginRequiredMixin, UpdateView):
                 staff.set_password(password)
             
             staff.save()
+
+            # Sync HR Staff profile including HR fields
+            profile, _ = Staff.objects.get_or_create(
+                user=staff,
+                defaults={
+                    'first_name': staff.first_name,
+                    'last_name': staff.last_name,
+                    'employee_id': f"STF-{staff.id}",
+                    'date_of_joining': datetime.today().date(),
+                }
+            )
+            profile.first_name = staff.first_name
+            profile.last_name = staff.last_name
+            profile.email = staff.email
+            profile.phone = str(staff.phone or '')
+            profile.department_id = staff.department_id
+            profile.designation_id = staff.designation_id
+            # HR specific fields
+            basic_salary = request.POST.get('basic_salary')
+            allowances = request.POST.get('allowances')
+            doj_str = request.POST.get('date_of_joining')
+            employment_type = request.POST.get('employment_type')
+            address = request.POST.get('address')
+            prof_active = request.POST.get('is_active')
+            if basic_salary not in (None, ''):
+                profile.basic_salary = Decimal(basic_salary)
+            if allowances not in (None, ''):
+                profile.allowances = Decimal(allowances)
+            if doj_str:
+                try:
+                    profile.date_of_joining = datetime.strptime(doj_str, '%Y-%m-%d').date()
+                except ValueError:
+                    pass
+            if employment_type:
+                profile.employment_type = employment_type
+            if address is not None:
+                profile.address = address
+            if prof_active is not None:
+                profile.is_active = str(prof_active).lower() in ['1', 'true', 'on', 'yes']
+            profile.save()
             return JsonResponse({'success': True, 'message': 'Staff updated successfully'})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})

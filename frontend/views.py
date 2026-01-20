@@ -439,6 +439,60 @@ class DocumentationView(TemplateView):
                 }
             }
         ]
+        # Recently added capabilities
+        context['core_features'] += [
+            {
+                'title': 'Finance & Accounting',
+                'description': 'Full double-entry accounting: Chart of Accounts, Journal Entries, General Ledger, Trial Balance and financial summaries with real-time postings.',
+                'icon': 'credit-card',
+                'details': {
+                    'overview': 'Integrated accounting with real-time fee/expense postings and backfill for historical data.',
+                    'key_features': [
+                        'Chart of Accounts (Assets, Liabilities, Equity, Income, Expenses)',
+                        'Double-entry Journal Entries with validation',
+                        'General Ledger with running balances and counter accounts',
+                        'Reports: Trial Balance, Income Statement (summary), Balance Sheet (summary)',
+                        'Deposit account selection at fee collection, reclassification utility'
+                    ],
+                }
+            },
+            {
+                'title': 'Inventory Management',
+                'description': 'Items, suppliers, purchases/receipts, issues and stock reports to manage school inventory.',
+                'icon': 'package',
+                'details': {
+                    'overview': 'Track stock through purchases/receipts and issues; monitor balances and movements.',
+                    'key_features': [
+                        'Item master and categories',
+                        'Suppliers and stores',
+                        'Purchases/receipts and issues',
+                        'Stock and movement reports'
+                    ],
+                }
+            },
+            {
+                'title': 'AI Assistant',
+                'description': 'Context-aware assistant to answer questions and generate insights across modules.',
+                'icon': 'cpu',
+                'details': {
+                    'overview': 'Natural-language insights; ask why balances are negative, get reconciliations and explanations.',
+                    'key_features': [
+                        'Public AI Chat API endpoint',
+                        'Permissions-aware responses',
+                        'Explains reports and generates summaries'
+                    ],
+                }
+            },
+        ]
+
+        # API Endpoints (used by PDF documentation template)
+        context['api_endpoints'] = [
+            {
+                'endpoint': '/api/ai/chat/',
+                'method': 'POST',
+                'description': 'Public AI chat endpoint providing natural-language assistance; provider configured via settings.'
+            },
+        ]
         
         # User Guides - Enhanced with detailed step-by-step instructions
         context['user_guides'] = [

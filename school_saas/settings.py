@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'lesson_plan',
     'chat',
     'clubs',
+    'finance',
 ]
 
 MIDDLEWARE = [

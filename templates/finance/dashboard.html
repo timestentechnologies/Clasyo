@@ -1,0 +1,80 @@
+{% extends 'dashboards/base.html' %}
+{% load humanize %}
+{% block title %}Finance Dashboard{% endblock %}
+{% block extra_css %}
+<style>
+  :root { --primary-color: #26c6da; }
+  .finance-tabs.nav-tabs { border-bottom: 0; gap: 8px; }
+  .finance-tabs .nav-link { color: var(--primary-color); background: rgba(38,198,218,0.10); border: 0; border-radius: 999px; padding: 8px 14px; }
+  .finance-tabs .nav-link:hover { background: rgba(38,198,218,0.18); color: var(--primary-color); }
+  .finance-tabs .nav-link.active { background: var(--primary-color); color: #fff; box-shadow: 0 6px 20px rgba(38,198,218,.25); }
+
+  .finance-dashboard .account-card .card-body { padding: 12px 14px; }
+  .finance-dashboard .stat-title { font-weight: 600; font-size: .95rem; }
+  .finance-dashboard .stat-amount { font-size: 1.35rem; font-weight: 700; }
+  .finance-dashboard .stat-icon { color: #26c6da; }
+
+  .finance-quick-actions .card-header { background: var(--primary-color); color: #fff; }
+  .finance-quick-actions .btn { border-radius: 999px; }
+  .page-header .fa-coins { color: var(--primary-color) !important; }
+</style>
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header mb-3">
+  <div class="d-flex align-items-center">
+    <i class="fas fa-coins text-primary me-2"></i>
+    <h1 class="page-title mb-0">Finance &amp; Accounting</h1>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="finance-dashboard">
+<ul class="nav nav-tabs finance-tabs mb-3">
+  <li class="nav-item"><a class="nav-link {% if active_tab == 'dashboard' %}active{% endif %}" href="{% url 'finance:dashboard' school_slug=school_slug %}">Dashboard</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'fees:collect_fees' school_slug=school_slug %}">Collect Fees</a></li>
+  <li class="nav-item"><a class="nav-link {% if active_tab == 'donations' %}active{% endif %}" href="{% url 'finance:donations' school_slug=school_slug %}">Donations</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'inventory:expense_list' school_slug=school_slug %}">Expenses</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'inventory:staff_payment_list' school_slug=school_slug %}">Staff Payments</a></li>
+  <li class="nav-item"><a class="nav-link {% if active_tab == 'accounts' %}active{% endif %}" href="{% url 'finance:accounts' school_slug=school_slug %}">Chart of Accounts</a></li>
+  <li class="nav-item"><a class="nav-link {% if active_tab == 'ledger' %}active{% endif %}" href="{% url 'finance:ledger' school_slug=school_slug %}">General Ledger</a></li>
+  <li class="nav-item"><a class="nav-link {% if active_tab == 'reports' %}active{% endif %}" href="{% url 'finance:reports' school_slug=school_slug %}">Reports</a></li>
+</ul>
+
+<div class="row g-3">
+  {% for acc in cash_bank_accounts %}
+  <div class="col-6 col-md-3">
+    <div class="card stat-card info account-card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <div class="stat-title text-muted mb-1">{{ acc.name }}</div>
+            <div class="stat-amount mb-0">{{ acc.current_balance|floatformat:2|intcomma }}</div>
+            <small class="text-muted">{{ acc.code }} • {{ acc.get_sub_type_display }}</small>
+          </div>
+          <div class="text-end">
+            <i class="fas fa-wallet fa-2x stat-icon"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="alert alert-info">No cash/bank accounts found. They will be auto-created when you open Finance pages. If not, please create from Chart of Accounts.</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card finance-quick-actions mt-3">
+  <div class="card-header"><strong>Quick Actions</strong></div>
+  <div class="card-body">
+    <a class="btn btn-primary me-2" href="{% url 'fees:collect_fees' school_slug=school_slug %}"><i class="fas fa-receipt"></i> Collect Fees</a>
+    <a class="btn btn-success me-2" href="{% url 'finance:donations' school_slug=school_slug %}"><i class="fas fa-gift"></i> Receive Donation</a>
+    <a class="btn btn-warning me-2" href="{% url 'inventory:expense_list' school_slug=school_slug %}"><i class="fas fa-money-bill"></i> Expenses</a>
+    <a class="btn btn-outline-secondary" href="{% url 'inventory:staff_payment_list' school_slug=school_slug %}"><i class="fas fa-user-check"></i> Staff Payments</a>
+  </div>
+</div>
+</div>
+{% endblock %}

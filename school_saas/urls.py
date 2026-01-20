@@ -55,6 +55,7 @@ urlpatterns = [
         path('lesson-plan/', include('lesson_plan.urls', namespace='lesson_plan')),
         path('certificates/', include('certificates.urls', namespace='certificates')),
         path('reports/', include('reports.urls', namespace='reports')),
+        path('finance/', include('finance.urls', namespace='finance')),
         path('online-exam/', include('online_exam.urls', namespace='online_exam')),
         path('chat/', include('chat.urls', namespace='chat')),
         path('clubs/', include('clubs.urls', namespace='clubs')),

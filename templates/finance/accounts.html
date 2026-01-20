@@ -1,0 +1,92 @@
+{% extends 'dashboards/base.html' %}
+{% load humanize %}
+{% block title %}Chart of Accounts{% endblock %}
+{% block extra_css %}
+<style>
+  :root { --primary-color: #26c6da; }
+  .finance-tabs.nav-tabs { border-bottom: 0; gap: 8px; }
+  .finance-tabs .nav-link { color: var(--primary-color); background: rgba(38,198,218,0.10); border: 0; border-radius: 999px; padding: 8px 14px; }
+  .finance-tabs .nav-link:hover { background: rgba(38,198,218,0.18); color: var(--primary-color); }
+  .finance-tabs .nav-link.active { background: var(--primary-color); color: #fff; box-shadow: 0 6px 20px rgba(38,198,218,.25); }
+  .page-header .fa-coins { color: var(--primary-color) !important; }
+</style>
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header mb-3">
+  <div class="d-flex align-items-center justify-content-between w-100">
+    <div class="d-flex align-items-center">
+      <i class="fas fa-coins text-primary me-2"></i>
+      <h1 class="page-title mb-0">Finance &amp; Accounting</h1>
+    </div>
+    <div>
+      <a href="{% url 'finance:account_create' school_slug=school_slug %}" class="btn btn-primary"><i class="fas fa-plus"></i> New Account</a>
+    </div>
+  </div>
+  
+</div>
+{% endblock %}
+
+{% block content %}
+<ul class="nav nav-tabs finance-tabs mb-3">
+  <li class="nav-item"><a class="nav-link" href="{% url 'finance:dashboard' school_slug=school_slug %}">Dashboard</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'fees:collect_fees' school_slug=school_slug %}">Collect Fees</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'finance:donations' school_slug=school_slug %}">Donations</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'inventory:expense_list' school_slug=school_slug %}">Expenses</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'inventory:staff_payment_list' school_slug=school_slug %}">Staff Payments</a></li>
+  <li class="nav-item"><a class="nav-link active" href="#">Chart of Accounts</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'finance:ledger' school_slug=school_slug %}">General Ledger</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'finance:reports' school_slug=school_slug %}">Reports</a></li>
+</ul>
+
+<div class="card">
+  <div class="card-body table-responsive">
+    <table class="table table-striped align-middle">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Sub-Type</th>
+          <th class="text-end">Opening</th>
+          <th class="text-end">Balance</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for acc in accounts %}
+        <tr>
+          <td>{{ acc.code }}</td>
+          <td>{{ acc.name }}</td>
+          <td>{{ acc.get_account_type_display }}</td>
+          <td>{{ acc.get_sub_type_display }}</td>
+          <td class="text-end">{{ acc.opening_balance|floatformat:2|intcomma }}</td>
+          <td class="text-end">{{ acc.current_balance|floatformat:2|intcomma }}</td>
+          <td>
+            {% if acc.is_active %}
+              <span class="badge bg-success">Active</span>
+            {% else %}
+              <span class="badge bg-secondary">Inactive</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{% url 'finance:account_update' school_slug=school_slug pk=acc.id %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-pen"></i></a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted">No accounts found.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th colspan="4" class="text-end">Total</th>
+          <th class="text-end">{{ opening_total|floatformat:2|intcomma }}</th>
+          <th class="text-end">{{ balance_total|floatformat:2|intcomma }}</th>
+          <th colspan="2"></th>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% endblock %}

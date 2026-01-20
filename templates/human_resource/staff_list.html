@@ -98,31 +98,92 @@
             <div class="modal-body">
                 <form id="staffForm">
                     {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="first_name" class="form-label">First Name</label>
-                        <input type="text" class="form-control" id="first_name" name="first_name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="last_name" class="form-label">Last Name</label>
-                        <input type="text" class="form-control" id="last_name" name="last_name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="email" name="email" placeholder="firstname.lastname@school.com">
-                        <small class="text-muted">Auto-generated if empty</small>
-                    </div>
-                    <div class="mb-3">
-                        <label for="phone" class="form-label">Phone</label>
-                        <input type="text" class="form-control" id="phone" name="phone">
-                    </div>
-                    <div class="mb-3">
-                        <label for="role" class="form-label">Role</label>
-                        <select class="form-select" id="role" name="role" required>
-                            <option value="staff">Staff</option>
-                            <option value="accountant">Accountant</option>
-                            <option value="librarian">Librarian</option>
-                            <option value="driver">Driver</option>
-                        </select>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="first_name" class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="last_name" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" placeholder="firstname.lastname@school.com">
+                            <small class="text-muted">Auto-generated if empty</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">Phone</label>
+                            <input type="text" class="form-control" id="phone" name="phone">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="role" class="form-label">Role</label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="staff">Staff</option>
+                                <option value="accountant">Accountant</option>
+                                <option value="librarian">Librarian</option>
+                                <option value="driver">Driver</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Department</label>
+                            <select name="department" class="form-select">
+                                <option value="">Select Department</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Designation</label>
+                            <select name="designation" class="form-select">
+                                <option value="">Select Designation</option>
+                                {% for desig in designations %}
+                                <option value="{{ desig.id }}">{{ desig.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Employee ID</label>
+                            <input type="text" name="employee_id" class="form-control" placeholder="Auto-generated" disabled>
+                            <small class="text-muted">Will be generated automatically after saving</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Basic Salary</label>
+                            <input type="number" step="0.01" name="basic_salary" class="form-control" value="0">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Allowances</label>
+                            <input type="number" step="0.01" name="allowances" class="form-control" value="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date of Joining</label>
+                            <input type="date" name="date_of_joining" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Employment Type</label>
+                            <select name="employment_type" class="form-select">
+                                <option value="permanent">Permanent</option>
+                                <option value="contract">Contract</option>
+                                <option value="temporary">Temporary</option>
+                            </select>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Address</label>
+                            <textarea name="address" class="form-control" rows="2" placeholder="Address"></textarea>
+                        </div>
+                        <div class="col-12 mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="staffIsActive" name="is_active" checked>
+                            <label class="form-check-label" for="staffIsActive">Active</label>
+                        </div>
+
+                        <!-- Optional/hidden fields requested -->
+                        <input type="hidden" name="created_at" value="">
+                        <input type="hidden" name="updated_at" value="">
+                        <input type="hidden" name="department_id" value="">
+                        <input type="hidden" name="designation_id" value="">
+                        <input type="hidden" name="user_id" value="">
+                        <input type="hidden" name="id" value="">
                     </div>
                 </form>
             </div>
@@ -282,6 +343,13 @@ function showSuccessAndReload(message) {
 
 function submitStaff() {
     const form = document.getElementById('staffForm');
+    // Mirror selected IDs into *_id fields if present
+    const deptSelect = form.querySelector('[name="department"]');
+    const desigSelect = form.querySelector('[name="designation"]');
+    const deptId = form.querySelector('[name="department_id"]');
+    const desigId = form.querySelector('[name="designation_id"]');
+    if (deptSelect && deptId) deptId.value = deptSelect.value || '';
+    if (desigSelect && desigId) desigId.value = desigSelect.value || '';
     const formData = new FormData(form);
     
     fetch(window.location.pathname + 'add/', {

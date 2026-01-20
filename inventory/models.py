@@ -263,6 +263,12 @@ class StaffPayment(models.Model):
         verbose_name = _("Staff Payment")
         verbose_name_plural = _("Staff Payments")
         ordering = ['-payment_date', '-payment_number']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['school', 'staff_type', 'staff_id', 'payment_month'],
+                name='uniq_staff_payment_per_month_per_person_per_school'
+            )
+        ]
     
     def __str__(self):
         return f"{self.payment_number} - {self.staff_name}"

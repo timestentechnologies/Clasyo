@@ -1,0 +1,120 @@
+{% extends 'dashboards/base.html' %}
+{% load humanize %}
+{% block title %}Financial Reports{% endblock %}
+{% block extra_css %}
+<style>
+  :root { --primary-color: #26c6da; }
+  .finance-tabs.nav-tabs { border-bottom: 0; gap: 8px; }
+  .finance-tabs .nav-link { color: var(--primary-color); background: rgba(38,198,218,0.10); border: 0; border-radius: 999px; padding: 8px 14px; }
+  .finance-tabs .nav-link:hover { background: rgba(38,198,218,0.18); color: var(--primary-color); }
+  .finance-tabs .nav-link.active { background: var(--primary-color); color: #fff; box-shadow: 0 6px 20px rgba(38,198,218,.25); }
+  .page-header .fa-coins { color: var(--primary-color) !important; }
+  </style>
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header mb-3">
+  <div class="d-flex align-items-center">
+    <i class="fas fa-coins text-primary me-2"></i>
+    <h1 class="page-title mb-0">Finance &amp; Accounting</h1>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<ul class="nav nav-tabs finance-tabs mb-3">
+  <li class="nav-item"><a class="nav-link" href="{% url 'finance:dashboard' school_slug=school_slug %}">Dashboard</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'fees:collect_fees' school_slug=school_slug %}">Collect Fees</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'finance:donations' school_slug=school_slug %}">Donations</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'inventory:expense_list' school_slug=school_slug %}">Expenses</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'inventory:staff_payment_list' school_slug=school_slug %}">Staff Payments</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'finance:accounts' school_slug=school_slug %}">Chart of Accounts</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'finance:ledger' school_slug=school_slug %}">General Ledger</a></li>
+  <li class="nav-item"><a class="nav-link active" href="#">Reports</a></li>
+  
+</ul>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label">From</label>
+        <input type="date" name="from" value="{{ date_from }}" class="form-control">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">To</label>
+        <input type="date" name="to" value="{{ date_to }}" class="form-control">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Academic Year</label>
+        <select class="form-select" name="academic_year">
+          <option value="">All</option>
+          {% for y in academic_years %}
+            <option value="{{ y.id }}" {% if y.id|stringformat:'s' == academic_year_id|stringformat:'s' %}selected{% endif %}>{{ y.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3 d-flex gap-2 justify-content-md-end">
+        <a class="btn btn-outline-secondary" href="{% url 'finance:reclassify' school_slug=school_slug %}"><i class="fas fa-exchange-alt"></i> Reclassify Deposits</a>
+        <button class="btn btn-primary" type="submit"><i class="fas fa-filter"></i> Filter</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header"><strong>Trial Balance</strong></div>
+      <div class="card-body table-responsive">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Account</th>
+              <th class="text-end">Debit</th>
+              <th class="text-end">Credit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in trial_rows %}
+            <tr>
+              <td>{{ row.code }}</td>
+              <td>{{ row.name }}</td>
+              <td class="text-end">{{ row.debit|floatformat:2|intcomma }}</td>
+              <td class="text-end">{{ row.credit|floatformat:2|intcomma }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted">No data</td></tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2" class="text-end">Total</th>
+              <th class="text-end">{{ trial_total_debit|floatformat:2|intcomma }}</th>
+              <th class="text-end">{{ trial_total_credit|floatformat:2|intcomma }}</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card mb-3">
+      <div class="card-header"><strong>Income Statement (P&L)</strong></div>
+      <div class="card-body">
+        <div class="d-flex justify-content-between"><span>Total Income</span><span>{{ net_income|add:assets_total|default_if_none:0 }}</span></div>
+        <div class="d-flex justify-content-between"><span>Net Income</span><span class="fw-bold">{{ net_income|floatformat:2|intcomma }}</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><strong>Balance Sheet (Summary)</strong></div>
+      <div class="card-body">
+        <div class="d-flex justify-content-between"><span>Total Assets</span><span>{{ assets_total|floatformat:2|intcomma }}</span></div>
+        <div class="d-flex justify-content-between"><span>Total Liabilities</span><span>{{ liabilities_total|floatformat:2|intcomma }}</span></div>
+        <div class="d-flex justify-content-between"><span>Total Equity (incl. Net Income)</span><span>{{ equity_total|floatformat:2|intcomma }}</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
