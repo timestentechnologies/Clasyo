@@ -92,6 +92,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'accounts.middleware.ImpersonationMiddleware',  # Login As functionality
     'allauth.account.middleware.AccountMiddleware',
+    'core.subscription_middleware.SubscriptionEnforcementMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.audit_middleware.AuditLogMiddleware',  # Audit logging

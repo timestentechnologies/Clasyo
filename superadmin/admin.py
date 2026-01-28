@@ -20,7 +20,11 @@ class PaymentConfigurationAdmin(admin.ModelAdmin):
         ('M-Pesa Configuration', {
             'fields': (
                 'mpesa_consumer_key', 'mpesa_consumer_secret', 
-                'mpesa_passkey', 'mpesa_shortcode', 'mpesa_paybill_number'
+                'mpesa_passkey', 'mpesa_shortcode', 'mpesa_paybill_number',
+                'mpesa_paybill_account_name', 'mpesa_paybill_instructions',
+                'mpesa_till_number', 'mpesa_buygoods_instructions',
+                'mpesa_send_money_recipient', 'mpesa_send_money_instructions',
+                'mpesa_pochi_number', 'mpesa_pochi_instructions'
             ),
             'classes': ('collapse',),
         }),
@@ -60,7 +64,25 @@ class SchoolPaymentConfigurationAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
         ('M-Pesa Manual Paybill Configuration', {
-            'fields': ('mpesa_paybill_number', 'mpesa_paybill_account_number', 'mpesa_paybill_bank_name'),
+            'fields': (
+                'mpesa_paybill_number',
+                'mpesa_paybill_account_number',
+                'mpesa_paybill_account_name',
+                'mpesa_paybill_bank_name',
+                'mpesa_paybill_instructions',
+            ),
+            'classes': ('collapse',),
+        }),
+        ('M-Pesa Buy Goods & Services (Till)', {
+            'fields': ('mpesa_till_number', 'mpesa_buygoods_instructions'),
+            'classes': ('collapse',),
+        }),
+        ('M-Pesa Send Money', {
+            'fields': ('mpesa_send_money_recipient', 'mpesa_send_money_instructions'),
+            'classes': ('collapse',),
+        }),
+        ('M-Pesa Pochi la Biashara', {
+            'fields': ('mpesa_pochi_number', 'mpesa_pochi_instructions'),
             'classes': ('collapse',),
         }),
         ('PayPal Configuration', {

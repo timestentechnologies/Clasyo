@@ -7,6 +7,14 @@
 {% block page_subtitle %}Welcome back! Here's what's happening today.{% endblock %}
 
 {% block content %}
+{% if show_subscription_banner %}
+<div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    <div>
+        Your subscription ends in <strong>{{ sub_days_remaining }}</strong> day{{ sub_days_remaining|pluralize }}. Please plan for your next payment to avoid disruptions.
+    </div>
+ </div>
+{% endif %}
 <!-- Stats Grid -->
 <div class="stats-grid fade-in-up">
     <div class="stat-card primary">

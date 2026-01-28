@@ -1249,6 +1249,37 @@ class PaymentVerifyView(SuperAdminRequiredMixin, View):
             return redirect('superadmin:payment_approval_list')
         
         payment.verify_payment(request.user)
+        # Notify school and superadmins
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            school = payment.subscription.school if payment.subscription else None
+            recipients_school = []
+            if school and school.email:
+                recipients_school.append(school.email)
+            recipients_school += list(
+                User.objects.filter(school=school, role='school_admin', is_active=True).values_list('email', flat=True)
+            ) if school else []
+            recipients_school = [e for e in recipients_school if e]
+            recipients_super = list(
+                User.objects.filter(role='superadmin', is_active=True).values_list('email', flat=True)
+            )
+            subject = f"Payment Verified - {school.name if school else ''} - {payment.subscription.plan.name if payment.subscription and payment.subscription.plan else ''}"
+            message = (
+                f"Your payment has been verified.\n\n"
+                f"Payment ID: {payment.payment_id}\n"
+                f"Amount: {payment.amount} {getattr(settings, 'DEFAULT_CURRENCY', 'KES')}\n"
+                f"Status: {payment.status}\n"
+            )
+            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+            if recipients_school:
+                send_mail(subject, message, from_email, recipients_school, fail_silently=True)
+            if recipients_super:
+                send_mail(f"[Admin] {subject}", message, from_email, recipients_super, fail_silently=True)
+        except Exception:
+            pass
         messages.success(request, f'Payment {payment.payment_id} has been verified.')
         return redirect('superadmin:payment_approval_list')
 
@@ -1264,6 +1295,37 @@ class PaymentApproveView(SuperAdminRequiredMixin, View):
             return redirect('superadmin:payment_approval_list')
         
         payment.approve_payment(request.user)
+        # Notify school and superadmins
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            school = payment.subscription.school if payment.subscription else None
+            recipients_school = []
+            if school and school.email:
+                recipients_school.append(school.email)
+            recipients_school += list(
+                User.objects.filter(school=school, role='school_admin', is_active=True).values_list('email', flat=True)
+            ) if school else []
+            recipients_school = [e for e in recipients_school if e]
+            recipients_super = list(
+                User.objects.filter(role='superadmin', is_active=True).values_list('email', flat=True)
+            )
+            subject = f"Payment Approved - {school.name if school else ''} - {payment.subscription.plan.name if payment.subscription and payment.subscription.plan else ''}"
+            message = (
+                f"Your payment has been approved and your subscription is now active.\n\n"
+                f"Payment ID: {payment.payment_id}\n"
+                f"Amount: {payment.amount} {getattr(settings, 'DEFAULT_CURRENCY', 'KES')}\n"
+                f"Status: {payment.status}\n"
+            )
+            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+            if recipients_school:
+                send_mail(subject, message, from_email, recipients_school, fail_silently=True)
+            if recipients_super:
+                send_mail(f"[Admin] {subject}", message, from_email, recipients_super, fail_silently=True)
+        except Exception:
+            pass
         messages.success(request, f'Payment {payment.payment_id} has been approved and subscription activated.')
         return redirect('superadmin:payment_approval_list')
 
@@ -1280,6 +1342,36 @@ class PaymentRejectView(SuperAdminRequiredMixin, View):
             return redirect('superadmin:payment_detail', pk=payment_id)
         
         payment.reject_payment(request.user, rejection_reason)
+        # Notify school and superadmins
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            school = payment.subscription.school if payment.subscription else None
+            recipients_school = []
+            if school and school.email:
+                recipients_school.append(school.email)
+            recipients_school += list(
+                User.objects.filter(school=school, role='school_admin', is_active=True).values_list('email', flat=True)
+            ) if school else []
+            recipients_school = [e for e in recipients_school if e]
+            recipients_super = list(
+                User.objects.filter(role='superadmin', is_active=True).values_list('email', flat=True)
+            )
+            subject = f"Payment Rejected - {school.name if school else ''} - {payment.subscription.plan.name if payment.subscription and payment.subscription.plan else ''}"
+            message = (
+                f"Your payment has been rejected.\n\n"
+                f"Payment ID: {payment.payment_id}\n"
+                f"Reason: {rejection_reason}\n"
+            )
+            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+            if recipients_school:
+                send_mail(subject, message, from_email, recipients_school, fail_silently=True)
+            if recipients_super:
+                send_mail(f"[Admin] {subject}", message, from_email, recipients_super, fail_silently=True)
+        except Exception:
+            pass
         messages.success(request, f'Payment {payment.payment_id} has been rejected.')
         return redirect('superadmin:payment_approval_list')
 

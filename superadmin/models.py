@@ -24,6 +24,9 @@ EMAIL_PROVIDER_CHOICES = [
 GATEWAY_CHOICES = [
     ('mpesa_stk', _('M-Pesa STK Push')),
     ('mpesa_paybill', _('M-Pesa Manual Paybill')),
+    ('mpesa_buygoods', _('Lipa na M-Pesa (Buy Goods & Services)')),
+    ('mpesa_send_money', _('M-Pesa Send Money')),
+    ('mpesa_pochi', _('M-Pesa Pochi la Biashara')),
     ('paypal', _('PayPal')),
     ('stripe', _('Stripe')),
     ('bank', _('Bank Transfer')),
@@ -506,12 +509,12 @@ class PaymentConfiguration(models.Model):
         ('live', _('Live')),
     ]
     
-    gateway = models.CharField(max_length=50, choices=[
-        ('mpesa', _('M-Pesa')),
-        ('paypal', _('PayPal')),
-        ('stripe', _('Stripe')),
-        ('bank', _('Bank Transfer')),
-    ], unique=True, verbose_name=_('Payment Gateway'))
+    gateway = models.CharField(
+        max_length=50,
+        choices=GATEWAY_CHOICES,
+        unique=True,
+        verbose_name=_('Payment Gateway')
+    )
     
     environment = models.CharField(
         max_length=10, 
@@ -552,6 +555,51 @@ class PaymentConfiguration(models.Model):
         blank=True, 
         null=True,
         verbose_name=_('M-Pesa Paybill Number')
+    )
+    # Additional M-Pesa manual variants (global)
+    mpesa_paybill_account_name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name=_('M-Pesa Paybill Account Name')
+    )
+    mpesa_paybill_instructions = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_('M-Pesa Paybill Instructions')
+    )
+    mpesa_till_number = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        verbose_name=_('M-Pesa Till Number')
+    )
+    mpesa_buygoods_instructions = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_('M-Pesa Buy Goods Instructions')
+    )
+    mpesa_send_money_recipient = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name=_('M-Pesa Send Money Recipient')
+    )
+    mpesa_send_money_instructions = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_('M-Pesa Send Money Instructions')
+    )
+    mpesa_pochi_number = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name=_('Pochi la Biashara Number')
+    )
+    mpesa_pochi_instructions = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_('M-Pesa Pochi Instructions')
     )
     
     # PayPal fields
@@ -644,13 +692,33 @@ class PaymentConfiguration(models.Model):
             'is_active': self.is_active,
         }
         
-        if self.gateway == 'mpesa':
+        if self.gateway == 'mpesa_stk':
             config.update({
                 'consumer_key': self.mpesa_consumer_key,
                 'consumer_secret': self.mpesa_consumer_secret,
                 'passkey': self.mpesa_passkey,
                 'shortcode': self.mpesa_shortcode,
+            })
+        elif self.gateway == 'mpesa_paybill':
+            config.update({
                 'paybill_number': self.mpesa_paybill_number,
+                'account_name': self.mpesa_paybill_account_name,
+                'instructions': self.mpesa_paybill_instructions,
+            })
+        elif self.gateway == 'mpesa_buygoods':
+            config.update({
+                'till_number': self.mpesa_till_number,
+                'instructions': self.mpesa_buygoods_instructions,
+            })
+        elif self.gateway == 'mpesa_send_money':
+            config.update({
+                'recipient': self.mpesa_send_money_recipient,
+                'instructions': self.mpesa_send_money_instructions,
+            })
+        elif self.gateway == 'mpesa_pochi':
+            config.update({
+                'pochi_number': self.mpesa_pochi_number,
+                'instructions': self.mpesa_pochi_instructions,
             })
         elif self.gateway == 'paypal':
             config.update({
@@ -754,6 +822,59 @@ class SchoolPaymentConfiguration(models.Model):
         verbose_name=_('M-Pesa Paybill Bank Name'),
         help_text=_('Bank name associated with M-Pesa paybill (visible to parents)')
     )
+    mpesa_paybill_account_name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name=_('M-Pesa Paybill Account Name')
+    )
+    mpesa_paybill_instructions = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_('M-Pesa Paybill Instructions')
+    )
+
+    # M-Pesa Buy Goods & Services (Till)
+    mpesa_till_number = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        verbose_name=_('M-Pesa Till Number'),
+        help_text=_('Your M-Pesa till number for Buy Goods & Services payments')
+    )
+    mpesa_buygoods_instructions = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_('M-Pesa Buy Goods Instructions')
+    )
+
+    # M-Pesa Send Money recipient phone
+    mpesa_send_money_recipient = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name=_('M-Pesa Send Money Recipient'),
+        help_text=_('Phone number to receive M-Pesa Send Money payments')
+    )
+    mpesa_send_money_instructions = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_('M-Pesa Send Money Instructions')
+    )
+
+    # M-Pesa Pochi la Biashara number
+    mpesa_pochi_number = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name=_('Pochi la Biashara Number'),
+        help_text=_('Pochi account phone number for receiving payments')
+    )
+    mpesa_pochi_instructions = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_('M-Pesa Pochi Instructions')
+    )
     
     # PayPal fields
     paypal_email = models.EmailField(
@@ -835,6 +956,28 @@ class SchoolPaymentConfiguration(models.Model):
         elif self.gateway in ['cash', 'cheque']:
             config.update({
                 'instructions': self.payment_instructions,
+            })
+        elif self.gateway == 'mpesa_buygoods':
+            config.update({
+                'till_number': self.mpesa_till_number,
+                'instructions': self.mpesa_buygoods_instructions,
+            })
+        elif self.gateway == 'mpesa_send_money':
+            config.update({
+                'recipient': self.mpesa_send_money_recipient,
+                'instructions': self.mpesa_send_money_instructions,
+            })
+        elif self.gateway == 'mpesa_pochi':
+            config.update({
+                'pochi_number': self.mpesa_pochi_number,
+                'instructions': self.mpesa_pochi_instructions,
+            })
+        elif self.gateway == 'mpesa_paybill':
+            config.update({
+                'paybill_number': self.mpesa_paybill_number,
+                'account_number': self.mpesa_paybill_account_number,
+                'account_name': self.mpesa_paybill_account_name,
+                'instructions': self.mpesa_paybill_instructions,
             })
         
         return config

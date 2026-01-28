@@ -8,11 +8,14 @@
 {% block page_subtitle %}Manage your subscription and billing information{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div id="billing-page" class="container-fluid">
+    <form id="csrf-helper-form" method="post" style="display:none;">
+        {% csrf_token %}
+    </form>
     <!-- Current Subscription Section -->
     {% if plan %}
     <div class="row mb-4">
-        <div class="col-lg-8">
+        <div class="col-xl-7 col-lg-8 mx-auto current-subscription-card">
             <div class="modern-card">
                 <div class="card-header-modern">
                     <h4 class="mb-0">
@@ -38,7 +41,9 @@
                                 <label class="text-muted small">Status</label>
                                 <p>
                                     {% if subscription %}
-                                        {% if subscription.status == 'active' %}
+                                        {% if subscription_end and subscription_expired %}
+                                            <span class="badge bg-danger">Expired</span>
+                                        {% elif subscription.status == 'active' %}
                                             <span class="badge bg-success">Active</span>
                                         {% elif subscription.status == 'pending' %}
                                             <span class="badge bg-warning">Pending</span>
@@ -72,10 +77,12 @@
                             <div class="subscription-info">
                                 <label class="text-muted small">Start Date</label>
                                 <p class="mb-3">
-                                    {% if subscription_start %}
+                                    {% if subscription_start_dt %}
+                                        {{ subscription_start_dt|date:"M d, Y H:i" }}
+                                    {% elif subscription_start %}
                                         {{ subscription_start|date:"M d, Y" }}
                                     {% elif subscription %}
-                                        {{ subscription.start_date|date:"M d, Y" }}
+                                        {{ subscription.created_at|date:"M d, Y H:i" }}
                                     {% else %}
                                         -
                                     {% endif %}
@@ -83,7 +90,9 @@
                                 
                                 <label class="text-muted small">End Date</label>
                                 <p class="mb-3">
-                                    {% if subscription_end %}
+                                    {% if subscription_end_dt %}
+                                        {{ subscription_end_dt|date:"M d, Y H:i" }}
+                                    {% elif subscription_end %}
                                         {{ subscription_end|date:"M d, Y" }}
                                     {% elif subscription %}
                                         {{ subscription.end_date|date:"M d, Y" }}
@@ -404,7 +413,7 @@
                                            class="btn btn-sm btn-outline-primary" title="Download PDF">
                                             <i class="fas fa-download"></i>
                                         </a>
-                                        {% if invoice.status != 'paid' %}
+                                        {% if invoice.status == 'sent' or invoice.status == 'overdue' %}
                                         <button class="btn btn-sm btn-outline-success" 
                                                 title="Pay Invoice"
                                                 disabled>
@@ -491,12 +500,12 @@
                                             <span class="badge bg-primary ms-2">Current Plan</span>
                                         {% endif %}
                                     </h5>
-                                    <p class="plan-type text-muted small">{{ pricing_plan.duration }}</p>
+                                    <p class="plan-type text-muted small">{{ pricing_plan.get_billing_cycle_display }}</p>
                                 </div>
 
                                 <div class="plan-price">
                                     <span class="price-amount">Ksh {{ pricing_plan.price|intcomma }}</span>
-                                    <span class="price-period">/ {{ pricing_plan.duration|lower }}</span>
+                                    <span class="price-period">/ {{ pricing_plan.get_billing_cycle_display|lower }}</span>
                                 </div>
 
                                 <div class="plan-features">
@@ -551,6 +560,11 @@
                                         <button class="btn btn-outline-secondary w-100" disabled>
                                             Current Plan
                                         </button>
+                                    {% elif pricing_plan.price == 0 and pricing_plan.disable_free_selection %}
+                                        <button class="btn btn-outline-secondary w-100" disabled title="You have already used your free plan limit">
+                                            Free Plan Limit Used
+                                        </button>
+                                        <div class="text-muted small mt-1">You have already used your free plan limit.</div>
                                     {% else %}
                                         <button class="btn btn-primary w-100 upgrade-btn" 
                                                 data-plan-slug="{{ pricing_plan.slug }}"
@@ -791,11 +805,132 @@
         background-color: #00B5B8 !important;
         border-color: #00B5B8 !important;
     }
+    
+    #billing-page .modern-card { padding: 1rem 1.25rem; border-radius: 10px; }
+    #billing-page .card-header-modern { padding-bottom: .5rem; margin-bottom: .75rem; }
+    #billing-page .card-header-modern h4 { font-size: 1.1rem; }
+    #billing-page .subscription-info label { font-size: .8rem; }
+    #billing-page .subscription-info h5 { font-size: 1rem; margin-bottom: .5rem; }
+    #billing-page .subscription-info p { margin-bottom: .5rem; }
+    #billing-page .badge { font-size: .75rem; padding: .35em .55em; }
+    #billing-page .card-body { padding: 1rem 1.25rem; }
+    #billing-page .btn { padding: .375rem .6rem; font-size: .85rem; }
+    #billing-page .current-subscription-card { max-width: 860px; }
+    #billing-page .modern-card .border-top { margin-top: .5rem !important; }
+    #billing-page .modern-card .mt-4 { margin-top: 1rem !important; }
+    #billing-page .modern-card .pt-4 { padding-top: .75rem !important; }
+
+    .modal-header.calm-info { background: linear-gradient(180deg, #4DD0E1 0%, #26C6DA 100%) !important; color: #ffffff !important; }
+    .modal-header.calm-info .btn-close { filter: invert(1); }
+    .modal-header.calm-info h5, .modal-header.calm-info i { color: #ffffff !important; }
+
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+var BILLING_SCHOOL_SLUG = "{{ school_slug|default:'' }}";
+document.addEventListener('DOMContentLoaded', function() {
+    var showExpired = "{{ show_expired_modal|yesno:'true,false' }}" === 'true';
+    var reason = "{{ expired_reason|default:'' }}";
+    var paymentSubmitted = "{{ payment_submitted|yesno:'true,false' }}" === 'true';
+    var paymentPending = "{{ payment_pending|yesno:'true,false' }}" === 'true';
+    if (showExpired) {
+        var title = (reason === 'trial') ? 'Your trial has ended' : 'Your subscription has expired';
+        var msg = (reason === 'trial')
+            ? 'To keep your access uninterrupted, please choose a plan below and complete your subscription.'
+            : 'To continue using Clasyo without interruption, please renew your subscription below.';
+        if (typeof showMessage === 'function') {
+            showMessage(title, msg, true);
+            var header = document.getElementById('messageModalHeader');
+            var icon = document.getElementById('messageModalIcon');
+            var btn = document.getElementById('messageModalBtn');
+            if (header) {
+                header.classList.add('calm-info');
+                header.style.background = 'linear-gradient(180deg, #4DD0E1 0%, #26C6DA 100%)';
+                header.style.color = '#ffffff';
+            }
+            if (icon) {
+                icon.className = 'fas fa-info-circle me-2';
+            }
+            if (btn) {
+                btn.className = 'btn btn-info';
+                btn.textContent = 'View Plans';
+                // Ensure only one handler
+                btn.onclick = function() {
+                    try {
+                        var modalEl = document.getElementById('messageModal');
+                        var instance = window.bootstrap && window.bootstrap.Modal.getInstance ? window.bootstrap.Modal.getInstance(modalEl) : null;
+                        if (instance) { instance.hide(); }
+                    } catch (e) { /* no-op */ }
+                    var anchor = document.querySelector('#upgrade-plans');
+                    if (anchor && anchor.scrollIntoView) {
+                        anchor.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                        window.location.hash = 'upgrade-plans';
+                    }
+                };
+            }
+        }
+    }
+
+    if (paymentSubmitted) {
+        if (typeof showMessage === 'function') {
+            showMessage('Payment Submitted', 'Thank you. Your payment has been submitted and is pending verification. We will notify you by email once it is confirmed.', true);
+            var header2 = document.getElementById('messageModalHeader');
+            var icon2 = document.getElementById('messageModalIcon');
+            var btn2 = document.getElementById('messageModalBtn');
+            if (header2) {
+                header2.classList.add('calm-info');
+                header2.style.background = 'linear-gradient(180deg, #4DD0E1 0%, #26C6DA 100%)';
+                header2.style.color = '#ffffff';
+            }
+            if (icon2) {
+                icon2.className = 'fas fa-check-circle me-2';
+            }
+            if (btn2) {
+                btn2.className = 'btn btn-info';
+                btn2.textContent = 'Okay';
+                btn2.onclick = function() {
+                    try {
+                        var modalEl = document.getElementById('messageModal');
+                        var instance = window.bootstrap && window.bootstrap.Modal.getInstance ? window.bootstrap.Modal.getInstance(modalEl) : null;
+                        if (instance) { instance.hide(); }
+                    } catch (e) { /* no-op */ }
+                };
+            }
+        }
+    }
+
+    if (paymentPending && !paymentSubmitted) {
+        if (typeof showMessage === 'function') {
+            showMessage('Awaiting Confirmation', 'Your payment is awaiting confirmation by the administrator. Access to other pages is limited until approval. We will notify you by email once it is confirmed.', true);
+            var header3 = document.getElementById('messageModalHeader');
+            var icon3 = document.getElementById('messageModalIcon');
+            var btn3 = document.getElementById('messageModalBtn');
+            if (header3) {
+                header3.classList.add('calm-info');
+                header3.style.background = 'linear-gradient(180deg, #4DD0E1 0%, #26C6DA 100%)';
+                header3.style.color = '#ffffff';
+            }
+            if (icon3) {
+                icon3.className = 'fas fa-hourglass-half me-2';
+            }
+            if (btn3) {
+                btn3.className = 'btn btn-info';
+                btn3.textContent = 'Okay';
+                btn3.onclick = function() {
+                    try {
+                        var modalEl = document.getElementById('messageModal');
+                        var instance = window.bootstrap && window.bootstrap.Modal.getInstance ? window.bootstrap.Modal.getInstance(modalEl) : null;
+                        if (instance) { instance.hide(); }
+                    } catch (e) { /* no-op */ }
+                };
+            }
+        }
+    }
+});
+
 let currentInvoiceId = null;
 let selectedPlan = null;
 let selectedPaymentMethod = null;
@@ -823,19 +958,38 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modal-plan-price').textContent = 'Ksh ' + selectedPlan.price;
         
         // Fetch payment methods from API
-        fetch(`/subscriptions/subscribe/${selectedPlan.slug}/`)
+        const qs = BILLING_SCHOOL_SLUG ? `?school_slug=${encodeURIComponent(BILLING_SCHOOL_SLUG)}` : '';
+        const getUrl = `/subscriptions/subscribe/${selectedPlan.slug}/` + qs;
+        fetch(getUrl)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    displayPaymentMethods(data.payment_methods);
-                    paymentModal.show();
+                    if (data.payment_methods && data.payment_methods.length) {
+                        displayPaymentMethods(data.payment_methods);
+                        paymentModal.show();
+                    } else {
+                        const msg = 'No payment methods are configured yet. Please contact your administrator.';
+                        if (typeof showMessage === 'function') {
+                            showMessage('Payment Setup Required', msg, false);
+                        } else {
+                            alert(msg);
+                        }
+                    }
                 } else {
-                    alert('Error loading payment methods. Please try again.');
+                    if (typeof showError === 'function') {
+                        showError('Error loading payment methods. Please try again.');
+                    } else {
+                        alert('Error loading payment methods. Please try again.');
+                    }
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error loading payment methods. Please try again.');
+                if (typeof showError === 'function') {
+                    showError('Error loading payment methods. Please try again.');
+                } else {
+                    alert('Error loading payment methods. Please try again.');
+                }
             });
     }
     
@@ -857,6 +1011,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function renderInstructions(text) {
+        if (!text) return '';
+        const steps = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+        if (!steps.length) return '';
+        return '<ol class="small mb-0 ps-3">' + steps.map(s => `<li>${escapeHtml(s)}</li>`).join('') + '</ol>';
+    }
+
     function showPaymentMethodFields(methodId, methods) {
         const container = document.getElementById('payment-method-details');
         container.innerHTML = '';
@@ -869,6 +1040,35 @@ document.addEventListener('DOMContentLoaded', function() {
         let fieldsHtml = '<div class="card border-0 bg-light">';
         fieldsHtml += `<div class="card-body">
             <h6 class="card-title mb-3">${method.icon} ${method.name} Details</h6>`;
+
+        if (method.details && Object.keys(method.details).length) {
+            fieldsHtml += '<div class="mb-3">';
+            if (methodId === 'mpesa_paybill') {
+                if (method.details.paybill_number) fieldsHtml += `<div class="small text-muted">Paybill: <strong>${method.details.paybill_number}</strong></div>`;
+                if (method.details.account_number) fieldsHtml += `<div class="small text-muted">Account: <strong>${method.details.account_number}</strong></div>`;
+                if (method.details.account_name) fieldsHtml += `<div class="small text-muted">Account Name: <strong>${method.details.account_name}</strong></div>`;
+                if (method.details.instructions) fieldsHtml += `<div class="mt-2">${renderInstructions(method.details.instructions)}</div>`;
+            } else if (methodId === 'mpesa_buygoods') {
+                if (method.details.till_number) fieldsHtml += `<div class="small text-muted">Till Number: <strong>${method.details.till_number}</strong></div>`;
+                if (method.details.instructions) fieldsHtml += `<div class="mt-2">${renderInstructions(method.details.instructions)}</div>`;
+            } else if (methodId === 'mpesa_send_money') {
+                if (method.details.recipient) fieldsHtml += `<div class="small text-muted">Send To: <strong>${method.details.recipient}</strong></div>`;
+                if (method.details.instructions) fieldsHtml += `<div class="mt-2">${renderInstructions(method.details.instructions)}</div>`;
+            } else if (methodId === 'mpesa_pochi') {
+                if (method.details.pochi_number) fieldsHtml += `<div class="small text-muted">Pochi Number: <strong>${method.details.pochi_number}</strong></div>`;
+                if (method.details.instructions) fieldsHtml += `<div class="mt-2">${renderInstructions(method.details.instructions)}</div>`;
+            } else if (methodId === 'bank_transfer') {
+                if (method.details.bank_name) fieldsHtml += `<div class="small text-muted">Bank: <strong>${method.details.bank_name}</strong></div>`;
+                if (method.details.account_name) fieldsHtml += `<div class="small text-muted">Account Name: <strong>${method.details.account_name}</strong></div>`;
+                if (method.details.account_number) fieldsHtml += `<div class="small text-muted">Account Number: <strong>${method.details.account_number}</strong></div>`;
+                if (method.details.branch) fieldsHtml += `<div class="small text-muted">Branch: <strong>${method.details.branch}</strong></div>`;
+            } else if (methodId === 'paypal') {
+                if (method.details.paypal_email) fieldsHtml += `<div class="small text-muted">PayPal: <strong>${method.details.paypal_email}</strong></div>`;
+            } else if (methodId === 'cash' || methodId === 'cheque') {
+                if (method.details.instructions) fieldsHtml += `<div class="mt-2">${renderInstructions(method.details.instructions)}</div>`;
+            }
+            fieldsHtml += '</div>';
+        }
         
         switch(methodId) {
             case 'cash':
@@ -878,8 +1078,34 @@ document.addEventListener('DOMContentLoaded', function() {
                         <input type="text" class="form-control" id="invoiceNumber" placeholder="Enter invoice number" required>
                     </div>`;
                 break;
+            
+            case 'cheque':
+                fieldsHtml += `
+                    <div class="mb-3">
+                        <label for="chequeNumber" class="form-label">Cheque Number</label>
+                        <input type="text" class="form-control" id="chequeNumber" placeholder="Enter cheque number" required>
+                    </div>`;
+                break;
                 
             case 'mpesa_paybill':
+                fieldsHtml += `
+                    <div class="mb-3">
+                        <label for="transactionId" class="form-label">Transaction ID</label>
+                        <input type="text" class="form-control" id="transactionId" placeholder="Enter M-Pesa transaction ID" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phoneNumber" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="phoneNumber" placeholder="Enter phone number (e.g., 07XXXXXXXX)" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="fullName" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="fullName" placeholder="Enter full name" required>
+                    </div>`;
+                break;
+
+            case 'mpesa_buygoods':
+            case 'mpesa_send_money':
+            case 'mpesa_pochi':
                 fieldsHtml += `
                     <div class="mb-3">
                         <label for="transactionId" class="form-label">Transaction ID</label>
@@ -937,7 +1163,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle payment confirmation
     document.getElementById('confirm-payment').addEventListener('click', function() {
         if (!selectedPaymentMethod) {
-            alert('Please select a payment method');
+            if (typeof showValidationError === 'function') {
+                showValidationError('Please select a payment method');
+            } else if (typeof showMessage === 'function') {
+                showMessage('Validation Error', 'Please select a payment method', false);
+            } else {
+                alert('Please select a payment method');
+            }
             return;
         }
         
@@ -954,6 +1186,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     isValid = false;
                 } else {
                     paymentData.invoice_number = invoiceNumber.value.trim();
+                }
+                break;
+            case 'cheque':
+                const chequeNumber = document.getElementById('chequeNumber');
+                if (!chequeNumber || !chequeNumber.value.trim()) {
+                    errorMessage = 'Please enter the cheque number';
+                    isValid = false;
+                } else {
+                    paymentData.transaction_id = chequeNumber.value.trim();
                 }
                 break;
                 
@@ -975,6 +1216,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     paymentData.transaction_id = transactionId.value.trim();
                     paymentData.phone_number = phoneNumber.value.trim();
                     paymentData.full_name = fullName.value.trim();
+                }
+                break;
+            case 'mpesa_buygoods':
+            case 'mpesa_send_money':
+            case 'mpesa_pochi':
+                const transactionId2 = document.getElementById('transactionId');
+                const phoneNumber2 = document.getElementById('phoneNumber');
+                const fullName2 = document.getElementById('fullName');
+                if (!transactionId2 || !transactionId2.value.trim()) {
+                    errorMessage = 'Please enter the transaction ID';
+                    isValid = false;
+                } else if (!phoneNumber2 || !phoneNumber2.value.trim()) {
+                    errorMessage = 'Please enter the phone number';
+                    isValid = false;
+                } else if (!fullName2 || !fullName2.value.trim()) {
+                    errorMessage = 'Please enter the full name';
+                    isValid = false;
+                } else {
+                    paymentData.transaction_id = transactionId2.value.trim();
+                    paymentData.phone_number = phoneNumber2.value.trim();
+                    paymentData.full_name = fullName2.value.trim();
                 }
                 break;
                 
@@ -1021,15 +1283,44 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (!isValid) {
-            alert(errorMessage);
+            if (typeof showValidationError === 'function') {
+                showValidationError(errorMessage);
+            } else if (typeof showMessage === 'function') {
+                showMessage('Validation Error', errorMessage, false);
+            } else {
+                alert(errorMessage);
+            }
             return;
         }
         
         // Create subscription and payment
         const formData = new FormData();
         formData.append('payment_method', selectedPaymentMethod);
-        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-        
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        const csrfToken = csrfInput ? csrfInput.value : getCookie('csrftoken');
+        if (csrfToken) {
+            formData.append('csrfmiddlewaretoken', csrfToken);
+        }
+        if (BILLING_SCHOOL_SLUG) {
+            formData.append('school_slug', BILLING_SCHOOL_SLUG);
+        }
+
         // Add payment details to form data
         Object.keys(paymentData).forEach(key => {
             formData.append(key, paymentData[key]);
@@ -1045,8 +1336,11 @@ document.addEventListener('DOMContentLoaded', function() {
             method: 'POST',
             body: formData,
             headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
+                'X-CSRFToken': csrfToken || '' ,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
         })
         .then(response => {
             if (response.redirected) {
@@ -1054,17 +1348,27 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (response.ok) {
                 return response.json();
             } else {
-                throw new Error('Payment processing failed');
+                return response.json().catch(() => { throw new Error('Payment processing failed'); }).then(data => {
+                    throw new Error(data && data.error ? data.error : 'Payment processing failed');
+                });
             }
         })
         .then(data => {
             if (data && data.redirect_url) {
                 window.location.href = data.redirect_url;
+            } else if (data && data.error) {
+                throw new Error(data.error);
+            } else {
+                throw new Error('Payment processing failed');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Payment processing failed. Please try again.');
+            if (typeof showError === 'function') {
+                showError(error && error.message ? error.message : 'Payment processing failed. Please try again.');
+            } else {
+                alert(error && error.message ? error.message : 'Payment processing failed. Please try again.');
+            }
             // Reset button
             confirmBtn.innerHTML = originalText;
             confirmBtn.disabled = false;

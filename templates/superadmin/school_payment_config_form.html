@@ -534,7 +534,7 @@ body.theme-dark .card span {
                                     </div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-6" id="environment-container">
                                 <label for="{{ form.environment.id_for_label }}" class="form-label">Environment *</label>
                                 {{ form.environment }}
                                 {% if form.environment.errors %}
@@ -646,13 +646,104 @@ body.theme-dark .card span {
                                 </div>
                                 <div class="row mb-3">
                                     <div class="col-md-12">
-                                        <label for="{{ form.mpesa_paybill_bank_name.id_for_label }}" class="form-label">Bank Name *</label>
+                                        <label for="{{ form.mpesa_paybill_bank_name.id_for_label }}" class="form-label">Bank Name</label>
                                         {{ form.mpesa_paybill_bank_name }}
                                         <div class="form-text">Bank name associated with M-Pesa paybill (visible to parents)</div>
                                         {% if form.mpesa_paybill_bank_name.errors %}
                                             <div class="invalid-feedback d-block">
                                                 {{ form.mpesa_paybill_bank_name.errors.0 }}
                                             </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="{{ form.mpesa_paybill_account_name.id_for_label }}" class="form-label">Account Name *</label>
+                                        {{ form.mpesa_paybill_account_name }}
+                                        {% if form.mpesa_paybill_account_name.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.mpesa_paybill_account_name.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="{{ form.mpesa_paybill_instructions.id_for_label }}" class="form-label">Parent Instructions</label>
+                                        {{ form.mpesa_paybill_instructions }}
+                                        {% if form.mpesa_paybill_instructions.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.mpesa_paybill_instructions.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- M-Pesa Buy Goods & Services (Till) Fields -->
+                            <div id="mpesa_buygoods-fields" class="gateway-fields" style="display: none;">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-shopping-basket me-2"></i>M-Pesa Buy Goods & Services (Till)
+                                </h6>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="{{ form.mpesa_till_number.id_for_label }}" class="form-label">Till Number *</label>
+                                        {{ form.mpesa_till_number }}
+                                        {% if form.mpesa_till_number.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.mpesa_till_number.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="{{ form.mpesa_buygoods_instructions.id_for_label }}" class="form-label">Parent Instructions</label>
+                                        {{ form.mpesa_buygoods_instructions }}
+                                        {% if form.mpesa_buygoods_instructions.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.mpesa_buygoods_instructions.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- M-Pesa Send Money Fields -->
+                            <div id="mpesa_send_money-fields" class="gateway-fields" style="display: none;">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-paper-plane me-2"></i>M-Pesa Send Money
+                                </h6>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="{{ form.mpesa_send_money_recipient.id_for_label }}" class="form-label">Recipient Phone *</label>
+                                        {{ form.mpesa_send_money_recipient }}
+                                        {% if form.mpesa_send_money_recipient.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.mpesa_send_money_recipient.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="{{ form.mpesa_send_money_instructions.id_for_label }}" class="form-label">Parent Instructions</label>
+                                        {{ form.mpesa_send_money_instructions }}
+                                        {% if form.mpesa_send_money_instructions.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.mpesa_send_money_instructions.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- M-Pesa Pochi la Biashara Fields -->
+                            <div id="mpesa_pochi-fields" class="gateway-fields" style="display: none;">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-store me-2"></i>M-Pesa Pochi la Biashara
+                                </h6>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="{{ form.mpesa_pochi_number.id_for_label }}" class="form-label">Pochi Number *</label>
+                                        {{ form.mpesa_pochi_number }}
+                                        {% if form.mpesa_pochi_number.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.mpesa_pochi_number.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="{{ form.mpesa_pochi_instructions.id_for_label }}" class="form-label">Parent Instructions</label>
+                                        {{ form.mpesa_pochi_instructions }}
+                                        {% if form.mpesa_pochi_instructions.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.mpesa_pochi_instructions.errors.0 }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -837,6 +928,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const gatewaySelect = document.getElementById('{{ form.gateway.id_for_label }}');
     const gatewayFields = document.querySelectorAll('.gateway-fields');
     const setupGuide = document.getElementById('setupGuide');
+    const environmentContainer = document.getElementById('environment-container');
     
     const setupGuides = {
         'mpesa_stk': `
@@ -865,6 +957,41 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="alert alert-warning small">
                 <strong>Important:</strong> Parents will see these details when making payments.
             </div>
+        `,
+        'mpesa_buygoods': `
+            <h6 class="text-primary mb-3">Buy Goods & Services (Till) Instructions</h6>
+            <ol class="small">
+                <li>Go to your M-Pesa</li>
+                <li>Select Lipa na M-Pesa</li>
+                <li>Choose Buy Goods and Services</li>
+                <li>Enter the Till Number</li>
+                <li>Enter the Amount</li>
+                <li>Enter your M-Pesa PIN</li>
+                <li>Confirm</li>
+            </ol>
+        `,
+        'mpesa_send_money': `
+            <h6 class="text-primary mb-3">Send Money Instructions</h6>
+            <ol class="small">
+                <li>Go to your M-Pesa</li>
+                <li>Select Send Money</li>
+                <li>Enter the Phone Number</li>
+                <li>Enter the Amount</li>
+                <li>Enter your M-Pesa PIN</li>
+                <li>Confirm the details</li>
+            </ol>
+        `,
+        'mpesa_pochi': `
+            <h6 class="text-primary mb-3">Pochi la Biashara Instructions</h6>
+            <ol class="small">
+                <li>Go to your M-Pesa</li>
+                <li>Select Lipa na M-Pesa</li>
+                <li>Choose Pochi la Biashara</li>
+                <li>Enter the Phone Number</li>
+                <li>Enter the Amount</li>
+                <li>Enter your M-Pesa PIN</li>
+                <li>Confirm</li>
+            </ol>
         `,
         'paypal': `
             <h6 class="text-primary mb-3">PayPal Setup</h6>
@@ -920,6 +1047,18 @@ document.addEventListener('DOMContentLoaded', function() {
         `
     };
     
+    function toggleEnvironment(gateway) {
+        if (!environmentContainer) return;
+        // For schools: only STK Push needs environment selection
+        if (gateway === 'mpesa_stk') {
+            environmentContainer.style.display = 'block';
+        } else if (gateway) {
+            environmentContainer.style.display = 'none';
+        } else {
+            environmentContainer.style.display = 'none';
+        }
+    }
+
     function showGatewayFields(gateway) {
         // Hide all gateway fields
         gatewayFields.forEach(field => field.style.display = 'none');
@@ -936,12 +1075,15 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             setupGuide.innerHTML = '<div class="text-muted"><p>Select a payment gateway to see setup instructions.</p></div>';
         }
+        toggleEnvironment(gateway);
     }
     
     // Show fields for initial gateway
     const initialGateway = document.body.getAttribute('data-initial-gateway');
     if (initialGateway) {
         showGatewayFields(initialGateway);
+    } else {
+        toggleEnvironment('');
     }
     
     // Handle gateway change

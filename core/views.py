@@ -8,7 +8,7 @@ from django.db.models import Count, Q
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_GET
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from pathlib import Path
 from django.conf import settings as django_settings
 from django.utils import timezone
@@ -49,6 +49,32 @@ class AppsHomeView(LoginRequiredMixin, TemplateView):
             context['school'] = school
         except School.DoesNotExist:
             context['school'] = None
+        
+        # Subscription banner on Apps Home
+        try:
+            sub_end = None
+            current_subscription = None
+            if context.get('school'):
+                current_subscription = context['school'].subscriptions.all().order_by('-created_at').first()
+            if current_subscription and current_subscription.end_date:
+                sub_end = current_subscription.end_date
+            elif context.get('school') and context['school'].is_trial and getattr(context['school'], 'trial_end_date', None):
+                sub_end = context['school'].trial_end_date
+            elif context.get('school') and getattr(context['school'], 'subscription_end_date', None):
+                sub_end = context['school'].subscription_end_date
+
+            sub_days_remaining = None
+            show_banner = False
+            if sub_end:
+                today = timezone.now().date()
+                sub_days_remaining = (sub_end - today).days
+                show_banner = sub_days_remaining <= 10 and sub_days_remaining >= 0
+
+            context['sub_days_remaining'] = sub_days_remaining if sub_days_remaining is not None else 0
+            context['show_subscription_banner'] = show_banner
+        except Exception:
+            context['sub_days_remaining'] = 0
+            context['show_subscription_banner'] = False
         
         return context
 
@@ -182,6 +208,31 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             context['pending_tasks'] = ToDoList.objects.filter(
                 user=user, is_completed=False
             ).count()
+            # Subscription banner: show when <= 10 days remaining
+            try:
+                sub_end = None
+                current_subscription = None
+                if school:
+                    current_subscription = school.subscriptions.all().order_by('-created_at').first()
+                if current_subscription and current_subscription.end_date:
+                    sub_end = current_subscription.end_date
+                elif school and school.is_trial and getattr(school, 'trial_end_date', None):
+                    sub_end = school.trial_end_date
+                elif school and getattr(school, 'subscription_end_date', None):
+                    sub_end = school.subscription_end_date
+
+                sub_days_remaining = None
+                show_banner = False
+                if sub_end:
+                    today = timezone.now().date()
+                    sub_days_remaining = (sub_end - today).days
+                    show_banner = sub_days_remaining <= 10 and sub_days_remaining >= 0
+
+                context['sub_days_remaining'] = sub_days_remaining if sub_days_remaining is not None else 0
+                context['show_subscription_banner'] = show_banner
+            except Exception:
+                context['sub_days_remaining'] = 0
+                context['show_subscription_banner'] = False
             
         elif user.is_teacher:
             # Teacher specific data
@@ -1237,8 +1288,9 @@ class BillingView(LoginRequiredMixin, TemplateView):
     template_name = 'core/billing.html'
     
     def dispatch(self, request, *args, **kwargs):
-        """Only allow school admins to access billing"""
-        if not request.user.is_school_admin:
+        """Allow expired users (any role) to reach billing, otherwise restrict to school admins"""
+        allow_expired_visit = str(request.GET.get('expired', '')).lower() in ('1', 'true', 'yes')
+        if not request.user.is_school_admin and not allow_expired_visit:
             messages.error(request, "Access denied. This page is for school admins only.")
             return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
         return super().dispatch(request, *args, **kwargs)
@@ -1247,6 +1299,19 @@ class BillingView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         school_slug = self.kwargs.get('school_slug')
         context['school_slug'] = school_slug
+        # Flags from middleware redirect for showing expiry modal
+        try:
+            context['show_expired_modal'] = str(self.request.GET.get('expired', '')).lower() in ('1', 'true', 'yes')
+            context['expired_reason'] = (self.request.GET.get('reason') or '').strip()
+            # Show a friendly confirmation modal after payment submission
+            context['payment_submitted'] = str(self.request.GET.get('submitted', '')).lower() in ('1', 'true', 'yes')
+            # Show pending verification modal flag
+            context['payment_pending'] = str(self.request.GET.get('pending', '')).lower() in ('1', 'true', 'yes')
+        except Exception:
+            context['show_expired_modal'] = False
+            context['expired_reason'] = ''
+            context['payment_submitted'] = False
+            context['payment_pending'] = False
         
         # Get school
         from tenants.models import School
@@ -1254,9 +1319,9 @@ class BillingView(LoginRequiredMixin, TemplateView):
         from django.utils import timezone
         
         try:
-            school = School.objects.get(slug=school_slug, is_active=True)
+            school = School.objects.filter(slug=school_slug).first()
             context['school'] = school
-        except School.DoesNotExist:
+        except Exception:
             context['school'] = None
             context['subscription'] = None
             context['plan'] = None
@@ -1294,30 +1359,186 @@ class BillingView(LoginRequiredMixin, TemplateView):
                 except Exception:
                     p.is_current = False
 
-            # Trial / expiry information comes primarily from the School record
-            is_trial = bool(school.is_trial or (current_subscription and current_subscription.is_trial))
+            # Prefer dates from the most recent Subscription record when present
+            # so that freshly created subscriptions (even if pending) reflect immediately.
+            # Fall back to School fields only when there is no subscription.
+            is_trial = bool((current_subscription and current_subscription.is_trial) or (not current_subscription and school.is_trial))
+            # If the latest subscription is a paid purchase (plan price > 0), treat it as NOT a trial
+            # even if an older bug created it with is_trial=True.
+            try:
+                if current_subscription and current_subscription.plan and float(getattr(current_subscription.plan, 'price', 0)) > 0:
+                    is_trial = False
+            except Exception:
+                pass
+            
+            # Enforce: once a free offer (trial or free plan) is used, do not allow selecting a free plan again
+            from subscriptions.models import Invoice  # ensure available before use below
+            try:
+                current_free = bool(current_subscription and getattr(current_subscription.plan, 'price', 0) == 0)
+                has_trial_invoice = Invoice.objects.filter(school=school, invoice_type='trial_end').exists()
+                has_past_free_invoice = Invoice.objects.filter(
+                    school=school,
+                    invoice_type__in=['new', 'renewal', 'upgrade'],
+                    total_amount=0
+                ).exists()
+                past_free_sub_qs = school.subscriptions.filter(plan__price=0)
+                if current_subscription:
+                    past_free_sub_qs = past_free_sub_qs.exclude(id=current_subscription.id)
+                has_past_free_sub = past_free_sub_qs.exists()
+                has_used_free_offer = (has_trial_invoice or has_past_free_invoice or has_past_free_sub) and not current_free
+                for p in context.get('pricing_plans', []):
+                    try:
+                        p.disable_free_selection = bool(has_used_free_offer and float(getattr(p, 'price', 0)) == 0 and not getattr(p, 'is_current', False))
+                    except Exception:
+                        p.disable_free_selection = False
+            except Exception:
+                pass
             context['is_trial'] = is_trial
 
-            # Work out start and end dates (for both trial and paid subscriptions)
+            # If subscription exists and is not active yet, mark pending flag for UI
+            try:
+                if current_subscription and current_subscription.status in ['pending', 'processing', 'verified']:
+                    context['payment_pending'] = True
+            except Exception:
+                pass
+
+            # Correct end date ONLY for pending/processing/verified (pre-activation) subscriptions
+            # to fix legacy cases where 14 days were set incorrectly. Do not override admin edits on active subs.
+            try:
+                if (
+                    current_subscription and plan and float(getattr(plan, 'price', 0)) > 0 and
+                    current_subscription.status in ['pending', 'processing', 'verified']
+                ):
+                    expected_days = 30
+                    if plan.billing_cycle == 'quarterly':
+                        expected_days = 90
+                    elif plan.billing_cycle == 'half_yearly':
+                        expected_days = 180
+                    elif plan.billing_cycle == 'yearly':
+                        expected_days = 365
+                    if current_subscription.start_date and current_subscription.end_date:
+                        actual_days = (current_subscription.end_date - current_subscription.start_date).days
+                        # Only correct the known legacy bug where 14 days were set erroneously
+                        if actual_days == 14 and expected_days != 14:
+                            current_subscription.end_date = current_subscription.start_date + timedelta(days=expected_days)
+                            current_subscription.save(update_fields=['end_date'])
+            except Exception:
+                pass
+
+            # Work out start and end dates (for both trial and paid subscriptions),
+            # prioritising the Subscription record over School fields.
             subscription_start = None
             subscription_end = None
+            subscription_start_dt = None
+            subscription_end_dt = None
 
-            # Trial handled via School fields
-            if school.is_trial and school.trial_end_date:
-                subscription_end = school.trial_end_date
-                # Use school's subscription_start_date if present; otherwise leave as None
-                subscription_start = school.subscription_start_date
-            # Paid subscription dates stored on School
-            elif school.subscription_end_date:
-                subscription_start = school.subscription_start_date
-                subscription_end = school.subscription_end_date
-            # Fallback to Subscription model dates if available
-            elif current_subscription:
+            if current_subscription:
                 subscription_start = current_subscription.start_date
                 subscription_end = current_subscription.end_date
+                # Fallback: if Subscription.end_date is missing but school has a saved end date, use it for display/math
+                try:
+                    if not subscription_end and getattr(school, 'subscription_end_date', None):
+                        subscription_end = school.subscription_end_date
+                    # If superadmin edited School.subscription_end_date, prefer it for display to keep Dashboard and Billing consistent
+                    school_end = getattr(school, 'subscription_end_date', None)
+                    if school_end and subscription_end and school_end != subscription_end:
+                        subscription_end = school_end
+                except Exception:
+                    pass
+                # Use the approval time of the latest approved payment as the true activation time
+                try:
+                    from subscriptions.models import Payment as _SubPayment
+                    latest_approved = _SubPayment.objects.filter(
+                        subscription=current_subscription,
+                        status='approved',
+                        approved_at__isnull=False
+                    ).order_by('-approved_at').first()
+                except Exception:
+                    latest_approved = None
+
+                if latest_approved and latest_approved.approved_at:
+                    subscription_start_dt = latest_approved.approved_at
+                    # End datetime prioritizes saved end_date (admin edits) with the same time-of-day as activation
+                    try:
+                        if subscription_end:
+                            subscription_end_dt = datetime.combine(
+                                subscription_end,
+                                time(hour=subscription_start_dt.hour, minute=subscription_start_dt.minute)
+                            )
+                        else:
+                            cycle = (current_subscription.plan.billing_cycle if current_subscription.plan else 'monthly')
+                            days_map = {
+                                'monthly': 30,
+                                'quarterly': 90,
+                                'half_yearly': 180,
+                                'yearly': 365,
+                            }
+                            add_days = days_map.get(cycle, 30)
+                            subscription_end_dt = subscription_start_dt + timedelta(days=add_days)
+                    except Exception:
+                        # Fallback to end-of-day of the date-based end_date
+                        if subscription_end:
+                            try:
+                                subscription_end_dt = datetime.combine(subscription_end, time(hour=23, minute=59))
+                            except Exception:
+                                pass
+                else:
+                    # Fallbacks when no approved payment timestamp is available
+                    try:
+                        if current_subscription.created_at:
+                            subscription_start_dt = current_subscription.created_at
+                        elif subscription_start:
+                            subscription_start_dt = datetime.combine(subscription_start, time(hour=0, minute=0))
+                    except Exception:
+                        pass
+                    # End datetime: prefer combining saved end_date with start time-of-day
+                    try:
+                        if subscription_end and subscription_start_dt:
+                            subscription_end_dt = datetime.combine(
+                                subscription_end,
+                                time(hour=subscription_start_dt.hour, minute=subscription_start_dt.minute)
+                            )
+                        elif subscription_end:
+                            subscription_end_dt = datetime.combine(subscription_end, time(hour=23, minute=59))
+                    except Exception:
+                        pass
+            elif school.is_trial and school.trial_end_date:
+                # Trial handled via School fields
+                subscription_end = school.trial_end_date
+                subscription_start = school.subscription_start_date
+                try:
+                    if subscription_start:
+                        subscription_start_dt = datetime.combine(subscription_start, time(hour=0, minute=0))
+                    if subscription_end:
+                        subscription_end_dt = datetime.combine(subscription_end, time(hour=23, minute=59))
+                except Exception:
+                    pass
+            elif school.subscription_end_date:
+                # Paid subscription dates stored on School (legacy/back-compat)
+                subscription_start = school.subscription_start_date
+                subscription_end = school.subscription_end_date
+                try:
+                    if subscription_start:
+                        subscription_start_dt = datetime.combine(subscription_start, time(hour=0, minute=0))
+                    if subscription_end:
+                        subscription_end_dt = datetime.combine(subscription_end, time(hour=23, minute=59))
+                except Exception:
+                    pass
 
             context['subscription_start'] = subscription_start
+            # Align the end datetime with the authoritative end date (reflects admin edits),
+            # preserving the activation time-of-day when available
+            try:
+                if subscription_end and subscription_start_dt:
+                    subscription_end_dt = datetime.combine(
+                        subscription_end,
+                        time(hour=subscription_start_dt.hour, minute=subscription_start_dt.minute)
+                    )
+            except Exception:
+                pass
             context['subscription_end'] = subscription_end
+            context['subscription_start_dt'] = subscription_start_dt
+            context['subscription_end_dt'] = subscription_end_dt
 
             # Days remaining until expiry (for both trial and paid)
             if subscription_end:
@@ -1358,8 +1579,26 @@ class BillingView(LoginRequiredMixin, TemplateView):
             
             # Process each subscription to build history
             for sub in all_subscriptions:
-                # Add payments for this subscription
-                payments.extend(list(sub.payments.all()))
+                # Fix historical bug: paid subscriptions should never be flagged as trials
+                try:
+                    if sub.plan and float(getattr(sub.plan, 'price', 0)) > 0 and getattr(sub, 'is_trial', False):
+                        sub.is_trial = False
+                        sub.save(update_fields=['is_trial'])
+                except Exception:
+                    pass
+                # Add payments for this subscription (ensure non-zero amounts for paid plans)
+                for p in sub.payments.all():
+                    try:
+                        plan_price = float(getattr(sub.plan, 'price', 0)) if sub.plan else 0.0
+                        amt = float(p.amount or 0)
+                        if plan_price > 0 and amt <= 0:
+                            # Auto-correct legacy zero-amount payments for paid subscriptions
+                            from decimal import Decimal
+                            p.amount = Decimal(str(plan_price))
+                            p.save(update_fields=['amount'])
+                    except Exception:
+                        pass
+                    payments.append(p)
                 
                 # Add subscription to history
                 if sub.is_trial:
@@ -1382,6 +1621,61 @@ class BillingView(LoginRequiredMixin, TemplateView):
                         'subscription': sub,
                         'created_at': sub.created_at
                     })
+
+            # Fallback trial history from School fields if no Subscription trial exists
+            try:
+                if not trial_history:
+                    trial_end = getattr(school, 'trial_end_date', None)
+                    if trial_end:
+                        trial_start = trial_end - timedelta(days=14)
+                        trial_history.append({
+                            'type': 'trial',
+                            'date': trial_start,
+                            'end_date': trial_end,
+                            'status': 'Completed' if trial_end < timezone.now().date() else 'Active',
+                            'amount': 0.00,
+                            'subscription': None,
+                            'created_at': trial_end
+                        })
+            except Exception:
+                pass
+
+            # Get invoices for this school (displayed separately in the Invoices section)
+            from subscriptions.models import Invoice
+            invoices = Invoice.objects.filter(school=school).order_by('-created_at')
+            context['invoices'] = invoices
+
+            # Safety net: if any invoice is still 'sent/overdue' but there's an approved
+            # payment for the same subscription, mark the invoice as paid and link it.
+            try:
+                from subscriptions.models import Payment as _SubPayment
+                updated_any = False
+                for inv in invoices:
+                    try:
+                        if inv.status in ['sent', 'overdue']:
+                            paid = None
+                            # Prefer a payment for the same subscription when available
+                            if inv.subscription:
+                                paid = _SubPayment.objects.filter(
+                                    subscription=inv.subscription,
+                                    status='approved'
+                                ).order_by('-approved_at', '-payment_date', '-created_at').first()
+                            # Fallback: any approved payment for the same school
+                            if not paid:
+                                paid = _SubPayment.objects.filter(
+                                    subscription__school=school,
+                                    status='approved'
+                                ).order_by('-approved_at', '-payment_date', '-created_at').first()
+                            if paid:
+                                inv.mark_as_paid(payment=paid)
+                                updated_any = True
+                    except Exception:
+                        continue
+                if updated_any:
+                    invoices = Invoice.objects.filter(school=school).order_by('-created_at')
+                    context['invoices'] = invoices
+            except Exception:
+                pass
             
             # Combine and sort all history by date (newest first)
             all_history = []
@@ -1393,16 +1687,11 @@ class BillingView(LoginRequiredMixin, TemplateView):
             context['billing_history'] = sorted(
                 all_history,
                 key=lambda x: (
-                    x.created_at if hasattr(x, 'created_at') else x.get('created_at', x.get('date')),
-                    x.get('id', 0)  # For stable sorting
+                    (x.created_at if hasattr(x, 'created_at') else (x.get('created_at', x.get('date')) if isinstance(x, dict) else None)),
+                    (getattr(x, 'id', 0) if not isinstance(x, dict) else x.get('id', 0))
                 ),
                 reverse=True
             )
-            
-            # Get invoices for this school
-            from subscriptions.models import Invoice
-            invoices = Invoice.objects.filter(school=school).order_by('-created_at')
-            context['invoices'] = invoices
             
             # Debug information
             print(f"School: {school.name}")
@@ -1413,21 +1702,53 @@ class BillingView(LoginRequiredMixin, TemplateView):
             for inv in invoices:
                 print(f"  - {inv.invoice_number}: {inv.invoice_type} ({inv.status})")
             
+            # Ensure a trial invoice exists for past free trial, if applicable
+            try:
+                if getattr(school, 'trial_end_date', None) and not Invoice.objects.filter(school=school, invoice_type='trial_end').exists():
+                    t_end = school.trial_end_date
+                    Invoice.objects.create(
+                        school=school,
+                        subscription=None,
+                        invoice_type='trial_end',
+                        plan_name=(plan.name if plan else 'Free Trial'),
+                        plan_description='Free Trial Period',
+                        amount=0,
+                        tax_amount=0,
+                        total_amount=0,
+                        invoice_date=t_end,
+                        due_date=t_end,
+                        billing_start_date=(t_end - timedelta(days=14)),
+                        billing_end_date=t_end,
+                        status='paid'
+                    )
+                    invoices = Invoice.objects.filter(school=school).order_by('-created_at')
+                    context['invoices'] = invoices
+            except Exception:
+                pass
+
             # Generate invoice for current subscription if needed
             if current_subscription and plan:
                 # Check if invoice already exists for this subscription
                 existing_invoice = Invoice.objects.filter(
                     subscription=current_subscription
-                ).first()
+                ).order_by('-created_at').first()
                 
                 if not existing_invoice:
                     # Determine invoice type and details based on subscription
-                    if current_subscription.is_trial or is_trial:
+                    today = timezone.now().date()
+                    if current_subscription.status in ['pending', 'processing'] and plan and float(getattr(plan, 'price', 0)) > 0:
+                        # New paid subscription awaiting manual verification
+                        invoice_type = 'new'
+                        amount = plan.price if plan else 0
+                        status = 'sent'
+                        plan_desc = f"{plan.name} - {plan.billing_cycle if plan else 'Monthly'} subscription"
+                    elif current_subscription.is_trial or is_trial:
+                        # Trial period invoice (zero amount) — informational only
                         invoice_type = 'trial_end'
                         amount = 0
-                        status = 'paid'  # Trial invoices are automatically marked as paid
+                        status = 'paid'
                         plan_desc = f"{plan.name} - Free Trial Period"
-                    elif current_subscription.end_date and current_subscription.end_date < timezone.now().date():
+                    elif current_subscription.end_date and current_subscription.end_date < today:
                         invoice_type = 'renewal'
                         amount = plan.price if plan else 0
                         status = 'sent'
@@ -1438,7 +1759,21 @@ class BillingView(LoginRequiredMixin, TemplateView):
                         status = 'sent'
                         plan_desc = f"{plan.name} - {plan.billing_cycle if plan else 'Monthly'} subscription"
                     
-                    due_date = timezone.now().date() + timezone.timedelta(days=30)
+                    # Compute due date to align with the authoritative subscription end date
+                    try:
+                        if subscription_end:
+                            due_date = subscription_end
+                        else:
+                            expected_days = 30
+                            if plan.billing_cycle == 'quarterly':
+                                expected_days = 90
+                            elif plan.billing_cycle == 'half_yearly':
+                                expected_days = 180
+                            elif plan.billing_cycle == 'yearly':
+                                expected_days = 365
+                            due_date = timezone.now().date() + timezone.timedelta(days=expected_days)
+                    except Exception:
+                        due_date = timezone.now().date() + timezone.timedelta(days=30)
                     
                     invoice = Invoice.objects.create(
                         school=school,
@@ -1454,10 +1789,77 @@ class BillingView(LoginRequiredMixin, TemplateView):
                         billing_end_date=current_subscription.end_date,
                         status=status
                     )
+                    # If a payment for this subscription has already been approved, mark invoice as paid now
+                    try:
+                        from subscriptions.models import Payment as _SubPayment
+                        paid = _SubPayment.objects.filter(
+                            subscription=current_subscription,
+                            status='approved'
+                        ).order_by('-approved_at', '-payment_date', '-created_at').first()
+                        if paid and invoice.status != 'paid':
+                            invoice.mark_as_paid(payment=paid)
+                    except Exception:
+                        pass
+                    # Refresh invoices list so UI reflects the newly created invoice and its due date
+                    try:
+                        invoices = Invoice.objects.filter(school=school).order_by('-created_at')
+                        context['invoices'] = invoices
+                    except Exception:
+                        pass
                     context['current_invoice'] = invoice
                 else:
+                    # If an invoice exists but is incorrect (e.g., marked as trial for a paid pending subscription), fix it
+                    try:
+                        if (existing_invoice.invoice_type == 'trial_end' or float(getattr(existing_invoice, 'total_amount', 0)) == 0) and plan and float(getattr(plan, 'price', 0)) > 0:
+                            today = timezone.now().date()
+                            existing_invoice.invoice_type = 'new'
+                            existing_invoice.amount = plan.price
+                            existing_invoice.tax_amount = getattr(existing_invoice, 'tax_amount', 0)
+                            existing_invoice.total_amount = existing_invoice.amount  # assuming no tax
+                            existing_invoice.status = 'sent'
+                            existing_invoice.plan_name = plan.name
+                            existing_invoice.plan_description = f"{plan.name} - {plan.billing_cycle if plan else 'Monthly'} subscription"
+                            existing_invoice.due_date = today + timezone.timedelta(days=30)
+                            existing_invoice.billing_start_date = current_subscription.start_date
+                            existing_invoice.billing_end_date = current_subscription.end_date
+                            existing_invoice.save()
+                        # Ensure invoice dates are aligned with the current subscription window and admin edits
+                        try:
+                            changed = False
+                            if subscription_end and existing_invoice.due_date != subscription_end:
+                                existing_invoice.due_date = subscription_end
+                                changed = True
+                            if current_subscription.start_date and existing_invoice.billing_start_date != current_subscription.start_date:
+                                existing_invoice.billing_start_date = current_subscription.start_date
+                                changed = True
+                            if current_subscription.end_date and existing_invoice.billing_end_date != current_subscription.end_date:
+                                existing_invoice.billing_end_date = current_subscription.end_date
+                                changed = True
+                            if changed:
+                                existing_invoice.save()
+                                # Refresh invoices list so UI reflects due date/billing period changes
+                                try:
+                                    invoices = Invoice.objects.filter(school=school).order_by('-created_at')
+                                    context['invoices'] = invoices
+                                except Exception:
+                                    pass
+                        except Exception:
+                            pass
+
+                        # If there is an approved payment for this subscription, ensure invoice is marked paid
+                        from subscriptions.models import Payment as _SubPayment
+                        paid = _SubPayment.objects.filter(
+                            subscription=current_subscription,
+                            status='approved'
+                        ).order_by('-approved_at', '-payment_date', '-created_at').first()
+                        if paid and existing_invoice.status != 'paid':
+                            existing_invoice.mark_as_paid(payment=paid)
+                    except Exception:
+                        pass
                     context['current_invoice'] = existing_invoice
-            elif plan and plan.price == 0:
+            
+            # Keep invoices as-is (including trial invoices) to show full history
+            if plan and plan.price == 0 and not current_subscription:
                 # School has a free plan but no subscription record, create a free plan invoice
                 existing_invoice = Invoice.objects.filter(
                     school=school,

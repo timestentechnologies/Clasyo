@@ -251,20 +251,20 @@
                 </div>
                 <div class="card-body">
                     {% if payment.status in ['pending_verification', 'pending'] %}
-                    <form method="post" action="{% url 'superadmin:payment_verify' payment.payment_id %}" class="mb-2">
+                    <form method="post" action="{% url 'superadmin:payment_verify' payment.payment_id %}" class="mb-2" id="verify-form">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-success w-100" 
-                                onclick="return confirm('Verify this payment?')">
+                        <button type="button" class="btn btn-success w-100" 
+                                onclick="openConfirmModal('Verify Payment', 'Verify this payment?', 'verify-form')">
                             <i class="fas fa-check me-2"></i>Verify Payment
                         </button>
                     </form>
                     {% endif %}
 
                     {% if payment.status == 'verified' %}
-                    <form method="post" action="{% url 'superadmin:payment_approve' payment.payment_id %}" class="mb-2">
+                    <form method="post" action="{% url 'superadmin:payment_approve' payment.payment_id %}" class="mb-2" id="approve-form">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-primary w-100" 
-                                onclick="return confirm('Approve this payment and activate subscription?')">
+                        <button type="button" class="btn btn-primary w-100" 
+                                onclick="openConfirmModal('Approve Payment', 'Approve this payment and activate subscription?', 'approve-form')">
                             <i class="fas fa-thumbs-up me-2"></i>Approve Payment
                         </button>
                     </form>
@@ -335,4 +335,48 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Confirm Action Modal -->
+<div class="modal fade" id="confirmActionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmActionTitle">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmActionMessage" class="mb-0">Are you sure?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmActionBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+<script>
+    var _targetFormId = null;
+    function openConfirmModal(title, message, formId) {
+        _targetFormId = formId;
+        var titleEl = document.getElementById('confirmActionTitle');
+        var msgEl = document.getElementById('confirmActionMessage');
+        if (titleEl) titleEl.textContent = title || 'Confirm Action';
+        if (msgEl) msgEl.textContent = message || 'Are you sure?';
+        var modalEl = document.getElementById('confirmActionModal');
+        var modal = window.bootstrap && window.bootstrap.Modal ? new bootstrap.Modal(modalEl) : null;
+        if (modal) modal.show();
+        var btn = document.getElementById('confirmActionBtn');
+        if (btn) {
+            btn.onclick = function() {
+                try {
+                    if (_targetFormId) {
+                        var f = document.getElementById(_targetFormId);
+                        if (f) f.submit();
+                    }
+                } catch (e) {}
+            };
+        }
+    }
+</script>
 {% endblock %}

@@ -34,7 +34,7 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4" id="environment-container">
                                 <div class="mb-3">
                                     <label for="{{ form.environment.id_for_label }}" class="form-label">Environment</label>
                                     {{ form.environment }}
@@ -68,12 +68,28 @@
                             <div class="row">
                                 <div class="col-12">
                                     <h5 class="mb-3">📱 M-Pesa Configuration</h5>
-                                    <div class="alert alert-info">
+                                    <div class="alert alert-info" id="mpesa-alert-stk" style="display:none;">
                                         <i class="fas fa-info-circle me-2"></i>
-                                        Configure your M-Pesa Daraja API credentials for STK Push and Paybill payments.
+                                        Configure your M-Pesa Daraja API credentials for STK Push.
+                                    </div>
+                                    <div class="alert alert-info" id="mpesa-alert-paybill" style="display:none;">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Enter your Paybill Number, Account Name, and School Admin Instructions.
+                                    </div>
+                                    <div class="alert alert-info" id="mpesa-alert-buygoods" style="display:none;">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Provide your Till Number and School Admin Instructions for Buy Goods & Services.
+                                    </div>
+                                    <div class="alert alert-info" id="mpesa-alert-sendmoney" style="display:none;">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Provide the recipient phone number and School Admin Instructions for Send Money.
+                                    </div>
+                                    <div class="alert alert-info" id="mpesa-alert-pochi" style="display:none;">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Provide the Pochi la Biashara number and School Admin Instructions.
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-6" id="mpesa-stk-consumer-key">
                                     <div class="mb-3">
                                         <label for="{{ form.mpesa_consumer_key.id_for_label }}" class="form-label">Consumer Key</label>
                                         {{ form.mpesa_consumer_key }}
@@ -84,7 +100,7 @@
                                         {% endif %}
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-6" id="mpesa-stk-consumer-secret">
                                     <div class="mb-3">
                                         <label for="{{ form.mpesa_consumer_secret.id_for_label }}" class="form-label">Consumer Secret</label>
                                         {{ form.mpesa_consumer_secret }}
@@ -95,7 +111,7 @@
                                         {% endif %}
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-6" id="mpesa-stk-passkey">
                                     <div class="mb-3">
                                         <label for="{{ form.mpesa_passkey.id_for_label }}" class="form-label">Passkey</label>
                                         {{ form.mpesa_passkey }}
@@ -106,7 +122,7 @@
                                         {% endif %}
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-6" id="mpesa-stk-shortcode">
                                     <div class="mb-3">
                                         <label for="{{ form.mpesa_shortcode.id_for_label }}" class="form-label">Shortcode</label>
                                         {{ form.mpesa_shortcode }}
@@ -117,7 +133,7 @@
                                         {% endif %}
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-6" id="mpesa-paybill-number">
                                     <div class="mb-3">
                                         <label for="{{ form.mpesa_paybill_number.id_for_label }}" class="form-label">Paybill Number</label>
                                         {{ form.mpesa_paybill_number }}
@@ -125,6 +141,84 @@
                                             <div class="text-danger small">
                                                 {{ form.mpesa_paybill_number.errors.0 }}
                                             </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6" id="mpesa-paybill-account-name">
+                                    <div class="mb-3">
+                                        <label for="{{ form.mpesa_paybill_account_name.id_for_label }}" class="form-label">Account Name</label>
+                                        {{ form.mpesa_paybill_account_name }}
+                                        {% if form.mpesa_paybill_account_name.errors %}
+                                            <div class="text-danger small">{{ form.mpesa_paybill_account_name.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12" id="mpesa-paybill-instructions">
+                                    <div class="mb-3">
+                                        <label for="{{ form.mpesa_paybill_instructions.id_for_label }}" class="form-label">School Admin Instructions</label>
+                                        {{ form.mpesa_paybill_instructions }}
+                                        {% if form.mpesa_paybill_instructions.errors %}
+                                            <div class="text-danger small">{{ form.mpesa_paybill_instructions.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6" id="mpesa-buygoods-till">
+                                    <div class="mb-3">
+                                        <label for="{{ form.mpesa_till_number.id_for_label }}" class="form-label">Till Number</label>
+                                        {{ form.mpesa_till_number }}
+                                        <div class="form-text">Your M-Pesa till number for Buy Goods & Services payments</div>
+                                        {% if form.mpesa_till_number.errors %}
+                                            <div class="text-danger small">{{ form.mpesa_till_number.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12" id="mpesa-buygoods-instructions">
+                                    <div class="mb-3">
+                                        <label for="{{ form.mpesa_buygoods_instructions.id_for_label }}" class="form-label">School Admin Instructions</label>
+                                        {{ form.mpesa_buygoods_instructions }}
+                                        {% if form.mpesa_buygoods_instructions.errors %}
+                                            <div class="text-danger small">{{ form.mpesa_buygoods_instructions.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6" id="mpesa-sendmoney-recipient">
+                                    <div class="mb-3">
+                                        <label for="{{ form.mpesa_send_money_recipient.id_for_label }}" class="form-label">Recipient Phone</label>
+                                        {{ form.mpesa_send_money_recipient }}
+                                        <div class="form-text">Phone number to receive M-Pesa Send Money payments</div>
+                                        {% if form.mpesa_send_money_recipient.errors %}
+                                            <div class="text-danger small">{{ form.mpesa_send_money_recipient.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12" id="mpesa-sendmoney-instructions">
+                                    <div class="mb-3">
+                                        <label for="{{ form.mpesa_send_money_instructions.id_for_label }}" class="form-label">School Admin Instructions</label>
+                                        {{ form.mpesa_send_money_instructions }}
+                                        {% if form.mpesa_send_money_instructions.errors %}
+                                            <div class="text-danger small">{{ form.mpesa_send_money_instructions.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6" id="mpesa-pochi-number">
+                                    <div class="mb-3">
+                                        <label for="{{ form.mpesa_pochi_number.id_for_label }}" class="form-label">Pochi Number</label>
+                                        {{ form.mpesa_pochi_number }}
+                                        <div class="form-text">Pochi la Biashara number to receive payments</div>
+                                        {% if form.mpesa_pochi_number.errors %}
+                                            <div class="text-danger small">{{ form.mpesa_pochi_number.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12" id="mpesa-pochi-instructions">
+                                    <div class="mb-3">
+                                        <label for="{{ form.mpesa_pochi_instructions.id_for_label }}" class="form-label">School Admin Instructions</label>
+                                        {{ form.mpesa_pochi_instructions }}
+                                        {% if form.mpesa_pochi_instructions.errors %}
+                                            <div class="text-danger small">{{ form.mpesa_pochi_instructions.errors.0 }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -331,6 +425,69 @@
                         </ol>
                     </div>
                     
+                    <div id="mpesa-guide-stk" class="gateway-guide" style="display: none;">
+                        <h6>M-Pesa STK Push</h6>
+                        <ol class="small">
+                            <li>Log into your Safaricom Developer Portal</li>
+                            <li>Create a new app and get Consumer Key & Secret</li>
+                            <li>Request for Lipa na M-Pesa Online Passkey</li>
+                            <li>Configure your Business Shortcode</li>
+                            <li>Test with sandbox credentials first</li>
+                        </ol>
+                    </div>
+                    
+                    <div id="mpesa-guide-paybill" class="gateway-guide" style="display: none;">
+                        <h6>M-Pesa Manual Paybill</h6>
+                        <ol class="small">
+                            <li>Go to your M-Pesa</li>
+                            <li>Select Lipa na M-Pesa</li>
+                            <li>Choose PayBill</li>
+                            <li>Enter the Business Number</li>
+                            <li>Enter the Account Number</li>
+                            <li>Enter the Amount</li>
+                            <li>Enter your M-Pesa PIN</li>
+                            <li>Confirm</li>
+                        </ol>
+                    </div>
+                    
+                    <div id="mpesa-guide-buygoods" class="gateway-guide" style="display: none;">
+                        <h6>Buy Goods & Services (Till)</h6>
+                        <ol class="small">
+                            <li>Go to your M-Pesa</li>
+                            <li>Select Lipa na M-Pesa</li>
+                            <li>Choose Buy Goods and Services</li>
+                            <li>Enter the Till Number</li>
+                            <li>Enter the Amount</li>
+                            <li>Enter your M-Pesa PIN</li>
+                            <li>Confirm</li>
+                        </ol>
+                    </div>
+                    
+                    <div id="mpesa-guide-sendmoney" class="gateway-guide" style="display: none;">
+                        <h6>M-Pesa Send Money</h6>
+                        <ol class="small">
+                            <li>Go to your M-Pesa</li>
+                            <li>Select Send Money</li>
+                            <li>Enter the Phone Number</li>
+                            <li>Enter the Amount</li>
+                            <li>Enter your M-Pesa PIN</li>
+                            <li>Confirm the details</li>
+                        </ol>
+                    </div>
+                    
+                    <div id="mpesa-guide-pochi" class="gateway-guide" style="display: none;">
+                        <h6>Pochi la Biashara</h6>
+                        <ol class="small">
+                            <li>Go to your M-Pesa</li>
+                            <li>Select Lipa na M-Pesa</li>
+                            <li>Choose Pochi la Biashara</li>
+                            <li>Enter the Phone Number</li>
+                            <li>Enter the Amount</li>
+                            <li>Enter your M-Pesa PIN</li>
+                            <li>Confirm</li>
+                        </ol>
+                    </div>
+                    
                     <div id="paypal-guide" class="gateway-guide" style="display: none;">
                         <h6>PayPal Setup</h6>
                         <ol class="small">
@@ -383,20 +540,85 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const gatewaySelect = document.getElementById('{{ form.gateway.id_for_label }}');
+    const mpesaConfig = document.getElementById('mpesa-config');
+    const environmentContainer = document.getElementById('environment-container');
     const configs = {
-        'mpesa': document.getElementById('mpesa-config'),
+        'mpesa_stk': mpesaConfig,
+        'mpesa_paybill': mpesaConfig,
+        'mpesa_buygoods': mpesaConfig,
+        'mpesa_send_money': mpesaConfig,
+        'mpesa_pochi': mpesaConfig,
         'paypal': document.getElementById('paypal-config'),
         'stripe': document.getElementById('stripe-config'),
         'bank': document.getElementById('bank-config')
     };
     const guides = {
-        'mpesa': document.getElementById('mpesa-guide'),
+        'mpesa_stk': document.getElementById('mpesa-guide-stk'),
+        'mpesa_paybill': document.getElementById('mpesa-guide-paybill'),
+        'mpesa_buygoods': document.getElementById('mpesa-guide-buygoods'),
+        'mpesa_send_money': document.getElementById('mpesa-guide-sendmoney'),
+        'mpesa_pochi': document.getElementById('mpesa-guide-pochi'),
         'paypal': document.getElementById('paypal-guide'),
         'stripe': document.getElementById('stripe-guide'),
         'bank': document.getElementById('bank-guide'),
         'default': document.getElementById('default-guide')
     };
+    // Subsections for M-Pesa variants
+    const mpesaStkFields = [
+        document.getElementById('mpesa-stk-consumer-key'),
+        document.getElementById('mpesa-stk-consumer-secret'),
+        document.getElementById('mpesa-stk-passkey'),
+        document.getElementById('mpesa-stk-shortcode'),
+    ];
+    const mpesaPaybillFields = [
+        document.getElementById('mpesa-paybill-number'),
+        document.getElementById('mpesa-paybill-account-name'),
+        document.getElementById('mpesa-paybill-instructions'),
+    ];
+    const mpesaBuygoodsFields = [
+        document.getElementById('mpesa-buygoods-till'),
+        document.getElementById('mpesa-buygoods-instructions'),
+    ];
+    const mpesaSendMoneyFields = [
+        document.getElementById('mpesa-sendmoney-recipient'),
+        document.getElementById('mpesa-sendmoney-instructions'),
+    ];
+    const mpesaPochiFields = [
+        document.getElementById('mpesa-pochi-number'),
+        document.getElementById('mpesa-pochi-instructions'),
+    ];
+    const mpesaAlerts = {
+        'mpesa_stk': document.getElementById('mpesa-alert-stk'),
+        'mpesa_paybill': document.getElementById('mpesa-alert-paybill'),
+        'mpesa_buygoods': document.getElementById('mpesa-alert-buygoods'),
+        'mpesa_send_money': document.getElementById('mpesa-alert-sendmoney'),
+        'mpesa_pochi': document.getElementById('mpesa-alert-pochi'),
+    };
+    const instructionsFields = {
+        'mpesa_paybill': document.getElementById('{{ form.mpesa_paybill_instructions.id_for_label }}'),
+        'mpesa_buygoods': document.getElementById('{{ form.mpesa_buygoods_instructions.id_for_label }}'),
+        'mpesa_send_money': document.getElementById('{{ form.mpesa_send_money_instructions.id_for_label }}'),
+        'mpesa_pochi': document.getElementById('{{ form.mpesa_pochi_instructions.id_for_label }}'),
+    };
+    const defaultInstructions = {
+        'mpesa_paybill': 'Go to your M-Pesa\nSelect Lipa na M-Pesa\nChoose PayBill\nEnter the Business Number\nEnter the Account Number\nEnter the Amount\nEnter your M-Pesa PIN\nConfirm',
+        'mpesa_buygoods': 'Go to your M-Pesa\nSelect Lipa na M-Pesa\nChoose Buy Goods and Services\nEnter the Till Number\nEnter the Amount\nEnter your M-Pesa PIN\nConfirm',
+        'mpesa_send_money': 'Go to your M-Pesa\nSelect Send Money\nEnter the Phone Number\nEnter the Amount\nEnter your M-Pesa PIN\nConfirm the details',
+        'mpesa_pochi': 'Go to your M-Pesa\nSelect Lipa na M-Pesa\nChoose Pochi la Biashara\nEnter the Phone Number\nEnter the Amount\nEnter your M-Pesa PIN\nConfirm',
+    };
     
+    function toggleEnvironment(gateway) {
+        if (!environmentContainer) return;
+        const needsEnv = ['mpesa_stk', 'paypal', 'stripe'];
+        if (needsEnv.includes(gateway)) {
+            environmentContainer.style.display = 'block';
+        } else if (gateway) {
+            environmentContainer.style.display = 'none';
+        } else {
+            environmentContainer.style.display = 'none';
+        }
+    }
+
     function showGatewayConfig(gateway) {
         // Hide all configs
         Object.values(configs).forEach(config => config.style.display = 'none');
@@ -406,8 +628,41 @@ document.addEventListener('DOMContentLoaded', function() {
         if (configs[gateway]) {
             configs[gateway].style.display = 'block';
             guides[gateway].style.display = 'block';
+            toggleEnvironment(gateway);
+            // Toggle M-Pesa sub-fields
+            if (gateway.startsWith('mpesa_')) {
+                const hideAll = (arr) => arr.forEach(el => el && (el.style.display = 'none'));
+                hideAll(mpesaStkFields);
+                hideAll(mpesaPaybillFields);
+                hideAll(mpesaBuygoodsFields);
+                hideAll(mpesaSendMoneyFields);
+                hideAll(mpesaPochiFields);
+                Object.values(mpesaAlerts).forEach(a => a && (a.style.display = 'none'));
+
+                if (gateway === 'mpesa_stk') {
+                    mpesaStkFields.forEach(el => el && (el.style.display = 'block'));
+                    if (mpesaAlerts[gateway]) mpesaAlerts[gateway].style.display = 'block';
+                } else if (gateway === 'mpesa_paybill') {
+                    mpesaPaybillFields.forEach(el => el && (el.style.display = 'block'));
+                    if (mpesaAlerts[gateway]) mpesaAlerts[gateway].style.display = 'block';
+                } else if (gateway === 'mpesa_buygoods') {
+                    mpesaBuygoodsFields.forEach(el => el && (el.style.display = 'block'));
+                    if (mpesaAlerts[gateway]) mpesaAlerts[gateway].style.display = 'block';
+                } else if (gateway === 'mpesa_send_money') {
+                    mpesaSendMoneyFields.forEach(el => el && (el.style.display = 'block'));
+                    if (mpesaAlerts[gateway]) mpesaAlerts[gateway].style.display = 'block';
+                } else if (gateway === 'mpesa_pochi') {
+                    mpesaPochiFields.forEach(el => el && (el.style.display = 'block'));
+                    if (mpesaAlerts[gateway]) mpesaAlerts[gateway].style.display = 'block';
+                }
+
+                if (defaultInstructions[gateway] && instructionsFields[gateway] && instructionsFields[gateway].value.trim() === '') {
+                    instructionsFields[gateway].value = defaultInstructions[gateway];
+                }
+            }
         } else {
             guides.default.style.display = 'block';
+            toggleEnvironment('');
         }
     }
     

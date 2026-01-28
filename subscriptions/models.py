@@ -158,6 +158,9 @@ class Payment(models.Model):
     PAYMENT_METHOD_CHOICES = [
         ('mpesa_paybill', 'M-Pesa Paybill'),
         ('mpesa_stk', 'M-Pesa STK Push'),
+        ('mpesa_buygoods', 'M-Pesa Buy Goods & Services'),
+        ('mpesa_send_money', 'M-Pesa Send Money'),
+        ('mpesa_pochi', 'M-Pesa Pochi la Biashara'),
         ('paypal', 'PayPal'),
         ('stripe', 'Stripe'),
         ('bank_transfer', 'Bank Transfer'),
@@ -268,7 +271,54 @@ class Payment(models.Model):
             self.subscription.status = 'active'
             self.subscription.save()
         
+        # Save payment first
         self.save()
+
+        # Link and mark the related invoice as paid
+        try:
+            inv = None
+            # If this payment references a specific invoice number, try that first
+            if self.invoice_number_ref:
+                inv = Invoice.objects.filter(invoice_number=self.invoice_number_ref).first()
+            # Prefer invoices already linked to this payment and still unpaid
+            if not inv:
+                inv = self.invoices.filter(status__in=['sent', 'overdue', 'draft']).order_by('-invoice_date', '-created_at').first()
+            # Try match by subscription and amount first
+            if not inv and self.subscription:
+                inv = Invoice.objects.filter(
+                    subscription=self.subscription,
+                    status__in=['sent', 'overdue', 'draft'],
+                    total_amount=self.amount
+                ).order_by('-invoice_date', '-created_at').first() or Invoice.objects.filter(
+                    subscription=self.subscription,
+                    status__in=['sent', 'overdue', 'draft'],
+                    amount=self.amount
+                ).order_by('-invoice_date', '-created_at').first()
+            # Otherwise, find the latest outstanding invoice for this subscription
+            if not inv and self.subscription:
+                inv = Invoice.objects.filter(
+                    subscription=self.subscription,
+                    status__in=['sent', 'overdue']
+                ).order_by('-invoice_date', '-created_at').first()
+            # As a fallback, try matching by school for any outstanding invoice
+            if not inv and self.subscription:
+                inv = Invoice.objects.filter(
+                    school=self.subscription.school,
+                    status__in=['sent', 'overdue']
+                ).order_by('-invoice_date', '-created_at').first()
+            if inv:
+                inv.mark_as_paid(payment=self)
+            else:
+                # Final fallback: mark all outstanding invoices for this subscription as paid
+                if self.subscription:
+                    for _inv in Invoice.objects.filter(
+                        subscription=self.subscription,
+                        status__in=['sent', 'overdue', 'draft']
+                    ).order_by('-invoice_date', '-created_at'):
+                        _inv.mark_as_paid(payment=self)
+        except Exception:
+            # Do not block approval on invoice linking errors
+            pass
     
     def reject_payment(self, user, reason):
         """Reject payment"""
