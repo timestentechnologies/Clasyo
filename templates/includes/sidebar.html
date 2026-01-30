@@ -3,6 +3,28 @@
 <!-- Sidebar Overlay for Mobile -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
+<style>
+ #sidebar.modern-sidebar { transition: width 0.2s ease; }
+ #sidebar.modern-sidebar.collapsed { width: 72px; }
+ #sidebar.modern-sidebar .sidebar-menu li a { display: flex; align-items: center; gap: 12px; }
+ #sidebar.modern-sidebar.collapsed .sidebar-menu li a { justify-content: center; gap: 0; }
+ #sidebar.modern-sidebar .sidebar-menu li a i { width: 20px; text-align: center; }
+ #sidebar.modern-sidebar.collapsed .sidebar-menu li a span { display: none !important; }
+ #sidebar.modern-sidebar.collapsed .menu-section-title { display: none !important; }
+ #sidebar.modern-sidebar .brand-text { transition: opacity 0.2s ease; }
+ #sidebar.modern-sidebar.collapsed .brand-text { display: none !important; }
+ #sidebar.modern-sidebar .sidebar-collapse { position: relative; padding: 8px 12px; min-height: 48px; margin-bottom: 12px; display: flex; justify-content: flex-end; }
+ #sidebar.modern-sidebar .sidebar-collapse .toggle-text { display: none !important; }
+ #sidebar.modern-sidebar .sidebar-collapse .btn { width: 36px !important; height: 36px; border-radius: 50%; padding: 0; display: inline-flex; align-items: center; justify-content: center; position: static; margin-left: auto; background-color: #06b6d4; border-color: #06b6d4; color: #fff; }
+ #sidebar.modern-sidebar .sidebar-collapse .btn:hover,
+ #sidebar.modern-sidebar .sidebar-collapse .btn:focus { background-color: #0891b2; border-color: #0891b2; color: #fff; box-shadow: 0 0 0 0.2rem rgba(6, 182, 212, 0.25); }
+ #sidebar.modern-sidebar .school-logo { max-width: 100%; height: auto; }
+ #sidebar.modern-sidebar.collapsed .school-logo { max-width: 42px; }
+ @media (max-width: 768px) {
+   #sidebar.modern-sidebar.collapsed { width: 72px; }
+ }
+</style>
+
 <!-- Modern Sidebar -->
 <div class="modern-sidebar" id="sidebar">
     <div class="sidebar-brand">
@@ -26,6 +48,13 @@
                 <p>ERP System</p>
             {% endif %}
         </div>
+    </div>
+
+    <div class="sidebar-collapse">
+        <button id="sidebarCollapseToggle" class="btn btn-sm btn-outline-secondary w-100 d-flex align-items-center">
+            <i class="fas fa-angle-double-left"></i>
+            <span class="toggle-text ms-2">Collapse</span>
+        </button>
     </div>
 
     <ul class="sidebar-menu">
@@ -568,5 +597,132 @@ window.addEventListener('resize', function() {
         sidebar.classList.remove('show');
         overlay.classList.remove('show');
     }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        const menu = document.querySelector('#sidebar .sidebar-menu');
+        if (!menu) return;
+        const titles = Array.from(menu.querySelectorAll('.menu-section-title'));
+        titles.forEach(function(title, idx) {
+            if (title.dataset.enhanced === '1') return;
+            let idBase = title.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'section';
+            const id = idBase + '-' + idx;
+            const container = document.createElement('div');
+            container.className = 'collapse';
+            container.id = id;
+            let next = title.nextElementSibling;
+            const frag = document.createDocumentFragment();
+            while (next && !next.classList.contains('menu-section-title')) {
+                const toMove = next;
+                next = next.nextElementSibling;
+                frag.appendChild(toMove);
+            }
+            if (!frag.childNodes.length) return;
+            container.appendChild(frag);
+            title.parentNode.insertBefore(container, next || null);
+            title.setAttribute('role', 'button');
+            title.setAttribute('data-bs-toggle', 'collapse');
+            title.setAttribute('data-bs-target', '#' + id);
+            title.setAttribute('aria-controls', id);
+            title.style.cursor = 'pointer';
+            title.style.display = 'flex';
+            title.style.alignItems = 'center';
+            title.style.justifyContent = 'space-between';
+            title.style.columnGap = '1rem';
+            let caret = document.createElement('i');
+            caret.className = 'fas fa-chevron-down';
+            caret.style.marginLeft = '1rem';
+            title.appendChild(caret);
+            const key = 'sidebar-section:' + id;
+            let expanded = localStorage.getItem(key);
+            if (expanded === null) {
+                expanded = container.querySelector('li.active') ? '1' : '1';
+            }
+            if (expanded === '1') {
+                container.classList.add('show');
+                title.setAttribute('aria-expanded', 'true');
+                caret.classList.remove('fa-chevron-right');
+                caret.classList.add('fa-chevron-down');
+            } else {
+                title.setAttribute('aria-expanded', 'false');
+                caret.classList.remove('fa-chevron-down');
+                caret.classList.add('fa-chevron-right');
+            }
+            if (window.bootstrap && window.bootstrap.Collapse) {
+                const coll = new bootstrap.Collapse(container, { toggle: false });
+                title.addEventListener('click', function() {
+                    if (container.classList.contains('show')) coll.hide(); else coll.show();
+                });
+                container.addEventListener('shown.bs.collapse', function() {
+                    localStorage.setItem(key, '1');
+                    title.setAttribute('aria-expanded', 'true');
+                    caret.classList.remove('fa-chevron-right');
+                    caret.classList.add('fa-chevron-down');
+                });
+                container.addEventListener('hidden.bs.collapse', function() {
+                    localStorage.setItem(key, '0');
+                    title.setAttribute('aria-expanded', 'false');
+                    caret.classList.remove('fa-chevron-down');
+                    caret.classList.add('fa-chevron-right');
+                });
+            } else {
+                title.addEventListener('click', function() {
+                    const now = container.classList.toggle('show');
+                    localStorage.setItem(key, now ? '1' : '0');
+                    title.setAttribute('aria-expanded', now ? 'true' : 'false');
+                    caret.classList.toggle('fa-chevron-down', now);
+                    caret.classList.toggle('fa-chevron-right', !now);
+                });
+            }
+            title.dataset.enhanced = '1';
+        });
+    } catch (e) {}
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('sidebar');
+    const btn = document.getElementById('sidebarCollapseToggle');
+    if (!sidebar || !btn) return;
+    const icon = btn.querySelector('i');
+    const text = btn.querySelector('.toggle-text');
+
+    function applyCollapsed(collapsed) {
+        sidebar.classList.toggle('collapsed', collapsed);
+        if (collapsed) {
+            if (icon) { icon.classList.remove('fa-angle-double-left'); icon.classList.add('fa-angle-double-right'); }
+            if (text) { text.textContent = 'Expand'; }
+            // Ensure all section containers are visible so icons show
+            sidebar.querySelectorAll('.collapse').forEach(function(cn){ cn.classList.add('show'); });
+            // Add titles to links for hover when text is hidden
+            sidebar.querySelectorAll('.sidebar-menu li a').forEach(function(a){
+                const label = a.querySelector('span');
+                if (label && !a.getAttribute('title')) { a.setAttribute('title', label.textContent.trim()); }
+            });
+        } else {
+            if (icon) { icon.classList.remove('fa-angle-double-right'); icon.classList.add('fa-angle-double-left'); }
+            if (text) { text.textContent = 'Collapse'; }
+            // Restore section states from saved values
+            sidebar.querySelectorAll('.collapse[id]').forEach(function(cn){
+                const key = 'sidebar-section:' + cn.id;
+                let saved = null;
+                try { saved = localStorage.getItem(key); } catch (e) { saved = null; }
+                if (saved === '0') cn.classList.remove('show');
+                else cn.classList.add('show');
+            });
+        }
+        try { localStorage.setItem('sidebar:collapsed', collapsed ? '1' : '0'); } catch (e) {}
+    }
+
+    const saved = (function(){ try { return localStorage.getItem('sidebar:collapsed'); } catch (e) { return null; } })();
+    applyCollapsed(saved === '1');
+
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const next = !sidebar.classList.contains('collapsed');
+        applyCollapsed(next);
+    });
 });
 </script>
