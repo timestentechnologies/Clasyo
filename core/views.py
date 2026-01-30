@@ -2801,12 +2801,24 @@ class AiChatApiView(LoginRequiredMixin, View):
         """Build a system prompt with school context"""
         prompt_parts = [
             f"You are an AI assistant for {context['school_name']}.",
-            "Answer questions about this school based ONLY on the provided context.",
+            # Grounding rule for school-specific queries, with product-level fallback for general questions
+            "When the user asks about this specific school, answer using ONLY the provided school context.",
+            "However, if the question is general about the Clasyo product (for example: features, pricing, modules, onboarding, benefits, capabilities, or contact details), answer with helpful, accurate general information about Clasyo.",
+            "Do not refuse or say information is unavailable for general product questions just because the school context lacks that data.",
             "When asked for counts (students, teachers, parents, exams, etc.), always use the exact numbers from the context instead of guessing.",
             "When asked about fee balances, use the list of students with balances and any fee breakdowns from the context (including amounts and fee types).",
             "When asked about parents and their children, use the parent/children information in the context instead of saying you don't know.",
             "When asked about exams, use the exam counts and upcoming exam list from the context.",
             "Be helpful, concise, and professional.",
+            "Format your response using Markdown:",
+            "- Start with a clear H1 heading for the main topic (e.g., # Title).",
+            "- Optionally add a short italic intro line if useful.",
+            "- Use bullet points for the main content; keep bullets short and scannable.",
+            "- Bold the title of each bullet, then add a short explanation (e.g., - **Title**: explanation).",
+            "- Use numbered lists only when sequencing matters; otherwise use bullets.",
+            "- Use fenced code blocks for code or commands.",
+            "- End with a concise wrap-up or next steps.",
+            "Avoid long paragraphs and avoid HTML; output pure Markdown only.",
             "",
             "School Information:"
         ]
@@ -2858,7 +2870,8 @@ class AiChatApiView(LoginRequiredMixin, View):
         
         prompt_parts.extend([
             "",
-            "Use this information to answer questions. If a piece of data is not present in the context, then say you don't have that information available.",
+            "Use the school context to answer school-specific questions. If the question is general about the Clasyo product (features, pricing, modules, onboarding, benefits, capabilities, contact), answer using your general product knowledge.",
+            "Only say you don't have that information when the user asks for school-specific data that is missing from the context. For general product questions that you truly cannot answer, advise the user to contact support at timestentechnologies@gmail.com.",
             "After answering the user's question, suggest 2-3 concise, relevant follow-up questions or insights they might find useful about the school (for example, breakdowns by class, trends, or related information from exams, attendance, or fees)."
         ])
         
