@@ -1332,6 +1332,32 @@ class BillingView(LoginRequiredMixin, TemplateView):
             context['pricing_plans'] = pricing_plans
             return context
 
+        # Additional UI flags derived from current subscription
+        try:
+            from django.utils import timezone as _tz
+            latest_sub = None
+            if context.get('school'):
+                latest_sub = Subscription.objects.filter(school=context['school']).order_by('-created_at').first()
+            # Flag to show a simple "cancelled" confirmation modal after user action
+            context['show_cancelled_modal'] = str(self.request.GET.get('cancelled', '')).lower() in ('1', 'true', 'yes')
+            # Flag to show a "no active subscription" modal (from middleware on cancelled access)
+            context['show_no_sub_modal'] = str(self.request.GET.get('no_sub', '')).lower() in ('1', 'true', 'yes')
+            # Flag to show a "reactivated" success modal after reactivating
+            context['show_reactivated_modal'] = str(self.request.GET.get('reactivated', '')).lower() in ('1', 'true', 'yes')
+            # Allow reactivation when a cancelled subscription is still within its paid window
+            can_reactivate_qs = str(self.request.GET.get('reactivate', '')).lower() in ('1', 'true', 'yes')
+            if not can_reactivate_qs and latest_sub and latest_sub.status == 'cancelled':
+                try:
+                    can_reactivate_qs = bool(latest_sub.end_date and latest_sub.end_date >= _tz.now().date())
+                except Exception:
+                    can_reactivate_qs = False
+            context['can_reactivate'] = can_reactivate_qs
+        except Exception:
+            context['show_cancelled_modal'] = False
+            context['show_no_sub_modal'] = False
+            context['show_reactivated_modal'] = False
+            context['can_reactivate'] = False
+
         # Pricing plans: use SubscriptionPlan as single source of truth
         pricing_plans = list(SubscriptionPlan.objects.filter(is_active=True).order_by('display_order', 'price'))
         context['pricing_plans'] = pricing_plans

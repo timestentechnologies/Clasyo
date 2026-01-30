@@ -10,7 +10,7 @@ from subscriptions.models import Subscription
 class SubscriptionEnforcementMiddleware(MiddlewareMixin):
     EXCLUDED_PREFIXES = (
         '/admin/',
-        '/superadmin/',
+        # Do NOT exclude '/superadmin/' globally; we enforce for school admins under '/superadmin/school/<slug>/'
         '/accounts/',
         '/auth/',
         '/subscriptions/',
@@ -23,11 +23,25 @@ class SubscriptionEnforcementMiddleware(MiddlewareMixin):
         path = request.path or ''
         if path.endswith('/offline/'):
             return None
-        if not path.startswith('/school/'):
+        # Determine enforcement scope: '/school/<slug>/' or '/superadmin/school/<slug>/' for non-superadmins
+        scope = None  # 'school' or 'superadmin_school'
+        if path.startswith('/school/'):
+            scope = 'school'
+        elif path.startswith('/superadmin/school/'):
+            # Only enforce for non-superadmin users visiting superadmin school-scoped pages
+            scope = 'superadmin_school'
+        else:
+            # Non-school scoped path; skip enforcement early
             return None
+
+        # Apply global exclusions (but keep superadmin school-scoped pages eligible for enforcement)
         for p in self.EXCLUDED_PREFIXES:
             if path.startswith(p):
                 return None
+
+        # For generic '/superadmin/' paths that are not school-scoped, allow
+        if path.startswith('/superadmin/') and scope != 'superadmin_school':
+            return None
         user = getattr(request, 'user', None)
         if not user or not user.is_authenticated:
             return None
@@ -39,8 +53,10 @@ class SubscriptionEnforcementMiddleware(MiddlewareMixin):
             slug = view_kwargs.get('school_slug')
         if not slug:
             parts = path.strip('/').split('/')
-            if len(parts) >= 2 and parts[0] == 'school':
+            if scope == 'school' and len(parts) >= 2 and parts[0] == 'school':
                 slug = parts[1]
+            elif scope == 'superadmin_school' and len(parts) >= 3 and parts[0] == 'superadmin' and parts[1] == 'school':
+                slug = parts[2]
         if not slug:
             return None
         if path.startswith(f'/school/{slug}/billing/') or path == f'/school/{slug}/billing/':
@@ -65,12 +81,23 @@ class SubscriptionEnforcementMiddleware(MiddlewareMixin):
             .first()
         )
         if latest_sub:
-            # Allow access only for active subscriptions
+            # Allow access only for active subscriptions within validity window
             if latest_sub.status == 'active' and latest_sub.end_date and latest_sub.end_date >= today:
                 return None
-            # If subscription exists but is not active yet (pending/processing), lock access to billing until approval
-            if latest_sub.status in ('pending', 'suspended', 'cancelled') or (
-                latest_sub.end_date and latest_sub.end_date >= today and latest_sub.status != 'active'
+            # Prioritize cancelled/suspended handling to avoid misclassifying as pending
+            if latest_sub.status in ('cancelled', 'suspended'):
+                billing_url = reverse('core:billing', kwargs={'school_slug': slug})
+                if latest_sub.status == 'cancelled':
+                    can_reactivate = bool(latest_sub.end_date and latest_sub.end_date >= today)
+                    qs = '?no_sub=1'
+                    if can_reactivate:
+                        qs += '&reactivate=1'
+                    return redirect(f"{billing_url}{qs}")
+                # Suspended: treat as expired/blocked
+                return redirect(f"{billing_url}?expired=1&reason=subscription")
+            # If subscription is awaiting activation/verification, lock to billing with a pending notice
+            if latest_sub.status in ('pending', 'processing', 'verified') or (
+                latest_sub.end_date and latest_sub.end_date >= today and latest_sub.status not in ('active', 'cancelled', 'suspended')
             ):
                 billing_url = reverse('core:billing', kwargs={'school_slug': slug})
                 return redirect(f"{billing_url}?pending=1")

@@ -24,6 +24,13 @@ class SubscriptionPlansView(ListView):
     def get_queryset(self):
         return SubscriptionPlan.objects.filter(is_active=True)
 
+    def dispatch(self, request, *args, **kwargs):
+        """If a logged-in school user lands here, send them to Billing which shows plans."""
+        school = getattr(request, 'school', None) or getattr(request.user, 'school', None)
+        if request.user.is_authenticated and school:
+            return redirect('core:billing', school_slug=school.slug)
+        return super().dispatch(request, *args, **kwargs)
+
 
 class SubscribeView(View):
     """View to handle subscription purchase - returns payment modal data"""
@@ -379,21 +386,14 @@ class PaymentFailedView(TemplateView):
     template_name = 'subscriptions/payment_failed.html'
 
 
-class MySubscriptionView(DetailView):
-    """View to display user's current subscription"""
-    model = Subscription
-    template_name = 'subscriptions/my_subscription.html'
-    context_object_name = 'subscription'
-    
-    def get_object(self):
-        # Get current active subscription for the tenant
-        from django.contrib.contenttypes.models import ContentType
-        from django.db.models import Q
-        
-        # This will be tenant-specific
-        return Subscription.objects.filter(
-            status='active'
-        ).order_by('-created_at').first()
+class MySubscriptionView(View):
+    """Redirect users to the Billing page instead of rendering a separate subscription page."""
+    def get(self, request):
+        school = getattr(request, 'school', None) or getattr(request.user, 'school', None)
+        if school:
+            return redirect('core:billing', school_slug=school.slug)
+        messages.info(request, 'Please access billing from your school dashboard.')
+        return redirect('frontend:home')
 
 
 class RenewSubscriptionView(View):
@@ -416,19 +416,64 @@ class RenewSubscriptionView(View):
 class CancelSubscriptionView(View):
     """View to cancel subscription"""
     def post(self, request):
-        subscription = Subscription.objects.filter(
-            status='active'
-        ).order_by('-created_at').first()
-        
+        today = timezone.now().date()
+        school = getattr(request, 'school', None) or getattr(request.user, 'school', None)
+        if not school:
+            messages.error(request, 'School context not found.')
+            return redirect('frontend:home')
+        subscription = Subscription.objects.filter(school=school, status='active').order_by('-created_at').first()
+
         if subscription:
             subscription.status = 'cancelled'
             subscription.auto_renew = False
             subscription.save()
+            can_reactivate = bool(subscription.end_date and subscription.end_date >= today)
             messages.success(request, 'Subscription cancelled successfully.')
+            # Always route to Billing, show a cancelled modal, and if still valid allow reactivation
+            billing_url = reverse('core:billing', kwargs={'school_slug': school.slug})
+            suffix = '?cancelled=1' + ('&reactivate=1' if can_reactivate else '')
+            return redirect(f"{billing_url}{suffix}")
         else:
             messages.error(request, 'No active subscription found.')
-        
-        return redirect('subscriptions:my_subscription')
+        # Fallback
+        return redirect('frontend:home')
+
+
+class ReactivateSubscriptionView(View):
+    """Reactivate a cancelled but still valid subscription (end date not reached)."""
+    def post(self, request):
+        today = timezone.now().date()
+        school = getattr(request, 'school', None) or getattr(request.user, 'school', None)
+        if not school:
+            school_slug = request.POST.get('school_slug') or request.GET.get('school_slug')
+            if school_slug:
+                school = School.objects.filter(slug=school_slug).first()
+        if not school:
+            # Support AJAX response
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'error': 'School context not found.'}, status=400)
+            messages.error(request, 'School context not found.')
+            return redirect('frontend:home')
+
+        sub = Subscription.objects.filter(school=school).order_by('-created_at').first()
+        if not sub or sub.status != 'cancelled' or not sub.end_date or sub.end_date < today:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'error': 'Subscription cannot be reactivated.'}, status=400)
+            messages.error(request, 'Subscription cannot be reactivated.')
+            return redirect('core:billing', school_slug=school.slug)
+
+        sub.status = 'active'
+        sub.auto_renew = True
+        sub.save()
+
+        # Always set a success message so it appears after reload/redirect
+        messages.success(request, 'Subscription reactivated successfully.')
+
+        billing_url = reverse('core:billing', kwargs={'school_slug': school.slug})
+        # For AJAX requests, return JSON but keep the message in storage
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'redirect': f"{billing_url}?reactivated=1"})
+        return redirect(f"{billing_url}?reactivated=1")
 
 
 class ApplyCouponView(View):

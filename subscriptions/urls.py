@@ -12,5 +12,6 @@ urlpatterns = [
     path('my-subscription/', views.MySubscriptionView.as_view(), name='my_subscription'),
     path('renew/', views.RenewSubscriptionView.as_view(), name='renew'),
     path('cancel/', views.CancelSubscriptionView.as_view(), name='cancel'),
+    path('reactivate/', views.ReactivateSubscriptionView.as_view(), name='reactivate'),
     path('apply-coupon/', views.ApplyCouponView.as_view(), name='apply_coupon'),
 ]

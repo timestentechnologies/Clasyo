@@ -835,6 +835,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var reason = "{{ expired_reason|default:'' }}";
     var paymentSubmitted = "{{ payment_submitted|yesno:'true,false' }}" === 'true';
     var paymentPending = "{{ payment_pending|yesno:'true,false' }}" === 'true';
+    var showCancelled = "{{ show_cancelled_modal|yesno:'true,false' }}" === 'true';
+    var showNoSub = "{{ show_no_sub_modal|yesno:'true,false' }}" === 'true';
+    var showReactivated = "{{ show_reactivated_modal|yesno:'true,false' }}" === 'true';
+    var canReactivate = "{{ can_reactivate|yesno:'true,false' }}" === 'true';
     if (showExpired) {
         var title = (reason === 'trial') ? 'Your trial has ended' : 'Your subscription has expired';
         var msg = (reason === 'trial')
@@ -918,6 +922,125 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (btn3) {
                 btn3.className = 'btn btn-info';
+                btn3.textContent = 'Okay';
+                btn3.onclick = function() {
+                    try {
+                        var modalEl = document.getElementById('messageModal');
+                        var instance = window.bootstrap && window.bootstrap.Modal.getInstance ? window.bootstrap.Modal.getInstance(modalEl) : null;
+                        if (instance) { instance.hide(); }
+                    } catch (e) { /* no-op */ }
+                };
+            }
+        }
+    }
+
+    // Helper to scroll to plans section
+    function gotoPlans() {
+        var anchor = document.querySelector('#upgrade-plans');
+        if (anchor && anchor.scrollIntoView) {
+            anchor.scrollIntoView({ behavior: 'smooth' });
+        } else {
+            window.location.hash = 'upgrade-plans';
+        }
+    }
+
+    // Helper to POST reactivation
+    function postReactivate() {
+        var token = (document.querySelector('#csrf-helper-form [name=csrfmiddlewaretoken]') || {}).value || '';
+        var params = new URLSearchParams();
+        if (BILLING_SCHOOL_SLUG) { params.append('school_slug', BILLING_SCHOOL_SLUG); }
+        return fetch('/subscriptions/reactivate/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': token, 'X-Requested-With': 'XMLHttpRequest' },
+            body: params
+        }).then(function(r) {
+            // If JSON, ensure success; otherwise just reload on 200
+            var ct = r.headers.get('content-type') || '';
+            if (ct.indexOf('application/json') >= 0) {
+                return r.json().then(function(d){ return { ok: r.ok, data: d }; });
+            }
+            return { ok: r.ok, data: null };
+        }).then(function(res){
+            if (res.ok && (!res.data || res.data.success !== false)) {
+                if (res.data && res.data.redirect) {
+                    window.location.href = res.data.redirect;
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                gotoPlans();
+            }
+        }).catch(function(){ gotoPlans(); });
+    }
+
+    if (showCancelled) {
+        if (typeof showMessage === 'function') {
+            showMessage('Subscription Cancelled', 'Your subscription has been cancelled.' + (canReactivate ? ' You can reactivate it until the end date.' : ''), true);
+            var header = document.getElementById('messageModalHeader');
+            var icon = document.getElementById('messageModalIcon');
+            var btn = document.getElementById('messageModalBtn');
+            if (header) {
+                header.classList.add('calm-info');
+                header.style.background = 'linear-gradient(180deg, #4DD0E1 0%, #26C6DA 100%)';
+                header.style.color = '#ffffff';
+            }
+            if (icon) { icon.className = 'fas fa-info-circle me-2'; }
+            if (btn) {
+                btn.className = 'btn btn-info';
+                btn.textContent = canReactivate ? 'Reactivate Now' : 'View Plans';
+                btn.onclick = function() {
+                    try {
+                        var modalEl = document.getElementById('messageModal');
+                        var instance = window.bootstrap && window.bootstrap.Modal.getInstance ? window.bootstrap.Modal.getInstance(modalEl) : null;
+                        if (instance) { instance.hide(); }
+                    } catch (e) { /* no-op */ }
+                    if (canReactivate) { postReactivate(); } else { gotoPlans(); }
+                };
+            }
+        }
+    }
+
+    if (showNoSub && !showCancelled) {
+        if (typeof showMessage === 'function') {
+            showMessage('No Active Subscription', 'You do not have an active subscription. Please reactivate to continue.', true);
+            var header2 = document.getElementById('messageModalHeader');
+            var icon2 = document.getElementById('messageModalIcon');
+            var btn2 = document.getElementById('messageModalBtn');
+            if (header2) {
+                header2.classList.add('calm-info');
+                header2.style.background = 'linear-gradient(180deg, #4DD0E1 0%, #26C6DA 100%)';
+                header2.style.color = '#ffffff';
+            }
+            if (icon2) { icon2.className = 'fas fa-info-circle me-2'; }
+            if (btn2) {
+                btn2.className = 'btn btn-info';
+                btn2.textContent = canReactivate ? 'Reactivate Now' : 'View Plans';
+                btn2.onclick = function() {
+                    try {
+                        var modalEl = document.getElementById('messageModal');
+                        var instance = window.bootstrap && window.bootstrap.Modal.getInstance ? window.bootstrap.Modal.getInstance(modalEl) : null;
+                        if (instance) { instance.hide(); }
+                    } catch (e) { /* no-op */ }
+                    if (canReactivate) { postReactivate(); } else { gotoPlans(); }
+                };
+            }
+        }
+    }
+
+    if (showReactivated) {
+        if (typeof showMessage === 'function') {
+            showMessage('Subscription Reactivated', 'Your subscription has been reactivated successfully.', true);
+            var header3 = document.getElementById('messageModalHeader');
+            var icon3 = document.getElementById('messageModalIcon');
+            var btn3 = document.getElementById('messageModalBtn');
+            if (header3) {
+                header3.classList.add('calm-success');
+                header3.style.background = 'linear-gradient(180deg, #66bb6a 0%, #43a047 100%)';
+                header3.style.color = '#ffffff';
+            }
+            if (icon3) { icon3.className = 'fas fa-check-circle me-2'; }
+            if (btn3) {
+                btn3.className = 'btn btn-success';
                 btn3.textContent = 'Okay';
                 btn3.onclick = function() {
                     try {
