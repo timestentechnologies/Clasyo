@@ -1,14 +1,15 @@
 from django.contrib import admin
 from .models import (
     ItemCategory, Item, Supplier, PurchaseOrder, PurchaseOrderItem,
-    ItemDistribution, Expense, StaffPayment
+    ItemDistribution, Expense, StaffPayment,
+    CanteenCategory, CanteenProduct, CanteenSale, CanteenSaleItem
 )
 
 
 @admin.register(ItemCategory)
 class ItemCategoryAdmin(admin.ModelAdmin):
-    list_display = ['name', 'category_type', 'is_active', 'created_at']
-    list_filter = ['category_type', 'is_active']
+    list_display = ['name', 'category_type', 'is_canteen', 'is_active', 'created_at']
+    list_filter = ['category_type', 'is_canteen', 'is_active']
     search_fields = ['name']
 
 
@@ -58,3 +59,30 @@ class StaffPaymentAdmin(admin.ModelAdmin):
     list_display = ['payment_number', 'staff_name', 'staff_type', 'net_salary', 'payment_date', 'status']
     list_filter = ['staff_type', 'status', 'payment_date']
     search_fields = ['payment_number', 'staff_name']
+
+
+@admin.register(CanteenCategory)
+class CanteenCategoryAdmin(admin.ModelAdmin):
+    list_display = ['name', 'is_active', 'created_at']
+    list_filter = ['is_active']
+    search_fields = ['name']
+
+
+@admin.register(CanteenProduct)
+class CanteenProductAdmin(admin.ModelAdmin):
+    list_display = ['code', 'name', 'category', 'price', 'stock_qty', 'is_active']
+    list_filter = ['category', 'is_active']
+    search_fields = ['code', 'name']
+
+
+class CanteenSaleItemInline(admin.TabularInline):
+    model = CanteenSaleItem
+    extra = 0
+
+
+@admin.register(CanteenSale)
+class CanteenSaleAdmin(admin.ModelAdmin):
+    list_display = ['receipt_no', 'student', 'net_total', 'payment_method', 'created_at']
+    list_filter = ['payment_method', 'created_at']
+    search_fields = ['receipt_no', 'student__admission_number', 'student__user__first_name', 'student__user__last_name']
+    inlines = [CanteenSaleItemInline]

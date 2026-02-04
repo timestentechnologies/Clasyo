@@ -3,6 +3,8 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from decimal import Decimal
 from tenants.models import School
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 User = get_user_model()
 
@@ -22,6 +24,7 @@ class ItemCategory(models.Model):
     name = models.CharField(_("Category Name"), max_length=100)
     category_type = models.CharField(_("Type"), max_length=20, choices=CATEGORY_CHOICES)
     description = models.TextField(_("Description"), blank=True)
+    is_canteen = models.BooleanField(_("Canteen (POS) Category"), default=False)
     is_active = models.BooleanField(_("Is Active"), default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -154,6 +157,196 @@ class PurchaseOrderItem(models.Model):
     def save(self, *args, **kwargs):
         self.total = self.quantity * self.unit_price
         super().save(*args, **kwargs)
+
+
+# ===================== CANTEEN SYNC SIGNALS =====================
+
+@receiver(post_save, sender=ItemCategory)
+def sync_canteen_category(sender, instance: ItemCategory, **kwargs):
+    """Ensure a matching CanteenCategory and CanteenProducts exist when a category is marked as canteen.
+    Also deactivate related CanteenProducts when category is not canteen.
+    """
+    try:
+        school = instance.school
+        # Lazy import of related models to avoid issues at import time
+        from .models import CanteenCategory, CanteenProduct, Item
+
+        if instance.is_canteen:
+            # Ensure canteen category exists
+            canteen_cat, _ = CanteenCategory.objects.get_or_create(
+                school=school, name=instance.name, defaults={'is_active': True}
+            )
+            # Ensure products exist for all items in this category
+            for item in instance.items.all():
+                cp, created = CanteenProduct.objects.get_or_create(
+                    school=item.school,
+                    code=item.code,
+                    defaults={
+                        'name': item.name,
+                        'price': item.unit_price,
+                        'stock_qty': Decimal('0.00'),
+                        'category': canteen_cat,
+                        'is_active': True,
+                    },
+                )
+                if not created:
+                    # Update metadata but keep stock separate
+                    changed = False
+                    if cp.name != item.name:
+                        cp.name = item.name
+                        changed = True
+                    if cp.price != item.unit_price:
+                        cp.price = item.unit_price
+                        changed = True
+                    if canteen_cat and cp.category_id != canteen_cat.id:
+                        cp.category = canteen_cat
+                        changed = True
+                    if not cp.is_active:
+                        cp.is_active = True
+                        changed = True
+                    if changed:
+                        cp.save()
+        else:
+            # If category not canteen, hide its mapped canteen products
+            from .models import CanteenCategory as _CC
+            cat = _CC.objects.filter(school=instance.school, name=instance.name).first()
+            if cat:
+                CanteenProduct.objects.filter(school=instance.school, category=cat).update(is_active=False)
+    except Exception:
+        # Never block save on sync issues
+        pass
+
+
+@receiver(post_save, sender=Item)
+def sync_item_to_canteen(sender, instance: Item, **kwargs):
+    """When an Item under a canteen category is saved, ensure a matching CanteenProduct exists/updates.
+    If not in a canteen category, deactivate any matching CanteenProduct to hide it from POS.
+    """
+    try:
+        from .models import CanteenCategory, CanteenProduct
+
+        if instance.category and instance.category.is_canteen:
+            canteen_cat, _ = CanteenCategory.objects.get_or_create(
+                school=instance.school, name=instance.category.name, defaults={'is_active': True}
+            )
+            cp, created = CanteenProduct.objects.get_or_create(
+                school=instance.school,
+                code=instance.code,
+                defaults={
+                    'name': instance.name,
+                    'price': instance.unit_price,
+                    'stock_qty': Decimal('0.00'),
+                    'category': canteen_cat,
+                    'is_active': True,
+                },
+            )
+            if not created:
+                changed = False
+                if cp.name != instance.name:
+                    cp.name = instance.name
+                    changed = True
+                if cp.price != instance.unit_price:
+                    cp.price = instance.unit_price
+                    changed = True
+                if canteen_cat and cp.category_id != canteen_cat.id:
+                    cp.category = canteen_cat
+                    changed = True
+                if not cp.is_active:
+                    cp.is_active = True
+                    changed = True
+                if changed:
+                    cp.save()
+        else:
+            # Not a canteen category; hide any matching product
+            cp = CanteenProduct.objects.filter(school=instance.school, code=instance.code).first()
+            if cp and cp.is_active:
+                cp.is_active = False
+                cp.save(update_fields=['is_active'])
+    except Exception:
+        # Never block save on sync issues
+        pass
+
+class CanteenCategory(models.Model):
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='canteen_categories', null=True, blank=True)
+    name = models.CharField(_('Category Name'), max_length=100)
+    is_active = models.BooleanField(_('Is Active'), default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('Canteen Category')
+        verbose_name_plural = _('Canteen Categories')
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class CanteenProduct(models.Model):
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='canteen_products', null=True, blank=True)
+    category = models.ForeignKey(CanteenCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
+    name = models.CharField(_('Product Name'), max_length=200)
+    code = models.CharField(_('SKU/Code'), max_length=50)
+    price = models.DecimalField(_('Unit Price'), max_digits=10, decimal_places=2)
+    stock_qty = models.DecimalField(_('Stock Quantity'), max_digits=10, decimal_places=2, default=0)
+    is_active = models.BooleanField(_('Is Active'), default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _('Canteen Product')
+        verbose_name_plural = _('Canteen Products')
+        unique_together = [('school', 'code')]
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+
+class CanteenSale(models.Model):
+    PAYMENT_METHOD_CHOICES = [
+        ('cash', 'Cash'),
+        ('mpesa', 'M-Pesa'),
+        ('card', 'Card'),
+        ('other', 'Other'),
+    ]
+
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='canteen_sales', null=True, blank=True)
+    receipt_no = models.CharField(_('Receipt No'), max_length=50, unique=True)
+    student = models.ForeignKey('students.Student', on_delete=models.SET_NULL, null=True, blank=True, related_name='canteen_sales')
+    total = models.DecimalField(_('Total'), max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    discount = models.DecimalField(_('Discount'), max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    net_total = models.DecimalField(_('Net Total'), max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    payment_method = models.CharField(_('Payment Method'), max_length=20, choices=PAYMENT_METHOD_CHOICES, default='cash')
+    amount_received = models.DecimalField(_('Amount Received'), max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    change_given = models.DecimalField(_('Change Given'), max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    notes = models.CharField(_('Notes'), max_length=255, blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_canteen_sales')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('Canteen Sale')
+        verbose_name_plural = _('Canteen Sales')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.receipt_no} - {self.net_total}"
+
+
+class CanteenSaleItem(models.Model):
+    sale = models.ForeignKey(CanteenSale, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(CanteenProduct, on_delete=models.PROTECT, related_name='sale_items')
+    name = models.CharField(_('Name'), max_length=200)
+    code = models.CharField(_('Code'), max_length=50)
+    quantity = models.DecimalField(_('Qty'), max_digits=10, decimal_places=2)
+    unit_price = models.DecimalField(_('Unit Price'), max_digits=10, decimal_places=2)
+    line_total = models.DecimalField(_('Line Total'), max_digits=12, decimal_places=2)
+
+    class Meta:
+        verbose_name = _('Canteen Sale Item')
+        verbose_name_plural = _('Canteen Sale Items')
+
+    def __str__(self):
+        return f"{self.name} x {self.quantity}"
 
 
 class ItemDistribution(models.Model):

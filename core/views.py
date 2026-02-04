@@ -1327,8 +1327,8 @@ class BillingView(LoginRequiredMixin, TemplateView):
             context['plan'] = None
             context['is_trial'] = False
             context['days_remaining'] = 0
-            # Pricing plans: use SubscriptionPlan as single source of truth
-            pricing_plans = list(SubscriptionPlan.objects.filter(is_active=True).order_by('display_order', 'price'))
+            # Pricing plans: active, excluding zero-priced (no free plan)
+            pricing_plans = list(SubscriptionPlan.objects.filter(is_active=True).exclude(price=0).order_by('display_order', 'price'))
             context['pricing_plans'] = pricing_plans
             return context
 
@@ -1358,8 +1358,8 @@ class BillingView(LoginRequiredMixin, TemplateView):
             context['show_reactivated_modal'] = False
             context['can_reactivate'] = False
 
-        # Pricing plans: use SubscriptionPlan as single source of truth
-        pricing_plans = list(SubscriptionPlan.objects.filter(is_active=True).order_by('display_order', 'price'))
+        # Pricing plans: active, excluding zero-priced (no free plan)
+        pricing_plans = list(SubscriptionPlan.objects.filter(is_active=True).exclude(price=0).order_by('display_order', 'price'))
         context['pricing_plans'] = pricing_plans
         
         # Get current subscription - include all statuses to show trial and expired subscriptions
@@ -1438,6 +1438,8 @@ class BillingView(LoginRequiredMixin, TemplateView):
                     expected_days = 30
                     if plan.billing_cycle == 'quarterly':
                         expected_days = 90
+                    elif plan.billing_cycle == 'termly':
+                        expected_days = 90
                     elif plan.billing_cycle == 'half_yearly':
                         expected_days = 180
                     elif plan.billing_cycle == 'yearly':
@@ -1495,6 +1497,7 @@ class BillingView(LoginRequiredMixin, TemplateView):
                             cycle = (current_subscription.plan.billing_cycle if current_subscription.plan else 'monthly')
                             days_map = {
                                 'monthly': 30,
+                                'termly': 90,
                                 'quarterly': 90,
                                 'half_yearly': 180,
                                 'yearly': 365,
@@ -1578,7 +1581,7 @@ class BillingView(LoginRequiredMixin, TemplateView):
 
             # Available plans for upgrade: always use active SubscriptionPlan records
             # If there is a current plan, exclude it so only upgrade options remain
-            plans_qs = SubscriptionPlan.objects.filter(is_active=True).order_by('display_order', 'price')
+            plans_qs = SubscriptionPlan.objects.filter(is_active=True).exclude(price=0).order_by('display_order', 'price')
             if plan:
                 plans_qs = plans_qs.exclude(id=plan.id)
             context['available_plans'] = plans_qs
@@ -1925,7 +1928,7 @@ class BillingView(LoginRequiredMixin, TemplateView):
             context['invoices'] = []
             context['current_invoice'] = None
             context['payments'] = []
-            context['available_plans'] = SubscriptionPlan.objects.filter(is_active=True).order_by('display_order', 'price')
+            context['available_plans'] = SubscriptionPlan.objects.filter(is_active=True).exclude(price=0).order_by('display_order', 'price')
         
         return context
 

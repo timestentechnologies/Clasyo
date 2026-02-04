@@ -71,8 +71,6 @@
                                             data-billing-cycle="{{ plan.billing_cycle }}" 
                                             data-trial-days="{{ plan.trial_days }}" 
                                             data-max-students="{{ plan.max_students|default:''|escapejs }}" 
-                                            data-max-teachers="{{ plan.max_teachers|default:''|escapejs }}" 
-                                            data-max-staff="{{ plan.max_staff|default:''|escapejs }}" 
                                             data-display-order="{{ plan.display_order }}" 
                                             data-description="{{ plan.description|escapejs }}" 
                                             data-setup-fee="{{ plan.setup_fee }}"
@@ -147,7 +145,6 @@
                             <div class="mb-3">
                                 <label for="id_plan_type" class="form-label">Plan Type</label>
                                 <select class="form-select" id="id_plan_type" name="plan_type" required>
-                                    <option value="free_trial">Free Trial</option>
                                     <option value="basic">Basic</option>
                                     <option value="standard">Standard</option>
                                     <option value="premium">Premium</option>
@@ -160,6 +157,7 @@
                                 <label for="id_billing_cycle" class="form-label">Billing Cycle</label>
                                 <select class="form-select" id="id_billing_cycle" name="billing_cycle" required>
                                     <option value="monthly">Monthly</option>
+                                    <option value="termly">Termly</option>
                                     <option value="quarterly">Quarterly</option>
                                     <option value="half_yearly">Half Yearly</option>
                                     <option value="yearly">Yearly</option>
@@ -210,25 +208,13 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-3">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="id_max_students" class="form-label">Max Students</label>
-                                <input type="number" class="form-control" id="id_max_students" name="max_students" min="1">
+                                <input type="number" class="form-control" id="id_max_students" name="max_students" min="0" placeholder="0 = Unlimited">
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label for="id_max_teachers" class="form-label">Max Teachers</label>
-                                <input type="number" class="form-control" id="id_max_teachers" name="max_teachers" min="1">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label for="id_max_staff" class="form-label">Max Staff</label>
-                                <input type="number" class="form-control" id="id_max_staff" name="max_staff" min="1">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="id_display_order" class="form-label">Display Order</label>
                                 <input type="number" class="form-control" id="id_display_order" name="display_order" min="0" value="0">
@@ -294,7 +280,6 @@
                             <div class="mb-3">
                                 <label for="edit_id_plan_type" class="form-label">Plan Type</label>
                                 <select class="form-select" id="edit_id_plan_type" name="plan_type" required>
-                                    <option value="free_trial">Free Trial</option>
                                     <option value="basic">Basic</option>
                                     <option value="standard">Standard</option>
                                     <option value="premium">Premium</option>
@@ -307,6 +292,7 @@
                                 <label for="edit_id_billing_cycle" class="form-label">Billing Cycle</label>
                                 <select class="form-select" id="edit_id_billing_cycle" name="billing_cycle" required>
                                     <option value="monthly">Monthly</option>
+                                    <option value="termly">Termly</option>
                                     <option value="quarterly">Quarterly</option>
                                     <option value="half_yearly">Half Yearly</option>
                                     <option value="yearly">Yearly</option>
@@ -357,25 +343,13 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-3">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="edit_id_max_students" class="form-label">Max Students</label>
-                                <input type="number" class="form-control" id="edit_id_max_students" name="max_students" min="1">
+                                <input type="number" class="form-control" id="edit_id_max_students" name="max_students" min="0" placeholder="0 = Unlimited">
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label for="edit_id_max_teachers" class="form-label">Max Teachers</label>
-                                <input type="number" class="form-control" id="edit_id_max_teachers" name="max_teachers" min="1">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label for="edit_id_max_staff" class="form-label">Max Staff</label>
-                                <input type="number" class="form-control" id="edit_id_max_staff" name="max_staff" min="1">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="edit_id_display_order" class="form-label">Display Order</label>
                                 <input type="number" class="form-control" id="edit_id_display_order" name="display_order" min="0" value="0">
@@ -426,8 +400,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const billingCycle = this.getAttribute('data-billing-cycle');
             const trialDays = this.getAttribute('data-trial-days');
             const maxStudents = this.getAttribute('data-max-students');
-            const maxTeachers = this.getAttribute('data-max-teachers');
-            const maxStaff = this.getAttribute('data-max-staff');
             const displayOrder = this.getAttribute('data-display-order');
             const description = this.getAttribute('data-description');
             const setupFee = this.getAttribute('data-setup-fee');
@@ -445,9 +417,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('edit_id_price').value = price || '0';
             document.getElementById('edit_id_billing_cycle').value = billingCycle || 'monthly';
             document.getElementById('edit_id_trial_days').value = trialDays || '0';
-            document.getElementById('edit_id_max_students').value = maxStudents || '100';
-            document.getElementById('edit_id_max_teachers').value = maxTeachers || '20';
-            document.getElementById('edit_id_max_staff').value = maxStaff || '10';
+            document.getElementById('edit_id_max_students').value = maxStudents || '0';
             document.getElementById('edit_id_display_order').value = displayOrder || '0';
             document.getElementById('edit_id_description').value = description || '';
             document.getElementById('edit_id_setup_fee').value = setupFee || '0';

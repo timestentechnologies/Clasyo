@@ -22,7 +22,7 @@ class SubscriptionPlansView(ListView):
     context_object_name = 'plans'
     
     def get_queryset(self):
-        return SubscriptionPlan.objects.filter(is_active=True)
+        return SubscriptionPlan.objects.filter(is_active=True).exclude(price=0)
 
     def dispatch(self, request, *args, **kwargs):
         """If a logged-in school user lands here, send them to Billing which shows plans."""
@@ -36,7 +36,7 @@ class SubscribeView(View):
     """View to handle subscription purchase - returns payment modal data"""
     
     def get(self, request, plan_slug):
-        plan = get_object_or_404(SubscriptionPlan, slug=plan_slug, is_active=True)
+        plan = get_object_or_404(SubscriptionPlan, slug=plan_slug, is_active=True, price__gt=0)
 
         school = getattr(request, 'school', None) or getattr(request, 'tenant', None) or getattr(request.user, 'school', None)
         if not school:
@@ -139,7 +139,7 @@ class SubscribeView(View):
     
     def post(self, request, plan_slug):
         try:
-            plan = get_object_or_404(SubscriptionPlan, slug=plan_slug, is_active=True)
+            plan = get_object_or_404(SubscriptionPlan, slug=plan_slug, is_active=True, price__gt=0)
             payment_method = request.POST.get('payment_method')
             
             with transaction.atomic():
@@ -148,6 +148,8 @@ class SubscribeView(View):
                 start_date = timezone.now().date()
                 if plan.billing_cycle == 'monthly':
                     end_date = start_date + timedelta(days=30)
+                elif plan.billing_cycle == 'termly':
+                    end_date = start_date + timedelta(days=90)
                 elif plan.billing_cycle == 'quarterly':
                     end_date = start_date + timedelta(days=90)
                 elif plan.billing_cycle == 'half_yearly':

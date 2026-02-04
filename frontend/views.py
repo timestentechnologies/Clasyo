@@ -19,7 +19,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from io import BytesIO
 from subscriptions.models import SubscriptionPlan
-from .models import PricingPlan, FAQ, PageContent, ContactMessage, ForumThread, ForumPost
+from .models import FAQ, PageContent, ContactMessage, ForumThread, ForumPost
 
 
 class HomeView(TemplateView):
@@ -100,7 +100,7 @@ class PricingView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Use SubscriptionPlan as the single source of truth for plans
-        context['plans'] = SubscriptionPlan.objects.filter(is_active=True).order_by('display_order', 'price')
+        context['plans'] = SubscriptionPlan.objects.filter(is_active=True).exclude(price=0).order_by('display_order', 'price')
         context['faqs'] = FAQ.objects.filter(is_active=True, category='Pricing').order_by('order')
         return context
 

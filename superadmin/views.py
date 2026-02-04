@@ -763,9 +763,7 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
             price = request.POST.get('price')
             billing_cycle = request.POST.get('billing_cycle')
             trial_days = request.POST.get('trial_days', '0')
-            max_students = request.POST.get('max_students', '100')
-            max_teachers = request.POST.get('max_teachers', '20')
-            max_staff = request.POST.get('max_staff', '10')
+            max_students = request.POST.get('max_students', '0')
             max_branches = 1
             storage_limit_gb = 5
             is_active = request.POST.get('is_active') == 'on'
@@ -790,10 +788,6 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
                     trial_days = int(trial_days)
                 if max_students:
                     max_students = int(max_students)
-                if max_teachers:
-                    max_teachers = int(max_teachers)
-                if max_staff:
-                    max_staff = int(max_staff)
                 if display_order:
                     display_order = int(display_order)
                 if setup_fee:
@@ -827,8 +821,6 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
                 plan.license_fee = license_fee
                 plan.training_fee = training_fee
                 plan.max_students = max_students
-                plan.max_teachers = max_teachers
-                plan.max_staff = max_staff
                 plan.max_branches = max_branches
                 plan.storage_limit_gb = storage_limit_gb
                 plan.is_active = is_active
@@ -854,8 +846,6 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
                     license_fee=license_fee,
                     training_fee=training_fee,
                     max_students=max_students,
-                    max_teachers=max_teachers,
-                    max_staff=max_staff,
                     max_branches=max_branches,
                     storage_limit_gb=storage_limit_gb,
                     is_active=is_active,

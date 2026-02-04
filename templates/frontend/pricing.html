@@ -19,6 +19,8 @@
         overflow: visible;
         z-index: 1;
         margin: 0 0.5rem;
+        word-break: break-word;     /* ensure long tokens wrap */
+        overflow-wrap: anywhere;    /* allow aggressive wrapping */
     }
     
     .pricing-card::before {
@@ -172,6 +174,39 @@
         margin-top: 0.2rem;
         min-width: 1rem;
     }
+    /* Description bullets */
+    .plan-desc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 1rem;
+        padding: 0 0.5rem;
+    }
+    .plan-desc-list li {
+        padding: 0.5rem 0;
+        color: #64748b;
+        display: flex;
+        align-items: flex-start;
+        font-size: 0.92rem;
+        line-height: 1.5;
+    }
+    .plan-desc-list i {
+        color: #22c55e;
+        margin-right: 0.6rem;
+        font-size: 0.95rem;
+        margin-top: 0.25rem;
+        min-width: 0.95rem;
+    }
+    /* Wrap long text so it never spills outside the card */
+    .plan-features li span,
+    .plan-desc-list li span {
+        min-width: 0;            /* allow flex child to shrink */
+        max-width: 100%;
+        white-space: normal;     /* allow wrapping */
+        overflow-wrap: anywhere; /* break long tokens */
+        word-break: break-word;  /* legacy support */
+        hyphens: auto;           /* nicer hyphenation where available */
+        flex: 1 1 auto;          /* make text take remaining width and wrap */
+    }
     
     .btn-plan {
         width: 100%;
@@ -266,7 +301,7 @@
     <div class="container">
         <div class="row g-4 justify-content-center">
             {% for plan in plans %}
-            <div class="col-lg-3 col-md-6">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
                 <div class="pricing-card {% if plan.is_popular %}popular{% endif %}">
                     {% if plan.is_popular %}
                     <div class="popular-badge">
@@ -276,11 +311,12 @@
                     <div class="plan-name">{{ plan.name }}</div>
                     <div class="plan-price">Ksh {{ plan.price|intcomma }}</div>
                     <div class="plan-duration">per {{ plan.get_billing_cycle_display|lower }}</div>
+                    
                     <div class="one-time-section">
-                        {% if plan.plan_type == 'free_trial' %}
+                        {% if plan.trial_days and plan.trial_days > 0 %}
                         <div class="one-time-item">
                             <div class="label"><i class="fas fa-gift"></i><span>Free Trial</span></div>
-                            <span class="fee-badge">{{ plan.trial_days|default:7 }} days</span>
+                            <span class="fee-badge">{{ plan.trial_days }} days</span>
                         </div>
                         {% endif %}
                         <div class="one-time-item">
@@ -318,24 +354,10 @@
                     </div>
                     
                     <ul class="plan-features">
-                        {% if plan.max_students %}
                         <li>
                             <i class="fas fa-check-circle"></i>
-                            <span>{% if plan.max_students > 10000 %}Unlimited{% else %}Up to {{ plan.max_students }}{% endif %} Students</span>
+                            <span>{% if plan.max_students and plan.max_students > 0 %}Up to {{ plan.max_students }}{% else %}Unlimited{% endif %} Students</span>
                         </li>
-                        {% endif %}
-                        {% if plan.max_teachers %}
-                        <li>
-                            <i class="fas fa-check-circle"></i>
-                            <span>{% if plan.max_teachers > 10000 %}Unlimited{% else %}Up to {{ plan.max_teachers }}{% endif %} Teachers</span>
-                        </li>
-                        {% endif %}
-                        {% if plan.max_staff %}
-                        <li>
-                            <i class="fas fa-check-circle"></i>
-                            <span>{% if plan.max_staff > 10000 %}Unlimited{% else %}Up to {{ plan.max_staff }}{% endif %} Staff</span>
-                        </li>
-                        {% endif %}
                         {% for feature in plan.get_features_list %}
                         <li>
                             <i class="fas fa-check-circle"></i>
@@ -343,7 +365,20 @@
                         </li>
                         {% endfor %}
                     </ul>
-                    
+                    {% with desc_points=plan.get_description_points %}
+                        {% if desc_points %}
+                        <ul class="plan-desc-list">
+                            {% for point in desc_points %}
+                            <li>
+                                <i class="fas fa-check"></i>
+                                <span>{{ point }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% elif plan.description %}
+                        <div class="plan-description text-muted small mb-2">{{ plan.description }}</div>
+                        {% endif %}
+                    {% endwith %}
                     <a href="{% url 'accounts:login' %}" class="btn {% if plan.is_popular %}btn-plan{% else %}btn-outline-primary{% endif %} btn-plan">
                         Get Started
                     </a>

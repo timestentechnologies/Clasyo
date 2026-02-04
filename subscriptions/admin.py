@@ -17,7 +17,7 @@ class SubscriptionPlanAdmin(admin.ModelAdmin):
             'fields': ('price', 'billing_cycle', 'trial_days')
         }),
         ('Limits', {
-            'fields': ('max_students', 'max_teachers', 'max_staff', 'max_branches', 'storage_limit_gb')
+            'fields': ('max_students', 'max_branches', 'storage_limit_gb')
         }),
         ('Features', {
             'fields': ('enable_online_exam', 'enable_online_payment', 'enable_chat', 

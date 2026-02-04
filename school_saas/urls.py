@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.sitemaps.views import sitemap
 from frontend.sitemaps import StaticViewSitemap
+from inventory.views import CanteenPOSView
 
 sitemaps = {
     'static': StaticViewSitemap(),  # Instantiate the sitemap class
@@ -59,6 +60,7 @@ urlpatterns = [
         path('online-exam/', include('online_exam.urls', namespace='online_exam')),
         path('chat/', include('chat.urls', namespace='chat')),
         path('clubs/', include('clubs.urls', namespace='clubs')),
+        path('canteen/pos/', CanteenPOSView.as_view(), name='canteen_pos'),
     ])),
 ]
 

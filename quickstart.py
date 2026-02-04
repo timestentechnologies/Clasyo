@@ -37,17 +37,6 @@ def create_subscription_plans():
     """Create default subscription plans"""
     plans = [
         {
-            'name': 'Free Trial',
-            'slug': 'free-trial',
-            'plan_type': 'free_trial',
-            'price': 0,
-            'billing_cycle': 'monthly',
-            'trial_days': 30,
-            'max_students': 50,
-            'max_teachers': 5,
-            'max_staff': 3,
-        },
-        {
             'name': 'Basic Plan',
             'slug': 'basic',
             'plan_type': 'basic',
@@ -55,8 +44,6 @@ def create_subscription_plans():
             'billing_cycle': 'monthly',
             'trial_days': 7,
             'max_students': 100,
-            'max_teachers': 20,
-            'max_staff': 10,
         },
         {
             'name': 'Standard Plan',
@@ -66,8 +53,6 @@ def create_subscription_plans():
             'billing_cycle': 'monthly',
             'trial_days': 14,
             'max_students': 500,
-            'max_teachers': 50,
-            'max_staff': 20,
         },
         {
             'name': 'Premium Plan',
@@ -77,8 +62,6 @@ def create_subscription_plans():
             'billing_cycle': 'monthly',
             'trial_days': 14,
             'max_students': 1000,
-            'max_teachers': 100,
-            'max_staff': 50,
         },
     ]
     
@@ -94,7 +77,9 @@ def create_subscription_plans():
 
 def create_demo_school():
     """Create a demo school"""
-    trial_plan = SubscriptionPlan.objects.filter(plan_type='free_trial').first()
+    # Use the basic plan and attach a trial period to it
+    trial_plan = SubscriptionPlan.objects.filter(plan_type='basic').order_by('price').first() or SubscriptionPlan.objects.order_by('price').first()
+    trial_days = trial_plan.trial_days if trial_plan and trial_plan.trial_days else 7
     
     school, created = School.objects.get_or_create(
         slug='demo-school',
@@ -109,7 +94,7 @@ def create_demo_school():
             'postal_code': '12345',
             'subscription_plan': trial_plan,
             'is_trial': True,
-            'trial_end_date': date.today() + timedelta(days=30),
+            'trial_end_date': date.today() + timedelta(days=trial_days),
             'is_active': True,
             'is_verified': True,
         }

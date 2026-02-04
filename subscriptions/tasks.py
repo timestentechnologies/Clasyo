@@ -2,8 +2,10 @@ from celery import shared_task
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from .models import Subscription, Invoice
+from tenants.models import School
 from django.core.mail import send_mail
 from django.conf import settings
+from datetime import timedelta
 
 
 @shared_task
@@ -106,18 +108,59 @@ def auto_renew_subscriptions():
 
 @shared_task
 def send_invoice_reminders():
-    """Send email notifications for invoices that are due today and those that became overdue.
+    """Send invoice reminders before, on, and after due date. Also ensure trial-end invoices exist.
 
-    - For invoices due today (status in draft/sent), send a due reminder once.
-    - For invoices past due and not paid, mark as overdue (if not already) and send an overdue reminder once.
+    - Pre-due: 3 days before due date (status in draft/sent), send a reminder once.
+    - Due today: send a due reminder once.
+    - Overdue: mark as overdue (if not already) and send a reminder once.
     """
     today = timezone.now().date()
+    pre_days = 3
+
+    # Ensure trial-end invoices exist for schools currently on trial
+    try:
+        trial_schools = School.objects.filter(is_trial=True).exclude(trial_end_date__isnull=True)
+        for school in trial_schools.select_related('subscription_plan'):
+            plan = getattr(school, 'subscription_plan', None)
+            due = getattr(school, 'trial_end_date', None)
+            if not plan or not due:
+                continue
+            # If no existing trial_end invoice for this due date, create one
+            existing = Invoice.objects.filter(
+                school=school,
+                invoice_type='trial_end',
+                due_date=due,
+                status__in=['draft', 'sent', 'overdue']
+            ).first()
+            if not existing:
+                try:
+                    amount = plan.price
+                    inv = Invoice(
+                        school=school,
+                        subscription=None,
+                        payment=None,
+                        invoice_type='trial_end',
+                        status='sent',
+                        plan_name=plan.name,
+                        plan_description=plan.description or '',
+                        amount=amount,
+                        tax_amount=0,
+                        total_amount=amount,
+                        invoice_date=today,
+                        due_date=due,
+                        notes=f"Trial ends on {due}. First billing due."
+                    )
+                    inv.save()
+                except Exception:
+                    pass
+    except Exception:
+        pass
 
     # Helper to collect recipient emails for a school
     def recipients_for_school(school):
         User = get_user_model()
         admins = list(
-            User.objects.filter(school=school, role='admin', is_active=True)
+            User.objects.filter(school=school, role__in=['admin', 'school_admin'], is_active=True)
             .values_list('email', flat=True)
         )
         base = [e for e in [school.email] if e]
@@ -130,7 +173,39 @@ def send_invoice_reminders():
                 ordered.append(e)
         return ordered
 
-    # 1) Due today reminders
+    # 1) Pre-due reminders (3 days before due date)
+    pre_due_date = today + timedelta(days=pre_days)
+    pre_due = Invoice.objects.filter(
+        status__in=['draft', 'sent'],
+        due_date=pre_due_date,
+        pre_due_reminder_sent_at__isnull=True,
+    )
+    for inv in pre_due.select_related('school'):
+        recipients = recipients_for_school(inv.school)
+        if not recipients:
+            continue
+        subject = f"Upcoming Invoice Due in {pre_days} Days: {inv.invoice_number}"
+        message = (
+            f"Hello {inv.school.name},\n\n"
+            f"Your invoice {inv.invoice_number} for plan '{inv.plan_name}' is due on {inv.due_date}.\n"
+            f"Amount Due: {inv.total_amount}\n\n"
+            f"Please plan your payment to avoid interruption.\n\n"
+            f"Thank you,\nClasyo Billing"
+        )
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_HOST_USER),
+                recipient_list=recipients,
+                fail_silently=True,
+            )
+            inv.pre_due_reminder_sent_at = timezone.now()
+            inv.save(update_fields=['pre_due_reminder_sent_at'])
+        except Exception:
+            pass
+
+    # 2) Due today reminders
     due_today = Invoice.objects.filter(
         status__in=['draft', 'sent'],
         due_date=today,
@@ -162,7 +237,7 @@ def send_invoice_reminders():
             # Ignore email errors but don't mark as sent
             pass
 
-    # 2) Overdue reminders
+    # 3) Overdue reminders
     overdue = Invoice.objects.filter(
         status__in=['draft', 'sent', 'overdue'],
         due_date__lt=today,
@@ -199,4 +274,4 @@ def send_invoice_reminders():
         except Exception:
             pass
 
-    return f"Sent due reminders: {due_today.count()}, overdue reminders: {overdue.count()}"
+    return f"Sent pre-due: {pre_due.count()}, due: {due_today.count()}, overdue: {overdue.count()}"

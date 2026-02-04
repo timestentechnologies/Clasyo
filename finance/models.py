@@ -209,6 +209,7 @@ class JournalEntryLine(models.Model):
 DEFAULT_ACCOUNTS = [
     # code, name, type, subtype, opening
     ('1000', 'Cash in Hand', Account.TYPE_ASSET, Account.SUBTYPE_CASH, Decimal('0.00')),
+    ('1100', 'Canteen Cash in Hand', Account.TYPE_ASSET, Account.SUBTYPE_CASH, Decimal('0.00')),
     ('1010', 'Bank – Tuition Fees Account', Account.TYPE_ASSET, Account.SUBTYPE_BANK, Decimal('0.00')),
     ('1011', 'Bank – Donations Account', Account.TYPE_ASSET, Account.SUBTYPE_BANK, Decimal('0.00')),
     ('1012', 'Bank – Operations Account', Account.TYPE_ASSET, Account.SUBTYPE_BANK, Decimal('0.00')),
@@ -216,6 +217,7 @@ DEFAULT_ACCOUNTS = [
     ('2100', 'Accounts Payable', Account.TYPE_LIABILITY, Account.SUBTYPE_PAYABLE, Decimal('0.00')),
     ('2300', 'Student Fee Deposits', Account.TYPE_LIABILITY, Account.SUBTYPE_OTHER, Decimal('0.00')),
     ('4000', 'Tuition Fees Income', Account.TYPE_INCOME, Account.SUBTYPE_OTHER, Decimal('0.00')),
+    ('4200', 'Canteen Sales Income', Account.TYPE_INCOME, Account.SUBTYPE_OTHER, Decimal('0.00')),
     ('4100', 'Donations – Restricted', Account.TYPE_INCOME, Account.SUBTYPE_OTHER, Decimal('0.00')),
     ('4110', 'Donations – Unrestricted', Account.TYPE_INCOME, Account.SUBTYPE_OTHER, Decimal('0.00')),
     ('5000', 'Salaries Expense', Account.TYPE_EXPENSE, Account.SUBTYPE_OTHER, Decimal('0.00')),

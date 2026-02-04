@@ -510,42 +510,16 @@
 
                                 <div class="plan-features">
                                     <ul class="list-unstyled">
-                                        {% if pricing_plan.max_students %}
                                         <li class="mb-2">
                                             <i class="fas fa-check text-success me-2"></i>
                                             <small>
-                                                {% if pricing_plan.max_students > 10000 %}
-                                                    Unlimited students
-                                                {% else %}
+                                                {% if pricing_plan.max_students and pricing_plan.max_students > 0 %}
                                                     Up to {{ pricing_plan.max_students }} students
-                                                {% endif %}
-                                            </small>
-                                        </li>
-                                        {% endif %}
-                                        {% if pricing_plan.max_teachers %}
-                                        <li class="mb-2">
-                                            <i class="fas fa-check text-success me-2"></i>
-                                            <small>
-                                                {% if pricing_plan.max_teachers > 10000 %}
-                                                    Unlimited teachers
                                                 {% else %}
-                                                    {{ pricing_plan.max_teachers }} teachers
+                                                    Unlimited students
                                                 {% endif %}
                                             </small>
                                         </li>
-                                        {% endif %}
-                                        {% if pricing_plan.max_staff %}
-                                        <li class="mb-2">
-                                            <i class="fas fa-check text-success me-2"></i>
-                                            <small>
-                                                {% if pricing_plan.max_staff > 10000 %}
-                                                    Unlimited staff
-                                                {% else %}
-                                                    {{ pricing_plan.max_staff }} staff
-                                                {% endif %}
-                                            </small>
-                                        </li>
-                                        {% endif %}
                                         {% for feature in pricing_plan.get_features_list %}
                                         <li class="mb-2">
                                             <i class="fas fa-check text-success me-2"></i>

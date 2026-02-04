@@ -1,13 +1,9 @@
 from django.contrib import admin
-from .models import PricingPlan, FAQ, PageContent, ContactMessage
+from .models import FAQ, PageContent, ContactMessage
 
 # Register your models here
 
-@admin.register(PricingPlan)
-class PricingPlanAdmin(admin.ModelAdmin):
-    list_display = ['name', 'price', 'duration', 'is_popular', 'is_active', 'order']
-    list_editable = ['is_popular', 'is_active', 'order']
-    list_filter = ['is_active', 'is_popular', 'duration']
+
 
 @admin.register(FAQ)
 class FAQAdmin(admin.ModelAdmin):

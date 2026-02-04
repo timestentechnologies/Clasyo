@@ -1,7 +1,10 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils.text import slugify
-from frontend.models import PricingPlan as LegacyPricingPlan
+try:
+    from frontend.models import PricingPlan as LegacyPricingPlan  # May not exist anymore
+except Exception:
+    LegacyPricingPlan = None
 from subscriptions.models import SubscriptionPlan
 
 class Command(BaseCommand):
@@ -9,6 +12,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write("Starting migration of PricingPlan to SubscriptionPlan...")
+        if LegacyPricingPlan is None:
+            self.stdout.write("Legacy PricingPlan model not found. Nothing to migrate.")
+            return
         
         # Map old plan names to new plan types
         PLAN_TYPE_MAP = {
@@ -16,7 +22,8 @@ class Command(BaseCommand):
             'standard': 'standard',
             'premium': 'premium',
             'enterprise': 'enterprise',
-            'trial': 'free_trial'
+            # No dedicated free_trial plan type anymore; map to basic
+            'trial': 'basic'
         }
         
         # Map old durations to billing cycles
@@ -81,8 +88,6 @@ class Command(BaseCommand):
                     billing_cycle=billing_cycle,
                     trial_days=7 if 'trial' in plan.name.lower() else 0,
                     max_students=plan.max_students or 0,
-                    max_teachers=plan.max_teachers or 0,
-                    max_staff=plan.max_staff or 0,
                     max_branches=1,
                     storage_limit_gb=10,
                     features=features_list,

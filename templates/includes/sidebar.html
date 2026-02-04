@@ -331,9 +331,16 @@
             <i class="fas fa-credit-card"></i>
             <span>Payment Configurations</span>
         </a></li>
+        <div class="menu-section-title">Canteen</div>
+
+        <li class="{% if '/canteen/pos/' in request.path %}active{% endif %}"><a href="{% if school_slug %}/school/{{ school_slug }}/canteen/pos/{% else %}#{% endif %}">
+            <i class="fas fa-utensils"></i>
+            <span>Canteen POS</span>
+        </a></li>
+
         <div class="menu-section-title">Procurement</div>
 
-        <li class="{% if '/inventory/' in request.path and '/expenses/' not in request.path and '/payments/' not in request.path and '/suppliers/' not in request.path and '/purchase-orders/' not in request.path and '/distributions/' not in request.path %}active{% endif %}"><a href="{% if school_slug %}/school/{{ school_slug }}/inventory/{% else %}#{% endif %}">
+        <li class="{% if '/inventory/' in request.path and '/canteen/' not in request.path and '/expenses/' not in request.path and '/payments/' not in request.path and '/suppliers/' not in request.path and '/purchase-orders/' not in request.path and '/distributions/' not in request.path %}active{% endif %}"><a href="{% if school_slug %}/school/{{ school_slug }}/inventory/{% else %}#{% endif %}">
             <i class="fas fa-boxes"></i>
             <span>Inventory</span>
         </a></li>

@@ -11,10 +11,14 @@ from django.core.serializers.json import DjangoJSONEncoder
 import json
 from .models import (
     Item, ItemCategory, Supplier, PurchaseOrder, PurchaseOrderItem,
-    ItemDistribution, Expense, StaffPayment
+    ItemDistribution, Expense, StaffPayment,
+    CanteenCategory, CanteenProduct, CanteenSale, CanteenSaleItem
 )
 from core.utils import get_current_school
 from accounts.models import User
+from finance.models import Account, JournalEntry, JournalEntryLine, ensure_default_accounts_for_school
+from django.views.generic import TemplateView, View
+from django.utils import timezone
 
 
 # ============= INVENTORY MANAGEMENT =============
@@ -115,6 +119,182 @@ class InventoryListView(LoginRequiredMixin, ListView):
             
             return JsonResponse({'success': False, 'error': 'Invalid action'})
         
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CanteenPOSView(LoginRequiredMixin, TemplateView):
+    template_name = 'inventory/canteen_pos.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        school = get_current_school(self.request)
+        categories = CanteenCategory.objects.filter(is_active=True)
+        products = CanteenProduct.objects.filter(is_active=True)
+        if school:
+            categories = categories.filter(school=school)
+            products = products.filter(school=school)
+        context['categories'] = categories.order_by('name')
+        context['products'] = products.order_by('name')[:50]
+        context['school_slug'] = self.kwargs.get('school_slug', '')
+        return context
+
+    def post(self, request, *args, **kwargs):
+        try:
+            if not request.user.is_authenticated:
+                return JsonResponse({'success': False, 'error': 'Not authenticated'})
+
+            school = get_current_school(request)
+            action = request.POST.get('action')
+
+            if action == 'search_products':
+                q = (request.POST.get('q') or '').strip()
+                qs = CanteenProduct.objects.filter(is_active=True)
+                if school:
+                    qs = qs.filter(school=school)
+                if q:
+                    qs = qs.filter(Q(name__icontains=q) | Q(code__icontains=q))
+                data = [
+                    {
+                        'id': p.id,
+                        'code': p.code,
+                        'name': p.name,
+                        'price': str(p.price),
+                        'stock_qty': str(p.stock_qty),
+                        'category': p.category.name if p.category else ''
+                    }
+                    for p in qs.order_by('name')[:50]
+                ]
+                return JsonResponse({'success': True, 'products': data})
+
+            if action == 'checkout':
+                # Parse inputs
+                from students.models import Student
+                cart_raw = request.POST.get('cart')
+                payment_method = request.POST.get('payment_method', 'cash')
+                discount = Decimal(request.POST.get('discount') or '0')
+                amount_received = Decimal(request.POST.get('amount_received') or '0')
+                student_adm = (request.POST.get('student_admission') or '').strip()
+                notes = request.POST.get('notes', '')
+
+                try:
+                    cart = json.loads(cart_raw or '[]')
+                except Exception:
+                    return JsonResponse({'success': False, 'error': 'Invalid cart data'})
+
+                if not cart:
+                    return JsonResponse({'success': False, 'error': 'Cart is empty'})
+
+                # Resolve student
+                student = None
+                if student_adm:
+                    from students.models import Student as _Stu
+                    student = _Stu.objects.filter(admission_number=student_adm).first()
+
+                # Validate stock and compute totals
+                product_ids = [int(it.get('product_id')) for it in cart if it.get('product_id')]
+                products = {p.id: p for p in CanteenProduct.objects.filter(id__in=product_ids)}
+                total = Decimal('0.00')
+                for it in cart:
+                    pid = int(it['product_id'])
+                    qty = Decimal(str(it.get('quantity') or '0'))
+                    if qty <= 0:
+                        return JsonResponse({'success': False, 'error': 'Invalid quantity in cart'})
+                    product = products.get(pid)
+                    if not product:
+                        return JsonResponse({'success': False, 'error': 'Product not found in cart'})
+                    if school and product.school_id != getattr(school, 'id', None):
+                        return JsonResponse({'success': False, 'error': f'Product {product.name} not available for this school'})
+                    if product.stock_qty < qty:
+                        return JsonResponse({'success': False, 'error': f'Insufficient stock for {product.name}'})
+                    unit_price = Decimal(str(it.get('unit_price') or product.price))
+                    line_total = unit_price * qty
+                    total += line_total
+
+                if discount < 0:
+                    discount = Decimal('0')
+                net_total = total - discount
+                if net_total < 0:
+                    net_total = Decimal('0.00')
+                if amount_received < net_total:
+                    return JsonResponse({'success': False, 'error': 'Amount received is less than total payable'})
+                change_given = amount_received - net_total
+
+                # Generate receipt number
+                ts = timezone.now().strftime('%Y%m%d%H%M%S')
+                sid = getattr(school, 'id', '0') or '0'
+                receipt_no = f"CS-{sid}-{ts}"
+
+                # Persist sale and items
+                sale = CanteenSale.objects.create(
+                    school=school,
+                    receipt_no=receipt_no,
+                    student=student,
+                    total=total,
+                    discount=discount,
+                    net_total=net_total,
+                    payment_method=payment_method,
+                    amount_received=amount_received,
+                    change_given=change_given,
+                    notes=notes,
+                    created_by=request.user,
+                )
+
+                for it in cart:
+                    pid = int(it['product_id'])
+                    qty = Decimal(str(it.get('quantity') or '0'))
+                    product = products[pid]
+                    unit_price = Decimal(str(it.get('unit_price') or product.price))
+                    line_total = unit_price * qty
+                    CanteenSaleItem.objects.create(
+                        sale=sale,
+                        product=product,
+                        name=product.name,
+                        code=product.code,
+                        quantity=qty,
+                        unit_price=unit_price,
+                        line_total=line_total,
+                    )
+                    # Reduce stock
+                    product.stock_qty = (product.stock_qty or Decimal('0')) - qty
+                    product.save(update_fields=['stock_qty'])
+
+                # Accounting: post revenue and cash/bank receipt
+                ensure_default_accounts_for_school(school)
+                # Income account
+                income_acct = Account.objects.filter(school=school, code='4200').first()
+                # Cash/bank account based on payment method
+                if payment_method == 'cash':
+                    cash_acct = Account.objects.filter(school=school, code='1100').first() or Account.objects.filter(school=school, code='1000').first()
+                else:
+                    cash_acct = Account.objects.filter(school=school, code='1012').first() or Account.objects.filter(school=school, code='1010').first()
+
+                if income_acct and cash_acct:
+                    je = JournalEntry.objects.create(
+                        school=school,
+                        date=timezone.now().date(),
+                        reference=receipt_no,
+                        memo='Canteen POS sale',
+                        transaction=None,
+                        posted=False,
+                    )
+                    JournalEntryLine.objects.create(entry=je, account=cash_acct, description='Canteen sale receipt', debit=net_total, credit=Decimal('0.00'))
+                    JournalEntryLine.objects.create(entry=je, account=income_acct, description='Canteen sales income', debit=Decimal('0.00'), credit=net_total)
+                    try:
+                        je.post(request.user)
+                    except Exception:
+                        pass
+
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Sale recorded successfully',
+                    'receipt_no': sale.receipt_no,
+                    'net_total': str(net_total),
+                    'change_given': str(change_given),
+                })
+
+            return JsonResponse({'success': False, 'error': 'Invalid action'})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 

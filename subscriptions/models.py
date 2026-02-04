@@ -2,13 +2,13 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator
 from django.utils import timezone
+import re
 import uuid
 
 
 class SubscriptionPlan(models.Model):
     """Subscription Plan Model"""
     PLAN_TYPE_CHOICES = [
-        ('free_trial', 'Free Trial'),
         ('basic', 'Basic'),
         ('standard', 'Standard'),
         ('premium', 'Premium'),
@@ -17,6 +17,7 @@ class SubscriptionPlan(models.Model):
     
     BILLING_CYCLE_CHOICES = [
         ('monthly', 'Monthly'),
+        ('termly', 'Termly'),
         ('quarterly', 'Quarterly'),
         ('half_yearly', 'Half Yearly'),
         ('yearly', 'Yearly'),
@@ -42,9 +43,7 @@ class SubscriptionPlan(models.Model):
                                        default=0, validators=[MinValueValidator(0)])
     
     # Limits
-    max_students = models.IntegerField(_("Max Students"), default=100)
-    max_teachers = models.IntegerField(_("Max Teachers"), default=20)
-    max_staff = models.IntegerField(_("Max Staff"), default=10)
+    max_students = models.IntegerField(_("Max Students"), default=0)
     max_branches = models.IntegerField(_("Max Branches"), default=1)
     storage_limit_gb = models.IntegerField(_("Storage Limit (GB)"), default=5)
     
@@ -109,6 +108,22 @@ class SubscriptionPlan(models.Model):
             pass
 
         return items
+
+    def get_description_points(self):
+        """Return description split into bullet points.
+
+        Splits on newlines, bullet characters (•), semicolons, or pipes. Trims
+        whitespace and drops empty entries. Safe to call in templates.
+        """
+        text = self.description or ""
+        if not text:
+            return []
+        try:
+            parts = re.split(r"\r?\n|\u2022|•|;|\||,", text)
+            return [p.strip() for p in parts if p and p.strip()]
+        except Exception:
+            # Fallback: show whole description as one item
+            return [text.strip()] if text.strip() else []
 
     @property
     def one_time_total(self):
@@ -451,6 +466,7 @@ class Invoice(models.Model):
     pdf_file = models.FileField(upload_to='invoices/', null=True, blank=True)
     due_reminder_sent_at = models.DateTimeField(null=True, blank=True)
     overdue_reminder_sent_at = models.DateTimeField(null=True, blank=True)
+    pre_due_reminder_sent_at = models.DateTimeField(null=True, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
