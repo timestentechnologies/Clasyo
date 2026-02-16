@@ -11,6 +11,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
 from django import forms
+import re
 from .models import (
     PaymentConfiguration,
     SchoolPaymentConfiguration,
@@ -28,6 +29,28 @@ from tenants.models import School
 from accounts.models import User
 from subscriptions.models import SubscriptionPlan, Subscription, Payment, Invoice
 from core.models import AuditLog
+
+
+def _decode_escaped_text(value: str) -> str:
+    if not value:
+        return value
+    try:
+        text = str(value)
+        if "\\u" not in text and "\\n" not in text and "\\r" not in text and "\\t" not in text and "\\\\" not in text:
+            return text
+
+        def _repl(match):
+            try:
+                return chr(int(match.group(1), 16))
+            except Exception:
+                return match.group(0)
+
+        text = re.sub(r"\\u([0-9a-fA-F]{4})", _repl, text)
+        text = text.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t")
+        text = text.replace("\\\\", "\\")
+        return text
+    except Exception:
+        return value
 
 
 class SuperAdminRequiredMixin(UserPassesTestMixin):
@@ -759,7 +782,7 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
             name = request.POST.get('name')
             slug = request.POST.get('slug')
             plan_type = request.POST.get('plan_type')
-            description = request.POST.get('description', '')
+            description = _decode_escaped_text(request.POST.get('description', ''))
             price = request.POST.get('price')
             billing_cycle = request.POST.get('billing_cycle')
             trial_days = request.POST.get('trial_days', '0')

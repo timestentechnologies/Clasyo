@@ -87,10 +87,31 @@ class SubscriptionPlan(models.Model):
         items = []
         data = self.features or {}
 
+        def _decode_escaped_text(value: str) -> str:
+            if value is None:
+                return ""
+            try:
+                text = str(value)
+                if "\\u" not in text and "\\n" not in text and "\\r" not in text and "\\t" not in text and "\\\\" not in text:
+                    return text
+
+                def _repl(match):
+                    try:
+                        return chr(int(match.group(1), 16))
+                    except Exception:
+                        return match.group(0)
+
+                text = re.sub(r"\\u([0-9a-fA-F]{4})", _repl, text)
+                text = text.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t")
+                text = text.replace("\\\\", "\\")
+                return text
+            except Exception:
+                return str(value)
+
         try:
             # If it's already a list, normalise it to strings
             if isinstance(data, list):
-                items.extend(str(f).strip() for f in data if str(f).strip())
+                items.extend(_decode_escaped_text(f).strip() for f in data if _decode_escaped_text(f).strip())
             # If it's a dict, either treat truthy keys as feature labels or
             # use non-empty values as labels.
             elif isinstance(data, dict):
@@ -99,7 +120,7 @@ class SubscriptionPlan(models.Model):
                         if value:
                             items.append(str(key).replace('_', ' ').title())
                     else:
-                        text = str(value).strip()
+                        text = _decode_escaped_text(value).strip()
                         if text:
                             items.append(text)
         except Exception:
@@ -119,6 +140,16 @@ class SubscriptionPlan(models.Model):
         if not text:
             return []
         try:
+            def _repl(match):
+                try:
+                    return chr(int(match.group(1), 16))
+                except Exception:
+                    return match.group(0)
+
+            if "\\u" in text or "\\n" in text or "\\r" in text or "\\t" in text or "\\\\" in text:
+                text = re.sub(r"\\u([0-9a-fA-F]{4})", _repl, str(text))
+                text = text.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t")
+                text = text.replace("\\\\", "\\")
             parts = re.split(r"\r?\n|\u2022|•|;|\||,", text)
             return [p.strip() for p in parts if p and p.strip()]
         except Exception:
