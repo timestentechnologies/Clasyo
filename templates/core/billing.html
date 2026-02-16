@@ -508,18 +508,25 @@
                                     <span class="price-period">/ {{ pricing_plan.get_billing_cycle_display|lower }}</span>
                                 </div>
 
+                                {% with desc_points=pricing_plan.get_description_points %}
+                                    {% if desc_points %}
+                                    <div class="plan-description">
+                                        <ul class="list-unstyled mb-2">
+                                            {% for point in desc_points %}
+                                            <li class="mb-1">
+                                                <i class="fas fa-check text-success me-2"></i>
+                                                <small>{{ point }}</small>
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    {% elif pricing_plan.description %}
+                                    <div class="plan-description text-muted small mb-2">{{ pricing_plan.description }}</div>
+                                    {% endif %}
+                                {% endwith %}
+
                                 <div class="plan-features">
                                     <ul class="list-unstyled">
-                                        <li class="mb-2">
-                                            <i class="fas fa-check text-success me-2"></i>
-                                            <small>
-                                                {% if pricing_plan.max_students and pricing_plan.max_students > 0 %}
-                                                    Up to {{ pricing_plan.max_students }} students
-                                                {% else %}
-                                                    Unlimited students
-                                                {% endif %}
-                                            </small>
-                                        </li>
                                         {% for feature in pricing_plan.get_features_list %}
                                         <li class="mb-2">
                                             <i class="fas fa-check text-success me-2"></i>
