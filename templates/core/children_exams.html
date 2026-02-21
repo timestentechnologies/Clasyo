@@ -1,0 +1,69 @@
+{% extends "dashboards/base.html" %}
+{% load static %}
+
+{% block title %}Children Exams{% endblock %}
+{% block page_title %}Children Exams{% endblock %}
+{% block page_icon %}file-alt{% endblock %}
+{% block page_subtitle %}Exams relevant to your children{% endblock %}
+
+{% block content %}
+{% if children_exams %}
+    {% for item in children_exams %}
+        <div class="modern-card mb-4">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                    <h4 class="mb-1">{{ item.student.get_full_name }}</h4>
+                    <div class="text-muted small">
+                        {{ item.student.current_class|default:"Not Assigned" }}{% if item.student.section %} - {{ item.student.section }}{% endif %}
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="/school/{{ school_slug }}/children-results/" class="btn btn-sm btn-outline-info">
+                        <i class="fas fa-chart-line"></i>
+                        <span class="d-none d-sm-inline">Results</span>
+                    </a>
+                </div>
+            </div>
+
+            <hr>
+
+            {% if item.exams %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Exam</th>
+                                <th style="min-width: 140px;">Type</th>
+                                <th>Subject</th>
+                                <th style="min-width: 160px;">Dates</th>
+                                <th style="min-width: 120px;">Mode</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for exam in item.exams %}
+                                <tr>
+                                    <td>{{ exam.name }}</td>
+                                    <td>{{ exam.get_exam_type_display }}</td>
+                                    <td>{% if exam.subject %}{{ exam.subject.name }}{% else %}-{% endif %}</td>
+                                    <td>{{ exam.start_date|date:"M d, Y" }} - {{ exam.end_date|date:"M d, Y" }}</td>
+                                    <td>{% if exam.is_online %}Online{% else %}Offline{% endif %}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No published exams found for this child.
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        No children are linked to your account yet. Please contact the school administrator to link your children.
+    </div>
+{% endif %}
+{% endblock %}

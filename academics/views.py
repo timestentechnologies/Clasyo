@@ -312,6 +312,19 @@ class SubjectListView(LoginRequiredMixin, ListView):
     model = Subject
     template_name = 'academics/subject_list.html'
     context_object_name = 'subjects'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role == 'student':
+            from django.contrib import messages
+            from django.shortcuts import redirect
+            messages.info(request, "Students can only view subjects assigned to their class.")
+            return redirect('core:my_subjects', school_slug=kwargs.get('school_slug'))
+        if not (request.user.is_school_admin or request.user.is_teacher):
+            from django.contrib import messages
+            from django.shortcuts import redirect
+            messages.error(request, "Access denied.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
         school = get_current_school(self.request)
@@ -331,6 +344,19 @@ class SubjectCreateView(LoginRequiredMixin, CreateView):
     template_name = 'academics/subject_form.html'
     fields = ['name', 'code', 'subject_type', 'description', 'credits', 'is_active']
     success_url = reverse_lazy('academics:subject_list')
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role == 'student':
+            from django.contrib import messages
+            from django.shortcuts import redirect
+            messages.error(request, "Access denied.")
+            return redirect('core:my_subjects', school_slug=kwargs.get('school_slug'))
+        if not (request.user.is_school_admin or request.user.is_teacher):
+            from django.contrib import messages
+            from django.shortcuts import redirect
+            messages.error(request, "Access denied.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
     
     def post(self, request, *args, **kwargs):
         try:
@@ -354,6 +380,19 @@ class SubjectUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'academics/subject_form.html'
     fields = ['name', 'code', 'subject_type', 'description', 'credits', 'is_active']
     success_url = reverse_lazy('academics:subject_list')
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role == 'student':
+            from django.contrib import messages
+            from django.shortcuts import redirect
+            messages.error(request, "Access denied.")
+            return redirect('core:my_subjects', school_slug=kwargs.get('school_slug'))
+        if not (request.user.is_school_admin or request.user.is_teacher):
+            from django.contrib import messages
+            from django.shortcuts import redirect
+            messages.error(request, "Access denied.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
     
     def post(self, request, *args, **kwargs):
         try:
@@ -372,6 +411,19 @@ class SubjectUpdateView(LoginRequiredMixin, UpdateView):
 
 class SubjectDeleteView(LoginRequiredMixin, DeleteView):
     model = Subject
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role == 'student':
+            from django.contrib import messages
+            from django.shortcuts import redirect
+            messages.error(request, "Access denied.")
+            return redirect('core:my_subjects', school_slug=kwargs.get('school_slug'))
+        if not (request.user.is_school_admin or request.user.is_teacher):
+            from django.contrib import messages
+            from django.shortcuts import redirect
+            messages.error(request, "Access denied.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
     
     def post(self, request, *args, **kwargs):
         try:
@@ -385,6 +437,17 @@ class ClassRoutineView(LoginRequiredMixin, ListView):
     model = ClassRoutine
     template_name = 'academics/routine.html'
     context_object_name = 'routines'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role == 'student':
+            messages.info(request, "Students can only view their own class routine.")
+            return redirect('core:my_class_routine', school_slug=kwargs.get('school_slug'))
+        if not (request.user.is_school_admin or request.user.is_teacher):
+            from django.contrib import messages
+            messages.error(request, "Access denied.")
+            from django.shortcuts import redirect
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
         school = get_current_school(self.request)
@@ -418,6 +481,14 @@ class ClassRoutineCreateView(LoginRequiredMixin, CreateView):
     model = ClassRoutine
     template_name = 'academics/routine_form.html'
     fields = '__all__'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not (request.user.is_school_admin or request.user.is_teacher):
+            from django.contrib import messages
+            messages.error(request, "Access denied.")
+            from django.shortcuts import redirect
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
         form.instance.school = get_current_school(self.request)

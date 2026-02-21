@@ -79,6 +79,127 @@ class AppsHomeView(LoginRequiredMixin, TemplateView):
         return context
 
 
+class AIChatApiView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        prompt = (request.POST.get('prompt') or '').strip()
+        if not prompt:
+            return JsonResponse({'error': 'Prompt is required.'}, status=400)
+
+        school = get_current_school(request)
+        if not school:
+            return JsonResponse({'error': 'School not found.'}, status=400)
+
+        return JsonResponse({'error': 'AI chat is not configured.'}, status=501)
+
+
+class MySubjectsView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/my_subjects.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role != 'student':
+            messages.error(request, "Access denied.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        school_slug = self.kwargs.get('school_slug')
+        context['school_slug'] = school_slug
+
+        school = get_current_school(self.request)
+        active_year = AcademicYear.objects.filter(is_active=True)
+        if school:
+            active_year = active_year.filter(school=school)
+        active_year = active_year.first()
+
+        student = getattr(self.request.user, 'student_profile', None)
+        context['student'] = student
+        context['academic_year'] = active_year
+
+        if not student or not student.current_class:
+            context['assigned_subjects'] = []
+            return context
+
+        from academics.models import AssignedSubject
+
+        qs = AssignedSubject.objects.filter(
+            is_active=True,
+            class_name=student.current_class,
+        ).select_related('subject', 'teacher', 'class_name', 'section')
+
+        if student.section_id:
+            qs = qs.filter(Q(section_id=student.section_id) | Q(section__isnull=True))
+
+        if active_year:
+            qs = qs.filter(academic_year=active_year)
+
+        if school:
+            qs = qs.filter(class_name__school=school)
+
+        context['assigned_subjects'] = qs.order_by('subject__name')
+        return context
+
+
+class MyClassRoutineView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/my_class_routine.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role != 'student':
+            messages.error(request, "Access denied.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        school_slug = self.kwargs.get('school_slug')
+        context['school_slug'] = school_slug
+
+        school = get_current_school(self.request)
+        active_year = AcademicYear.objects.filter(is_active=True)
+        if school:
+            active_year = active_year.filter(school=school)
+        active_year = active_year.first()
+
+        student = getattr(self.request.user, 'student_profile', None)
+        context['student'] = student
+        context['academic_year'] = active_year
+
+        if not student or not student.current_class or not student.section:
+            context['routine_by_day'] = []
+            return context
+
+        from academics.models import ClassRoutine
+
+        qs = ClassRoutine.objects.filter(
+            is_active=True,
+            class_name=student.current_class,
+            section=student.section,
+        ).select_related('class_time', 'subject', 'teacher', 'room')
+
+        if active_year:
+            qs = qs.filter(academic_year=active_year)
+
+        if school:
+            qs = qs.filter(class_name__school=school)
+
+        routines = list(qs.order_by('day_of_week', 'class_time__start_time'))
+
+        routine_map = {}
+        for r in routines:
+            routine_map.setdefault(r.day_of_week, []).append(r)
+
+        routine_by_day = []
+        for day_value, day_label in ClassRoutine.WEEKDAY_CHOICES:
+            routine_by_day.append({
+                'day_value': day_value,
+                'day_label': day_label,
+                'entries': routine_map.get(day_value, []),
+            })
+
+        context['routine_by_day'] = routine_by_day
+        return context
+
+
 class DashboardView(LoginRequiredMixin, TemplateView):
     """Main dashboard view"""
     template_name = 'core/dashboard.html'
@@ -364,6 +485,348 @@ class MyChildrenView(LoginRequiredMixin, TemplateView):
         context['children_data'] = children_data
         context['children_count'] = len(children_data)
         
+        return context
+
+
+class ChildrenRoutineView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/children_routine.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_parent:
+            messages.error(request, "Access denied. This page is for parents only.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        school_slug = self.kwargs.get('school_slug')
+        context['school_slug'] = school_slug
+
+        from students.models import Student
+        from core.models import AcademicYear
+        from academics.models import ClassRoutine
+
+        school = get_current_school(self.request)
+        year_qs = AcademicYear.objects.filter(is_active=True)
+        if school:
+            year_qs = year_qs.filter(school=school)
+        active_year = year_qs.first()
+
+        children = Student.objects.filter(parent_user=user, is_active=True).select_related('current_class', 'section')
+        children_routines = []
+        for child in children:
+            routines_qs = ClassRoutine.objects.none()
+            if child.current_class_id and child.section_id and active_year:
+                routines_qs = ClassRoutine.objects.filter(
+                    class_name_id=child.current_class_id,
+                    section_id=child.section_id,
+                    academic_year=active_year,
+                    is_active=True,
+                ).select_related('class_time', 'subject', 'teacher', 'room').order_by('day_of_week', 'class_time__start_time')
+                if school:
+                    routines_qs = routines_qs.filter(school=school)
+
+            children_routines.append({
+                'student': child,
+                'routines': list(routines_qs),
+            })
+
+        context['children_routines'] = children_routines
+        return context
+
+
+class ChildrenTeachersView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/children_teachers.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_parent:
+            messages.error(request, "Access denied. This page is for parents only.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        school_slug = self.kwargs.get('school_slug')
+        context['school_slug'] = school_slug
+
+        from students.models import Student
+        from core.models import AcademicYear
+        from academics.models import ClassRoutine
+
+        school = get_current_school(self.request)
+        year_qs = AcademicYear.objects.filter(is_active=True)
+        if school:
+            year_qs = year_qs.filter(school=school)
+        active_year = year_qs.first()
+
+        children = Student.objects.filter(parent_user=user, is_active=True).select_related('current_class', 'section', 'section__class_teacher')
+        children_teachers = []
+        for child in children:
+            teachers_map = {}
+
+            if child.section and child.section.class_teacher:
+                teachers_map[child.section.class_teacher_id] = {
+                    'teacher': child.section.class_teacher,
+                    'role': 'Class Teacher',
+                }
+
+            if child.current_class_id and child.section_id and active_year:
+                routine_qs = ClassRoutine.objects.filter(
+                    class_name_id=child.current_class_id,
+                    section_id=child.section_id,
+                    academic_year=active_year,
+                    is_active=True,
+                ).select_related('teacher')
+                if school:
+                    routine_qs = routine_qs.filter(school=school)
+
+                for r in routine_qs:
+                    if r.teacher_id and r.teacher_id not in teachers_map:
+                        teachers_map[r.teacher_id] = {
+                            'teacher': r.teacher,
+                            'role': 'Subject Teacher',
+                        }
+
+            children_teachers.append({
+                'student': child,
+                'teachers': list(teachers_map.values()),
+            })
+
+        context['children_teachers'] = children_teachers
+        return context
+
+
+class ChildrenAttendanceView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/children_attendance.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_parent:
+            messages.error(request, "Access denied. This page is for parents only.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        school_slug = self.kwargs.get('school_slug')
+        context['school_slug'] = school_slug
+
+        from students.models import Student
+
+        children = Student.objects.filter(parent_user=user, is_active=True).select_related('current_class', 'section')
+        context['children'] = children
+        return context
+
+
+class ChildrenExamsView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/children_exams.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_parent:
+            messages.error(request, "Access denied. This page is for parents only.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        school_slug = self.kwargs.get('school_slug')
+        context['school_slug'] = school_slug
+
+        from students.models import Student
+        from examinations.models import Exam
+        from django.db.models import Q
+
+        school = get_current_school(self.request)
+        children = Student.objects.filter(parent_user=user, is_active=True).select_related('current_class', 'section')
+
+        children_exams = []
+        for child in children:
+            exams_qs = Exam.objects.none()
+            if child.current_class_id:
+                exams_qs = Exam.objects.filter(
+                    Q(class_assigned_id=child.current_class_id) | Q(class_assigned__isnull=True),
+                    is_published=True,
+                )
+                if school:
+                    exams_qs = exams_qs.filter(school=school)
+                exams_qs = exams_qs.select_related('class_assigned', 'subject').order_by('-start_date', '-created_at')
+
+            children_exams.append({
+                'student': child,
+                'exams': list(exams_qs),
+            })
+
+        context['children_exams'] = children_exams
+        return context
+
+
+class ChildrenResultsView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/children_results.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_parent:
+            messages.error(request, "Access denied. This page is for parents only.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        school_slug = self.kwargs.get('school_slug')
+        context['school_slug'] = school_slug
+
+        from students.models import Student
+        from examinations.models import ExamResult, ExamSubmission
+
+        school = get_current_school(self.request)
+        children = Student.objects.filter(parent_user=user, is_active=True).select_related('current_class', 'section')
+
+        children_results = []
+        for child in children:
+            exam_results_qs = ExamResult.objects.filter(student=child)
+            online_results_qs = ExamSubmission.objects.filter(student=child, status='graded')
+            if school:
+                exam_results_qs = exam_results_qs.filter(exam__school=school)
+                online_results_qs = online_results_qs.filter(exam__school=school)
+
+            exam_results_qs = exam_results_qs.select_related('exam', 'grade').order_by('-created_at')
+            online_results_qs = online_results_qs.select_related('exam', 'grade').order_by('-submitted_at')
+
+            children_results.append({
+                'student': child,
+                'exam_results': list(exam_results_qs),
+                'online_results': list(online_results_qs),
+            })
+
+        context['children_results'] = children_results
+        return context
+
+
+class ChildrenHomeworkView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/children_homework.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_parent:
+            messages.error(request, "Access denied. This page is for parents only.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        school_slug = self.kwargs.get('school_slug')
+        context['school_slug'] = school_slug
+
+        from students.models import Student
+        from homework.models import HomeworkAssignment
+        from django.db.models import Q
+
+        school = get_current_school(self.request)
+        children = Student.objects.filter(parent_user=user, is_active=True).select_related('current_class', 'section')
+
+        children_homework = []
+        for child in children:
+            assignments_qs = HomeworkAssignment.objects.none()
+            if child.current_class_id:
+                assignments_qs = HomeworkAssignment.objects.filter(
+                    class_ref_id=child.current_class_id,
+                    status='published',
+                ).filter(
+                    Q(section__isnull=True) | Q(section_id=child.section_id)
+                )
+                if school:
+                    assignments_qs = assignments_qs.filter(school=school)
+                assignments_qs = assignments_qs.select_related('subject', 'class_ref', 'section').order_by('-assigned_date', '-due_date')
+
+            children_homework.append({
+                'student': child,
+                'assignments': list(assignments_qs),
+            })
+
+        context['children_homework'] = children_homework
+        return context
+
+
+class ChildrenCertificatesView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/children_certificates.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_parent:
+            messages.error(request, "Access denied. This page is for parents only.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        school_slug = self.kwargs.get('school_slug')
+        context['school_slug'] = school_slug
+
+        from students.models import Student
+        from certificates.models import Certificate
+
+        school = get_current_school(self.request)
+        children = Student.objects.filter(parent_user=user, is_active=True).select_related('current_class', 'section')
+        certificates_qs = Certificate.objects.filter(student__in=children, is_active=True).select_related('student', 'certificate_type')
+        if school:
+            certificates_qs = certificates_qs.filter(student__current_class__school=school)
+
+        context['certificates'] = certificates_qs.order_by('-issue_date', '-created_at')
+        context['children'] = children
+        return context
+
+
+class ChildrenClubsView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/children_clubs.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_parent:
+            messages.error(request, "Access denied. This page is for parents only.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        school_slug = self.kwargs.get('school_slug')
+        context['school_slug'] = school_slug
+
+        from students.models import Student
+        from clubs.models import Club, ClubMembership
+
+        school = get_current_school(self.request)
+        children = Student.objects.filter(parent_user=user, is_active=True).select_related('user', 'current_class', 'section')
+        child_user_ids = [c.user_id for c in children if c.user_id]
+
+        memberships_qs = ClubMembership.objects.filter(
+            student_id__in=child_user_ids,
+            status__in=['active', 'approved'],
+        ).select_related('club', 'student').order_by('-application_date')
+
+        if school:
+            memberships_qs = memberships_qs.filter(club__school=school)
+
+        memberships_by_user = {}
+        for m in memberships_qs:
+            memberships_by_user.setdefault(m.student_id, []).append(m)
+
+        children_clubs = []
+        for child in children:
+            children_clubs.append({
+                'student': child,
+                'memberships': memberships_by_user.get(child.user_id, []),
+            })
+
+        context['children_clubs'] = children_clubs
+        context['children'] = children
+
+        all_clubs_qs = Club.objects.filter(is_active=True)
+        if school:
+            all_clubs_qs = all_clubs_qs.filter(school=school)
+        context['all_clubs'] = all_clubs_qs.order_by('name')
         return context
 
 

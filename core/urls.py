@@ -7,14 +7,38 @@ urlpatterns = [
     # Apps Home (landing page)
     path('apps/', views.AppsHomeView.as_view(), name='apps_home'),
     
-    # AI Chat API
-    path('ai/chat/', views.AiChatApiView.as_view(), name='ai_chat_api'),
-    
     # Dashboard
     path('', views.DashboardView.as_view(), name='dashboard'),
+
+    # AI Chat
+    path('ai/chat/', views.AIChatApiView.as_view(), name='ai_chat_api'),
+
+    # Student - My Learning
+    path('my-subjects/', views.MySubjectsView.as_view(), name='my_subjects'),
+    path('my-class-routine/', views.MyClassRoutineView.as_view(), name='my_class_routine'),
     
     # Parent - My Children
     path('my-children/', views.MyChildrenView.as_view(), name='my_children'),
+
+    # Parent - Children Routine & Teachers
+    path('children-routine/', views.ChildrenRoutineView.as_view(), name='children_routine'),
+    path('children-teachers/', views.ChildrenTeachersView.as_view(), name='children_teachers'),
+
+    # Parent - Children Attendance
+    path('children-attendance/', views.ChildrenAttendanceView.as_view(), name='children_attendance'),
+
+    # Parent - Children Exams & Results
+    path('children-exams/', views.ChildrenExamsView.as_view(), name='children_exams'),
+    path('children-results/', views.ChildrenResultsView.as_view(), name='children_results'),
+
+    # Parent - Children Homework
+    path('children-homework/', views.ChildrenHomeworkView.as_view(), name='children_homework'),
+
+    # Parent - Children Certificates
+    path('children-certificates/', views.ChildrenCertificatesView.as_view(), name='children_certificates'),
+
+    # Parent - Children Clubs
+    path('children-clubs/', views.ChildrenClubsView.as_view(), name='children_clubs'),
     
     # Notifications
     path('notifications/', views.NotificationListView.as_view(), name='notifications'),

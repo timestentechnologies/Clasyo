@@ -7,6 +7,64 @@
 {% block page_subtitle %}Welcome back, {{ user.get_full_name }}!{% endblock %}
 
 {% block content %}
+<style>
+    .parent-stat-card {
+        background: var(--bs-body-bg);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        border-radius: 12px;
+        padding: 1.25rem;
+        position: relative;
+        overflow: hidden;
+        min-height: 120px;
+    }
+    [data-theme="dark"] .parent-stat-card {
+        border-color: rgba(255, 255, 255, 0.10);
+    }
+    .parent-stat-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 6px;
+        background: #0ea5e9;
+    }
+    .parent-stat-card.stat-cyan::before { background: #06b6d4; }
+    .parent-stat-card.stat-blue::before { background: #0284c7; }
+    .parent-stat-card.stat-teal::before { background: #22d3ee; }
+    .parent-stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(14, 165, 233, 0.12);
+        color: #0284c7;
+        margin-bottom: 0.75rem;
+    }
+    .stat-cyan .parent-stat-icon { background: rgba(6, 182, 212, 0.12); color: #0891b2; }
+    .stat-blue .parent-stat-icon { background: rgba(2, 132, 199, 0.12); color: #0284c7; }
+    .stat-teal .parent-stat-icon { background: rgba(34, 211, 238, 0.12); color: #0ea5e9; }
+    [data-theme="dark"] .parent-stat-icon {
+        background: rgba(255, 255, 255, 0.08);
+        color: #e5e7eb;
+    }
+    .parent-stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.1;
+    }
+    .parent-stat-label {
+        margin: 0.25rem 0 0;
+        color: rgba(0, 0, 0, 0.55);
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    [data-theme="dark"] .parent-stat-label { color: rgba(255, 255, 255, 0.65); }
+</style>
+
 <!-- Parent Welcome Section -->
 <div class="row mb-4">
     <div class="col-12">
@@ -20,34 +78,34 @@
 <!-- Children Summary Cards -->
 <div class="row mb-4">
     <div class="col-md-3">
-        <div class="modern-card text-center" style="background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); color: white;">
-            <i class="fas fa-child fa-3x mb-3"></i>
-            <h3>{{ user.children.count|default:0 }}</h3>
-            <p class="mb-0">Children Enrolled</p>
+        <div class="parent-stat-card stat-cyan">
+            <div class="parent-stat-icon"><i class="fas fa-child"></i></div>
+            <p class="parent-stat-value">{{ user.children.count|default:0 }}</p>
+            <p class="parent-stat-label">Children Enrolled</p>
         </div>
     </div>
     
     <div class="col-md-3">
-        <div class="modern-card text-center" style="background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%); color: white;">
-            <i class="fas fa-calendar-check fa-3x mb-3"></i>
-            <h3>{{ avg_attendance|default:0 }}%</h3>
-            <p class="mb-0">Avg. Attendance</p>
+        <div class="parent-stat-card stat-teal">
+            <div class="parent-stat-icon"><i class="fas fa-calendar-check"></i></div>
+            <p class="parent-stat-value">{{ avg_attendance|default:0 }}%</p>
+            <p class="parent-stat-label">Avg. Attendance</p>
         </div>
     </div>
     
     <div class="col-md-3">
-        <div class="modern-card text-center" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white;">
-            <i class="fas fa-chart-line fa-3x mb-3"></i>
-            <h3>-</h3>
-            <p class="mb-0">Avg. Performance</p>
+        <div class="parent-stat-card stat-blue">
+            <div class="parent-stat-icon"><i class="fas fa-chart-line"></i></div>
+            <p class="parent-stat-value">-</p>
+            <p class="parent-stat-label">Avg. Performance</p>
         </div>
     </div>
     
     <div class="col-md-3">
-        <div class="modern-card text-center" style="background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%); color: white;">
-            <i class="fas fa-bell fa-3x mb-3"></i>
-            <h3>0</h3>
-            <p class="mb-0">New Notifications</p>
+        <div class="parent-stat-card stat-cyan">
+            <div class="parent-stat-icon"><i class="fas fa-bell"></i></div>
+            <p class="parent-stat-value">0</p>
+            <p class="parent-stat-label">New Notifications</p>
         </div>
     </div>
 </div>
@@ -59,22 +117,22 @@
             <h4 class="mb-3"><i class="fas fa-bolt"></i> Quick Actions</h4>
             <div class="row">
                 <div class="col-md-3">
-                    <a href="/school/{{ school_slug }}/students/" class="btn btn-primary btn-block mb-2">
+                    <a href="{% url 'core:my_children' school_slug=school_slug %}" class="btn btn-primary w-100 mb-2">
                         <i class="fas fa-user-graduate"></i> View Children
                     </a>
                 </div>
                 <div class="col-md-3">
-                    <a href="/school/{{ school_slug }}/examinations/" class="btn btn-success btn-block mb-2">
+                    <a href="/school/{{ school_slug }}/children-results/" class="btn btn-success w-100 mb-2">
                         <i class="fas fa-clipboard-list"></i> View Grades
                     </a>
                 </div>
                 <div class="col-md-3">
-                    <a href="/school/{{ school_slug }}/attendance/" class="btn btn-info btn-block mb-2">
+                    <a href="/school/{{ school_slug }}/children-attendance/" class="btn btn-info w-100 mb-2">
                         <i class="fas fa-calendar-alt"></i> Attendance Records
                     </a>
                 </div>
                 <div class="col-md-3">
-                    <a href="/school/{{ school_slug }}/fees/" class="btn btn-warning btn-block mb-2">
+                    <a href="/school/{{ school_slug }}/fees/my-fees/" class="btn btn-warning w-100 mb-2">
                         <i class="fas fa-dollar-sign"></i> Fee Payments
                     </a>
                 </div>
@@ -119,13 +177,13 @@
                             <td>{{ child.section|default:"N/A" }}</td>
                             <td>{{ child.roll_number|default:"N/A" }}</td>
                             <td>
-                                <a href="/school/{{ school_slug }}/academics/routine/" class="btn btn-sm btn-info" title="View Routine">
+                                <a href="{% url 'core:children_routine' school_slug=school_slug %}" class="btn btn-sm btn-info" title="View Routine">
                                     <i class="fas fa-clock"></i>
                                 </a>
-                                <a href="/school/{{ school_slug }}/attendance/" class="btn btn-sm btn-primary" title="View Attendance">
+                                <a href="{% url 'attendance:student_attendance' school_slug=school_slug student_id=child.id %}" class="btn btn-sm btn-primary" title="View Attendance">
                                     <i class="fas fa-calendar-check"></i>
                                 </a>
-                                <a href="/school/{{ school_slug }}/examinations/" class="btn btn-sm btn-success" title="View Results">
+                                <a href="/school/{{ school_slug }}/children-results/" class="btn btn-sm btn-success" title="View Results">
                                     <i class="fas fa-chart-line"></i>
                                 </a>
                             </td>

@@ -17,6 +17,7 @@ from .models import BookCategory, Publisher, Author, Book, BookCopy, BookIssue
 from students.models import Student
 from django import forms
 from core.utils import get_current_school
+from datetime import timedelta
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -92,6 +93,11 @@ class BookAutocompleteView(LoginRequiredMixin, View):
 class LibraryDashboardView(LoginRequiredMixin, TemplateView):
     """Dashboard for library"""
     template_name = 'library/dashboard.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role == 'student':
+            return redirect('library:student_library', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -144,6 +150,12 @@ class BookListView(LoginRequiredMixin, ListView):
     template_name = 'library/book_list.html'
     context_object_name = 'books'
     paginate_by = 20
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role == 'student':
+            messages.info(request, "Students can only view available books and their borrowed books.")
+            return redirect('library:student_library', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
         school = get_current_school(self.request)
@@ -315,6 +327,15 @@ class BookIssueListView(LoginRequiredMixin, ListView):
     template_name = 'library/issue_list.html'
     context_object_name = 'issues'
     paginate_by = 25
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role == 'student':
+            messages.info(request, "Students can only manage their borrowed books from the Library page.")
+            return redirect('library:student_library', school_slug=kwargs.get('school_slug'))
+        if not (request.user.is_school_admin or request.user.role in ['teacher', 'librarian']):
+            messages.error(request, "Access denied.")
+            return redirect('library:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
         school = get_current_school(self.request)
@@ -375,6 +396,12 @@ class BookCreateView(LoginRequiredMixin, CreateView):
               'table_of_contents', 'language', 'call_number', 'location', 'acquisition_date',
               'price', 'quantity', 'available_quantity', 'cover_image', 'digital_copy',
               'is_digital', 'is_reference', 'loan_period_days', 'max_renewals']
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role == 'student':
+            messages.error(request, "Access denied.")
+            return redirect('library:student_library', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
         # Prepare instance
@@ -435,6 +462,12 @@ class BookUpdateView(LoginRequiredMixin, UpdateView):
               'table_of_contents', 'language', 'call_number', 'location', 'acquisition_date',
               'price', 'quantity', 'available_quantity', 'cover_image', 'digital_copy',
               'is_digital', 'is_reference', 'loan_period_days', 'max_renewals']
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role == 'student':
+            messages.error(request, "Access denied.")
+            return redirect('library:student_library', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
         school = get_current_school(self.request)
@@ -491,6 +524,88 @@ class BookDeleteView(LoginRequiredMixin, DeleteView):
     """Delete a book"""
     model = Book
     template_name = 'library/confirm_delete.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role == 'student':
+            messages.error(request, "Access denied.")
+            return redirect('library:student_library', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
+
+
+class StudentLibraryView(LoginRequiredMixin, TemplateView):
+    template_name = 'library/student_library.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role != 'student':
+            messages.error(request, "Access denied.")
+            return redirect('library:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school_slug'] = self.kwargs.get('school_slug', '')
+
+        school = get_current_school(self.request)
+        user = self.request.user
+        student = getattr(user, 'student_profile', None)
+        context['student'] = student
+
+        books_qs = Book.objects.all()
+        if school:
+            books_qs = books_qs.filter(school=school)
+
+        context['available_books'] = books_qs.filter(available_quantity__gt=0).order_by('title')
+
+        issues_qs = BookIssue.objects.filter(status='issued', user=user).select_related('book')
+        if student:
+            issues_qs = issues_qs | BookIssue.objects.filter(status='issued', student=student).select_related('book')
+        if school:
+            issues_qs = issues_qs.filter(book__school=school)
+        context['current_issues'] = issues_qs.distinct().order_by('-issue_date')
+        return context
+
+
+class StudentBorrowBookView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        if request.user.role != 'student':
+            messages.error(request, "Access denied.")
+            return redirect('library:dashboard', school_slug=kwargs.get('school_slug'))
+
+        school = get_current_school(request)
+        book_id = request.POST.get('book_id')
+        if not book_id:
+            messages.error(request, "Invalid book selected.")
+            return redirect('library:student_library', school_slug=kwargs.get('school_slug'))
+
+        qs = Book.objects.filter(pk=book_id)
+        if school:
+            qs = qs.filter(school=school)
+        book = qs.first()
+        if not book or book.available_quantity <= 0 or book.is_reference:
+            messages.error(request, "This book is not available for borrowing.")
+            return redirect('library:student_library', school_slug=kwargs.get('school_slug'))
+
+        user = request.user
+        student = getattr(user, 'student_profile', None)
+
+        already_issued = BookIssue.objects.filter(book=book, status='issued').filter(Q(user=user) | Q(student=student)).exists()
+        if already_issued:
+            messages.info(request, "You already borrowed this book.")
+            return redirect('library:student_library', school_slug=kwargs.get('school_slug'))
+
+        copy = BookCopy.objects.filter(book=book, status='available').order_by('accession_number').first()
+        issue = BookIssue.objects.create(
+            book=book,
+            book_copy=copy,
+            user=user,
+            student=student,
+            issue_date=timezone.now().date(),
+            due_date=timezone.now().date() + timedelta(days=book.loan_period_days),
+            status='issued',
+            issued_by=user,
+        )
+        messages.success(request, _("Book borrowed successfully"))
+        return redirect('library:student_library', school_slug=kwargs.get('school_slug'))
     
     def get_queryset(self):
         school = get_current_school(self.request)
@@ -520,6 +635,12 @@ class BookReturnView(LoginRequiredMixin, View):
         if school:
             qs = qs.filter(book__school=school)
         issue = get_object_or_404(qs)
+
+        if request.user.role == 'student':
+            student = getattr(request.user, 'student_profile', None)
+            if not (issue.user_id == request.user.id or (student and issue.student_id == student.id)):
+                messages.error(request, "Access denied.")
+                return redirect('library:student_library', school_slug=self.kwargs.get('school_slug', ''))
         
         # Update issue status
         issue.status = 'returned'
@@ -534,6 +655,8 @@ class BookReturnView(LoginRequiredMixin, View):
         issue.save()
         
         messages.success(request, _('Book returned successfully'))
+        if request.user.role == 'student':
+            return redirect('library:student_library', school_slug=self.kwargs.get('school_slug', ''))
         return redirect('library:issue_list', school_slug=self.kwargs.get('school_slug', ''))
 
 
@@ -567,15 +690,18 @@ class MyBooksView(LoginRequiredMixin, ListView):
     model = BookIssue
     template_name = 'library/my_books.html'
     context_object_name = 'issues'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role == 'student':
+            return redirect('library:student_library', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
         user = self.request.user
         school = get_current_school(self.request)
         
         # Get student if user is a student
-        student = None
-        if hasattr(user, 'student'):
-            student = user.student
+        student = getattr(user, 'student_profile', None)
         
         # Get book issues
         if student:
@@ -748,6 +874,15 @@ class BookIssueCreateView(LoginRequiredMixin, CreateView):
     model = BookIssue
     template_name = 'library/issue_form.html'
     fields = ['book', 'book_copy', 'user', 'student', 'due_date', 'condition_on_issue']
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role == 'student':
+            messages.error(request, "Access denied.")
+            return redirect('library:student_library', school_slug=kwargs.get('school_slug'))
+        if not (request.user.is_school_admin or request.user.role in ['teacher', 'librarian']):
+            messages.error(request, "Access denied.")
+            return redirect('library:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
     
     def get_form(self, form_class=None):
         form = super().get_form(form_class)

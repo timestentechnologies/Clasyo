@@ -125,6 +125,22 @@
             background: rgba(0, 0, 0, 0.05);
         }
 
+        [data-theme="light"] .logout-btn {
+            border-color: rgba(0, 0, 0, 0.2) !important;
+            color: var(--light-text) !important;
+        }
+
+        [data-theme="light"] .logout-btn:hover {
+            background: rgba(0, 0, 0, 0.05) !important;
+            border-color: rgba(0, 0, 0, 0.3) !important;
+            color: var(--light-text) !important;
+        }
+
+        [data-theme="dark"] .logout-btn {
+            border-color: rgba(255, 255, 255, 0.3) !important;
+            color: #fff !important;
+        }
+
         .apps-header {
             background: rgba(42, 48, 66, 0.95);
             backdrop-filter: blur(10px);
@@ -394,26 +410,30 @@
         }
 
         .app-icon {
-            width: 64px;
-            height: 64px;
-            border-radius: 12px;
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 0.75rem;
-            background: linear-gradient(135deg, #4dd0e1 0%, #26c6da 100%);
+            background: #39b7d4;
+            box-shadow: 0 8px 18px rgba(57, 183, 212, 0.22);
             transition: all 0.3s ease;
         }
 
         .app-card:hover .app-icon {
             transform: scale(1.1);
-            background: linear-gradient(135deg, #4dd0e1 0%, #26c6da 100%);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            background: #2faecc;
+            box-shadow: 0 10px 22px rgba(57, 183, 212, 0.28);
         }
 
         .app-icon i {
-            font-size: 28px;
-            color: #fff;
+            font-size: 22px;
+            color: transparent;
+            background: linear-gradient(180deg, #ffffff 0%, #ffffff 55%, #ffd54f 56%, #ffb300 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
             transition: all 0.3s ease;
         }
 
@@ -465,8 +485,7 @@
             <!-- Theme toggle removed from here -->
             <div class="user-info">
                 <div class="user-avatar">{{ user.first_name.0|upper }}{{ user.last_name.0|upper }}</div>
-                <a href="{% url 'accounts:logout' %}" class="btn btn-sm btn-outline-light"
-                    style="border-color: rgba(255,255,255,0.3); color: #fff;">
+                <a href="{% url 'accounts:logout' %}" class="btn btn-sm btn-outline-light logout-btn">
                     <i class="fas fa-sign-out-alt"></i>
                     <span class="d-none d-sm-inline">Logout</span>
                 </a>
@@ -479,8 +498,7 @@
             style="max-width: 900px; margin: 0 auto 1rem;">
             <i class="fas fa-exclamation-triangle me-2"></i>
             <div>
-                Your subscription ends in <strong>{{ sub_days_remaining }}</strong> day{{ sub_days_remaining|pluralize
-                }}. Please plan for your next payment to avoid disruptions.
+                Your subscription ends in <strong>{{ sub_days_remaining }}</strong> day{{ sub_days_remaining|pluralize:"s" }}. Please plan for your next payment to avoid disruptions.
             </div>
         </div>
         {% endif %}
@@ -725,16 +743,18 @@
                 <div class="app-icon"><i class="fas fa-calendar-alt"></i></div>
                 <p class="app-name">Calendar</p>
             </a>
-            <a href="{% url 'clubs:dashboard' school_slug=school_slug %}" class="app-card" data-name="clubs"
+            <a href="{% url 'core:children_clubs' school_slug=school_slug %}" class="app-card" data-name="clubs"
                 data-category="academic">
                 <div class="app-icon"><i class="fas fa-users"></i></div>
                 <p class="app-name">Clubs</p>
             </a>
+            {% if user.role != 'parent' %}
             <a href="{% url 'core:settings' school_slug=school_slug %}" class="app-card" data-name="settings"
                 data-category="administration">
                 <div class="app-icon"><i class="fas fa-cog"></i></div>
                 <p class="app-name">Settings</p>
             </a>
+            {% endif %}
 
             {% if user.role == 'student' %}
             <a href="{% url 'examinations:exam_list' school_slug=school_slug %}" class="app-card" data-name="myexams"
@@ -779,42 +799,51 @@
             </a>
             {% endif %}
 
-            {% if user.role in 'admin,teacher' %}
-            <a href="#" class="app-card" data-name="ai-assistant" data-category="operations" data-bs-toggle="modal"
-                data-bs-target="#aiChatModal">
-                <div class="app-icon"><i class="fas fa-robot"></i></div>
-                <p class="app-name">AI Assistant</p>
-            </a>
-            {% endif %}
             {% if user.role == 'parent' %}
             <a href="{% url 'core:my_children' school_slug=school_slug %}" class="app-card" data-name="children"
                 data-category="academic">
                 <div class="app-icon"><i class="fas fa-users"></i></div>
                 <p class="app-name">My Children</p>
             </a>
-            <a href="/school/{{ school_slug }}/hr/teachers/" class="app-card" data-name="teachers"
-                data-category="administration">
+            <a href="{% url 'core:children_teachers' school_slug=school_slug %}" class="app-card" data-name="children-teachers"
+                data-category="academic">
                 <div class="app-icon"><i class="fas fa-chalkboard-teacher"></i></div>
-                <p class="app-name">Teachers</p>
+                <p class="app-name">Children Teachers</p>
             </a>
-            <a href="/school/{{ school_slug }}/homework/" class="app-card" data-name="homework"
+            <a href="{% url 'core:children_routine' school_slug=school_slug %}" class="app-card" data-name="children-routine"
                 data-category="academic">
-                <div class="app-icon"><i class="fas fa-edit"></i></div>
-                <p class="app-name">Homework</p>
+                <div class="app-icon"><i class="fas fa-clock"></i></div>
+                <p class="app-name">Children Routine</p>
             </a>
-            <a href="/school/{{ school_slug }}/online-exam/" class="app-card" data-name="online-exams"
+            <a href="/school/{{ school_slug }}/children-attendance/" class="app-card" data-name="children-attendance"
                 data-category="academic">
-                <div class="app-icon"><i class="fas fa-laptop"></i></div>
-                <p class="app-name">Online Exams</p>
+                <div class="app-icon"><i class="fas fa-calendar-check"></i></div>
+                <p class="app-name">Children Attendance</p>
             </a>
-            <a href="/school/{{ school_slug }}/library/" class="app-card" data-name="library" data-category="academic">
-                <div class="app-icon"><i class="fas fa-book"></i></div>
-                <p class="app-name">Library</p>
+            <a href="/school/{{ school_slug }}/children-exams/" class="app-card" data-name="children-exams"
+                data-category="academic">
+                <div class="app-icon"><i class="fas fa-file-alt"></i></div>
+                <p class="app-name">Children Exams</p>
             </a>
-            <a href="/school/{{ school_slug }}/certificates/" class="app-card" data-name="certificates"
+            <a href="/school/{{ school_slug }}/children-results/" class="app-card" data-name="children-results"
+                data-category="academic">
+                <div class="app-icon"><i class="fas fa-chart-line"></i></div>
+                <p class="app-name">Children Results</p>
+            </a>
+            <a href="{% url 'core:children_homework' school_slug=school_slug %}" class="app-card" data-name="children-homework"
+                data-category="academic">
+                <div class="app-icon"><i class="fas fa-book-reader"></i></div>
+                <p class="app-name">Children Homework</p>
+            </a>
+            <a href="{% url 'fees:my_fees' school_slug=school_slug %}" class="app-card" data-name="children-fees"
+                data-category="finance">
+                <div class="app-icon"><i class="fas fa-money-bill"></i></div>
+                <p class="app-name">Children Fee Status</p>
+            </a>
+            <a href="{% url 'core:children_certificates' school_slug=school_slug %}" class="app-card" data-name="children-certificates"
                 data-category="academic">
                 <div class="app-icon"><i class="fas fa-certificate"></i></div>
-                <p class="app-name">Certificates</p>
+                <p class="app-name">Children Certificates</p>
             </a>
             {% endif %}
         </div>

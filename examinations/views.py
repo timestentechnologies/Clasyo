@@ -1,6 +1,7 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, View, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
 from django.http import JsonResponse
 from django.db import models
 from django.views.decorators.csrf import csrf_exempt
@@ -33,6 +34,13 @@ except ImportError:
 class ExamListView(LoginRequiredMixin, ListView):
     template_name = 'examinations/exam_list.html'
     context_object_name = 'exams'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_parent:
+            messages.info(request, "Parents can only view exams for their children.")
+            school_slug = kwargs.get('school_slug')
+            return redirect(f"/school/{school_slug}/children-exams/")
+        return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
         if MODELS_EXIST:
@@ -465,6 +473,13 @@ class StudentExamTakeView(LoginRequiredMixin, DetailView):
     """View for students to take an exam"""
     model = Exam
     template_name = 'examinations/student_take_exam.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_parent:
+            messages.info(request, "Parents can only view exams for their children.")
+            school_slug = kwargs.get('school_slug')
+            return redirect(f"/school/{school_slug}/children-exams/")
+        return super().dispatch(request, *args, **kwargs)
     context_object_name = 'exam'
     pk_url_kwarg = 'exam_id'
 
@@ -755,6 +770,13 @@ class StudentResultsView(LoginRequiredMixin, ListView):
     """View for students to see their exam results"""
     template_name = 'examinations/student_results.html'
     context_object_name = 'submissions'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_parent:
+            messages.info(request, "Parents can only view results for their children.")
+            school_slug = kwargs.get('school_slug')
+            return redirect(f"/school/{school_slug}/children-results/")
+        return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
         if not MODELS_EXIST or not hasattr(self.request.user, 'student_profile'):
@@ -782,6 +804,13 @@ class StudentResultDetailView(LoginRequiredMixin, DetailView):
     template_name = 'examinations/student_result_detail.html'
     context_object_name = 'submission'
     pk_url_kwarg = 'submission_id'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_parent:
+            messages.info(request, "Parents can only view results for their children.")
+            school_slug = kwargs.get('school_slug')
+            return redirect(f"/school/{school_slug}/children-results/")
+        return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
         if not MODELS_EXIST or not hasattr(self.request.user, 'student_profile'):

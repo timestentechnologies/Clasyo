@@ -19,6 +19,13 @@ class ClubListView(LoginRequiredMixin, ListView):
     template_name = 'clubs/club_list.html'
     context_object_name = 'clubs'
     paginate_by = 12
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role == 'parent':
+            school_slug = kwargs.get('school_slug')
+            messages.info(request, "Parents can only view clubs for their children.")
+            return redirect(f"/school/{school_slug}/children-clubs/")
+        return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
         school_slug = self.kwargs.get('school_slug')
@@ -64,6 +71,13 @@ class ClubDetailView(LoginRequiredMixin, DetailView):
     model = Club
     template_name = 'clubs/club_detail.html'
     context_object_name = 'club'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role == 'parent':
+            school_slug = kwargs.get('school_slug')
+            messages.info(request, "Parents can only view clubs for their children.")
+            return redirect(f"/school/{school_slug}/children-clubs/")
+        return super().dispatch(request, *args, **kwargs)
     
     def get_object(self):
         school_slug = self.kwargs.get('school_slug')
@@ -194,6 +208,8 @@ def join_club(request, school_slug, club_id):
     """Apply to join a club (students only)"""
     if request.user.role != 'student':
         messages.error(request, 'Only students can join clubs.')
+        if request.user.role == 'parent':
+            return redirect(f"/school/{school_slug}/children-clubs/")
         return redirect('clubs:club_detail', school_slug=school_slug, pk=club_id)
     
     club = get_object_or_404(Club, id=club_id, school__slug=school_slug)
@@ -236,6 +252,8 @@ def leave_club(request, school_slug, club_id):
     """Leave a club (students only)"""
     if request.user.role != 'student':
         messages.error(request, 'Only students can leave clubs.')
+        if request.user.role == 'parent':
+            return redirect(f"/school/{school_slug}/children-clubs/")
         return redirect('clubs:club_detail', school_slug=school_slug, pk=club_id)
     
     club = get_object_or_404(Club, id=club_id, school__slug=school_slug)
@@ -261,6 +279,13 @@ class ClubActivityListView(LoginRequiredMixin, ListView):
     template_name = 'clubs/activity_list.html'
     context_object_name = 'activities'
     paginate_by = 10
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role == 'parent':
+            school_slug = kwargs.get('school_slug')
+            messages.info(request, "Parents can only view clubs for their children.")
+            return redirect(f"/school/{school_slug}/children-clubs/")
+        return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
         club_id = self.kwargs.get('club_id')
@@ -324,6 +349,8 @@ def manage_memberships(request, school_slug, club_id):
     if (request.user.role not in ['admin', 'teacher'] and 
         request.user != club.teacher_advisor):
         messages.error(request, 'You don\'t have permission to manage memberships.')
+        if request.user.role == 'parent':
+            return redirect(f"/school/{school_slug}/children-clubs/")
         return redirect('clubs:club_detail', school_slug=school_slug, pk=club_id)
     
     memberships = ClubMembership.objects.filter(club=club).select_related('student')
@@ -369,6 +396,10 @@ def manage_memberships(request, school_slug, club_id):
 def club_dashboard(request, school_slug):
     """Dashboard overview for clubs"""
     school = get_object_or_404(School, slug=school_slug)
+
+    if request.user.role == 'parent':
+        messages.info(request, "Parents can only view clubs for their children.")
+        return redirect(f"/school/{school_slug}/children-clubs/")
     
     context = {
         'school_slug': school_slug,

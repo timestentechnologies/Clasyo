@@ -1,0 +1,88 @@
+{% extends 'dashboards/base.html' %}
+
+{% block title %}My Books{% endblock %}
+{% block page_icon %}book{% endblock %}
+{% block page_title %}My Books{% endblock %}
+{% block page_subtitle %}Your borrowing history{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-12">
+        <div class="modern-card">
+            <div class="card-body">
+                <h5 class="mb-3">Current Borrowed Books</h5>
+
+                {% if current_issues %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Book</th>
+                                    <th>Issued</th>
+                                    <th>Due</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for issue in current_issues %}
+                                    <tr>
+                                        <td><strong>{{ issue.book.title }}</strong></td>
+                                        <td>{{ issue.issue_date|date:"M d, Y" }}</td>
+                                        <td>{{ issue.due_date|date:"M d, Y" }}</td>
+                                        <td>
+                                            {% if issue.is_overdue %}
+                                                <span class="badge bg-danger">Overdue</span>
+                                            {% else %}
+                                                <span class="badge bg-primary">Issued</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No currently borrowed books.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="modern-card">
+            <div class="card-body">
+                <h5 class="mb-3">Past Borrowed Books</h5>
+
+                {% if past_issues %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Book</th>
+                                    <th>Issued</th>
+                                    <th>Returned</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for issue in past_issues %}
+                                    <tr>
+                                        <td><strong>{{ issue.book.title }}</strong></td>
+                                        <td>{{ issue.issue_date|date:"M d, Y" }}</td>
+                                        <td>{{ issue.returned_date|date:"M d, Y"|default:"-" }}</td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ issue.get_status_display }}</span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No borrowing history.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

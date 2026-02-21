@@ -1,0 +1,101 @@
+{% extends "dashboards/base.html" %}
+{% load static %}
+
+{% block title %}Children Clubs & Societies{% endblock %}
+{% block page_title %}Children Clubs & Societies{% endblock %}
+{% block page_icon %}users{% endblock %}
+{% block page_subtitle %}Clubs your children are members of{% endblock %}
+
+{% block content %}
+{% if children_clubs %}
+    {% for item in children_clubs %}
+        <div class="modern-card mb-4">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                    <h4 class="mb-1">{{ item.student.get_full_name }}</h4>
+                    <div class="text-muted small">
+                        {{ item.student.current_class|default:"Not Assigned" }}{% if item.student.section %} - {{ item.student.section }}{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <hr>
+
+            {% if item.memberships %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Club</th>
+                                <th style="min-width: 140px;">Type</th>
+                                <th style="min-width: 140px;">Status</th>
+                                <th style="min-width: 160px;">Joined</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for m in item.memberships %}
+                                <tr>
+                                    <td>{{ m.club.name }}</td>
+                                    <td>{{ m.club.get_club_type_display }}</td>
+                                    <td>
+                                        {% if m.status == 'active' %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% elif m.status == 'approved' %}
+                                            <span class="badge bg-info">Approved</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ m.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{% if m.join_date %}{{ m.join_date|date:"M d, Y" }}{% else %}-{% endif %}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No club memberships found for this child.
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        No children are linked to your account yet. Please contact the school administrator.
+    </div>
+{% endif %}
+
+{% if all_clubs %}
+    <div class="modern-card mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>All Clubs</h5>
+        </div>
+        <div class="table-responsive mt-3">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Club</th>
+                        <th style="min-width: 140px;">Type</th>
+                        <th style="min-width: 200px;">Meeting</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in all_clubs %}
+                        <tr>
+                            <td>{{ c.name }}</td>
+                            <td>{{ c.get_club_type_display }}</td>
+                            <td>
+                                {% if c.meeting_day %}{{ c.meeting_day|title }}{% else %}-{% endif %}
+                                {% if c.meeting_time %} {{ c.meeting_time|time:"g:i A" }}{% endif %}
+                                {% if c.meeting_venue %} ({{ c.meeting_venue }}){% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "dashboards/base.html" %}
+{% load static %}
+
+{% block title %}Children Teachers{% endblock %}
+{% block page_title %}Children Teachers{% endblock %}
+{% block page_icon %}chalkboard-teacher{% endblock %}
+{% block page_subtitle %}Teachers related to your children’s classes{% endblock %}
+
+{% block content %}
+{% if children_teachers %}
+    {% for item in children_teachers %}
+        <div class="modern-card mb-4">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                    <h4 class="mb-1">{{ item.student.get_full_name }}</h4>
+                    <div class="text-muted small">
+                        {{ item.student.current_class|default:"Not Assigned" }}{% if item.student.section %} - {{ item.student.section }}{% endif %}
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'core:children_routine' school_slug=school_slug %}" class="btn btn-sm btn-outline-info">
+                        <i class="fas fa-clock"></i>
+                        <span class="d-none d-sm-inline">Routine</span>
+                    </a>
+                </div>
+            </div>
+
+            <hr>
+
+            {% if item.teachers %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th style="min-width: 220px;">Teacher</th>
+                                <th style="min-width: 160px;">Role</th>
+                                <th>Email</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in item.teachers %}
+                                <tr>
+                                    <td>{{ t.teacher.get_full_name }}</td>
+                                    <td>{{ t.role }}</td>
+                                    <td>{{ t.teacher.email|default:"-" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No teachers found for this child.
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        No children are linked to your account yet. Please contact the school administrator to link your children.
+    </div>
+{% endif %}
+{% endblock %}

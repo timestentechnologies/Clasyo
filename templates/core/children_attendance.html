@@ -1,0 +1,59 @@
+{% extends "dashboards/base.html" %}
+{% load static %}
+
+{% block title %}Children Attendance{% endblock %}
+{% block page_title %}Children Attendance{% endblock %}
+{% block page_icon %}calendar-check{% endblock %}
+{% block page_subtitle %}Attendance reports for your children{% endblock %}
+
+{% block content %}
+{% if children %}
+    <div class="modern-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Class</th>
+                        <th>Section</th>
+                        <th>Roll No.</th>
+                        <th style="width: 140px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for child in children %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if child.photo %}
+                                        <img src="{{ child.photo.url }}" alt="{{ child.get_full_name }}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                            {{ child.first_name|first }}{{ child.last_name|first }}
+                                        </div>
+                                    {% endif %}
+                                    <strong>{{ child.get_full_name }}</strong>
+                                </div>
+                            </td>
+                            <td>{{ child.current_class|default:"N/A" }}</td>
+                            <td>{{ child.section|default:"N/A" }}</td>
+                            <td>{{ child.roll_number|default:"N/A" }}</td>
+                            <td>
+                                <a href="{% url 'attendance:student_attendance' school_slug=school_slug student_id=child.id %}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-calendar-check"></i>
+                                    <span class="d-none d-sm-inline">View</span>
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        No children are linked to your account yet. Please contact the school administrator to link your children.
+    </div>
+{% endif %}
+{% endblock %}

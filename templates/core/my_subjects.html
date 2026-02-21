@@ -1,0 +1,43 @@
+{% extends "dashboards/base.html" %}
+{% load static %}
+
+{% block title %}My Subjects{% endblock %}
+{% block page_title %}My Subjects{% endblock %}
+{% block page_icon %}book{% endblock %}
+{% block page_subtitle %}Subjects assigned to your class{% endblock %}
+
+{% block content %}
+<div class="modern-card">
+    <div class="card-body">
+        {% if assigned_subjects %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th style="min-width: 140px;">Code</th>
+                            <th style="min-width: 140px;">Type</th>
+                            <th style="min-width: 200px;">Teacher</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in assigned_subjects %}
+                            <tr>
+                                <td><strong>{{ a.subject.name }}</strong></td>
+                                <td><span class="badge bg-secondary">{{ a.subject.code }}</span></td>
+                                <td><span class="badge bg-info">{{ a.subject.get_subject_type_display }}</span></td>
+                                <td>{{ a.teacher.get_full_name|default:"Not Assigned" }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-book-open fa-3x text-muted mb-3 d-block"></i>
+                <p class="text-muted mb-0">No subjects assigned yet.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

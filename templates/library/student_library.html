@@ -1,0 +1,110 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Library{% endblock %}
+{% block page_icon %}book{% endblock %}
+{% block page_title %}Library{% endblock %}
+{% block page_subtitle %}Browse books and manage your borrowed books{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="modern-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Available Books</h5>
+                </div>
+
+                {% if available_books %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th style="min-width:140px;">Available</th>
+                                    <th style="min-width:140px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for book in available_books %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ book.title }}</strong>
+                                            {% if book.is_reference %}
+                                                <div class="small text-muted">Reference (not borrowable)</div>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ book.available_quantity }}/{{ book.quantity }}</td>
+                                        <td>
+                                            {% if not book.is_reference and book.available_quantity|default:0 > 0 %}
+                                                <form method="post" action="{% url 'library:student_borrow_book' school_slug=school_slug %}">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="book_id" value="{{ book.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-primary">Borrow</button>
+                                                </form>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-book fa-3x text-muted mb-3 d-block"></i>
+                        <p class="text-muted mb-0">No books currently available.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="modern-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">My Borrowed Books</h5>
+                </div>
+
+                {% if current_issues %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Book</th>
+                                    <th style="min-width:140px;">Due</th>
+                                    <th style="min-width:120px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for issue in current_issues %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ issue.book.title }}</strong>
+                                            {% if issue.is_overdue %}
+                                                <div class="small text-danger">Overdue</div>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ issue.due_date|date:"M d, Y" }}</td>
+                                        <td>
+                                            <form method="post" action="{% url 'library:book_return' school_slug=school_slug pk=issue.id %}">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="condition" value="good">
+                                                <button type="submit" class="btn btn-sm btn-outline-success">Return</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-muted">No borrowed books.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

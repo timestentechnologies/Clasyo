@@ -485,55 +485,105 @@ class MyFeesView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
-        
-        # Get student (for students) or children (for parents)
-        if hasattr(self.request.user, 'student_profile'):
+
+        if self.request.user.role == 'parent' and MODELS_EXIST:
+            children = Student.objects.filter(parent_user=self.request.user, is_active=True).select_related('current_class', 'section')
+            children_data = []
+            unpaid_fee_options = []
+
+            total_fees_all = 0
+            total_paid_all = 0
+            balance_all = 0
+
+            for child in children:
+                fee_structures = FeeStructure.objects.filter(
+                    class_name=child.current_class,
+                    is_active=True
+                )
+
+                total_fees = sum(structure.amount for structure in fee_structures)
+                total_paid = FeeCollection.objects.filter(student=child).aggregate(
+                    total=models.Sum('paid_amount'))['total'] or 0
+                balance = total_fees - total_paid
+
+                for structure in fee_structures:
+                    paid_for_structure = FeeCollection.objects.filter(
+                        student=child,
+                        fee_structure=structure
+                    ).aggregate(total=models.Sum('paid_amount'))['total'] or 0
+                    structure.balance = structure.amount - paid_for_structure
+                    structure.is_paid = structure.balance <= 0
+                    structure.is_overdue = (
+                        structure.balance > 0 and
+                        hasattr(structure, 'due_date') and
+                        structure.due_date and
+                        structure.due_date < timezone.now().date()
+                    )
+
+                    if structure.balance > 0:
+                        unpaid_fee_options.append({
+                            'student_id': child.id,
+                            'structure_id': structure.id,
+                            'label': f"{child.get_full_name()} - {structure.name} - KES {structure.balance}",
+                        })
+
+                payments_qs = FeeCollection.objects.filter(student=child).select_related('fee_structure').order_by('-payment_date')
+
+                children_data.append({
+                    'student': child,
+                    'fee_structures': fee_structures,
+                    'total_fees': total_fees,
+                    'total_paid': total_paid,
+                    'balance': balance,
+                    'payments': payments_qs,
+                })
+
+                total_fees_all += total_fees
+                total_paid_all += total_paid
+                balance_all += balance
+
+            context['children_data'] = children_data
+            context['children'] = children
+            context['student'] = children.first() if children.exists() else None
+            context['fee_structures'] = []
+            context['total_fees'] = total_fees_all
+            context['total_paid'] = total_paid_all
+            context['balance'] = balance_all
+            context['unpaid_fee_options'] = unpaid_fee_options
+
+        elif hasattr(self.request.user, 'student_profile') and MODELS_EXIST:
             student = self.request.user.student_profile
             context['student'] = student
-        elif self.request.user.role == 'parent':
-            from students.models import Student
-            children = Student.objects.filter(parent_user=self.request.user)
-            if children.exists():
-                context['student'] = children.first()  # Default to first child
-            else:
-                context['student'] = None
-        
-        student = context.get('student')
-        
-        # Calculate fee statistics
-        if student and MODELS_EXIST:
-            # Get fee structures for the student's class
+
             fee_structures = FeeStructure.objects.filter(
                 class_name=student.current_class,
                 is_active=True
             )
             context['fee_structures'] = fee_structures
-            
-            # Calculate total fees, paid amount, and balance
+
             total_fees = sum(structure.amount for structure in fee_structures)
             total_paid = FeeCollection.objects.filter(student=student).aggregate(
                 total=models.Sum('paid_amount'))['total'] or 0
             balance = total_fees - total_paid
-            
+
             context['total_fees'] = total_fees
             context['total_paid'] = total_paid
             context['balance'] = balance
-            
-            # Add payment status to each fee structure
+
             for structure in fee_structures:
                 paid_for_structure = FeeCollection.objects.filter(
-                    student=student, 
+                    student=student,
                     fee_structure=structure
                 ).aggregate(total=models.Sum('paid_amount'))['total'] or 0
                 structure.balance = structure.amount - paid_for_structure
                 structure.is_paid = structure.balance <= 0
                 structure.is_overdue = (
-                    structure.balance > 0 and 
-                    hasattr(structure, 'due_date') and 
-                    structure.due_date and 
+                    structure.balance > 0 and
+                    hasattr(structure, 'due_date') and
+                    structure.due_date and
                     structure.due_date < timezone.now().date()
                 )
-        
+
         # Get payment configurations for parents
         if self.request.user.role == 'parent':
             try:
@@ -567,9 +617,10 @@ class MpesaStkPushView(LoginRequiredMixin, View):
             amount = request.POST.get('amount')
             fee_type_id = request.POST.get('fee_type')
             payment_config_id = request.POST.get('payment_config_id')
+            student_id = request.POST.get('student_id')
             
             # Validate data
-            if not all([phone_number, amount, fee_type_id, payment_config_id]):
+            if not all([phone_number, amount, fee_type_id, payment_config_id, student_id]):
                 return JsonResponse({'success': False, 'error': 'Missing required fields'})
             
             # Get payment configuration
@@ -586,18 +637,14 @@ class MpesaStkPushView(LoginRequiredMixin, View):
             
             # Get fee structure
             fee_structure = FeeStructure.objects.get(id=fee_type_id)
-            
-            # Get student (for students) or child (for parents)
-            if hasattr(request.user, 'student_profile'):
-                student = request.user.student_profile
-            elif request.user.role == 'parent':
-                from students.models import Student
-                children = Student.objects.filter(parent_user=request.user)
-                if not children.exists():
-                    return JsonResponse({'success': False, 'error': 'No students found'})
-                student = children.first()
-            else:
+
+            if request.user.role != 'parent':
                 return JsonResponse({'success': False, 'error': 'Unauthorized'})
+
+            from students.models import Student
+            student = Student.objects.filter(id=student_id, parent_user=request.user, is_active=True).first()
+            if not student:
+                return JsonResponse({'success': False, 'error': 'Invalid student selected'})
             
             # Generate transaction ID
             import uuid
@@ -666,9 +713,10 @@ class ConfirmPaymentView(LoginRequiredMixin, View):
             payment_method = request.POST.get('payment_method')
             receipt_number = request.POST.get('transaction_id')  # Use receipt_number field
             payment_date = request.POST.get('payment_date')
+            student_id = request.POST.get('student_id')
             
             # Validate data
-            if not all([amount, fee_type_id, payment_config_id, payment_method, receipt_number, payment_date]):
+            if not all([amount, fee_type_id, payment_config_id, payment_method, receipt_number, payment_date, student_id]):
                 return JsonResponse({'success': False, 'error': 'Missing required fields'})
             
             # Get payment configuration
@@ -684,18 +732,14 @@ class ConfirmPaymentView(LoginRequiredMixin, View):
             
             # Get fee structure
             fee_structure = FeeStructure.objects.get(id=fee_type_id)
-            
-            # Get student (for students) or child (for parents)
-            if hasattr(request.user, 'student_profile'):
-                student = request.user.student_profile
-            elif request.user.role == 'parent':
-                from students.models import Student
-                children = Student.objects.filter(parent_user=request.user)
-                if not children.exists():
-                    return JsonResponse({'success': False, 'error': 'No students found'})
-                student = children.first()
-            else:
+
+            if request.user.role != 'parent':
                 return JsonResponse({'success': False, 'error': 'Unauthorized'})
+
+            from students.models import Student
+            student = Student.objects.filter(id=student_id, parent_user=request.user, is_active=True).first()
+            if not student:
+                return JsonResponse({'success': False, 'error': 'Invalid student selected'})
             
             # Generate unique receipt number
             import uuid

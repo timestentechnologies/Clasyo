@@ -12,10 +12,10 @@
 }
 </style>
 
-{% block title %}My Fee Status{% endblock %}
+{% block title %}{% if user.role == 'parent' %}Children Fee Status{% else %}My Fee Status{% endif %}{% endblock %}
 {% block page_icon %}money-bill-wave{% endblock %}
-{% block page_title %}My Fee Status{% endblock %}
-{% block page_subtitle %}View your fee payments and balance{% endblock %}
+{% block page_title %}{% if user.role == 'parent' %}Children Fee Status{% else %}My Fee Status{% endif %}{% endblock %}
+{% block page_subtitle %}{% if user.role == 'parent' %}View your children’s fee payments and balance{% else %}View your fee payments and balance{% endif %}{% endblock %}
 
 {% block content %}
 
@@ -52,9 +52,19 @@
         <div class="card border-0 shadow-sm border-start border-4" style="border-left-color: #00bcd4 !important;">
             <div class="card-body">
                 <h6 class="text-muted">Student Information</h6>
+                {% if user.role == 'parent' %}
+                <p class="mb-1 small"><strong>Children:</strong> {{ children|length|default:0 }}</p>
+                {% if children %}
+                <p class="mb-1 small"><strong>Example Admission:</strong> {{ student.admission_number }}</p>
+                <p class="mb-0 small"><strong>Example Class:</strong> {{ student.current_class|default:"N/A" }}</p>
+                {% else %}
+                <p class="mb-0 small">No children linked.</p>
+                {% endif %}
+                {% else %}
                 <p class="mb-1 small"><strong>Name:</strong> {{ student.get_full_name }}</p>
                 <p class="mb-1 small"><strong>Admission:</strong> {{ student.admission_number }}</p>
                 <p class="mb-0 small"><strong>Class:</strong> {{ student.current_class|default:"N/A" }}</p>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -138,157 +148,295 @@
 {% endif %}
 
 <!-- Fee Structure Details -->
-<div class="card mb-4">
-    <div class="card-header">
-        <h5 class="mb-0"><i class="fas fa-list-alt me-2"></i>Fee Structure</h5>
+{% if user.role == 'parent' %}
+    {% if children_data %}
+        {% for child_info in children_data %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-user-graduate me-2"></i>{{ child_info.student.get_full_name }} - Fee Structure</h5>
+                </div>
+                <div class="card-body">
+                    {% if child_info.fee_structures %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Fee Type</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th>Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for structure in child_info.fee_structures %}
+                                <tr>
+                                    <td>{{ structure.get_fee_type_display }}</td>
+                                    <td>{{ structure.description|default:"-" }}</td>
+                                    <td>KES {{ structure.amount|floatformat:0|intcomma }}</td>
+                                    <td>{{ structure.due_date|date:"M d, Y"|default:"-" }}</td>
+                                    <td>
+                                        {% if structure.is_paid %}
+                                        <span class="badge bg-success">Paid</span>
+                                        {% elif structure.is_overdue %}
+                                        <span class="badge bg-danger">Overdue</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if structure.balance > 0 %}
+                                        KES {{ structure.balance|floatformat:0|intcomma }}
+                                        {% else %}
+                                        <span class="text-success">Fully Paid</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No fee structure assigned yet</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>{{ child_info.student.get_full_name }} - Payment History</h5>
+                </div>
+                <div class="card-body">
+                    {% if child_info.payments %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Fee Type</th>
+                                    <th>Amount</th>
+                                    <th>Payment Method</th>
+                                    <th>Transaction ID</th>
+                                    <th>Status</th>
+                                    <th>Receipt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in child_info.payments %}
+                                <tr>
+                                    <td>{{ payment.payment_date|date:"M d, Y" }}</td>
+                                    <td>{{ payment.fee_structure.name|default:"General Fee" }}</td>
+                                    <td>KES {{ payment.paid_amount|floatformat:0|intcomma }}</td>
+                                    <td>
+                                        {% if payment.payment_method == 'cash' %}
+                                        <span class="badge bg-success">Cash</span>
+                                        {% elif payment.payment_method == 'mpesa' %}
+                                        <span class="badge bg-primary">M-Pesa</span>
+                                        {% elif payment.payment_method == 'bank' %}
+                                        <span class="badge bg-info">Bank Transfer</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ payment.payment_method|title }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ payment.receipt_number|default:"-" }}</td>
+                                    <td>
+                                        {% if payment.payment_status == 'paid' %}
+                                        <span class="badge bg-success">Paid</span>
+                                        {% elif payment.payment_status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% elif payment.payment_status == 'partial' %}
+                                        <span class="badge bg-info">Partial</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ payment.payment_status|title }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if payment.receipt_number %}
+                                        <button class="btn btn-sm btn-outline-info" onclick="viewReceipt('{{ payment.receipt_number }}')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No payment records yet</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            No children are linked to your account yet. Please contact the school administrator.
+        </div>
+    {% endif %}
+{% else %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-list-alt me-2"></i>Fee Structure</h5>
+        </div>
+        <div class="card-body">
+            {% if fee_structures %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Fee Type</th>
+                            <th>Description</th>
+                            <th>Amount</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for structure in fee_structures %}
+                        <tr>
+                            <td>{{ structure.get_fee_type_display }}</td>
+                            <td>{{ structure.description|default:"-" }}</td>
+                            <td>KES {{ structure.amount|floatformat:0|intcomma }}</td>
+                            <td>{{ structure.due_date|date:"M d, Y"|default:"-" }}</td>
+                            <td>
+                                {% if structure.is_paid %}
+                                <span class="badge bg-success">Paid</span>
+                                {% elif structure.is_overdue %}
+                                <span class="badge bg-danger">Overdue</span>
+                                {% else %}
+                                <span class="badge bg-warning">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if structure.balance > 0 %}
+                                KES {{ structure.balance|floatformat:0|intcomma }}
+                                {% else %}
+                                <span class="text-success">Fully Paid</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No fee structure assigned yet</p>
+            </div>
+            {% endif %}
+        </div>
     </div>
-    <div class="card-body">
-        {% if fee_structures %}
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Fee Type</th>
-                        <th>Description</th>
-                        <th>Amount</th>
-                        <th>Due Date</th>
-                        <th>Status</th>
-                        <th>Balance</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for structure in fee_structures %}
-                    <tr>
-                        <td>{{ structure.get_fee_type_display }}</td>
-                        <td>{{ structure.description|default:"-" }}</td>
-                        <td>KES {{ structure.amount|floatformat:0|intcomma }}</td>
-                        <td>{{ structure.due_date|date:"M d, Y"|default:"-" }}</td>
-                        <td>
-                            {% if structure.is_paid %}
-                            <span class="badge bg-success">Paid</span>
-                            {% elif structure.is_overdue %}
-                            <span class="badge bg-danger">Overdue</span>
-                            {% else %}
-                            <span class="badge bg-warning">Pending</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if structure.balance > 0 %}
-                            KES {{ structure.balance|floatformat:0|intcomma }}
-                            {% else %}
-                            <span class="text-success">Fully Paid</span>
-                            {% endif %}
-                        </td>
-                    </tr>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-history me-2"></i>Payment History</h5>
+        </div>
+        <div class="card-body">
+            {% if payments %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Fee Type</th>
+                            <th>Amount</th>
+                            <th>Payment Method</th>
+                            <th>Transaction ID</th>
+                            <th>Status</th>
+                            <th>Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td>{{ payment.payment_date|date:"M d, Y" }}</td>
+                            <td>{{ payment.fee_structure.name|default:"General Fee" }}</td>
+                            <td>KES {{ payment.paid_amount|floatformat:0|intcomma }}</td>
+                            <td>
+                                {% if payment.payment_method == 'cash' %}
+                                <span class="badge bg-success">Cash</span>
+                                {% elif payment.payment_method == 'mpesa' %}
+                                <span class="badge bg-primary">M-Pesa</span>
+                                {% elif payment.payment_method == 'bank' %}
+                                <span class="badge bg-info">Bank Transfer</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ payment.payment_method|title }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ payment.receipt_number|default:"-" }}</td>
+                            <td>
+                                {% if payment.payment_status == 'paid' %}
+                                <span class="badge bg-success">Paid</span>
+                                {% elif payment.payment_status == 'pending' %}
+                                <span class="badge bg-warning">Pending</span>
+                                {% elif payment.payment_status == 'partial' %}
+                                <span class="badge bg-info">Partial</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ payment.payment_status|title }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if payment.receipt_number %}
+                                <button class="btn btn-sm btn-outline-info" onclick="viewReceipt('{{ payment.receipt_number }}')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if is_paginated %}
+            <nav>
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
                     {% endfor %}
-                </tbody>
-            </table>
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No payment records yet</p>
+            </div>
+            {% endif %}
         </div>
-        {% else %}
-        <div class="text-center py-5">
-            <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
-            <p class="text-muted">No fee structure assigned yet</p>
-        </div>
-        {% endif %}
     </div>
-</div>
+{% endif %}
 
-<!-- Payment History -->
-<div class="card">
-    <div class="card-header">
-        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Payment History</h5>
-    </div>
-    <div class="card-body">
-        {% if payments %}
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Fee Type</th>
-                        <th>Amount</th>
-                        <th>Payment Method</th>
-                        <th>Transaction ID</th>
-                        <th>Status</th>
-                        <th>Receipt</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for payment in payments %}
-                    <tr>
-                        <td>{{ payment.payment_date|date:"M d, Y" }}</td>
-                        <td>{{ payment.fee_structure.name|default:"General Fee" }}</td>
-                        <td>KES {{ payment.paid_amount|floatformat:0|intcomma }}</td>
-                        <td>
-                            {% if payment.payment_method == 'cash' %}
-                            <span class="badge bg-success">Cash</span>
-                            {% elif payment.payment_method == 'mpesa' %}
-                            <span class="badge bg-primary">M-Pesa</span>
-                            {% elif payment.payment_method == 'bank' %}
-                            <span class="badge bg-info">Bank Transfer</span>
-                            {% else %}
-                            <span class="badge bg-secondary">{{ payment.payment_method|title }}</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ payment.receipt_number|default:"-" }}</td>
-                        <td>
-                            {% if payment.payment_status == 'paid' %}
-                            <span class="badge bg-success">Paid</span>
-                            {% elif payment.payment_status == 'pending' %}
-                            <span class="badge bg-warning">Pending</span>
-                            {% elif payment.payment_status == 'partial' %}
-                            <span class="badge bg-info">Partial</span>
-                            {% else %}
-                            <span class="badge bg-secondary">{{ payment.payment_status|title }}</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if payment.receipt_number %}
-                            <button class="btn btn-sm btn-outline-info" onclick="viewReceipt('{{ payment.receipt_number }}')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            {% else %}
-                            -
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        {% if is_paginated %}
-        <nav>
-            <ul class="pagination justify-content-center">
-                {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
-                </li>
-                {% endif %}
-
-                {% for num in page_obj.paginator.page_range %}
-                <li class="page-item {% if page_obj.number == num %}active{% endif %}">
-                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                </li>
-                {% endfor %}
-
-                {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
-
-        {% else %}
-        <div class="text-center py-5">
-            <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
-            <p class="text-muted">No payment records yet</p>
-        </div>
-        {% endif %}
-    </div>
-</div>
+{% if user.role == 'parent' %}
 
 <!-- M-Pesa STK Push Modal -->
 <div class="modal fade" id="mpesaStkModal" tabindex="-1">
@@ -317,14 +465,13 @@
                         <label for="feeType" class="form-label">Fee Type</label>
                         <select class="form-select" id="feeType" name="fee_type" required>
                             <option value="">Select fee type</option>
-                            {% for structure in fee_structures %}
-                            {% if structure.balance > 0 %}
-                            <option value="{{ structure.id }}">{{ structure.name }} - KES {{ structure.balance|floatformat:0|intcomma }}</option>
-                            {% endif %}
+                            {% for opt in unpaid_fee_options %}
+                            <option value="{{ opt.structure_id }}" data-student-id="{{ opt.student_id }}">{{ opt.label }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <input type="hidden" id="stkPaymentConfigId" name="payment_config_id">
+                    <input type="hidden" id="stkStudentId" name="student_id">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -358,10 +505,8 @@
                         <label for="confirmFeeType" class="form-label">Fee Type</label>
                         <select class="form-select" id="confirmFeeType" name="fee_type" required>
                             <option value="">Select fee type</option>
-                            {% for structure in fee_structures %}
-                            {% if structure.balance > 0 %}
-                            <option value="{{ structure.id }}">{{ structure.name }} - KES {{ structure.balance|floatformat:0|intcomma }}</option>
-                            {% endif %}
+                            {% for opt in unpaid_fee_options %}
+                            <option value="{{ opt.structure_id }}" data-student-id="{{ opt.student_id }}">{{ opt.label }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -377,6 +522,7 @@
                     </div>
                     <input type="hidden" id="paymentConfigId" name="payment_config_id">
                     <input type="hidden" id="paymentMethod" name="payment_method">
+                    <input type="hidden" id="confirmStudentId" name="student_id">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -443,10 +589,38 @@ document.addEventListener('DOMContentLoaded', function() {
         const today = new Date().toISOString().split('T')[0];
         paymentDateField.value = today;
     }
+
+    const feeTypeSelect = document.getElementById('feeType');
+    const confirmFeeTypeSelect = document.getElementById('confirmFeeType');
+
+    if (feeTypeSelect) {
+        feeTypeSelect.addEventListener('change', function() {
+            const opt = this.options[this.selectedIndex];
+            const studentId = opt ? opt.getAttribute('data-student-id') : '';
+            const el = document.getElementById('stkStudentId');
+            if (el) el.value = studentId || '';
+        });
+    }
+
+    if (confirmFeeTypeSelect) {
+        confirmFeeTypeSelect.addEventListener('change', function() {
+            const opt = this.options[this.selectedIndex];
+            const studentId = opt ? opt.getAttribute('data-student-id') : '';
+            const el = document.getElementById('confirmStudentId');
+            if (el) el.value = studentId || '';
+        });
+    }
 });
 
 function initiateMpesaStk(configId) {
     document.getElementById('stkPaymentConfigId').value = configId;
+    const feeTypeSelect = document.getElementById('feeType');
+    if (feeTypeSelect && feeTypeSelect.selectedIndex >= 0) {
+        const opt = feeTypeSelect.options[feeTypeSelect.selectedIndex];
+        const studentId = opt ? opt.getAttribute('data-student-id') : '';
+        const el = document.getElementById('stkStudentId');
+        if (el) el.value = studentId || '';
+    }
     const modal = new bootstrap.Modal(document.getElementById('mpesaStkModal'));
     modal.show();
 }
@@ -455,6 +629,13 @@ function confirmPaybillPayment(configId) {
     console.log('confirmPaybillPayment called with configId:', configId);
     document.getElementById('paymentConfigId').value = configId;
     document.getElementById('paymentMethod').value = 'mpesa_paybill';
+    const confirmFeeTypeSelect = document.getElementById('confirmFeeType');
+    if (confirmFeeTypeSelect && confirmFeeTypeSelect.selectedIndex >= 0) {
+        const opt = confirmFeeTypeSelect.options[confirmFeeTypeSelect.selectedIndex];
+        const studentId = opt ? opt.getAttribute('data-student-id') : '';
+        const el = document.getElementById('confirmStudentId');
+        if (el) el.value = studentId || '';
+    }
     console.log('Set paymentConfigId to:', document.getElementById('paymentConfigId').value);
     console.log('Set paymentMethod to:', document.getElementById('paymentMethod').value);
     const modal = new bootstrap.Modal(document.getElementById('paymentConfirmationModal'));
@@ -465,6 +646,13 @@ function confirmBankPayment(configId) {
     console.log('confirmBankPayment called with configId:', configId);
     document.getElementById('paymentConfigId').value = configId;
     document.getElementById('paymentMethod').value = 'bank';
+    const confirmFeeTypeSelect = document.getElementById('confirmFeeType');
+    if (confirmFeeTypeSelect && confirmFeeTypeSelect.selectedIndex >= 0) {
+        const opt = confirmFeeTypeSelect.options[confirmFeeTypeSelect.selectedIndex];
+        const studentId = opt ? opt.getAttribute('data-student-id') : '';
+        const el = document.getElementById('confirmStudentId');
+        if (el) el.value = studentId || '';
+    }
     console.log('Set paymentConfigId to:', document.getElementById('paymentConfigId').value);
     console.log('Set paymentMethod to:', document.getElementById('paymentMethod').value);
     const modal = new bootstrap.Modal(document.getElementById('paymentConfirmationModal'));
@@ -936,5 +1124,7 @@ document.getElementById('paymentConfirmationForm').addEventListener('submit', fu
     });
 });
 </script>
+
+{% endif %}
 
 {% endblock %}

@@ -6,6 +6,8 @@ app_name = 'library'
 urlpatterns = [
     # Main views
     path('', views.LibraryDashboardView.as_view(), name='dashboard'),
+    path('student/', views.StudentLibraryView.as_view(), name='student_library'),
+    path('student/borrow/', views.StudentBorrowBookView.as_view(), name='student_borrow_book'),
     path('books/', views.BookListView.as_view(), name='book_list'),
     path('books/create/', views.BookCreateView.as_view(), name='book_create'),
     path('books/<int:pk>/', views.BookDetailView.as_view(), name='book_detail'),

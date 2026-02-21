@@ -7,6 +7,64 @@
 {% block page_subtitle %}Welcome back, {{ user.get_full_name }}!{% endblock %}
 
 {% block content %}
+<style>
+    .student-stat-card {
+        background: var(--bs-body-bg);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        border-radius: 12px;
+        padding: 1.25rem;
+        position: relative;
+        overflow: hidden;
+        min-height: 120px;
+    }
+    [data-theme="dark"] .student-stat-card {
+        border-color: rgba(255, 255, 255, 0.10);
+    }
+    .student-stat-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 6px;
+        background: #0ea5e9;
+    }
+    .student-stat-card.stat-cyan::before { background: #06b6d4; }
+    .student-stat-card.stat-blue::before { background: #0284c7; }
+    .student-stat-card.stat-teal::before { background: #22d3ee; }
+    .student-stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(14, 165, 233, 0.12);
+        color: #0284c7;
+        margin-bottom: 0.75rem;
+    }
+    .stat-cyan .student-stat-icon { background: rgba(6, 182, 212, 0.12); color: #0891b2; }
+    .stat-blue .student-stat-icon { background: rgba(2, 132, 199, 0.12); color: #0284c7; }
+    .stat-teal .student-stat-icon { background: rgba(34, 211, 238, 0.12); color: #0ea5e9; }
+    [data-theme="dark"] .student-stat-icon {
+        background: rgba(255, 255, 255, 0.08);
+        color: #e5e7eb;
+    }
+    .student-stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.1;
+    }
+    .student-stat-label {
+        margin: 0.25rem 0 0;
+        color: rgba(0, 0, 0, 0.55);
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    [data-theme="dark"] .student-stat-label { color: rgba(255, 255, 255, 0.65); }
+</style>
+
 <!-- Student Welcome Section -->
 <div class="row mb-4">
     <div class="col-12">
@@ -20,34 +78,34 @@
 <!-- Statistics Cards -->
 <div class="row mb-4">
     <div class="col-md-3">
-        <div class="modern-card text-center" style="background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); color: white;">
-            <i class="fas fa-book-open fa-3x mb-3"></i>
-            <h3>{{ student.current_class|default:"N/A" }}</h3>
-            <p class="mb-0">Current Class</p>
+        <div class="student-stat-card stat-cyan">
+            <div class="student-stat-icon"><i class="fas fa-book-open"></i></div>
+            <p class="student-stat-value">{{ student.current_class|default:"N/A" }}</p>
+            <p class="student-stat-label">Current Class</p>
         </div>
     </div>
     
     <div class="col-md-3">
-        <div class="modern-card text-center" style="background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%); color: white;">
-            <i class="fas fa-tasks fa-3x mb-3"></i>
-            <h3>0</h3>
-            <p class="mb-0">Pending Assignments</p>
+        <div class="student-stat-card stat-teal">
+            <div class="student-stat-icon"><i class="fas fa-tasks"></i></div>
+            <p class="student-stat-value">0</p>
+            <p class="student-stat-label">Pending Assignments</p>
         </div>
     </div>
     
     <div class="col-md-3">
-        <div class="modern-card text-center" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white;">
-            <i class="fas fa-chart-line fa-3x mb-3"></i>
-            <h3>-</h3>
-            <p class="mb-0">Average Grade</p>
+        <div class="student-stat-card stat-blue">
+            <div class="student-stat-icon"><i class="fas fa-chart-line"></i></div>
+            <p class="student-stat-value">-</p>
+            <p class="student-stat-label">Average Grade</p>
         </div>
     </div>
     
     <div class="col-md-3">
-        <div class="modern-card text-center" style="background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%); color: white;">
-            <i class="fas fa-calendar-check fa-3x mb-3"></i>
-            <h3>100%</h3>
-            <p class="mb-0">Attendance</p>
+        <div class="student-stat-card stat-cyan">
+            <div class="student-stat-icon"><i class="fas fa-calendar-check"></i></div>
+            <p class="student-stat-value">100%</p>
+            <p class="student-stat-label">Attendance</p>
         </div>
     </div>
 </div>
@@ -59,23 +117,33 @@
             <h4 class="mb-3"><i class="fas fa-bolt"></i> Quick Actions</h4>
             <div class="row">
                 <div class="col-md-3">
-                    <a href="/school/{{ school_slug }}/homework/" class="btn btn-primary btn-block mb-2">
+                    <a href="/school/{{ school_slug }}/homework/" class="btn btn-primary w-100 mb-2">
                         <i class="fas fa-book"></i> View Homework
                     </a>
                 </div>
                 <div class="col-md-3">
-                    <a href="/school/{{ school_slug }}/examinations/" class="btn btn-success btn-block mb-2">
-                        <i class="fas fa-clipboard-list"></i> View Grades
+                    <a href="{% url 'examinations:exam_list' school_slug=school_slug %}" class="btn btn-success w-100 mb-2">
+                        <i class="fas fa-file-alt"></i> My Exams
                     </a>
                 </div>
                 <div class="col-md-3">
-                    <a href="/school/{{ school_slug }}/attendance/" class="btn btn-info btn-block mb-2">
+                    <a href="{% url 'attendance:my_attendance' school_slug=school_slug %}" class="btn btn-info w-100 mb-2">
                         <i class="fas fa-calendar-alt"></i> View Attendance
                     </a>
                 </div>
                 <div class="col-md-3">
-                    <a href="/school/{{ school_slug }}/library/" class="btn btn-warning btn-block mb-2">
+                    <a href="{% url 'examinations:student_results' school_slug=school_slug %}" class="btn btn-secondary w-100 mb-2">
+                        <i class="fas fa-chart-line"></i> My Results
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="/school/{{ school_slug }}/library/books/" class="btn btn-warning w-100 mb-2">
                         <i class="fas fa-book-reader"></i> Library
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="{% url 'fees:my_fees' school_slug=school_slug %}" class="btn btn-primary w-100 mb-2">
+                        <i class="fas fa-money-bill"></i> My Fee Status
                     </a>
                 </div>
             </div>
