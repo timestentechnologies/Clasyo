@@ -1,0 +1,115 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Class Subjects - Academics{% endblock %}
+{% block page_icon %}link{% endblock %}
+{% block page_title %}Link Subjects to Classes{% endblock %}
+{% block page_subtitle %}Assign subjects to each class/section for the active academic year{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <a class="btn btn-outline-secondary" href="{% url 'academics:subject_list' school_slug=school_slug %}">
+        Back to Subjects
+    </a>
+    {% if active_year %}
+        <span class="badge bg-info">{{ active_year.name }}</span>
+    {% endif %}
+</div>
+
+{% if not has_active_year %}
+<div class="alert alert-warning">
+    No active academic year is set. Set an active academic year first to link subjects to classes.
+</div>
+{% endif %}
+
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="modern-card">
+            <h5 class="mb-3">Add Class Subjects</h5>
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label">Class *</label>
+                    <select class="form-select" name="class_id" required {% if not has_active_year %}disabled{% endif %}>
+                        <option value="">Select Class</option>
+                        {% for c in classes %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Section (optional)</label>
+                    <select class="form-select" name="section_id" {% if not has_active_year %}disabled{% endif %}>
+                        <option value="">All / Not specific</option>
+                        {% for s in sections %}
+                            <option value="{{ s.id }}">{{ s.class_name.name }} - {{ s.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">If you choose a section, the subject will apply only to that section.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Subjects *</label>
+                    <select class="form-select" name="subject_ids" multiple size="10" required {% if not has_active_year %}disabled{% endif %}>
+                        {% for subj in subjects %}
+                            <option value="{{ subj.id }}">{{ subj.name }} ({{ subj.code }})</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">Hold Ctrl/Shift to select multiple.</div>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary" {% if not has_active_year %}disabled{% endif %}>Save Links</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="modern-card">
+            <h5 class="mb-3">Existing Class Subjects</h5>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Class</th>
+                            <th>Section</th>
+                            <th>Subject</th>
+                            <th>Teacher</th>
+                            <th style="width: 110px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in assigned_subjects %}
+                        <tr>
+                            <td>{{ a.class_name.name }}</td>
+                            <td>{% if a.section %}{{ a.section.name }}{% else %}-{% endif %}</td>
+                            <td>{{ a.subject.name }}</td>
+                            <td>
+                                {% if a.teacher %}
+                                    {{ a.teacher.first_name }} {{ a.teacher.last_name }}
+                                {% else %}
+                                    <span class="text-muted">Not assigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="delete_id" value="{{ a.id }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">No class subjects linked yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

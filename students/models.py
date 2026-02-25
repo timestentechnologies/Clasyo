@@ -263,6 +263,29 @@ class StudentPromotion(models.Model):
         return f"{self.student.get_full_name()} - {self.from_class} to {self.to_class}"
 
 
+class StudentSubject(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='subject_enrollments')
+    subject = models.ForeignKey('academics.Subject', on_delete=models.CASCADE, related_name='student_enrollments')
+    academic_year = models.ForeignKey('core.AcademicYear', on_delete=models.CASCADE, related_name='student_subjects')
+    school = models.ForeignKey('tenants.School', on_delete=models.SET_NULL, null=True, blank=True, related_name='student_subjects')
+    is_active = models.BooleanField(_("Is Active"), default=True)
+    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
+    created_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_student_subjects')
+
+    class Meta:
+        verbose_name = _("Student Subject")
+        verbose_name_plural = _("Student Subjects")
+        ordering = ['student', 'subject']
+        unique_together = ['student', 'subject', 'academic_year']
+        indexes = [
+            models.Index(fields=['student', 'academic_year']),
+            models.Index(fields=['subject', 'academic_year']),
+        ]
+
+    def __str__(self):
+        return f"{self.student} - {self.subject} ({self.academic_year})"
+
+
 class DisabledStudent(models.Model):
     """Disabled Students Record"""
     student = models.OneToOneField(Student, on_delete=models.CASCADE, related_name='disability_record')

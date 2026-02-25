@@ -254,7 +254,7 @@
             <span>Library</span>
         </a></li>
 
-        <li class="{% if '/children-clubs/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'core:children_clubs' school_slug=school_slug %}{% else %}#{% endif %}">
+        <li class="{% if '/clubs/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/clubs/list/">
             <i class="fas fa-users"></i>
             <span>Clubs & Societies</span>
         </a></li>
@@ -447,6 +447,11 @@
         <li class="{% if '/fees/my-fees/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'fees:my_fees' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-money-bill"></i>
             <span>My Fee Status</span>
+        </a></li>
+
+        <li class="{% if '/clubs/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/clubs/list/">
+            <i class="fas fa-users"></i>
+            <span>Clubs & Societies</span>
         </a></li>
         {% endif %}
 

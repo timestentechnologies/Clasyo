@@ -21,6 +21,9 @@ urlpatterns = [
     path('subjects/add/', views.SubjectCreateView.as_view(), name='subject_create'),
     path('subjects/<int:pk>/edit/', views.SubjectUpdateView.as_view(), name='subject_update'),
     path('subjects/<int:pk>/delete/', views.SubjectDeleteView.as_view(), name='subject_delete'),
+
+    # Class-Subject Linking
+    path('class-subjects/', views.ClassSubjectAssignmentsView.as_view(), name='class_subjects'),
     
     # Class Routine
     path('routine/', views.ClassRoutineView.as_view(), name='routine'),

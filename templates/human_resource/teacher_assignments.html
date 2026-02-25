@@ -1,0 +1,103 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Teacher Assignments{% endblock %}
+{% block page_icon %}chalkboard-teacher{% endblock %}
+{% block page_title %}Teacher Assignments{% endblock %}
+{% block page_subtitle %}Assign subjects and classes{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0">{{ teacher.first_name }} {{ teacher.last_name }}</h4>
+        <div class="text-muted">{{ teacher.email }}</div>
+    </div>
+    <a class="btn btn-outline-secondary" href="{% url 'hr:teacher_list' school_slug=school_slug %}">Back to Teachers</a>
+</div>
+
+{% if not has_active_year %}
+<div class="alert alert-warning">
+    No active academic year is set. Set an active academic year first to assign teaching subjects.
+</div>
+{% endif %}
+
+<form method="post" class="row g-3">
+    {% csrf_token %}
+
+    <div class="col-lg-8">
+        <div class="modern-card">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">Teaching Subjects (per Class/Section)</h5>
+                {% if active_year %}<span class="badge bg-info">{{ active_year.name }}</span>{% endif %}
+            </div>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;"></th>
+                            <th>Class</th>
+                            <th>Section</th>
+                            <th>Subject</th>
+                            <th>Current Teacher</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in assigned_subjects %}
+                        <tr>
+                            <td>
+                                <input class="form-check-input" type="checkbox" name="assigned_subject_ids" value="{{ a.id }}" {% if a.id in selected_assigned_ids %}checked{% endif %} {% if not has_active_year %}disabled{% endif %}>
+                            </td>
+                            <td>{{ a.class_name.name }}</td>
+                            <td>{% if a.section %}{{ a.section.name }}{% else %}-{% endif %}</td>
+                            <td>{{ a.subject.name }}</td>
+                            <td>
+                                {% if a.teacher %}
+                                    {{ a.teacher.first_name }} {{ a.teacher.last_name }}
+                                {% else %}
+                                    <span class="text-muted">Not assigned</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                No class subjects found for the active academic year.
+                                <div class="mt-2">
+                                    <a class="btn btn-sm btn-outline-info" href="{% url 'academics:class_subjects' school_slug=school_slug %}">
+                                        Link Subjects to Classes
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="modern-card">
+            <h5 class="mb-2">Class Teacher (Sections)</h5>
+            <div class="small text-muted mb-2">A teacher can be class teacher for multiple sections.</div>
+            <div class="list-group" style="max-height: 520px; overflow: auto;">
+                {% for s in sections %}
+                <label class="list-group-item d-flex align-items-center gap-2">
+                    <input class="form-check-input me-1" type="checkbox" name="section_ids" value="{{ s.id }}" {% if s.id in selected_section_ids %}checked{% endif %}>
+                    <span class="flex-grow-1">{{ s.class_name.name }} - {{ s.name }}</span>
+                    {% if s.class_teacher and s.class_teacher_id != teacher.id %}
+                        <span class="badge bg-secondary">Assigned</span>
+                    {% endif %}
+                </label>
+                {% empty %}
+                <div class="text-muted">No sections found.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="d-grid mt-3">
+            <button type="submit" class="btn btn-primary">Save Assignments</button>
+        </div>
+    </div>
+</form>
+{% endblock %}

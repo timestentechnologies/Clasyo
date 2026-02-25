@@ -3,11 +3,63 @@
 
 {% block title %}{{ student.get_full_name }} - Student Details{% endblock %}
 
+{% block page_icon %}user{% endblock %}
+
 {% block page_title %}
-    <i class="fas fa-user"></i> Student Details
+    Student Details
 {% endblock %}
 
+{% block page_subtitle %}{{ student.get_full_name }}{% endblock %}
+
 {% block content %}
+<style>
+    .brand-header-dark {
+        background: #1E3A5F;
+        color: #fff;
+    }
+    .brand-header-cyan {
+        background: #06B6D4;
+        color: #fff;
+    }
+    .btn-info {
+        background-color: #06B6D4;
+        border-color: #06B6D4;
+        color: #fff;
+    }
+    .btn-info:hover,
+    .btn-info:focus {
+        background-color: #0891b2;
+        border-color: #0891b2;
+        color: #fff;
+    }
+    .student-accordion .accordion-button {
+        font-weight: 600;
+    }
+    .student-accordion .accordion-button:not(.collapsed) {
+        background: rgba(30, 58, 95, 0.08);
+        color: #1E3A5F;
+    }
+    .student-accordion .accordion-item {
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+    .student-accordion .accordion-body {
+        padding: 0.75rem 1rem;
+    }
+    .student-accordion table {
+        margin-bottom: 0;
+    }
+    .student-accordion th {
+        font-weight: 600;
+        color: rgba(0, 0, 0, 0.70);
+    }
+    [data-theme="dark"] .student-accordion th {
+        color: rgba(255, 255, 255, 0.70);
+    }
+</style>
+
 <div class="row">
     <div class="col-md-12 mb-3">
         <div class="d-flex justify-content-between align-items-center">
@@ -16,9 +68,12 @@
                 <a href="../" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Back to List
                 </a>
-                <a href="edit/" class="btn btn-warning">
-                    <i class="fas fa-edit"></i> Edit
+                <a href="subjects/" class="btn btn-info">
+                    <i class="fas fa-book"></i> Manage Subjects
                 </a>
+                <button type="button" class="btn btn-warning" onclick="openEditStudentModal()">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
                 <form method="post" action="delete/" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this student?');">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-danger">
@@ -35,7 +90,7 @@
                 {% if student.photo %}
                     <img src="{{ student.photo.url }}" alt="{{ student.get_full_name }}" class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
                 {% else %}
-                    <div class="rounded-circle bg-primary text-white mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 150px; height: 150px; font-size: 48px;">
+                    <div class="rounded-circle text-white mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 150px; height: 150px; font-size: 48px; background: #1E3A5F;">
                         {{ student.first_name.0 }}{{ student.last_name.0 }}
                     </div>
                 {% endif %}
@@ -52,7 +107,7 @@
         </div>
         
         <div class="card mt-3">
-            <div class="card-header bg-primary text-white">
+            <div class="card-header brand-header-dark">
                 <h6 class="mb-0">Quick Stats</h6>
             </div>
             <div class="card-body">
@@ -62,187 +117,279 @@
                 </div>
                 <div class="d-flex justify-content-between mb-2">
                     <span>Total Fees:</span>
-                    <strong>$5,000</strong>
+                    <strong>KSh 5,000</strong>
                 </div>
                 <div class="d-flex justify-content-between">
                     <span>Fees Paid:</span>
-                    <strong class="text-success">$4,500</strong>
+                    <strong class="text-success">KSh 4,500</strong>
                 </div>
             </div>
         </div>
     </div>
     
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Personal Information</h5>
+        <div class="accordion student-accordion" id="studentDetailsAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingPersonal">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePersonal" aria-expanded="true" aria-controls="collapsePersonal">
+                        Personal Information
+                    </button>
+                </h2>
+                <div id="collapsePersonal" class="accordion-collapse collapse show" aria-labelledby="headingPersonal" data-bs-parent="#studentDetailsAccordion">
+                    <div class="accordion-body">
+                        <table class="table table-borderless table-sm">
+                            <tr>
+                                <th width="30%">Full Name:</th>
+                                <td>{{ student.get_full_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Date of Birth:</th>
+                                <td>{{ student.date_of_birth|date:"M d, Y"|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Age:</th>
+                                <td>{{ student.age|default:"-" }} years</td>
+                            </tr>
+                            <tr>
+                                <th>Gender:</th>
+                                <td>{{ student.get_gender_display|title|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Blood Group:</th>
+                                <td>{{ student.blood_group|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Religion:</th>
+                                <td>{{ student.religion|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Nationality:</th>
+                                <td>{{ student.nationality|default:"-" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <table class="table table-borderless">
-                    <tr>
-                        <th width="30%">Full Name:</th>
-                        <td>{{ student.get_full_name }}</td>
-                    </tr>
-                    <tr>
-                        <th>Date of Birth:</th>
-                        <td>{{ student.date_of_birth|date:"M d, Y"|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Age:</th>
-                        <td>{{ student.age|default:"-" }} years</td>
-                    </tr>
-                    <tr>
-                        <th>Gender:</th>
-                        <td>{{ student.get_gender_display|title|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Blood Group:</th>
-                        <td>{{ student.blood_group|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Religion:</th>
-                        <td>{{ student.religion|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Nationality:</th>
-                        <td>{{ student.nationality|default:"-" }}</td>
-                    </tr>
-                </table>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingAcademic">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAcademic" aria-expanded="false" aria-controls="collapseAcademic">
+                        Academic Information
+                    </button>
+                </h2>
+                <div id="collapseAcademic" class="accordion-collapse collapse" aria-labelledby="headingAcademic" data-bs-parent="#studentDetailsAccordion">
+                    <div class="accordion-body">
+                        <table class="table table-borderless table-sm">
+                            <tr>
+                                <th width="30%">Admission Number:</th>
+                                <td><strong>{{ student.admission_number }}</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Admission Date:</th>
+                                <td>{{ student.admission_date|date:"M d, Y"|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Roll Number:</th>
+                                <td>{{ student.roll_number|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Current Class:</th>
+                                <td>{{ student.current_class|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Section:</th>
+                                <td>{{ student.section|default:"-" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div>
-        
-        <div class="card mt-3">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0">Academic Information</h5>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingContact">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseContact" aria-expanded="false" aria-controls="collapseContact">
+                        Contact Information
+                    </button>
+                </h2>
+                <div id="collapseContact" class="accordion-collapse collapse" aria-labelledby="headingContact" data-bs-parent="#studentDetailsAccordion">
+                    <div class="accordion-body">
+                        <table class="table table-borderless table-sm">
+                            <tr>
+                                <th width="30%">Email:</th>
+                                <td>{{ student.email|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Phone:</th>
+                                <td>{{ student.phone|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Mobile:</th>
+                                <td>{{ student.mobile|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Address:</th>
+                                <td>{{ student.address|default:"-" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <table class="table table-borderless">
-                    <tr>
-                        <th width="30%">Admission Number:</th>
-                        <td><strong>{{ student.admission_number }}</strong></td>
-                    </tr>
-                    <tr>
-                        <th>Admission Date:</th>
-                        <td>{{ student.admission_date|date:"M d, Y"|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Roll Number:</th>
-                        <td>{{ student.roll_number|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Current Class:</th>
-                        <td>{{ student.current_class|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Section:</th>
-                        <td>{{ student.section|default:"-" }}</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-        
-        <div class="card mt-3">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0">Dormitory Information</h5>
-            </div>
-            <div class="card-body">
-                <table class="table table-borderless">
-                    <tr>
-                        <th width="30%">Hostel Required:</th>
-                        <td>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingDormitory">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDormitory" aria-expanded="false" aria-controls="collapseDormitory">
+                        Dormitory Information
+                    </button>
+                </h2>
+                <div id="collapseDormitory" class="accordion-collapse collapse" aria-labelledby="headingDormitory" data-bs-parent="#studentDetailsAccordion">
+                    <div class="accordion-body">
+                        <table class="table table-borderless table-sm">
+                            <tr>
+                                <th width="30%">Hostel Required:</th>
+                                <td>
+                                    {% if student.is_hostel_required %}
+                                        <span class="badge bg-success">Yes</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">No</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
                             {% if student.is_hostel_required %}
-                                <span class="badge bg-success">Yes</span>
-                            {% else %}
-                                <span class="badge bg-secondary">No</span>
+                            <tr>
+                                <th>Dormitory:</th>
+                                <td>{{ student.dormitory.name|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Room Number:</th>
+                                <td>{{ student.room.room_number|default:"-" }}</td>
+                            </tr>
                             {% endif %}
-                        </td>
-                    </tr>
-                    {% if student.is_hostel_required %}
-                    <tr>
-                        <th>Dormitory:</th>
-                        <td>{{ student.dormitory.name|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Room Number:</th>
-                        <td>{{ student.room.room_number|default:"-" }}</td>
-                    </tr>
-                    {% endif %}
-                </table>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div>
-        
-        <div class="card mt-3">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0">Contact Information</h5>
-            </div>
-            <div class="card-body">
-                <table class="table table-borderless">
-                    <tr>
-                        <th width="30%">Email:</th>
-                        <td>{{ student.email|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Phone:</th>
-                        <td>{{ student.phone|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Mobile:</th>
-                        <td>{{ student.mobile|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Address:</th>
-                        <td>{{ student.address|default:"-" }}</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-        
-        <div class="card mt-3">
-            <div class="card-header bg-warning text-dark">
-                <h5 class="mb-0">Parent/Guardian Information</h5>
-            </div>
-            <div class="card-body">
-                <h6 class="text-primary">Father's Information</h6>
-                <table class="table table-borderless table-sm">
-                    <tr>
-                        <th width="30%">Name:</th>
-                        <td>{{ student.father_name|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Phone:</th>
-                        <td>{{ student.father_phone|default:"-" }}</td>
-                    </tr>
-                </table>
-                
-                <hr>
-                
-                <h6 class="text-primary">Mother's Information</h6>
-                <table class="table table-borderless table-sm">
-                    <tr>
-                        <th width="30%">Name:</th>
-                        <td>{{ student.mother_name|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Phone:</th>
-                        <td>{{ student.mother_phone|default:"-" }}</td>
-                    </tr>
-                </table>
-                
-                <hr>
-                
-                <h6 class="text-primary">Guardian Information</h6>
-                <table class="table table-borderless table-sm">
-                    <tr>
-                        <th width="30%">Name:</th>
-                        <td>{{ student.guardian_name|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Phone:</th>
-                        <td>{{ student.guardian_phone|default:"-" }}</td>
-                    </tr>
-                </table>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingParents">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseParents" aria-expanded="false" aria-controls="collapseParents">
+                        Parent/Guardian Information
+                    </button>
+                </h2>
+                <div id="collapseParents" class="accordion-collapse collapse" aria-labelledby="headingParents" data-bs-parent="#studentDetailsAccordion">
+                    <div class="accordion-body">
+                        <h6 style="color:#1E3A5F;" class="mb-2">Father's Information</h6>
+                        <table class="table table-borderless table-sm">
+                            <tr>
+                                <th width="30%">Name:</th>
+                                <td>{{ student.father_name|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Phone:</th>
+                                <td>{{ student.father_phone|default:"-" }}</td>
+                            </tr>
+                        </table>
+
+                        <hr>
+
+                        <h6 style="color:#1E3A5F;" class="mb-2">Mother's Information</h6>
+                        <table class="table table-borderless table-sm">
+                            <tr>
+                                <th width="30%">Name:</th>
+                                <td>{{ student.mother_name|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Phone:</th>
+                                <td>{{ student.mother_phone|default:"-" }}</td>
+                            </tr>
+                        </table>
+
+                        <hr>
+
+                        <h6 style="color:#1E3A5F;" class="mb-2">Guardian Information</h6>
+                        <table class="table table-borderless table-sm">
+                            <tr>
+                                <th width="30%">Name:</th>
+                                <td>{{ student.guardian_name|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Phone:</th>
+                                <td>{{ student.guardian_phone|default:"-" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Edit Student Modal (reuse existing edit modal template via AJAX) -->
+<div class="modal fade" id="editStudentModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Student</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="editStudentContent" style="max-height: 70vh; overflow-y: auto;">
+                <!-- Content loaded via AJAX -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveEditStudentBtn">
+                    <i class="fas fa-save"></i> Update Student
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openEditStudentModal() {
+    fetch(window.location.pathname + 'edit/')
+    .then(response => response.text())
+    .then(html => {
+        document.getElementById('editStudentContent').innerHTML = html;
+
+        setTimeout(() => {
+            const saveBtn = document.getElementById('saveEditStudentBtn');
+            if (!saveBtn) return;
+
+            saveBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const form = document.getElementById('studentEditForm');
+                if (!form) return;
+
+                const formData = new FormData(form);
+
+                fetch(window.location.pathname + 'edit/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || ''
+                    }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    const editModal = bootstrap.Modal.getInstance(document.getElementById('editStudentModal'));
+                    if (editModal) editModal.hide();
+
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (data.error || 'Failed to update student'));
+                    }
+                })
+                .catch(error => {
+                    alert('Error updating student: ' + error.message);
+                });
+            };
+        }, 50);
+
+        new bootstrap.Modal(document.getElementById('editStudentModal')).show();
+    });
+}
+</script>
 {% endblock %}

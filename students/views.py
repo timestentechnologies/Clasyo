@@ -2,15 +2,18 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.contrib import messages
+from django.shortcuts import redirect
 from django.http import JsonResponse, Http404, HttpResponse
 from django.db.models import Q
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from .models import Student
+from .models import StudentSubject
 from accounts.models import User
 from core.models import SystemSetting
 from core.utils import generate_email, get_school_slug_from_request
+from core.utils import get_current_school
 from django.db import transaction
 import io
 import csv
@@ -76,8 +79,136 @@ class StudentListView(LoginRequiredMixin, ListView):
         except ImportError:
             context['dormitories'] = []
             context['rooms'] = []
+
+        try:
+            from clubs.models import Club
+            if context.get('school'):
+                context['clubs'] = Club.objects.filter(is_active=True, school=context['school']).order_by('name')
+            else:
+                context['clubs'] = Club.objects.filter(is_active=True).order_by('name')
+        except ImportError:
+            context['clubs'] = []
         
         return context
+
+
+class StudentSubjectsView(LoginRequiredMixin, DetailView):
+    model = Student
+    template_name = 'students/subjects.html'
+    context_object_name = 'student'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+        if request.user.role not in ('admin', 'teacher', 'superadmin'):
+            messages.error(request, "Access denied.")
+            return redirect('students:detail', school_slug=kwargs.get('school_slug'), pk=kwargs.get('pk'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def _get_active_year(self, school):
+        from core.models import AcademicYear
+
+        qs = AcademicYear.objects.filter(is_active=True)
+        if school:
+            qs = qs.filter(school=school)
+        return qs.first()
+
+    def _get_available_subjects(self, student, school, active_year):
+        from academics.models import Subject, AssignedSubject
+
+        base = Subject.objects.filter(is_active=True)
+        if school:
+            base = base.filter(school=school)
+
+        if student.current_class_id and active_year:
+            assigned_subject_ids = AssignedSubject.objects.filter(
+                is_active=True,
+                class_name_id=student.current_class_id,
+                academic_year=active_year,
+            )
+            if student.section_id:
+                assigned_subject_ids = assigned_subject_ids.filter(Q(section_id=student.section_id) | Q(section__isnull=True))
+            assigned_subject_ids = assigned_subject_ids.values_list('subject_id', flat=True)
+            subject_qs = base.filter(id__in=assigned_subject_ids)
+            if subject_qs.exists():
+                return subject_qs.order_by('name')
+
+        return base.order_by('name')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school_slug'] = self.kwargs.get('school_slug', '')
+
+        school = get_current_school(self.request)
+        active_year = self._get_active_year(school)
+        context['academic_year'] = active_year
+
+        student = self.get_object()
+        context['available_subjects'] = self._get_available_subjects(student, school, active_year)
+
+        if active_year:
+            enrollments = StudentSubject.objects.filter(
+                student=student,
+                academic_year=active_year,
+                is_active=True,
+            ).select_related('subject').order_by('subject__name')
+        else:
+            enrollments = StudentSubject.objects.none()
+
+        context['enrollments'] = enrollments
+        context['selected_subject_ids'] = set(enrollments.values_list('subject_id', flat=True))
+        return context
+
+    def post(self, request, *args, **kwargs):
+        student = self.get_object()
+        school = get_current_school(self.request)
+        active_year = self._get_active_year(school)
+        if not active_year:
+            messages.error(request, "No active academic year found.")
+            return redirect('students:subjects', school_slug=kwargs.get('school_slug'), pk=student.pk)
+
+        raw_ids = request.POST.getlist('subjects')
+        subject_ids = []
+        for sid in raw_ids:
+            try:
+                subject_ids.append(int(sid))
+            except (TypeError, ValueError):
+                continue
+
+        from academics.models import Subject
+
+        subjects_qs = Subject.objects.filter(id__in=subject_ids, is_active=True)
+        if school:
+            subjects_qs = subjects_qs.filter(school=school)
+        subjects = list(subjects_qs)
+
+        with transaction.atomic():
+            StudentSubject.objects.filter(
+                student=student,
+                academic_year=active_year,
+            ).update(is_active=False)
+
+            for subj in subjects:
+                obj, created = StudentSubject.objects.get_or_create(
+                    student=student,
+                    subject=subj,
+                    academic_year=active_year,
+                    defaults={
+                        'school': school or student.school,
+                        'created_by': request.user,
+                        'is_active': True,
+                    }
+                )
+                if not created and not obj.is_active:
+                    obj.is_active = True
+                    if not obj.school_id:
+                        obj.school = school or student.school
+                    if not obj.created_by_id:
+                        obj.created_by = request.user
+                    obj.save(update_fields=['is_active', 'school', 'created_by'])
+
+        messages.success(request, "Student subjects updated successfully.")
+        return redirect('students:subjects', school_slug=kwargs.get('school_slug'), pk=student.pk)
 
 
 class StudentDetailView(LoginRequiredMixin, DetailView):
@@ -274,6 +405,34 @@ class StudentCreateView(CreateView):
                 school=school,
                 created_by=request.user
             )
+
+            club_ids = request.POST.getlist('club_ids')
+            if club_ids:
+                from datetime import date
+                try:
+                    from clubs.models import Club, ClubMembership
+                    clubs_qs = Club.objects.filter(id__in=club_ids, is_active=True)
+                    if school:
+                        clubs_qs = clubs_qs.filter(school=school)
+                    for club in clubs_qs:
+                        membership, _ = ClubMembership.objects.get_or_create(
+                            student=user,
+                            club=club,
+                            defaults={
+                                'application_reason': 'Added by admin',
+                                'parent_consent': True,
+                                'status': 'active',
+                                'join_date': date.today(),
+                            },
+                        )
+                        if membership.status != 'active':
+                            membership.status = 'active'
+                            membership.join_date = membership.join_date or date.today()
+                            if not membership.application_reason:
+                                membership.application_reason = 'Added by admin'
+                            membership.save(update_fields=['status', 'join_date', 'application_reason'])
+                except Exception:
+                    pass
             
             return JsonResponse({
                 'success': True, 
@@ -318,6 +477,23 @@ class StudentUpdateView(UpdateView):
         except ImportError:
             context['dormitories'] = []
             context['rooms'] = []
+
+        try:
+            from clubs.models import Club, ClubMembership
+            clubs_qs = Club.objects.filter(is_active=True)
+            if school:
+                clubs_qs = clubs_qs.filter(school=school)
+            context['clubs'] = clubs_qs.order_by('name')
+            selected = set()
+            if context['student'] and getattr(context['student'], 'user_id', None):
+                memberships_qs = ClubMembership.objects.filter(student_id=context['student'].user_id, status='active')
+                if school:
+                    memberships_qs = memberships_qs.filter(club__school=school)
+                selected = set(memberships_qs.values_list('club_id', flat=True))
+            context['selected_club_ids'] = selected
+        except ImportError:
+            context['clubs'] = []
+            context['selected_club_ids'] = set()
         
         return context
     
@@ -462,6 +638,41 @@ class StudentUpdateView(UpdateView):
                         print(f"[WARNING] Could not create parent account: {e}")
             
             student.save()
+
+            club_ids = set(map(int, request.POST.getlist('club_ids')))
+            if club_ids is not None:
+                from datetime import date
+                try:
+                    from clubs.models import Club, ClubMembership
+                    school = get_current_school(request)
+                    allowed_clubs = Club.objects.filter(is_active=True)
+                    if school:
+                        allowed_clubs = allowed_clubs.filter(school=school)
+                    allowed_ids = set(allowed_clubs.values_list('id', flat=True))
+                    club_ids = set([cid for cid in club_ids if cid in allowed_ids])
+
+                    memberships_qs = ClubMembership.objects.filter(student=student.user, club__in=allowed_clubs)
+                    memberships_qs.exclude(club_id__in=club_ids).exclude(status='inactive').update(status='inactive')
+
+                    for club in allowed_clubs.filter(id__in=club_ids):
+                        membership, _ = ClubMembership.objects.get_or_create(
+                            student=student.user,
+                            club=club,
+                            defaults={
+                                'application_reason': 'Added by admin',
+                                'parent_consent': True,
+                                'status': 'active',
+                                'join_date': date.today(),
+                            },
+                        )
+                        if membership.status != 'active':
+                            membership.status = 'active'
+                            membership.join_date = membership.join_date or date.today()
+                            if not membership.application_reason:
+                                membership.application_reason = 'Added by admin'
+                            membership.save(update_fields=['status', 'join_date', 'application_reason'])
+                except Exception:
+                    pass
             
             # Update user email if changed
             if student.user.email != student.email:

@@ -71,7 +71,7 @@
     {% for club in clubs %}
     <div class="col-lg-4 col-md-6 mb-4">
         <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="card-header bg-brand-primary">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="card-title text-white mb-0">{{ club.name }}</h5>
                     <span class="badge bg-light text-dark">{{ club.get_club_type_display }}</span>
@@ -136,7 +136,7 @@
                                 </div>
                             {% elif user_membership.status == 'rejected' %}
                                 <div class="d-grid">
-                                    <a href="{% url 'clubs:join_club' school_slug=school_slug pk=club.id %}" 
+                                    <a href="{% url 'clubs:join_club' school_slug=school_slug club_id=club.id %}" 
                                        class="btn btn-outline-primary btn-sm">
                                         <i class="fas fa-redo me-1"></i>Reapply
                                     </a>
@@ -146,7 +146,7 @@
                     {% empty %}
                         {% if club.max_members > club.members_count %}
                             <div class="d-grid">
-                                <a href="{% url 'clubs:join_club' school_slug=school_slug pk=club.id %}" 
+                                <a href="{% url 'clubs:join_club' school_slug=school_slug club_id=club.id %}" 
                                    class="btn btn-primary">
                                     <i class="fas fa-user-plus me-2"></i>Join Club
                                 </a>

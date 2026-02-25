@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, DeleteView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy, reverse
@@ -220,6 +220,83 @@ class ClassDeleteView(LoginRequiredMixin, DeleteView):
             return JsonResponse({'success': True, 'message': 'Class deleted successfully'})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
+
+
+class ClassSubjectAssignmentsView(LoginRequiredMixin, View):
+    template_name = 'academics/class_subjects.html'
+
+    def _get_active_year(self, school):
+        from core.models import AcademicYear
+
+        qs = AcademicYear.objects.filter(is_active=True)
+        if school:
+            qs = qs.filter(school=school)
+        return qs.first()
+
+    def get(self, request, *args, **kwargs):
+        from .models import AssignedSubject
+
+        school_slug = self.kwargs.get('school_slug', '')
+        school = get_current_school(request)
+        active_year = self._get_active_year(school)
+
+        classes_qs = Class.objects.filter(is_active=True)
+        subjects_qs = Subject.objects.filter(is_active=True)
+        sections_qs = Section.objects.filter(is_active=True)
+        if school:
+            classes_qs = classes_qs.filter(school=school)
+            subjects_qs = subjects_qs.filter(school=school)
+            sections_qs = sections_qs.filter(class_name__school=school)
+
+        assigned_qs = AssignedSubject.objects.filter(is_active=True)
+        if active_year:
+            assigned_qs = assigned_qs.filter(academic_year=active_year)
+        if school:
+            assigned_qs = assigned_qs.filter(class_name__school=school, subject__school=school)
+        assigned_qs = assigned_qs.select_related('class_name', 'section', 'subject', 'teacher', 'academic_year').order_by('class_name__order', 'class_name__name', 'section__name', 'subject__name')
+
+        context = {
+            'school_slug': school_slug,
+            'active_year': active_year,
+            'has_active_year': bool(active_year),
+            'classes': classes_qs.order_by('order', 'name'),
+            'sections': sections_qs.select_related('class_name').order_by('class_name__order', 'class_name__name', 'name'),
+            'subjects': subjects_qs.order_by('name'),
+            'assigned_subjects': assigned_qs,
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+        from .models import AssignedSubject
+
+        school = get_current_school(request)
+        active_year = self._get_active_year(school)
+        if not active_year:
+            return self.get(request, *args, **kwargs)
+
+        delete_id = request.POST.get('delete_id')
+        if delete_id:
+            qs = AssignedSubject.objects.filter(pk=delete_id)
+            if school:
+                qs = qs.filter(class_name__school=school, subject__school=school)
+            qs.delete()
+            return redirect('academics:class_subjects', school_slug=self.kwargs.get('school_slug'))
+
+        class_id = request.POST.get('class_id')
+        section_id = request.POST.get('section_id') or None
+        subject_ids = request.POST.getlist('subject_ids')
+
+        if class_id and subject_ids:
+            for sid in subject_ids:
+                AssignedSubject.objects.get_or_create(
+                    class_name_id=class_id,
+                    section_id=section_id,
+                    subject_id=sid,
+                    academic_year=active_year,
+                    defaults={'is_active': True},
+                )
+
+        return redirect('academics:class_subjects', school_slug=self.kwargs.get('school_slug'))
 
 
 def get_class_api(request, pk, school_slug=None):

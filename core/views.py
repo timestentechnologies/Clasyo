@@ -120,6 +120,47 @@ class MySubjectsView(LoginRequiredMixin, TemplateView):
             context['assigned_subjects'] = []
             return context
 
+        from students.models import StudentSubject
+
+        if active_year:
+            student_subjects = StudentSubject.objects.filter(
+                student=student,
+                academic_year=active_year,
+                is_active=True,
+            ).select_related('subject').order_by('subject__name')
+            if school:
+                student_subjects = student_subjects.filter(Q(school=school) | Q(school__isnull=True))
+
+            if student_subjects.exists():
+                from academics.models import AssignedSubject
+
+                teacher_qs = AssignedSubject.objects.filter(
+                    is_active=True,
+                    class_name=student.current_class,
+                    academic_year=active_year,
+                )
+                if student.section_id:
+                    teacher_qs = teacher_qs.filter(Q(section_id=student.section_id) | Q(section__isnull=True))
+                if school:
+                    teacher_qs = teacher_qs.filter(class_name__school=school)
+
+                teacher_map = {}
+                base_teacher_qs = teacher_qs.exclude(teacher__isnull=True).select_related('teacher', 'subject')
+
+                if student.section_id:
+                    for asg in base_teacher_qs.filter(section_id=student.section_id).order_by('subject_id'):
+                        teacher_map.setdefault(asg.subject_id, asg.teacher)
+
+                for asg in base_teacher_qs.filter(section__isnull=True).order_by('subject_id'):
+                    teacher_map.setdefault(asg.subject_id, asg.teacher)
+
+                enriched = list(student_subjects)
+                for ss in enriched:
+                    ss.teacher = teacher_map.get(ss.subject_id)
+
+                context['assigned_subjects'] = enriched
+                return context
+
         from academics.models import AssignedSubject
 
         qs = AssignedSubject.objects.filter(

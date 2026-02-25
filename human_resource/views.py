@@ -153,6 +153,89 @@ class TeacherDetailView(LoginRequiredMixin, DetailView):
         return super().get(request, *args, **kwargs)
 
 
+class TeacherAssignmentsView(LoginRequiredMixin, View):
+    template_name = 'human_resource/teacher_assignments.html'
+
+    def _get_active_year(self, school):
+        from core.models import AcademicYear
+
+        qs = AcademicYear.objects.filter(is_active=True)
+        if school:
+            qs = qs.filter(school=school)
+        return qs.first()
+
+    def _get_teacher(self):
+        school = get_current_school(self.request)
+        qs = User.objects.filter(role='teacher')
+        if school:
+            qs = qs.filter(school=school)
+        return qs.get(pk=self.kwargs.get('pk'))
+
+    def get(self, request, *args, **kwargs):
+        from academics.models import AssignedSubject, Class, Section, Subject
+
+        teacher = self._get_teacher()
+        school = get_current_school(request)
+        active_year = self._get_active_year(school)
+
+        classes_qs = Class.objects.filter(is_active=True)
+        subjects_qs = Subject.objects.filter(is_active=True)
+        sections_qs = Section.objects.filter(is_active=True)
+        if school:
+            classes_qs = classes_qs.filter(school=school)
+            subjects_qs = subjects_qs.filter(school=school)
+            sections_qs = sections_qs.filter(class_name__school=school)
+
+        assigned_qs = AssignedSubject.objects.filter(is_active=True)
+        if active_year:
+            assigned_qs = assigned_qs.filter(academic_year=active_year)
+        if school:
+            assigned_qs = assigned_qs.filter(
+                class_name__school=school,
+                subject__school=school,
+            )
+        assigned_qs = assigned_qs.select_related('class_name', 'section', 'subject', 'teacher').order_by('class_name__order', 'class_name__name', 'section__name', 'subject__name')
+
+        context = {
+            'school_slug': self.kwargs.get('school_slug', ''),
+            'teacher': teacher,
+            'active_year': active_year,
+            'assigned_subjects': assigned_qs,
+            'selected_assigned_ids': set(assigned_qs.filter(teacher=teacher).values_list('id', flat=True)),
+            'sections': sections_qs.select_related('class_name').order_by('class_name__order', 'class_name__name', 'name'),
+            'selected_section_ids': set(sections_qs.filter(class_teacher=teacher).values_list('id', flat=True)),
+            'has_active_year': bool(active_year),
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+        from academics.models import AssignedSubject, Section
+
+        teacher = self._get_teacher()
+        school = get_current_school(request)
+        active_year = self._get_active_year(school)
+
+        selected_assigned_ids = set(map(int, request.POST.getlist('assigned_subject_ids')))
+        selected_section_ids = set(map(int, request.POST.getlist('section_ids')))
+
+        if active_year:
+            assigned_qs = AssignedSubject.objects.filter(is_active=True, academic_year=active_year)
+            if school:
+                assigned_qs = assigned_qs.filter(class_name__school=school, subject__school=school)
+
+            assigned_qs.filter(teacher=teacher).exclude(id__in=selected_assigned_ids).update(teacher=None)
+            assigned_qs.filter(id__in=selected_assigned_ids).update(teacher=teacher)
+
+        sections_qs = Section.objects.filter(is_active=True)
+        if school:
+            sections_qs = sections_qs.filter(class_name__school=school)
+
+        sections_qs.filter(class_teacher=teacher).exclude(id__in=selected_section_ids).update(class_teacher=None)
+        sections_qs.filter(id__in=selected_section_ids).update(class_teacher=teacher)
+
+        return self.get(request, *args, **kwargs)
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class TeacherUpdateView(LoginRequiredMixin, UpdateView):
     model = User

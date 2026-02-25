@@ -214,15 +214,47 @@ def join_club(request, school_slug, club_id):
     
     club = get_object_or_404(Club, id=club_id, school__slug=school_slug)
     
-    # Check if already a member
+    # Check if already an active or pending member
     existing_membership = ClubMembership.objects.filter(
         student=request.user,
-        club=club
+        club=club,
+        status__in=['active', 'pending']
     ).first()
     
     if existing_membership:
-        messages.warning(request, 'You have already applied to this club.')
+        if existing_membership.status == 'active':
+            messages.warning(request, 'You are already an active member of this club.')
+        else:
+            messages.warning(request, 'Your application is pending approval.')
         return redirect('clubs:club_detail', school_slug=school_slug, pk=club_id)
+    
+    # Check for inactive membership (previously left) - reactivate instead of creating new
+    inactive_membership = ClubMembership.objects.filter(
+        student=request.user,
+        club=club,
+        status='inactive'
+    ).first()
+    
+    if inactive_membership:
+        if request.method == 'POST':
+            form = ClubMembershipForm(request.POST)
+            if form.is_valid():
+                # Update existing membership instead of creating new
+                inactive_membership.status = 'pending'
+                inactive_membership.application_reason = form.cleaned_data.get('application_reason', '')
+                inactive_membership.application_date = timezone.now()
+                inactive_membership.save()
+                messages.success(request, f'Your application to rejoin {club.name} has been submitted!')
+                return redirect('clubs:club_detail', school_slug=school_slug, pk=club_id)
+        else:
+            form = ClubMembershipForm()
+        
+        return render(request, 'clubs/join_club.html', {
+            'form': form,
+            'club': club,
+            'school_slug': school_slug,
+            'is_rejoin': True
+        })
     
     if club.is_full():
         messages.error(request, 'This club has reached its maximum capacity.')

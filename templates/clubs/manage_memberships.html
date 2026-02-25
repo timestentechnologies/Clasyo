@@ -142,9 +142,10 @@ function clearFilter() {
                                             <h5 class="modal-title">Approve Application</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
-                                        <form method="post" action="{% url 'clubs:update_membership_status' school_slug=school_slug club_id=club.id membership_id=membership.id %}">
+                                        <form method="post" action="{% url 'clubs:manage_memberships' school_slug=school_slug club_id=club.id %}">
                                             {% csrf_token %}
-                                            <input type="hidden" name="status" value="approved">
+                                            <input type="hidden" name="membership_id" value="{{ membership.id }}">
+                                            <input type="hidden" name="action" value="approve">
                                             <div class="modal-body">
                                                 <p>Approve {{ membership.student.get_full_name }}'s application to join {{ club.name }}?</p>
                                             </div>
@@ -165,9 +166,10 @@ function clearFilter() {
                                             <h5 class="modal-title">Reject Application</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
-                                        <form method="post" action="{% url 'clubs:update_membership_status' school_slug=school_slug club_id=club.id membership_id=membership.id %}">
+                                        <form method="post" action="{% url 'clubs:manage_memberships' school_slug=school_slug club_id=club.id %}">
                                             {% csrf_token %}
-                                            <input type="hidden" name="status" value="rejected">
+                                            <input type="hidden" name="membership_id" value="{{ membership.id }}">
+                                            <input type="hidden" name="action" value="reject">
                                             <div class="modal-body">
                                                 <p>Reject {{ membership.student.get_full_name }}'s application to join {{ club.name }}?</p>
                                                 <div class="mb-3">
@@ -192,9 +194,10 @@ function clearFilter() {
                                             <h5 class="modal-title">Deactivate Member</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
-                                        <form method="post" action="{% url 'clubs:update_membership_status' school_slug=school_slug club_id=club.id membership_id=membership.id %}">
+                                        <form method="post" action="{% url 'clubs:manage_memberships' school_slug=school_slug club_id=club.id %}">
                                             {% csrf_token %}
-                                            <input type="hidden" name="status" value="inactive">
+                                            <input type="hidden" name="membership_id" value="{{ membership.id }}">
+                                            <input type="hidden" name="action" value="reject">
                                             <div class="modal-body">
                                                 <p>Deactivate {{ membership.student.get_full_name }} from {{ club.name }}?</p>
                                             </div>
@@ -215,9 +218,10 @@ function clearFilter() {
                                             <h5 class="modal-title">Activate Member</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
-                                        <form method="post" action="{% url 'clubs:update_membership_status' school_slug=school_slug club_id=club.id membership_id=membership.id %}">
+                                        <form method="post" action="{% url 'clubs:manage_memberships' school_slug=school_slug club_id=club.id %}">
                                             {% csrf_token %}
-                                            <input type="hidden" name="status" value="active">
+                                            <input type="hidden" name="membership_id" value="{{ membership.id }}">
+                                            <input type="hidden" name="action" value="approve">
                                             <div class="modal-body">
                                                 <p>Activate {{ membership.student.get_full_name }} in {{ club.name }}?</p>
                                             </div>

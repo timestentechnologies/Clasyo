@@ -26,7 +26,13 @@
                                 <td><strong>{{ a.subject.name }}</strong></td>
                                 <td><span class="badge bg-secondary">{{ a.subject.code }}</span></td>
                                 <td><span class="badge bg-info">{{ a.subject.get_subject_type_display }}</span></td>
-                                <td>{{ a.teacher.get_full_name|default:"Not Assigned" }}</td>
+                                <td>
+                                    {% if a.teacher %}
+                                        {{ a.teacher.get_full_name }}
+                                    {% else %}
+                                        Not Assigned
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>

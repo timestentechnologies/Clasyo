@@ -1,6 +1,12 @@
 <form method="post" id="studentEditForm" enctype="multipart/form-data">
     {% csrf_token %}
     <input type="hidden" name="student_id" value="{{ student.id }}">
+
+    <div class="d-flex justify-content-end mb-2">
+        <a href="{% url 'students:subjects' school_slug=school_slug pk=student.pk %}" class="btn btn-info btn-sm">
+            <i class="fas fa-book"></i> Manage Subjects
+        </a>
+    </div>
     
     <!-- Student Basic Information -->
     <h6 class="mb-3 text-primary"><i class="fas fa-user"></i> Basic Information</h6>
@@ -79,6 +85,20 @@
         <div class="col-md-4 mb-3">
             <label class="form-label">Admission Date *</label>
             <input type="date" name="admission_date" class="form-control" value="{{ student.admission_date|date:'Y-m-d' }}" required>
+        </div>
+    </div>
+
+    <!-- Clubs & Societies -->
+    <h6 class="mb-3 mt-3 text-primary"><i class="fas fa-users"></i> Clubs & Societies</h6>
+    <div class="row">
+        <div class="col-md-12 mb-3">
+            <label class="form-label">Clubs (Optional)</label>
+            <select name="club_ids" class="form-select" multiple size="6">
+                {% for club in clubs %}
+                    <option value="{{ club.id }}" {% if club.id in selected_club_ids %}selected{% endif %}>{{ club.name }}</option>
+                {% endfor %}
+            </select>
+            <small class="text-muted">Hold Ctrl/Shift to select multiple.</small>
         </div>
     </div>
     

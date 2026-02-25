@@ -1,65 +1,96 @@
-{% extends 'core/admin_dashboard.html' %}
+{% extends 'dashboards/base.html' %}
 {% load static %}
 
 {% block title %}My Attendance{% endblock %}
 {% block page_icon %}calendar-check{% endblock %}
 {% block page_title %}My Attendance{% endblock %}
-{% block page_subtitle %}View your attendance records and statistics{% endblock %}
+{% block page_subtitle %}Track your daily attendance and view statistics{% endblock %}
 
 {% block content %}
-
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h6 class="text-muted">Attendance Rate</h6>
-                <h2 class="{% if attendance_percentage >= 75 %}text-success{% else %}text-danger{% endif %}">
+<!-- Stats Cards -->
+<div class="row g-2 mb-3">
+    <!-- Overall Rate -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm stat-card h-100">
+            <div class="card-body text-center py-1 px-2">
+                <div class="stat-icon mb-1">
+                    <div class="icon-circle bg-brand-light">
+                        <i class="fas fa-chart-line text-brand"></i>
+                    </div>
+                </div>
+                <h3 class="stat-value {% if attendance_percentage >= 75 %}text-success{% else %}text-danger{% endif %}">
                     {{ attendance_percentage|floatformat:1 }}%
-                </h2>
-                <p class="mb-0 small">{{ present_days }}/{{ total_days }} days</p>
+                </h3>
+                <p class="stat-label text-muted mb-0">Attendance Rate</p>
+                <small class="text-muted" style="font-size: 0.7rem;">{{ present_days }}/{{ total_days }} days</small>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h6 class="text-muted">Present</h6>
-                <h2 class="text-success">{{ present_days }}</h2>
-                <p class="mb-0 small">Days</p>
+
+    <!-- Present Days -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm stat-card h-100 present-card">
+            <div class="card-body text-center py-1 px-2">
+                <div class="stat-icon mb-1">
+                    <div class="icon-circle bg-success-light">
+                        <i class="fas fa-check-circle text-success"></i>
+                    </div>
+                </div>
+                <h3 class="stat-value text-success">{{ present_days }}</h3>
+                <p class="stat-label text-muted mb-0">Present Days</p>
+                <small class="text-success" style="font-size: 0.7rem;">On time</small>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h6 class="text-muted">Absent</h6>
-                <h2 class="text-danger">{{ absent_days }}</h2>
-                <p class="mb-0 small">Days</p>
+
+    <!-- Absent Days -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm stat-card h-100 absent-card">
+            <div class="card-body text-center py-1 px-2">
+                <div class="stat-icon mb-1">
+                    <div class="icon-circle bg-danger-light">
+                        <i class="fas fa-times-circle text-danger"></i>
+                    </div>
+                </div>
+                <h3 class="stat-value text-danger">{{ absent_days }}</h3>
+                <p class="stat-label text-muted mb-0">Absent Days</p>
+                <small class="text-danger" style="font-size: 0.7rem;">Missed</small>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h6 class="text-muted">Late</h6>
-                <h2 class="text-warning">{{ late_days }}</h2>
-                <p class="mb-0 small">Days</p>
+
+    <!-- Late Days -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm stat-card h-100 late-card">
+            <div class="card-body text-center py-1 px-2">
+                <div class="stat-icon mb-1">
+                    <div class="icon-circle bg-warning-light">
+                        <i class="fas fa-clock text-warning"></i>
+                    </div>
+                </div>
+                <h3 class="stat-value text-warning">{{ late_days }}</h3>
+                <p class="stat-label text-muted mb-0">Late Days</p>
+                <small class="text-warning" style="font-size: 0.7rem;">Delayed arrival</small>
             </div>
         </div>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header">
-        <h5 class="mb-0"><i class="fas fa-list"></i> Attendance History</h5>
+<!-- Attendance History -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-brand-primary text-white py-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Attendance History</h5>
+            <span class="badge bg-light text-dark">{{ attendance_records|length }} Records</span>
+        </div>
     </div>
-    <div class="card-body">
+    <div class="card-body p-0">
         {% if attendance_records %}
         <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
+            <table class="table table-hover mb-0 attendance-table">
+                <thead class="table-light">
                     <tr>
-                        <th>Date</th>
+                        <th class="ps-4">Date</th>
                         <th>Day</th>
                         <th>Status</th>
                         <th>Note</th>
@@ -67,21 +98,47 @@
                 </thead>
                 <tbody>
                     {% for record in attendance_records %}
-                    <tr>
-                        <td>{{ record.date|date:"M d, Y" }}</td>
-                        <td>{{ record.date|date:"l" }}</td>
+                    <tr class="align-middle">
+                        <td class="ps-4">
+                            <div class="d-flex align-items-center">
+                                <div class="date-icon me-3">
+                                    <div class="date-box bg-light rounded-2 text-center" style="width: 48px; height: 48px;">
+                                        <span class="d-block text-uppercase text-muted" style="font-size: 10px;">{{ record.date|date:"M" }}</span>
+                                        <span class="d-block fw-bold" style="font-size: 18px; line-height: 1;">{{ record.date|date:"d" }}</span>
+                                    </div>
+                                </div>
+                                <span class="fw-medium">{{ record.date|date:"Y" }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="text-muted">{{ record.date|date:"l" }}</span>
+                        </td>
                         <td>
                             {% if record.status == 'present' %}
-                            <span class="badge bg-success">Present</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                                <i class="fas fa-check me-1"></i>Present
+                            </span>
                             {% elif record.status == 'absent' %}
-                            <span class="badge bg-danger">Absent</span>
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2">
+                                <i class="fas fa-times me-1"></i>Absent
+                            </span>
                             {% elif record.status == 'late' %}
-                            <span class="badge bg-warning">Late</span>
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2">
+                                <i class="fas fa-clock me-1"></i>Late
+                            </span>
                             {% elif record.status == 'excused' %}
-                            <span class="badge bg-info">Excused</span>
+                            <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2">
+                                <i class="fas fa-info-circle me-1"></i>Excused
+                            </span>
                             {% endif %}
                         </td>
-                        <td>{{ record.note|default:"-" }}</td>
+                        <td>
+                            {% if record.note %}
+                            <span class="text-muted">{{ record.note }}</span>
+                            {% else %}
+                            <span class="text-muted fst-italic">-</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -89,36 +146,244 @@
         </div>
 
         {% if is_paginated %}
-        <nav>
-            <ul class="pagination justify-content-center">
-                {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
-                </li>
-                {% endif %}
+        <div class="card-footer bg-white py-3">
+            <nav>
+                <ul class="pagination justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
 
-                {% for num in page_obj.paginator.page_range %}
-                <li class="page-item {% if page_obj.number == num %}active{% endif %}">
-                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                </li>
-                {% endfor %}
+                    {% for num in page_obj.paginator.page_range %}
+                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endfor %}
 
-                {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
         {% endif %}
 
         {% else %}
-        <div class="text-center py-5">
-            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-            <p class="text-muted">No attendance records yet</p>
+        <div class="text-center py-5 empty-state">
+            <div class="empty-icon mb-3">
+                <i class="fas fa-calendar-times fa-4x text-muted opacity-25"></i>
+            </div>
+            <h5 class="text-muted mb-2">No Attendance Records</h5>
+            <p class="text-muted mb-0">Your attendance history will appear here once records are available.</p>
         </div>
         {% endif %}
     </div>
 </div>
+
+<style>
+/* Brand Colors */
+.bg-brand-primary {
+    background-color: #0f172a !important;
+}
+
+.bg-brand-light {
+    background-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+.bg-success-light {
+    background-color: rgba(25, 135, 84, 0.1) !important;
+}
+
+.bg-danger-light {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+.bg-warning-light {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+/* Stats Cards */
+.stat-card {
+    border-radius: 8px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.08) !important;
+}
+
+.stat-icon .icon-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.stat-icon i {
+    font-size: 18px;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.125rem;
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+/* Attendance Table */
+.attendance-table {
+    font-size: 0.9rem;
+}
+
+.attendance-table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+.attendance-table td {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+.date-box {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Badges */
+.badge {
+    font-weight: 500;
+    font-size: 0.8rem;
+}
+
+.bg-success-subtle {
+    background-color: rgba(25, 135, 84, 0.1) !important;
+}
+
+.bg-danger-subtle {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+.bg-warning-subtle {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+.bg-info-subtle {
+    background-color: rgba(13, 202, 240, 0.1) !important;
+}
+
+.border-success-subtle {
+    border-color: rgba(25, 135, 84, 0.2) !important;
+}
+
+.border-danger-subtle {
+    border-color: rgba(220, 53, 69, 0.2) !important;
+}
+
+.border-warning-subtle {
+    border-color: rgba(255, 193, 7, 0.2) !important;
+}
+
+.border-info-subtle {
+    border-color: rgba(13, 202, 240, 0.2) !important;
+}
+
+/* Empty State */
+.empty-state {
+    padding: 3rem 1rem;
+}
+
+.empty-icon {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.25; }
+    50% { opacity: 0.4; }
+}
+
+/* Pagination */
+.page-link {
+    border-radius: 6px;
+    margin: 0 2px;
+    color: #0f172a;
+    border-color: #e9ecef;
+}
+
+.page-item.active .page-link {
+    background-color: #0f172a;
+    border-color: #0f172a;
+}
+
+.page-link:hover {
+    background-color: #f8f9fa;
+    color: #0f172a;
+}
+
+/* Dark Mode */
+[data-theme="dark"] .card {
+    background-color: #1e293b !important;
+}
+
+[data-theme="dark"] .table-light {
+    background-color: #334155 !important;
+    color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .bg-light {
+    background-color: #334155 !important;
+}
+
+[data-theme="dark"] .text-muted {
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .table {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .table td {
+    border-color: #334155;
+}
+
+[data-theme="dark"] .page-link {
+    background-color: #334155;
+    border-color: #475569;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .page-link:hover {
+    background-color: #475569;
+}
+
+[data-theme="dark"] .bg-brand-primary {
+    background-color: #1e293b !important;
+}
+
+[data-theme="dark"] .badge.bg-light {
+    background-color: #334155 !important;
+    color: #e2e8f0 !important;
+}
+</style>
 
 {% endblock %}
