@@ -7,8 +7,15 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.db.models import Q
+from django.http import HttpResponseForbidden
 from .models import User, Role, Permission, UserLoginLog
 from .forms import LoginForm, UserRegistrationForm, ProfileEditForm, ChangePasswordForm, UserForm, RoleForm, PermissionForm
+
+
+def csrf_failure(request, reason=""):
+    """Custom CSRF failure view that redirects to home with helpful message"""
+    messages.error(request, f'CSRF verification failed: {reason}. Please refresh the page and try again.')
+    return redirect('frontend:home')
 
 
 class LoginView(View):

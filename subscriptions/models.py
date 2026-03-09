@@ -4,6 +4,7 @@ from django.core.validators import MinValueValidator
 from django.utils import timezone
 import re
 import uuid
+from datetime import timedelta
 
 
 class SubscriptionPlan(models.Model):
@@ -304,6 +305,57 @@ class Payment(models.Model):
         self.verified_by = user
         self.verified_at = timezone.now()
         self.save()
+
+        # Reactivate subscription access on verification.
+        # The middleware gates access primarily on Subscription.status == 'active'
+        # and end_date being in the future.
+        try:
+            if self.subscription:
+                sub = self.subscription
+                plan = getattr(sub, 'plan', None)
+                today = timezone.now().date()
+
+                # Determine cycle duration
+                cycle = getattr(plan, 'billing_cycle', None) if plan else None
+                days_map = {
+                    'monthly': 30,
+                    'termly': 90,
+                    'quarterly': 90,
+                    'half_yearly': 180,
+                    'yearly': 365,
+                }
+                add_days = days_map.get(cycle, 30)
+
+                # If the subscription window is already valid, just activate it.
+                # If it's expired/missing dates, start a fresh paid window from today.
+                if not sub.end_date or sub.end_date < today:
+                    sub.start_date = today
+                    sub.end_date = today + timedelta(days=add_days)
+
+                sub.status = 'active'
+                sub.is_trial = False
+                sub.save(update_fields=['start_date', 'end_date', 'status', 'is_trial'])
+
+                # Update school's visible subscription fields used elsewhere in the app
+                school = getattr(sub, 'school', None)
+                if school:
+                    try:
+                        school.subscription_plan = plan
+                        school.is_trial = False
+                        school.trial_end_date = None
+                        school.subscription_start_date = sub.start_date
+                        school.subscription_end_date = sub.end_date
+                        if hasattr(school, 'is_active'):
+                            school.is_active = True
+                        school.save(update_fields=[
+                            'subscription_plan', 'is_trial', 'trial_end_date',
+                            'subscription_start_date', 'subscription_end_date',
+                            *( ['is_active'] if hasattr(school, 'is_active') else [] )
+                        ])
+                    except Exception:
+                        pass
+        except Exception:
+            pass
     
     def approve_payment(self, user):
         """Approve payment and activate subscription"""

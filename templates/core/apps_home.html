@@ -524,6 +524,13 @@
                 <div class="app-icon"><i class="fas fa-tasks"></i></div>
                 <p class="app-name">To-Do</p>
             </a>
+            {% if user.is_authenticated and user.is_school_admin or user.is_authenticated and user.is_teacher %}
+            <a href="#" class="app-card" data-name="ai-assistant" data-category="operations" data-bs-toggle="modal"
+                data-bs-target="#aiChatModal">
+                <div class="app-icon"><i class="fas fa-robot"></i></div>
+                <p class="app-name">AI Assistant</p>
+            </a>
+            {% endif %}
             {% if user.role != 'superadmin' and user.role != 'parent' %}
             <a href="#" class="app-card" data-name="calculator" data-category="operations" data-bs-toggle="modal"
                 data-bs-target="#calculatorModal">

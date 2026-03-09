@@ -28,6 +28,9 @@ urlpatterns = [
     # Class Routine
     path('routine/', views.ClassRoutineView.as_view(), name='routine'),
     path('routine/add/', views.ClassRoutineCreateView.as_view(), name='routine_create'),
+    path('routine/<int:pk>/', views.class_routine_detail_api, name='routine_detail_api'),
+    path('routine/<int:pk>/edit/', views.class_routine_edit_api, name='routine_edit_api'),
+    path('routine/<int:pk>/delete/', views.class_routine_delete_api, name='routine_delete_api'),
     
     # Class Time (Time Periods & Breaks)
     path('class-times/', views.ClassTimeListView.as_view(), name='class_time_list'),
@@ -53,5 +56,10 @@ urlpatterns = [
     # API endpoints
     path('api/teachers/', views.get_teachers_api, name='get_teachers'),
     path('api/sections/', views.get_sections_api, name='get_sections'),
+    path('api/sections/<int:class_id>/', views.get_sections_by_class, name='get_sections_by_class'),
     path('api/test/', views.test_api, name='test_api'),
+    
+    # Export endpoints
+    path('routine/export/pdf/', views.export_routine_pdf, name='export_routine_pdf'),
+    path('routine/export/excel/', views.export_routine_excel, name='export_routine_excel'),
 ]

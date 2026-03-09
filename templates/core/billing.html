@@ -541,6 +541,14 @@
                                         <button class="btn btn-outline-secondary w-100" disabled>
                                             Current Plan
                                         </button>
+                                    {% elif pricing_plan.is_renew %}
+                                        <button class="btn btn-primary w-100 upgrade-btn" 
+                                                data-plan-slug="{{ pricing_plan.slug }}"
+                                                data-plan-name="{{ pricing_plan.name }}"
+                                                data-plan-price="{{ pricing_plan.price }}">
+                                            <i class="fas fa-sync-alt me-2"></i>
+                                            Renew
+                                        </button>
                                     {% elif pricing_plan.price == 0 and pricing_plan.disable_free_selection %}
                                         <button class="btn btn-outline-secondary w-100" disabled title="You have already used your free plan limit">
                                             Free Plan Limit Used

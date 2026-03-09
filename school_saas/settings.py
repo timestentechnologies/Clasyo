@@ -11,13 +11,15 @@ os.makedirs(LOG_DIR, exist_ok=True)
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-key-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = [host.strip() for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')]
 
-# CSRF trusted origins for both development and production
-# First add all HTTPS origins from ALLOWED_HOSTS
+# CSRF Settings
+CSRF_FAILURE_VIEW = 'accounts.views.csrf_failure'
 CSRF_TRUSTED_ORIGINS = [f'https://{host.strip()}' for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')]
+CSRF_COOKIE_AGE = 3600  # 1 hour
+CSRF_COOKIE_HTTPONLY = False
 
 # Add HTTP versions for all hosts (needed for development and some production scenarios)
 CSRF_TRUSTED_ORIGINS += [f'http://{host.strip()}' for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')]
@@ -333,12 +335,20 @@ SESSION_SAVE_EVERY_REQUEST = True
 
 # Security Settings (Enable in production)
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+else:
+    # Development settings to ensure CSRF works properly
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
+    SECURE_SSL_REDIRECT = False
+    CSRF_COOKIE_DOMAIN = None
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SAMESITE = 'Lax'
 
 # PDF Generation Settings
 PDFKIT_CONFIG = {

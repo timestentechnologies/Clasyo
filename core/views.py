@@ -1885,9 +1885,12 @@ class BillingView(LoginRequiredMixin, TemplateView):
             # Mark which pricing plan (public-facing) corresponds to the current plan
             for p in context.get('pricing_plans', []):
                 try:
+                    # NOTE: is_current is refined later once we compute subscription_expired.
                     p.is_current = bool(plan and p.name.lower() == plan.name.lower())
+                    p.is_renew = False
                 except Exception:
                     p.is_current = False
+                    p.is_renew = False
 
             # Prefer dates from the most recent Subscription record when present
             # so that freshly created subscriptions (even if pending) reflect immediately.
@@ -2082,6 +2085,22 @@ class BillingView(LoginRequiredMixin, TemplateView):
             else:
                 context['days_remaining'] = 0
                 context['subscription_expired'] = False
+
+            # If the subscription is expired, allow renewing the same package.
+            # This affects the plan cards on the billing page.
+            try:
+                expired = bool(context.get('subscription_expired'))
+                current_plan = context.get('plan')
+                for p in context.get('pricing_plans', []):
+                    try:
+                        matches_current = bool(current_plan and p.name.lower() == current_plan.name.lower())
+                        p.is_current = bool(matches_current and not expired)
+                        p.is_renew = bool(matches_current and expired)
+                    except Exception:
+                        p.is_current = False
+                        p.is_renew = False
+            except Exception:
+                pass
 
             # Available plans for upgrade: always use active SubscriptionPlan records
             # If there is a current plan, exclude it so only upgrade options remain

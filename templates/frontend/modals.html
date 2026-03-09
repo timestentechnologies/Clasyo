@@ -1,5 +1,58 @@
 {% load static socialaccount %}
 
+<script>
+// Function to get CSRF token from cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Function to refresh all CSRF tokens on the page
+function refreshCSRFTokens() {
+    const freshToken = getCookie('csrftoken');
+    const csrfTokens = document.querySelectorAll('input[name="csrfmiddlewaretoken"]');
+    csrfTokens.forEach(token => {
+        token.value = freshToken;
+    });
+}
+
+// Refresh CSRF token when login modal is opened and also periodically
+document.addEventListener('DOMContentLoaded', function() {
+    const loginModal = document.getElementById('loginModal');
+    if (loginModal) {
+        loginModal.addEventListener('show.bs.modal', function () {
+            refreshCSRFTokens();
+        });
+    }
+    
+    // Also refresh tokens every 30 seconds as a fallback
+    setInterval(refreshCSRFTokens, 30000);
+});
+
+// Refresh tokens immediately when page loads
+refreshCSRFTokens();
+
+// Add submit handler to login form to refresh CSRF token before submission
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            refreshCSRFTokens();
+        });
+    }
+});
+</script>
+
 <!-- Login Modal -->
 <div class="modal fade" id="loginModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">

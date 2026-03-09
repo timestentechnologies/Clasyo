@@ -250,7 +250,7 @@
                     <h6 class="mb-0">Actions</h6>
                 </div>
                 <div class="card-body">
-                    {% if payment.status in ['pending_verification', 'pending'] %}
+                    {% if payment.status == 'pending_verification' or payment.status == 'pending' %}
                     <form method="post" action="{% url 'superadmin:payment_verify' payment.payment_id %}" class="mb-2" id="verify-form">
                         {% csrf_token %}
                         <button type="button" class="btn btn-success w-100" 
@@ -270,7 +270,7 @@
                     </form>
                     {% endif %}
 
-                    {% if payment.status in ['pending_verification', 'pending', 'verified'] %}
+                    {% if payment.status == 'pending_verification' or payment.status == 'pending' or payment.status == 'verified' %}
                     <button type="button" class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#rejectModal">
                         <i class="fas fa-times me-2"></i>Reject Payment
                     </button>
@@ -309,7 +309,7 @@
 </div>
 
 <!-- Rejection Modal -->
-{% if payment.status in ['pending_verification', 'pending', 'verified'] %}
+{% if payment.status == 'pending_verification' or payment.status == 'pending' or payment.status == 'verified' %}
 <div class="modal fade" id="rejectModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">

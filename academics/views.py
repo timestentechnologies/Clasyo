@@ -2,13 +2,23 @@ from django.shortcuts import render, redirect
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, DeleteView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy, reverse
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from core.utils import get_current_school
+from core.models import AcademicYear
 from .models import Class, Section, Subject, ClassRoutine, ClassTime, ClassRoom, StudyMaterial, Assignment
 from accounts.models import User
 from tenants.models import School
+import json
+from datetime import datetime, time
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 
 
 def get_allowed_education_level_choices_for_school(school):
@@ -33,6 +43,49 @@ def get_allowed_education_level_choices_for_school(school):
         [value for value, _ in base_choices],
     )
     return [choice for choice in base_choices if choice[0] in allowed_keys]
+
+
+def ensure_default_class_times_for_school(school):
+    if not school:
+        return
+
+    if ClassTime.objects.filter(school=school).exists():
+        return
+
+    defaults = [
+        ("Assembly / Class meeting / PPI", time(7, 0), time(8, 20), False),
+        ("Period 1", time(8, 20), time(9, 0), False),
+        ("Period 2", time(9, 0), time(9, 40), False),
+        ("Morning Break", time(9, 40), time(9, 55), True),
+        ("Period 3", time(10, 0), time(10, 40), False),
+        ("Period 4", time(10, 40), time(11, 20), False),
+        ("Long Break", time(11, 20), time(11, 50), True),
+        ("Period 5", time(11, 50), time(12, 30), False),
+        ("Period 6", time(12, 30), time(13, 10), False),
+        ("Lunch", time(13, 10), time(14, 10), True),
+        ("Period 7", time(14, 10), time(14, 50), False),
+        ("Period 8", time(14, 50), time(15, 30), False),
+        ("Period 9", time(15, 30), time(16, 10), False),
+        ("Games / Clubs / Societies / Career activities", time(16, 0), time(17, 0), False),
+    ]
+
+    objs = []
+    order = 1
+    for name, start_t, end_t, is_break in defaults:
+        objs.append(
+            ClassTime(
+                school=school,
+                name=name,
+                start_time=start_t,
+                end_time=end_t,
+                is_break=is_break,
+                order=order,
+                is_active=True,
+            )
+        )
+        order += 1
+
+    ClassTime.objects.bulk_create(objs)
 
 
 class ClassListView(LoginRequiredMixin, ListView):
@@ -538,6 +591,8 @@ class ClassRoutineView(LoginRequiredMixin, ListView):
         context['school_slug'] = self.kwargs.get('school_slug', '')
         context['days'] = ClassRoutine.WEEKDAY_CHOICES
         school = get_current_school(self.request)
+
+        ensure_default_class_times_for_school(school)
         # Filter classes by school
         classes_qs = Class.objects.filter(is_active=True)
         if school:
@@ -551,6 +606,21 @@ class ClassRoutineView(LoginRequiredMixin, ListView):
             periods_qs = periods_qs.filter(school=school)
         context['rooms'] = rooms_qs
         context['periods'] = periods_qs
+
+        subjects_qs = Subject.objects.filter(is_active=True)
+        if school:
+            subjects_qs = subjects_qs.filter(school=school)
+        context['subjects'] = subjects_qs
+
+        teachers_qs = User.objects.filter(role='teacher', is_active=True)
+        if school:
+            teachers_qs = teachers_qs.filter(school=school)
+        context['teachers'] = teachers_qs
+
+        years_qs = AcademicYear.objects.all()
+        if school:
+            years_qs = years_qs.filter(school=school)
+        context['academic_years'] = years_qs
         return context
 
 
@@ -593,6 +663,9 @@ class ClassTimeListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         school = get_current_school(self.request)
+        if not school:
+            school = School.objects.filter(slug=self.kwargs.get('school_slug')).first()
+        ensure_default_class_times_for_school(school)
         qs = ClassTime.objects.filter(is_active=True)
         if school:
             qs = qs.filter(school=school)
@@ -877,3 +950,348 @@ def get_sections_api(request, school_slug=None):
             'traceback': traceback.format_exc(),
             'sections': []
         }, status=500)
+
+
+@login_required
+def get_sections_by_class(request, school_slug, class_id):
+    """API endpoint to get sections for a specific class"""
+    if not (request.user.is_school_admin or request.user.is_teacher):
+        return JsonResponse({'success': False, 'error': 'Access denied'}, status=403)
+    
+    try:
+        school = get_current_school(request)
+        sections = Section.objects.filter(class_name_id=class_id, class_name__school=school)
+        
+        sections_list = [
+            {
+                'id': section.id,
+                'name': section.name,
+                'capacity': section.max_students
+            }
+            for section in sections
+        ]
+        
+        return JsonResponse({
+            'success': True,
+            'sections': sections_list
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+def class_routine_detail_api(request, school_slug, pk):
+    if not (request.user.is_school_admin or request.user.is_teacher):
+        return JsonResponse({'success': False, 'error': 'Access denied'}, status=403)
+
+    school = get_current_school(request)
+    qs = ClassRoutine.objects.select_related(
+        'class_name', 'section', 'class_time', 'subject', 'teacher', 'room', 'academic_year'
+    )
+    if school:
+        qs = qs.filter(class_name__school=school)
+
+    routine = qs.filter(pk=pk).first()
+    if not routine:
+        return JsonResponse({'success': False, 'error': 'Routine entry not found'}, status=404)
+
+    return JsonResponse({
+        'success': True,
+        'routine': {
+            'id': routine.pk,
+            'class_name_id': routine.class_name_id,
+            'section_id': routine.section_id,
+            'day_of_week': routine.day_of_week,
+            'class_time_id': routine.class_time_id,
+            'subject_id': routine.subject_id,
+            'teacher_id': routine.teacher_id,
+            'room_id': routine.room_id,
+            'academic_year_id': routine.academic_year_id,
+            'is_active': routine.is_active,
+            'notes': routine.notes,
+        }
+    })
+
+
+@login_required
+def class_routine_edit_api(request, school_slug, pk):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    if not (request.user.is_school_admin or request.user.is_teacher):
+        return JsonResponse({'success': False, 'error': 'Access denied'}, status=403)
+
+    school = get_current_school(request)
+    qs = ClassRoutine.objects.all()
+    if school:
+        qs = qs.filter(class_name__school=school)
+    routine = qs.filter(pk=pk).first()
+    if not routine:
+        return JsonResponse({'success': False, 'error': 'Routine entry not found'}, status=404)
+
+    try:
+        routine.class_name_id = request.POST.get('class_name') or routine.class_name_id
+        routine.section_id = request.POST.get('section') or routine.section_id
+        routine.day_of_week = int(request.POST.get('day_of_week')) if request.POST.get('day_of_week') is not None else routine.day_of_week
+        routine.class_time_id = request.POST.get('class_time') or routine.class_time_id
+        routine.subject_id = request.POST.get('subject') or routine.subject_id
+        routine.teacher_id = request.POST.get('teacher') or None
+        routine.room_id = request.POST.get('room') or None
+        routine.academic_year_id = request.POST.get('academic_year') or routine.academic_year_id
+        routine.is_active = bool(request.POST.get('is_active'))
+        routine.notes = request.POST.get('notes', '')
+        routine.save()
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+def class_routine_delete_api(request, school_slug, pk):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    if not (request.user.is_school_admin or request.user.is_teacher):
+        return JsonResponse({'success': False, 'error': 'Access denied'}, status=403)
+
+    school = get_current_school(request)
+    qs = ClassRoutine.objects.all()
+    if school:
+        qs = qs.filter(class_name__school=school)
+    routine = qs.filter(pk=pk).first()
+    if not routine:
+        return JsonResponse({'success': False, 'error': 'Routine entry not found'}, status=404)
+
+    routine.delete()
+    return JsonResponse({'success': True})
+
+
+@login_required
+def export_routine_pdf(request, school_slug):
+    """Export class routine as formatted PDF"""
+    if not (request.user.is_school_admin or request.user.is_teacher):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    
+    class_id = request.GET.get('class_id')
+    section_id = request.GET.get('section_id')
+    
+    if not class_id or not section_id:
+        return JsonResponse({'error': 'Class and section required'}, status=400)
+    
+    try:
+        school = get_current_school(request)
+        class_obj = Class.objects.get(id=class_id, school=school)
+        section = Section.objects.get(id=section_id, class_name=class_obj)
+        
+        # Get routines for this class and section
+        routines = ClassRoutine.objects.filter(
+            class_name=class_obj,
+            section=section,
+            is_active=True
+        ).select_related('class_time', 'subject', 'teacher').order_by('day_of_week', 'class_time__start_time')
+        
+        # Create PDF
+        response = HttpResponse(content_type='application/pdf')
+        filename = f"Timetable_{class_obj.name}_{section.name}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        doc = SimpleDocTemplate(response, pagesize=A4, topMargin=0.5*inch, bottomMargin=0.5*inch)
+        styles = getSampleStyleSheet()
+        story = []
+        
+        # Title
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            spaceAfter=30,
+            alignment=1  # Center
+        )
+        story.append(Paragraph(f"CLASS TIMETABLE - {class_obj.name} {section.name}", title_style))
+        story.append(Spacer(1, 12))
+        
+        # School info
+        info_style = ParagraphStyle(
+            'Info',
+            parent=styles['Normal'],
+            fontSize=10,
+            alignment=1
+        )
+        story.append(Paragraph(f"{school.name}", info_style))
+        story.append(Paragraph(f"Academic Year: {datetime.now().year}", info_style))
+        story.append(Spacer(1, 20))
+        
+        # Prepare timetable data
+        days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+        time_slots = ClassTime.objects.filter(
+            school=school,
+            is_active=True
+        ).order_by('start_time')
+        
+        # Create table data
+        table_data = [['Time/Day'] + days]
+        
+        for time_slot in time_slots:
+            row = [str(time_slot)]
+            for day_num, day_name in enumerate(days):
+                routine = routines.filter(day_of_week=day_num, class_time=time_slot).first()
+                if routine:
+                    cell_text = f"{routine.subject.name}<br/>"
+                    if routine.teacher:
+                        cell_text += f"{routine.teacher.first_name} {routine.teacher.last_name}<br/>"
+                    if routine.room:
+                        cell_text += f"Room: {routine.room.name}"
+                else:
+                    cell_text = ""
+                row.append(cell_text)
+            table_data.append(row)
+        
+        # Create table
+        table = Table(table_data)
+        
+        # Style the table
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E3A5F')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        
+        # Make first column (time) bold
+        for i in range(1, len(table_data)):
+            table.setStyle(TableStyle([
+                ('FONTNAME', (0, i), (0, i), 'Helvetica-Bold'),
+                ('BACKGROUND', (0, i), (0, i), colors.HexColor('#e9ecef')),
+            ]))
+        
+        story.append(table)
+        
+        doc.build(story)
+        return response
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def export_routine_excel(request, school_slug):
+    """Export class routine as Excel spreadsheet"""
+    if not (request.user.is_school_admin or request.user.is_teacher):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    
+    class_id = request.GET.get('class_id')
+    section_id = request.GET.get('section_id')
+    
+    if not class_id or not section_id:
+        return JsonResponse({'error': 'Class and section required'}, status=400)
+    
+    try:
+        school = get_current_school(request)
+        class_obj = Class.objects.get(id=class_id, school=school)
+        section = Section.objects.get(id=section_id, class_name=class_obj)
+        
+        # Get routines for this class and section
+        routines = ClassRoutine.objects.filter(
+            class_name=class_obj,
+            section=section,
+            is_active=True
+        ).select_related('class_time', 'subject', 'teacher', 'room').order_by('day_of_week', 'class_time__start_time')
+        
+        # Create Excel workbook
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = f"Timetable_{class_obj.name}_{section.name}"
+        
+        # Define styles
+        header_font = Font(bold=True, color='FFFFFF')
+        header_fill = PatternFill(start_color='1E3A5F', end_color='1E3A5F', fill_type='solid')
+        border = Border(left=Side(style='thin'), right=Side(style='thin'), 
+                       top=Side(style='thin'), bottom=Side(style='thin'))
+        center_alignment = Alignment(horizontal='center', vertical='middle')
+        
+        # Set column widths
+        column_widths = [15, 20, 20, 20, 20, 20]
+        for i, width in enumerate(column_widths, 1):
+            ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = width
+        
+        # Merge title cells
+        ws.merge_cells('A1:F1')
+        title_cell = ws['A1']
+        title_cell.value = f"CLASS TIMETABLE - {class_obj.name} {section.name}"
+        title_cell.font = Font(bold=True, size=16)
+        title_cell.alignment = center_alignment
+        
+        # School info
+        ws.merge_cells('A2:F2')
+        ws['A2'].value = school.name
+        ws['A2'].alignment = center_alignment
+        
+        ws.merge_cells('A3:F3')
+        ws['A3'].value = f"Academic Year: {datetime.now().year}"
+        ws['A3'].alignment = center_alignment
+        
+        # Prepare timetable headers
+        headers = ['Time/Day', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+        header_row = 5
+        
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=header_row, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.border = border
+            cell.alignment = center_alignment
+        
+        # Get time slots
+        time_slots = ClassTime.objects.filter(
+            school=school,
+            is_active=True
+        ).order_by('start_time')
+        
+        # Fill timetable data
+        current_row = header_row + 1
+        days = [0, 1, 2, 3, 4]  # Monday to Friday
+        
+        for time_slot in time_slots:
+            # Time column
+            time_cell = ws.cell(row=current_row, column=1, value=str(time_slot))
+            time_cell.font = Font(bold=True)
+            time_cell.fill = PatternFill(start_color='e9ecef', end_color='e9ecef', fill_type='solid')
+            time_cell.border = border
+            time_cell.alignment = center_alignment
+            
+            # Days columns
+            for col_idx, day_num in enumerate(days, 2):
+                routine = routines.filter(day_of_week=day_num, class_time=time_slot).first()
+                if routine:
+                    cell_text = f"{routine.subject.name}\n"
+                    if routine.teacher:
+                        cell_text += f"{routine.teacher.first_name} {routine.teacher.last_name}\n"
+                    if routine.room:
+                        cell_text += f"Room: {routine.room.name}"
+                else:
+                    cell_text = ""
+                
+                cell = ws.cell(row=current_row, column=col_idx, value=cell_text)
+                cell.border = border
+                cell.alignment = Alignment(horizontal='center', vertical='middle', wrap_text=True)
+            
+            current_row += 1
+        
+        # Prepare response
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        filename = f"Timetable_{class_obj.name}_{section.name}.xlsx"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        wb.save(response)
+        return response
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

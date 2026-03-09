@@ -12,6 +12,7 @@ from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
 from django import forms
 import re
+import uuid
 from .models import (
     PaymentConfiguration,
     SchoolPaymentConfiguration,
@@ -1243,12 +1244,21 @@ class PaymentDetailView(SuperAdminRequiredMixin, DetailView):
     model = Payment
     template_name = 'superadmin/payment_detail.html'
     context_object_name = 'payment'
+    lookup_field = 'payment_id'
+    pk_url_kwarg = 'payment_id'
     
     def get_queryset(self):
         return Payment.objects.select_related(
             'subscription__school', 'subscription__plan', 
             'verified_by', 'approved_by'
         )
+
+    def get_object(self, queryset=None):
+        payment_id = self.kwargs.get(self.pk_url_kwarg)
+        if isinstance(payment_id, uuid.UUID):
+            payment_id = str(payment_id)
+        qs = queryset or self.get_queryset()
+        return qs.get(**{self.lookup_field: payment_id})
 
 
 class PaymentVerifyView(SuperAdminRequiredMixin, View):
