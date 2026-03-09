@@ -63,13 +63,15 @@ class StudentListView(LoginRequiredMixin, ListView):
             context['school'] = None
         
         # Add classes and sections for the form (scoped to this school)
-        from academics.models import Class, Section
+        from academics.models import Class, Section, Subject
         if context.get('school'):
             context['classes'] = Class.objects.filter(is_active=True, school=context['school'])
             context['sections'] = Section.objects.filter(is_active=True, class_name__school=context['school'])
+            context['subjects'] = Subject.objects.filter(is_active=True, school=context['school']).order_by('name')
         else:
             context['classes'] = Class.objects.filter(is_active=True)
             context['sections'] = Section.objects.filter(is_active=True)
+            context['subjects'] = Subject.objects.filter(is_active=True).order_by('name')
         
         # Add dormitories and rooms for the form
         try:
