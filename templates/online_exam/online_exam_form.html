@@ -118,7 +118,7 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="id_total_marks">Total Marks <span class="text-danger">*</span></label>
-                                    <input type="number" name="total_marks" value="0" min="0" class="form-control" id="id_total_marks" required>
+                                    <input type="number" name="total_marks" value="{{ form.total_marks.value|default:0 }}" min="0" class="form-control" id="id_total_marks" required>
                                     {% if form.total_marks.errors %}
                                     <div class="text-danger">{{ form.total_marks.errors }}</div>
                                     {% endif %}
@@ -164,7 +164,7 @@
                                 <div class="form-group">
                                     <label for="id_negative_marking">Negative Marking</label>
                                     <div class="form-check">
-                                        <input type="checkbox" name="negative_marking" class="form-check-input" id="id_negative_marking">
+                                        <input type="checkbox" name="negative_marking" class="form-check-input" id="id_negative_marking" {% if form.negative_marking.value %}checked{% endif %}>
                                         <label class="form-check-label" for="id_negative_marking">
                                             Enable negative marking
                                         </label>
@@ -177,7 +177,7 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="id_negative_mark_value">Marks Deducted per Wrong Answer</label>
-                                    <input type="number" name="negative_mark_value" value="0.00" step="0.01" min="0" class="form-control" id="id_negative_mark_value">
+                                    <input type="number" name="negative_mark_value" value="{{ form.negative_mark_value.value|default:0.00 }}" step="0.01" min="0" class="form-control" id="id_negative_mark_value">
                                     {% if form.negative_mark_value.errors %}
                                     <div class="text-danger">{{ form.negative_mark_value.errors }}</div>
                                     {% endif %}
@@ -186,7 +186,7 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="id_max_attempts">Maximum Attempts Allowed</label>
-                                    <input type="number" name="max_attempts" value="1" min="1" class="form-control" id="id_max_attempts">
+                                    <input type="number" name="max_attempts" value="{{ form.max_attempts.value|default:1 }}" min="1" class="form-control" id="id_max_attempts">
                                     {% if form.max_attempts.errors %}
                                     <div class="text-danger">{{ form.max_attempts.errors }}</div>
                                     {% endif %}
@@ -199,10 +199,10 @@
                                 <div class="form-group">
                                     <label for="id_difficulty_level">Difficulty Level</label>
                                     <select name="difficulty_level" class="form-control select2" id="id_difficulty_level">
-                                        <option value="easy">Easy</option>
-                                        <option value="medium" selected>Medium</option>
-                                        <option value="hard">Hard</option>
-                                        <option value="mixed">Mixed</option>
+                                        <option value="easy" {% if form.difficulty_level.value == 'easy' %}selected{% endif %}>Easy</option>
+                                        <option value="medium" {% if form.difficulty_level.value == 'medium' or not form.difficulty_level.value %}selected{% endif %}>Medium</option>
+                                        <option value="hard" {% if form.difficulty_level.value == 'hard' %}selected{% endif %}>Hard</option>
+                                        <option value="mixed" {% if form.difficulty_level.value == 'mixed' %}selected{% endif %}>Mixed</option>
                                     </select>
                                     {% if form.difficulty_level.errors %}
                                     <div class="text-danger">{{ form.difficulty_level.errors }}</div>
@@ -213,7 +213,7 @@
                                 <div class="form-group">
                                     <label for="id_allow_attempt_review">Review Options</label>
                                     <div class="form-check">
-                                        <input type="checkbox" name="allow_attempt_review" class="form-check-input" id="id_allow_attempt_review" checked>
+                                        <input type="checkbox" name="allow_attempt_review" class="form-check-input" id="id_allow_attempt_review" {% if form.allow_attempt_review.value %}checked{% endif %}>
                                         <label class="form-check-label" for="id_allow_attempt_review">
                                             Allow students to review their attempts
                                         </label>
@@ -230,7 +230,7 @@
                                 <div class="form-group">
                                     <label for="id_is_randomized">Randomize Questions</label>
                                     <div class="form-check">
-                                        <input type="checkbox" name="is_randomized" class="form-check-input" id="id_is_randomized" checked>
+                                        <input type="checkbox" name="is_randomized" class="form-check-input" id="id_is_randomized" {% if form.is_randomized.value %}checked{% endif %}>
                                         <label class="form-check-label" for="id_is_randomized">
                                             Show questions in random order
                                         </label>
@@ -244,27 +244,13 @@
                                 <div class="form-group">
                                     <label for="id_publish_results">Show Results</label>
                                     <div class="form-check">
-                                        <input type="checkbox" name="publish_results" class="form-check-input" id="id_publish_results">
+                                        <input type="checkbox" name="publish_results" class="form-check-input" id="id_publish_results" {% if form.publish_results.value %}checked{% endif %}>
                                         <label class="form-check-label" for="id_publish_results">
                                             Show result immediately after submission
                                         </label>
                                     </div>
                                     {% if form.publish_results.errors %}
                                     <div class="text-danger">{{ form.publish_results.errors }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="id_is_published">Status</label>
-                                    <div class="form-check">
-                                        <input type="checkbox" name="is_published" class="form-check-input" id="id_is_published">
-                                        <label class="form-check-label" for="id_is_published">
-                                            Make exam active
-                                        </label>
-                                    </div>
-                                    {% if form.is_published.errors %}
-                                    <div class="text-danger">{{ form.is_published.errors }}</div>
                                     {% endif %}
                                 </div>
                             </div>
@@ -275,7 +261,7 @@
                                 <div class="form-group">
                                     <label for="id_show_answer_key">Answer Key</label>
                                     <div class="form-check">
-                                        <input type="checkbox" name="show_answer_key" class="form-check-input" id="id_show_answer_key">
+                                        <input type="checkbox" name="show_answer_key" class="form-check-input" id="id_show_answer_key" {% if form.show_answer_key.value %}checked{% endif %}>
                                         <label class="form-check-label" for="id_show_answer_key">
                                             Show answer key after exam completion
                                         </label>
@@ -291,7 +277,7 @@
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="form-check">
-                                                <input type="checkbox" name="require_webcam" class="form-check-input" id="id_require_webcam">
+                                                <input type="checkbox" name="require_webcam" class="form-check-input" id="id_require_webcam" {% if form.require_webcam.value %}checked{% endif %}>
                                                 <label class="form-check-label" for="id_require_webcam">
                                                     Require webcam
                                                 </label>
@@ -299,7 +285,7 @@
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-check">
-                                                <input type="checkbox" name="prevent_tab_switching" class="form-check-input" id="id_prevent_tab_switching" checked>
+                                                <input type="checkbox" name="prevent_tab_switching" class="form-check-input" id="id_prevent_tab_switching" {% if form.prevent_tab_switching.value %}checked{% endif %}>
                                                 <label class="form-check-label" for="id_prevent_tab_switching">
                                                     Prevent tab switching
                                                 </label>
@@ -312,13 +298,9 @@
                         
                         <div class="row mt-4">
                             <div class="col-12 text-center">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas {% if form.instance.pk %}fa-save{% else %}fa-plus-circle{% endif %} me-2"></i>
-                                    {% if form.instance.pk %}
-                                        Save Changes
-                                    {% else %}
-                                        Create Exam
-                                    {% endif %}
+                                <button type="submit" class="btn btn-primary" id="submitBtn">
+                                    <i class="fas {% if form.instance.pk %}fa-save{% else %}fa-plus-circle{% endif %} me-2" id="submitIcon"></i>
+                                    <span id="submitText">{% if form.instance.pk %}Save Changes{% else %}Create Exam{% endif %}</span>
                                 </button>
                                 <a href="{% url 'online_exam:dashboard' school_slug=school_slug %}" class="btn btn-secondary ms-2">
                                     <i class="fas fa-times me-2"></i>Cancel
@@ -866,6 +848,35 @@
         if ($.fn.select2) {
             $('.select2').select2();
         }
+
+        // Prevent multiple form submissions
+        let isSubmitting = false;
+        $('form').on('submit', function(e) {
+            if (isSubmitting) {
+                e.preventDefault();
+                return false;
+            }
+            
+            isSubmitting = true;
+            const $submitBtn = $('#submitBtn');
+            const $submitIcon = $('#submitIcon');
+            const $submitText = $('#submitText');
+            
+            // Show loading state
+            $submitBtn.prop('disabled', true);
+            $submitIcon.removeClass('fa-save fa-plus-circle').addClass('fa-spinner fa-spin');
+            $submitText.text('{% if form.instance.pk %}Saving...{% else %}Creating Exam...{% endif %}');
+            
+            // Re-enable after 10 seconds as fallback
+            setTimeout(function() {
+                if (isSubmitting) {
+                    isSubmitting = false;
+                    $submitBtn.prop('disabled', false);
+                    $submitIcon.removeClass('fa-spinner fa-spin').addClass('{% if form.instance.pk %}fa-save{% else %}fa-plus-circle{% endif %}');
+                    $submitText.text('{% if form.instance.pk %}Save Changes{% else %}Create Exam{% endif %}');
+                }
+            }, 10000);
+        });
     });
 </script>
 {% endblock %}

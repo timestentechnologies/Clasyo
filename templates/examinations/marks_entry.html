@@ -8,6 +8,77 @@
 
 {% block content %}
 
+{% csrf_token %}
+
+<style>
+    /* Horizontal scroll for table with many subjects */
+    .marks-table-wrapper {
+        overflow-x: auto;
+        max-width: 100%;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+    }
+    .marks-table-wrapper table {
+        min-width: 100%;
+        white-space: nowrap;
+    }
+    .marks-table-wrapper th,
+    .marks-table-wrapper td {
+        vertical-align: middle;
+        padding: 8px 12px;
+    }
+    /* Fixed columns for student info */
+    .marks-table-wrapper th:first-child,
+    .marks-table-wrapper td:first-child,
+    .marks-table-wrapper th:nth-child(2),
+    .marks-table-wrapper td:nth-child(2),
+    .marks-table-wrapper th:nth-child(3),
+    .marks-table-wrapper td:nth-child(3) {
+        position: sticky;
+        left: 0;
+        background: #fff;
+        z-index: 10;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+    .marks-table-wrapper th:nth-child(2),
+    .marks-table-wrapper td:nth-child(2) {
+        left: 50px;
+    }
+    .marks-table-wrapper th:nth-child(3),
+    .marks-table-wrapper td:nth-child(3) {
+        left: 150px;
+    }
+    /* Remove number input spinners */
+    .marks-input::-webkit-outer-spin-button,
+    .marks-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .marks-input[type=number] {
+        -moz-appearance: textfield;
+        appearance: textfield;
+        text-align: center;
+        font-weight: 500;
+        min-width: 70px;
+        padding: 8px 4px;
+    }
+    /* Subject column styling */
+    .subject-col {
+        min-width: 90px;
+        text-align: center;
+    }
+    .subject-col input {
+        font-size: 14px;
+    }
+    /* Total and percentage badges */
+    .total-marks, .percentage-display {
+        font-size: 13px;
+        padding: 6px 10px;
+        display: inline-block;
+        min-width: 70px;
+    }
+</style>
+
 <div class="row mb-4">
     <div class="col-md-12">
         <div class="modern-card">
@@ -37,7 +108,7 @@
     </div>
 </div>
 
-<div id="marksEntrySection" style="display: none;">
+<div id="marksEntrySection" style="display: none;" data-school-name="{{ school.name|default:'School' }}" data-school-logo="{% if school and school.logo %}{{ school.logo.url }}{% else %}{% static 'images/erpupdated.png' %}{% endif %}">
     <div class="modern-card">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -45,29 +116,48 @@
                     <h5 class="mb-0" id="examTitle">Exam Name</h5>
                     <p class="text-muted mb-0" id="examSubject">Subject</p>
                 </div>
-                <div class="d-flex gap-3">
-                    <div>
-                        <label class="form-label mb-1">Total Marks:</label>
-                        <input type="number" id="totalMarks" class="form-control" value="100" min="1" style="width: 120px;">
+                <div class="d-flex gap-2">
+                    <div class="align-self-end">
+                        <button id="exportPdfBtn" class="btn btn-danger">
+                            <i class="fas fa-file-pdf"></i>
+                            <span>Export PDF</span>
+                        </button>
+                    </div>
+                    <div class="align-self-end">
+                        <button id="exportExcelBtn" class="btn btn-success">
+                            <i class="fas fa-file-excel"></i>
+                            <span>Export Excel</span>
+                        </button>
                     </div>
                     <div class="align-self-end">
                         <button id="saveMarksBtn" class="btn btn-success btn-lg">
-                            <i class="fas fa-save"></i> Save All Marks
+                            <i class="fas fa-save" id="saveMarksIcon"></i>
+                            <span id="saveMarksText">Save All Marks</span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div class="table-responsive">
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" id="studentSearch" class="form-control" placeholder="Search by admission no. or name...">
+                    </div>
+                </div>
+            </div>
+
+            <div class="marks-table-wrapper">
                 <table class="table table-hover" id="marksTable">
                     <thead>
-                        <tr>
-                            <th width="5%">#</th>
-                            <th width="15%">Admission No.</th>
-                            <th width="25%">Student Name</th>
-                            <th width="15%">Marks Obtained</th>
-                            <th width="10%">Percentage</th>
-                            <th width="30%">Remarks</th>
+                        <tr id="marksHeaderRow">
+                            <th width="50">#</th>
+                            <th width="100">Admission No.</th>
+                            <th width="180">Student Name</th>
+                            <!-- Subject columns will be inserted here -->
+                            <th width="90">Total</th>
+                            <th width="90">Percentage</th>
+                            <th width="150">Remarks</th>
                         </tr>
                     </thead>
                     <tbody id="studentsTableBody">
@@ -84,10 +174,39 @@
     </div>
 </div>
 
+<div class="modal fade" id="marksSavedModal" tabindex="-1" aria-labelledby="marksSavedModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="marksSavedModalLabel">Success</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="marksSavedModalBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const schoolSlug = '{{ school_slug }}';
     let currentExamId = null;
+    let examSubjects = []; // {subject_id, name, total_marks}
+
+    function showMarksSavedModal(message, title) {
+        const titleEl = document.getElementById('marksSavedModalLabel');
+        const bodyEl = document.getElementById('marksSavedModalBody');
+        if (titleEl) titleEl.textContent = title || 'Success';
+        if (bodyEl) bodyEl.textContent = message || '';
+        const modalEl = document.getElementById('marksSavedModal');
+        if (modalEl && window.bootstrap && typeof bootstrap.Modal === 'function') {
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        } else {
+            alert(message || 'Saved');
+        }
+    }
 
     document.getElementById('loadStudentsBtn').addEventListener('click', function() {
         const examSelect = document.getElementById('examSelect');
@@ -106,52 +225,86 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('examTitle').textContent = examName;
         document.getElementById('examSubject').textContent = examSubject;
 
-        // Load students
-        fetch(`/school/${schoolSlug}/examinations/marks/${currentExamId}/students/`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    if (data.students.length === 0) {
-                        document.getElementById('noStudentsMessage').style.display = 'block';
-                        document.getElementById('marksTable').style.display = 'none';
-                    } else {
-                        populateStudentsTable(data.students);
-                        document.getElementById('noStudentsMessage').style.display = 'none';
-                        document.getElementById('marksTable').style.display = 'table';
-                    }
-                    document.getElementById('marksEntrySection').style.display = 'block';
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to load students');
-            });
+        // Fetch subjects first, then students
+        Promise.all([
+            fetch(`/school/${schoolSlug}/examinations/marks/${currentExamId}/subjects/`).then(r => r.json()),
+            fetch(`/school/${schoolSlug}/examinations/marks/${currentExamId}/students/`).then(r => r.json())
+        ]).then(([subjectsRes, studentsRes]) => {
+            if (!subjectsRes.success) {
+                alert('Failed to load subjects: ' + subjectsRes.error);
+                return;
+            }
+            if (!studentsRes.success) {
+                alert('Failed to load students: ' + studentsRes.error);
+                return;
+            }
+            examSubjects = subjectsRes.subjects;
+            buildHeader(examSubjects);
+            if (studentsRes.students.length === 0) {
+                document.getElementById('noStudentsMessage').style.display = 'block';
+                document.getElementById('marksTable').style.display = 'none';
+            } else {
+                populateStudentsTable(studentsRes.students, examSubjects);
+                document.getElementById('noStudentsMessage').style.display = 'none';
+                document.getElementById('marksTable').style.display = 'table';
+            }
+            document.getElementById('marksEntrySection').style.display = 'block';
+        }).catch(error => {
+            console.error('Error:', error);
+            alert('Failed to load data');
+        });
     });
 
-    function populateStudentsTable(students) {
+    function buildHeader(subjects) {
+        const headerRow = document.getElementById('marksHeaderRow');
+        // Remove existing subject columns (keep first 3 and last 3)
+        const fixedThs = headerRow.querySelectorAll('th');
+        const toRemove = Array.from(headerRow.querySelectorAll('th')).slice(3, -3);
+        toRemove.forEach(th => th.remove());
+        // Insert subject columns before Total
+        const totalTh = headerRow.querySelector('th:nth-last-child(3)');
+        subjects.forEach(subj => {
+            const th = document.createElement('th');
+            th.className = 'subject-col';
+            th.innerHTML = `${subj.name}<br><small class="text-muted">(${subj.total_marks})</small>`;
+            headerRow.insertBefore(th, totalTh);
+        });
+    }
+
+    function populateStudentsTable(students, subjects) {
         const tbody = document.getElementById('studentsTableBody');
         tbody.innerHTML = '';
 
         students.forEach((student, index) => {
             const row = document.createElement('tr');
-            row.innerHTML = `
+            // Fixed columns
+            let rowHtml = `
                 <td>${index + 1}</td>
                 <td>${student.admission_number}</td>
                 <td><strong>${student.name}</strong></td>
-                <td>
-                    <input type="number" 
-                           class="form-control marks-input" 
-                           data-student-id="${student.id}"
-                           value="${student.marks_obtained !== null ? student.marks_obtained : ''}" 
-                           min="0" 
-                           step="0.5"
-                           placeholder="0">
-                </td>
-                <td>
-                    <span class="percentage-display badge bg-secondary">-</span>
-                </td>
+            `;
+            // Subject columns
+            subjects.forEach(subj => {
+                const marks = student.subject_marks && student.subject_marks[subj.subject_id] ? student.subject_marks[subj.subject_id].marks_obtained : '';
+                rowHtml += `
+                    <td class="subject-col">
+                        <input type="number" 
+                               class="form-control marks-input" 
+                               data-student-id="${student.id}"
+                               data-subject-id="${subj.subject_id}"
+                               value="${marks !== null && marks !== undefined ? marks : ''}" 
+                               min="0" 
+                               max="${subj.total_marks}"
+                               step="0.5"
+                               placeholder="0">
+                    </td>
+                `;
+            });
+            // Total, Percentage, Remarks
+            const totalMarks = subjects.reduce((sum, s) => sum + s.total_marks, 0);
+            rowHtml += `
+                <td><span class="total-marks badge bg-secondary">0 / ${totalMarks}</span></td>
+                <td><span class="percentage-display badge bg-secondary">-</span></td>
                 <td>
                     <input type="text" 
                            class="form-control remarks-input" 
@@ -160,103 +313,441 @@ document.addEventListener('DOMContentLoaded', function() {
                            placeholder="Optional remarks">
                 </td>
             `;
+            row.innerHTML = rowHtml;
             tbody.appendChild(row);
         });
 
-        // Add event listeners to calculate percentage
+        // Add event listeners to calculate total and percentage
         document.querySelectorAll('.marks-input').forEach(input => {
             input.addEventListener('input', function() {
-                updatePercentage(this);
+                updateRowTotals(this.closest('tr'));
             });
-            // Initialize percentages if marks exist
-            if (input.value) {
-                updatePercentage(input);
+        });
+        // Initial calculation for pre-filled marks
+        document.querySelectorAll('#studentsTableBody tr').forEach(row => {
+            updateRowTotals(row);
+        });
+
+        // Add search functionality
+        const searchInput = document.getElementById('studentSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                filterStudentRows(searchTerm);
+            });
+        }
+    }
+
+    function filterStudentRows(searchTerm) {
+        const rows = document.querySelectorAll('#studentsTableBody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const admissionNo = row.cells[1]?.textContent?.toLowerCase() || '';
+            const studentName = row.cells[2]?.textContent?.toLowerCase() || '';
+            
+            if (searchTerm === '' || admissionNo.includes(searchTerm) || studentName.includes(searchTerm)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
             }
         });
 
-        // Update percentages when total marks changes
-        document.getElementById('totalMarks').addEventListener('input', function() {
-            document.querySelectorAll('.marks-input').forEach(input => {
-                if (input.value) {
-                    updatePercentage(input);
-                }
-            });
-        });
+        // Show/hide no results message
+        const noStudentsMessage = document.getElementById('noStudentsMessage');
+        const marksTable = document.getElementById('marksTable');
+        if (visibleCount === 0 && searchTerm !== '') {
+            if (noStudentsMessage) {
+                noStudentsMessage.style.display = 'block';
+                noStudentsMessage.querySelector('p').textContent = 'No students match your search.';
+            }
+            if (marksTable) marksTable.style.display = 'none';
+        } else if (searchTerm !== '') {
+            if (noStudentsMessage) noStudentsMessage.style.display = 'none';
+            if (marksTable) marksTable.style.display = 'table';
+        }
     }
 
-    function updatePercentage(marksInput) {
-        const totalMarks = parseFloat(document.getElementById('totalMarks').value) || 100;
-        const marksObtained = parseFloat(marksInput.value) || 0;
-        const percentage = (marksObtained / totalMarks) * 100;
-        
-        const row = marksInput.closest('tr');
-        const percentageDisplay = row.querySelector('.percentage-display');
-        
-        if (marksInput.value) {
-            percentageDisplay.textContent = percentage.toFixed(1) + '%';
-            
-            // Color code based on percentage
-            percentageDisplay.classList.remove('bg-success', 'bg-warning', 'bg-danger', 'bg-secondary');
-            if (percentage >= 75) {
-                percentageDisplay.classList.add('bg-success');
-            } else if (percentage >= 50) {
-                percentageDisplay.classList.add('bg-warning');
-            } else if (percentage >= 40) {
-                percentageDisplay.classList.add('bg-info');
-            } else {
-                percentageDisplay.classList.add('bg-danger');
+    function updateRowTotals(row) {
+        const inputs = row.querySelectorAll('.marks-input');
+        console.log('updateRowTotals for row, inputs count:', inputs.length);
+        let sum = 0;
+        inputs.forEach(input => {
+            const val = parseFloat(input.value) || 0;
+            sum += val;
+        });
+        const totalSpan = row.querySelector('.total-marks');
+        const percSpan = row.querySelector('.percentage-display');
+        const totalPossible = examSubjects.reduce((s, sub) => s + sub.total_marks, 0);
+        const perc = totalPossible > 0 ? (sum / totalPossible * 100).toFixed(1) : '-';
+        console.log('sum:', sum, 'totalPossible:', totalPossible, 'perc:', perc);
+        if (totalSpan) {
+            totalSpan.textContent = `${sum} / ${totalPossible}`;
+            console.log('Set totalSpan to:', totalSpan.textContent);
+        } else {
+            console.warn('total-marks span not found in row');
+        }
+        if (percSpan) {
+            percSpan.textContent = perc === '-' ? '-' : `${perc}%`;
+            console.log('Set percSpan to:', percSpan.textContent);
+            // Color badges
+            percSpan.className = 'percentage-display badge';
+            if (perc !== '-') {
+                if (perc >= 80) percSpan.classList.add('bg-success');
+                else if (perc >= 60) percSpan.classList.add('bg-info');
+                else if (perc >= 40) percSpan.classList.add('bg-warning');
+                else percSpan.classList.add('bg-danger');
             }
         } else {
-            percentageDisplay.textContent = '-';
-            percentageDisplay.classList.remove('bg-success', 'bg-warning', 'bg-danger', 'bg-info');
-            percentageDisplay.classList.add('bg-secondary');
+            console.warn('percentage-display span not found in row');
         }
     }
 
-    document.getElementById('saveMarksBtn').addEventListener('click', function() {
+    // Save marks
+    document.getElementById('saveMarksBtn')?.addEventListener('click', function() {
         if (!currentExamId) {
-            alert('No exam selected');
+            showMarksSavedModal('No exam selected', 'Error');
             return;
         }
-
-        const totalMarks = document.getElementById('totalMarks').value;
-        const marks = [];
-
-        document.querySelectorAll('.marks-input').forEach(input => {
-            const studentId = input.dataset.studentId;
-            const marksObtained = input.value || 0;
-            const remarksInput = document.querySelector(`.remarks-input[data-student-id="${studentId}"]`);
-            const remarks = remarksInput.value;
-
-            marks.push({
-                student_id: studentId,
-                marks_obtained: marksObtained,
-                remarks: remarks
+        const rows = document.querySelectorAll('#studentsTableBody tr');
+        const marksData = [];
+        rows.forEach(row => {
+            const studentId = row.querySelector('.marks-input')?.dataset.studentId;
+            if (!studentId) return;
+            const subjectMarks = {};
+            row.querySelectorAll('.marks-input[data-subject-id]').forEach(input => {
+                const subjId = input.dataset.subjectId;
+                const val = input.value === '' ? null : parseFloat(input.value);
+                subjectMarks[subjId] = val;
             });
+            const remarks = row.querySelector('.remarks-input')?.value || '';
+            marksData.push({ student_id: studentId, subject_marks: subjectMarks, remarks });
         });
+
+        // UI feedback
+        const btn = document.getElementById('saveMarksBtn');
+        const icon = document.getElementById('saveMarksIcon');
+        const text = document.getElementById('saveMarksText');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        if (icon) {
+            icon.classList.remove('fa-save');
+            icon.classList.add('fa-spinner', 'fa-spin');
+        }
+        if (text) text.textContent = 'Saving...';
 
         const formData = new FormData();
-        formData.append('marks', JSON.stringify(marks));
-        formData.append('total_marks', totalMarks);
+        formData.append('marks', JSON.stringify(marksData));
 
-        fetch(`/school/${schoolSlug}/examinations/marks/${currentExamId}/save/`, {
+        // Safely get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (!csrfToken) {
+            console.error('CSRF token input not found!');
+            resetSaveButton();
+            showMarksSavedModal('CSRF token missing. Refresh the page and try again.', 'Error');
+            return;
+        }
+        const tokenValue = csrfToken.value;
+        if (!tokenValue) {
+            console.error('CSRF token value is empty!');
+            resetSaveButton();
+            showMarksSavedModal('CSRF token is empty. Refresh the page and try again.', 'Error');
+            return;
+        }
+        console.log('Using CSRF token:', tokenValue.substring(0, 10) + '...');
+
+        function resetSaveButton() {
+            btn.disabled = false;
+            if (icon) {
+                icon.classList.remove('fa-spinner', 'fa-spin');
+                icon.classList.add('fa-save');
+            }
+            if (text) text.textContent = 'Save All Marks';
+        }
+
+        const fetchOptions = {
             method: 'POST',
-            body: formData
+            body: formData,
+            headers: { 'X-CSRFToken': tokenValue }
+        };
+        console.log('Fetch options:', fetchOptions);
+
+        fetch(`/school/${schoolSlug}/examinations/marks/${currentExamId}/save/`, fetchOptions)
+        .then(r => {
+            console.log('Save response status:', r.status);
+            if (!r.ok) {
+                throw new Error(`HTTP ${r.status}`);
+            }
+            return r.json();
         })
-        .then(response => response.json())
         .then(data => {
+            console.log('Save response data:', data);
             if (data.success) {
-                alert(data.message);
-                // Optionally reload or reset
+                showMarksSavedModal(data.message || 'Marks saved successfully!', 'Success');
             } else {
-                alert('Error: ' + data.error);
+                showMarksSavedModal('Error: ' + (data.error || 'Unknown error'), 'Error');
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Failed to save marks');
+        .catch(err => {
+            console.error('Save error:', err);
+            showMarksSavedModal('Failed to save marks. Network or server error.', 'Error');
+        })
+        .finally(() => {
+            console.log('Save request finished, resetting UI');
+            resetSaveButton();
         });
+
+        // Fallback: reset UI after 10 seconds in case of hanging request
+        setTimeout(() => {
+            if (btn.disabled) {
+                console.warn('Save request timed out; resetting UI');
+                resetSaveButton();
+                showMarksSavedModal('Save request timed out. Please check your connection and try again.', 'Error');
+            }
+        }, 10000);
+    });
+    // Export to PDF
+    document.getElementById('exportPdfBtn')?.addEventListener('click', async function() {
+        const examTitle = document.getElementById('examTitle').textContent;
+        const table = document.getElementById('marksTable');
+        if (!table || table.style.display === 'none') {
+            alert('No marks data to export. Please load an exam first.');
+            return;
+        }
+        
+        // Show loading indicator
+        const btn = document.getElementById('exportPdfBtn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        btn.disabled = true;
+        
+        try {
+            // Get school info from data attributes
+            const marksSection = document.getElementById('marksEntrySection');
+            const schoolName = marksSection.dataset.schoolName || 'School';
+            const schoolLogo = marksSection.dataset.schoolLogo || '';
+            const examClass = document.getElementById('examSubject').textContent;
+            
+            // Create a clean clone of the table for PDF
+            const container = document.createElement('div');
+            container.style.padding = '20px';
+            container.style.background = '#fff';
+            container.style.fontFamily = 'Arial, sans-serif';
+            container.style.maxWidth = '1200px';
+            container.style.margin = '0 auto';
+            
+            // Add header with logo and school info
+            const headerDiv = document.createElement('div');
+            headerDiv.style.display = 'flex';
+            headerDiv.style.alignItems = 'center';
+            headerDiv.style.justifyContent = 'center';
+            headerDiv.style.marginBottom = '20px';
+            headerDiv.style.borderBottom = '2px solid #333';
+            headerDiv.style.paddingBottom = '15px';
+            
+            // Add logo
+            const logoImg = document.createElement('img');
+            logoImg.src = schoolLogo;
+            logoImg.style.height = '60px';
+            logoImg.style.marginRight = '15px';
+            logoImg.style.objectFit = 'contain';
+            headerDiv.appendChild(logoImg);
+            
+            // Add school name
+            const schoolTitle = document.createElement('h1');
+            schoolTitle.textContent = schoolName;
+            schoolTitle.style.margin = '0';
+            schoolTitle.style.fontSize = '24px';
+            schoolTitle.style.fontWeight = 'bold';
+            schoolTitle.style.textAlign = 'center';
+            headerDiv.appendChild(schoolTitle);
+            container.appendChild(headerDiv);
+            
+            // Add exam info section
+            const examInfoDiv = document.createElement('div');
+            examInfoDiv.style.textAlign = 'center';
+            examInfoDiv.style.marginBottom = '20px';
+            examInfoDiv.style.padding = '10px';
+            examInfoDiv.style.background = '#f8f9fa';
+            examInfoDiv.style.borderRadius = '5px';
+            
+            const examNameTitle = document.createElement('h2');
+            examNameTitle.textContent = examTitle;
+            examNameTitle.style.margin = '0 0 10px 0';
+            examNameTitle.style.fontSize = '18px';
+            examNameTitle.style.color = '#333';
+            examInfoDiv.appendChild(examNameTitle);
+            
+            const classInfo = document.createElement('p');
+            classInfo.textContent = 'Class: ' + examClass;
+            classInfo.style.margin = '0';
+            classInfo.style.fontSize = '14px';
+            classInfo.style.color = '#666';
+            examInfoDiv.appendChild(classInfo);
+            
+            container.appendChild(examInfoDiv);
+            
+            // Clone table
+            const tableClone = table.cloneNode(true);
+            tableClone.style.width = '100%';
+            tableClone.style.borderCollapse = 'collapse';
+            tableClone.style.fontSize = '10px';
+            
+            // Style the table
+            tableClone.querySelectorAll('th, td').forEach(cell => {
+                cell.style.border = '1px solid #333';
+                cell.style.padding = '5px';
+                cell.style.textAlign = 'center';
+            });
+            tableClone.querySelectorAll('th').forEach(th => {
+                th.style.backgroundColor = '#f0f0f0';
+                th.style.fontWeight = 'bold';
+            });
+            
+            // Remove input elements and show their values
+            tableClone.querySelectorAll('input').forEach(input => {
+                const span = document.createElement('span');
+                span.textContent = input.value || '-';
+                span.style.fontWeight = '500';
+                input.parentNode.replaceChild(span, input);
+            });
+            
+            // Style badges
+            tableClone.querySelectorAll('.badge').forEach(badge => {
+                badge.style.display = 'inline-block';
+                badge.style.padding = '2px 6px';
+                badge.style.borderRadius = '3px';
+                badge.style.fontSize = '9px';
+                badge.style.color = '#fff';
+                badge.style.fontWeight = 'bold';
+                if (badge.classList.contains('bg-success')) badge.style.backgroundColor = '#28a745';
+                else if (badge.classList.contains('bg-info')) badge.style.backgroundColor = '#17a2b8';
+                else if (badge.classList.contains('bg-warning')) badge.style.backgroundColor = '#ffc107';
+                else if (badge.classList.contains('bg-danger')) badge.style.backgroundColor = '#dc3545';
+                else badge.style.backgroundColor = '#6c757d';
+            });
+            
+            container.appendChild(tableClone);
+            
+            // Add footer with date
+            const footer = document.createElement('div');
+            footer.style.textAlign = 'right';
+            footer.style.marginTop = '15px';
+            footer.style.fontSize = '10px';
+            footer.style.color = '#666';
+            footer.textContent = 'Generated on: ' + new Date().toLocaleString();
+            container.appendChild(footer);
+            
+            document.body.appendChild(container);
+            
+            // Generate PDF using html2canvas + jsPDF
+            const { jsPDF } = window.jspdf;
+            const canvas = await html2canvas(container, {
+                scale: 2,
+                useCORS: true,
+                logging: false
+            });
+            
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('l', 'mm', 'a4'); // landscape
+            
+            const imgWidth = 280;
+            const pageHeight = 210;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 10;
+            
+            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+            
+            // Add extra pages if content is long
+            while (heightLeft > 0) {
+                position = heightLeft - imgHeight + 10;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+            
+            pdf.save(`Marks_${examTitle.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+            
+            // Cleanup
+            document.body.removeChild(container);
+        } catch (error) {
+            console.error('PDF generation error:', error);
+            alert('Failed to generate PDF. Please try again.');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    });
+
+    // Export to Excel (CSV format)
+    document.getElementById('exportExcelBtn')?.addEventListener('click', function() {
+        const examTitle = document.getElementById('examTitle').textContent;
+        const table = document.getElementById('marksTable');
+        if (!table || table.style.display === 'none') {
+            alert('No marks data to export. Please load an exam first.');
+            return;
+        }
+        
+        // Build CSV data
+        let csv = [];
+        
+        // Add title and headers
+        csv.push(['Marks Entry Report']);
+        csv.push([examTitle]);
+        csv.push(['Generated on:', new Date().toLocaleString()]);
+        csv.push([]); // Empty row
+        
+        // Get headers
+        const headers = [];
+        table.querySelectorAll('thead th').forEach(th => {
+            let text = th.textContent.replace(/\s+/g, ' ').trim();
+            headers.push(text);
+        });
+        csv.push(headers);
+        
+        // Get data rows
+        table.querySelectorAll('tbody tr').forEach(row => {
+            const rowData = [];
+            row.querySelectorAll('td').forEach((cell) => {
+                const input = cell.querySelector('input');
+                if (input) {
+                    rowData.push(input.value || '');
+                } else {
+                    let text = cell.textContent.replace(/\s+/g, ' ').trim();
+                    rowData.push(text);
+                }
+            });
+            csv.push(rowData);
+        });
+        
+        // Convert to CSV string
+        const csvContent = csv.map(row => 
+            row.map(field => {
+                const stringField = String(field);
+                if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+                    return '"' + stringField.replace(/"/g, '""') + '"';
+                }
+                return stringField;
+            }).join(',')
+        ).join('\n');
+        
+        // Download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `Marks_${examTitle.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     });
 });
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 {% endblock %}

@@ -14,14 +14,14 @@
             <div class="col">
             </div>
             <div class="col-auto float-right ml-auto">
-            <a style="color:white"class="btn btn-info" href="/school/{{ school_slug }}/online-exam/"><i class="fas fa-laptop-code"></i> Exam Dasboard</a>
+            <a style="color:white" class="btn btn-warning" href="/school/{{ school_slug }}/online-exam/"><i class="fas fa-laptop-code"></i> Exam Dasboard</a>
             </div>
             <div class="col-auto float-right ml-auto">
                 {% if user.is_teacher or user.is_school_admin or exam.created_by == user %}
-                <a href="{% url 'online_exam:manage_questions' school_slug=school_slug exam_id=exam.id %}" class="btn btn-info"><i class="fas fa-tasks me-2"></i> Manage Questions</a>
+                <a href="{% url 'online_exam:manage_questions' school_slug=school_slug exam_id=exam.id %}" class="btn btn-success"><i class="fas fa-tasks me-2"></i> Manage Questions</a>
                 {% endif %}
                 {% if perms.online_exam.change_onlineexam or user.is_school_admin or exam.created_by == user %}
-                <a href="{% url 'online_exam:update' school_slug=school_slug pk=exam.id %}" class="btn btn-info"><i class="fas fa-edit me-2"></i> Edit</a>
+                <a href="{% url 'online_exam:update' school_slug=school_slug pk=exam.id %}" class="btn btn-warning"><i class="fas fa-edit me-2"></i> Edit</a>
                 {% endif %}
                 <a href="{% url 'online_exam:results' school_slug=school_slug exam_id=exam.id %}" class="btn btn-primary"><i class="fas fa-chart-bar me-2"></i> Results</a>
             </div>

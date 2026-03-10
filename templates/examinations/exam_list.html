@@ -58,20 +58,25 @@
                     </span>
                 </td>
                 <td>
-                    {% if user.role == 'student' and exam.is_online %}
+                    {% if user.role == 'student' %}
+                        {% if exam.is_online %}
                         <a href="{% url 'examinations:student_take_exam' school_slug=school_slug exam_id=exam.pk %}" class="btn btn-sm btn-success">
                             <i class="fas fa-pen"></i> Take Exam
                         </a>
+                        {% endif %}
+                        <a href="{% url 'examinations:student_exam_view' school_slug=school_slug exam_id=exam.pk %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye"></i> View Exam
+                        </a>
                     {% elif user.role in 'school_admin,teacher' %}
                         {% if exam.is_online %}
-                        <button class="btn btn-sm btn-success" onclick="manageQuestions({{ exam.pk }}, '{{ exam.name }}')" title="Manage Questions">
+                        <button class="btn btn-sm btn-success" onclick="manageQuestions({{ exam.pk }}, '{{ exam.name|escapejs }}')" title="Manage Questions">
                             <i class="fas fa-question-circle"></i> Questions
                         </button>
                         {% endif %}
                         <button class="btn btn-sm btn-primary" onclick="editExam({{ exam.pk }})">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteExam({{ exam.pk }}, '{{ exam.name }}')">
+                        <button class="btn btn-sm btn-danger" onclick="deleteExam({{ exam.pk }}, '{{ exam.name|escapejs }}')">
                             <i class="fas fa-trash"></i>
                         </button>
                     {% endif %}
@@ -115,15 +120,16 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
-                <h5 class="modal-title">Add Exam</h5>
+                <h5 class="modal-title" id="examModalTitle">Add Exam</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="examForm">
+                <form id="examForm" enctype="multipart/form-data">
                     {% csrf_token %}
+                    <input type="hidden" id="editing_exam_id" value="">
                     <div class="mb-3">
                         <label>Exam Name *</label>
-                        <input type="text" name="name" class="form-control" required>
+                        <input type="text" name="name" class="form-control" required id="exam_name">
                     </div>
                     <div class="mb-3">
                         <label>Exam Type</label>
@@ -138,7 +144,7 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label>Class <span class="text-danger">*</span></label>
-                            <select name="class_assigned" class="form-control" required>
+                            <select name="class_assigned" class="form-control" required id="exam_class_assigned">
                                 <option value="">Select Class</option>
                                 {% for class in classes %}
                                 <option value="{{ class.id }}">{{ class.name }}</option>
@@ -147,30 +153,62 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label>Subject</label>
-                            <select name="subject" class="form-control">
+                            <select name="subject" class="form-control" id="exam_subject">
                                 <option value="">Select Subject (Optional)</option>
                                 {% for subject in subjects %}
                                 <option value="{{ subject.id }}">{{ subject.name }}</option>
                                 {% endfor %}
                             </select>
+                            <small class="text-muted">Used for single-subject exams. For multi-subject exams, use the section below.</small>
+                        </div>
+                    </div>
+
+                    <!-- Multi-Subject Configuration -->
+                    <div class="mb-3" id="multiSubjectSection">
+                        <label class="form-label fw-bold">Subjects & Total Marks</label>
+                        <small class="text-muted d-block mb-2">Select subjects for this exam and set total marks per subject.</small>
+                        <div id="classSubjectsList" class="border rounded p-2 bg-light" style="max-height: 200px; overflow-y: auto;">
+                            <p class="text-muted">Select a class to load subjects.</p>
+                        </div>
+                        <div id="selectedSubjectsList" class="mt-2">
+                            <!-- Selected subjects with totals will be rendered here -->
                         </div>
                     </div>
                     <div class="mb-3" id="onlineExamFields" style="display: none;">
                         <label>Duration (Minutes)</label>
-                        <input type="number" name="duration_minutes" class="form-control" placeholder="e.g., 60">
+                        <input type="number" name="duration_minutes" class="form-control" placeholder="e.g., 60" id="exam_duration_minutes">
                         <small class="text-muted">How long students have to complete the exam</small>
                     </div>
                     <div class="mb-3">
                         <label>Start Date</label>
-                        <input type="date" name="start_date" class="form-control" required>
+                        <input type="date" name="start_date" class="form-control" required id="exam_start_date">
                     </div>
                     <div class="mb-3">
                         <label>End Date</label>
-                        <input type="date" name="end_date" class="form-control" required>
+                        <input type="date" name="end_date" class="form-control" required id="exam_end_date">
                     </div>
                     <div class="mb-3">
                         <label>Note</label>
-                        <textarea name="note" class="form-control" rows="2"></textarea>
+                        <textarea name="note" class="form-control" rows="2" id="exam_note"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Attachment (Optional)</label>
+                        <input type="file" name="attachment" class="form-control" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
+                        <small class="text-muted">Upload a question paper or supporting document for students to view.</small>
+                    </div>
+
+                    <div class="mb-3" id="currentAttachmentWrap" style="display:none;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted">Current attachment:</small>
+                                <a href="#" id="currentAttachmentLink" target="_blank" rel="noopener"></a>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="clearAttachment">
+                                <label class="form-check-label" for="clearAttachment">Remove</label>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -260,10 +298,88 @@
 </div>
 
 <script>
+let editingExamId = null;
+let selectedSubjectsData = {}; // subject_id -> {name, total_marks}
+
 function toggleOnlineExam() {
     const examType = document.getElementById('exam_type').value;
     const onlineFields = document.getElementById('onlineExamFields');
     onlineFields.style.display = examType === 'online' ? 'block' : 'none';
+}
+
+// Load subjects for selected class
+function loadClassSubjects() {
+    const classId = document.getElementById('exam_class_assigned').value;
+    const listEl = document.getElementById('classSubjectsList');
+    if (!classId) {
+        listEl.innerHTML = '<p class="text-muted">Select a class to load subjects.</p>';
+        return;
+    }
+    listEl.innerHTML = '<p class="text-muted">Loading...</p>';
+    fetch(window.location.pathname + `class/${classId}/subjects/`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                listEl.innerHTML = '<p class="text-danger">Failed to load subjects.</p>';
+                return;
+            }
+            if (!data.subjects.length) {
+                listEl.innerHTML = '<p class="text-muted">No subjects assigned to this class.</p>';
+                return;
+            }
+            // Render checkboxes
+            listEl.innerHTML = data.subjects.map(s => `
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="${s.id}" id="subj_${s.id}" onchange="toggleSubject(${s.id}, '${s.name.replace(/'/g, "\\'")}')">
+                    <label class="form-check-label" for="subj_${s.id}">${s.name}</label>
+                </div>
+            `).join('');
+        })
+        .catch(err => {
+            listEl.innerHTML = '<p class="text-danger">Error loading subjects.</p>';
+        });
+}
+
+// Add or remove subject from selected list
+function toggleSubject(subjectId, subjectName) {
+    const checked = document.getElementById(`subj_${subjectId}`).checked;
+    if (checked) {
+        selectedSubjectsData[subjectId] = {name: subjectName, total_marks: 100};
+    } else {
+        delete selectedSubjectsData[subjectId];
+    }
+    renderSelectedSubjects();
+}
+
+// Render selected subjects with total marks inputs
+function renderSelectedSubjects() {
+    const container = document.getElementById('selectedSubjectsList');
+    const ids = Object.keys(selectedSubjectsData);
+    if (ids.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    container.innerHTML = ids.map(id => {
+        const subj = selectedSubjectsData[id];
+        return `
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-secondary">${subj.name}</span>
+                <label class="small">Total:</label>
+                <input type="number" class="form-control form-control-sm" style="width: 80px;" value="${subj.total_marks}" min="0" step="0.01" onchange="updateSubjectTotal(${id}, this.value)">
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeSubject(${id})">×</button>
+            </div>
+        `;
+    }).join('');
+}
+
+function updateSubjectTotal(subjectId, value) {
+    selectedSubjectsData[subjectId].total_marks = parseFloat(value) || 0;
+}
+
+function removeSubject(subjectId) {
+    delete selectedSubjectsData[subjectId];
+    document.getElementById(`subj_${subjectId}`).checked = false;
+    renderSelectedSubjects();
 }
 
 function submitExam() {
@@ -275,8 +391,26 @@ function submitExam() {
     if (examType === 'online') {
         formData.append('is_online', 'true');
     }
+
+    if (document.getElementById('clearAttachment') && document.getElementById('clearAttachment').checked) {
+        formData.append('clear_attachment', 'true');
+    }
+
+    // Attach multi-subject data as JSON
+    const subjectIds = Object.keys(selectedSubjectsData);
+    if (subjectIds.length > 0) {
+        const subjectsPayload = subjectIds.map(id => ({
+            subject_id: parseInt(id),
+            total_marks: selectedSubjectsData[id].total_marks
+        }));
+        formData.append('subjects_json', JSON.stringify(subjectsPayload));
+    }
+
+    const url = editingExamId
+        ? (window.location.pathname + editingExamId + '/update/')
+        : (window.location.pathname + 'add/');
     
-    fetch(window.location.pathname + 'add/', {
+    fetch(url, {
         method: 'POST',
         body: formData,
         headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
@@ -284,12 +418,7 @@ function submitExam() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            if (examType === 'online') {
-                showSuccess('Exam created! You can now add questions.');
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                showSuccessAndReload('Exam created successfully!');
-            }
+            showSuccessAndReload(editingExamId ? 'Exam updated successfully!' : 'Exam created successfully!');
         } else {
             showError(data.error || 'Failed to create exam');
         }
@@ -300,9 +429,77 @@ function submitExam() {
 }
 
 function editExam(id) {
-    // For now, show a message. Full edit functionality can be added later
-    showMessage('Edit Exam', 'To edit exam details, please delete and recreate. Question management is available for online exams via the "Questions" button.', false);
+    editingExamId = id;
+    document.getElementById('examModalTitle').textContent = 'Edit Exam';
+    document.getElementById('examForm').reset();
+    const currentWrap = document.getElementById('currentAttachmentWrap');
+    if (currentWrap) currentWrap.style.display = 'none';
+    const clearCb = document.getElementById('clearAttachment');
+    if (clearCb) clearCb.checked = false;
+    selectedSubjectsData = {};
+    renderSelectedSubjects();
+
+    fetch(window.location.pathname + id + '/detail/')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                showError(data.error || 'Failed to load exam');
+                return;
+            }
+            const ex = data.exam;
+            document.getElementById('exam_name').value = ex.name || '';
+            document.getElementById('exam_type').value = ex.exam_type || 'midterm';
+            document.getElementById('exam_class_assigned').value = ex.class_assigned || '';
+            document.getElementById('exam_subject').value = ex.subject || '';
+            document.getElementById('exam_start_date').value = ex.start_date || '';
+            document.getElementById('exam_end_date').value = ex.end_date || '';
+            document.getElementById('exam_note').value = ex.note || '';
+            document.getElementById('exam_duration_minutes').value = ex.duration_minutes || '';
+            toggleOnlineExam();
+
+            // Load class subjects then populate selected subjects and totals
+            if (ex.class_assigned) {
+                loadClassSubjects();
+                // Populate selected subjects from backend payload
+                if (ex.subjects && Array.isArray(ex.subjects)) {
+                    ex.subjects.forEach(s => {
+                        selectedSubjectsData[s.subject_id] = {
+                            name: s.name,
+                            total_marks: s.total_marks
+                        };
+                    });
+                    // After subjects list renders, check the boxes
+                    setTimeout(() => {
+                        Object.keys(selectedSubjectsData).forEach(sid => {
+                            const cb = document.getElementById(`subj_${sid}`);
+                            if (cb) cb.checked = true;
+                        });
+                        renderSelectedSubjects();
+                    }, 300);
+                }
+            }
+
+            if (ex.attachment_url) {
+                const link = document.getElementById('currentAttachmentLink');
+                if (link) {
+                    link.href = ex.attachment_url;
+                    link.textContent = ex.attachment_name || 'Attachment';
+                }
+                if (currentWrap) currentWrap.style.display = 'block';
+            }
+
+            new bootstrap.Modal(document.getElementById('addExamModal')).show();
+        })
+        .catch(err => showError('Error: ' + err.message));
 }
+
+// Hook class selector change to load subjects
+document.addEventListener('DOMContentLoaded', () => {
+    const classSelect = document.getElementById('exam_class_assigned');
+    if (classSelect) {
+        classSelect.addEventListener('change', loadClassSubjects);
+    }
+});
 
 function manageQuestions(examId, examName) {
     document.getElementById('current_exam_id').value = examId;
@@ -311,6 +508,7 @@ function manageQuestions(examId, examName) {
     new bootstrap.Modal(document.getElementById('questionsModal')).show();
 }
 
+// ... rest of the code remains the same ...
 function showAddQuestionForm() {
     document.getElementById('addQuestionForm').style.display = 'block';
     document.getElementById('questionForm').reset();

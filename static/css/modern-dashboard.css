@@ -6,15 +6,23 @@
     --secondary-navy: #2C5282;
     --accent-cyan: #4DD0E1;
     --accent-light-blue: #81D4FA;
+    --accent-orange: #F59E0B;
     --accent-yellow: #FFD54F;
     --accent-pink: #F06292;
     --accent-green: #4CAF50;
+    --btn-success: #45B07C;
+    --btn-success-hover: #37986A;
+    --btn-warning: #F2A458;
+    --btn-warning-hover: #E58F3C;
+    --btn-info: #56C9F5; /* Slightly softer cyan */
+    --btn-info-hover: #46B8DA; /* Slightly softer cyan hover */
     --bg-light: #F5F7FA;
     --bg-white: #FFFFFF;
     --card-bg: #FFFFFF;
     --text-primary: #2D3748;
     --text-secondary: #4A5568;
     --text-muted: #718096;
+    --text-dark: var(--text-primary);
     --border-light: #E2E8F0;
     --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
     --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
@@ -37,6 +45,7 @@ body.theme-dark {
     --text-primary: #F7FAFC;
     --text-secondary: #E2E8F0;
     --text-muted: #A0AEC0;
+    --text-dark: var(--text-primary);
     --border-light: #4A5568;
     --shadow-sm: 0 2px 4px rgba(0,0,0,0.2);
     --shadow-md: 0 4px 6px rgba(0,0,0,0.25);
@@ -188,7 +197,7 @@ body {
     top: 0;
     width: 280px;
     height: 100vh;
-    background: linear-gradient(180deg, var(--primary-navy) 0%, var(--secondary-navy) 100%);
+    background: var(--primary-navy);
     padding: 24px 0;
     overflow-y: auto;
     box-shadow: var(--shadow-lg);
@@ -271,14 +280,14 @@ body {
 }
 
 .sidebar-menu li.active a {
-    background: linear-gradient(135deg, var(--accent-cyan), #3ABCD1);
+    background: var(--accent-cyan);
     color: white;
     font-weight: 600;
     box-shadow: 0 4px 10px rgba(77, 208, 225, 0.3);
 }
 
 .sidebar-menu li.active a:hover {
-    background: linear-gradient(135deg, #3ABCD1, var(--accent-cyan));
+    background: #3ABCD1;
     transform: translateX(5px);
     box-shadow: 0 4px 12px rgba(77, 208, 225, 0.4);
 }
@@ -484,7 +493,7 @@ body {
     width: 40px;
     height: 40px;
     border-radius: 10px;
-    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-light-blue));
+    background: var(--accent-cyan);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -531,71 +540,71 @@ body {
 }
 
 .page-subtitle {
-color: var(--text-muted);
-font-size: 14px;
+    color: var(--text-muted);
+    font-size: 14px;
 }
 
 /* Admin Dashboard Styles */
 /* Card Headers */
 .card-title-modern {
-display: flex;
-align-items: center;
-gap: 0.75rem;
-font-size: 1.25rem;
-font-weight: 600;
-color: var(--text-primary);
-margin: 0 0 1.5rem 0;
-padding-bottom: 0.75rem;
-border-bottom: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 1.5rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-light);
 }
 
 .card-title-modern i {
-font-size: 1.1em;
-color: var(--accent-cyan);
+    font-size: 1.1em;
+    color: var(--accent-cyan);
 }
 
 /* Event List Items */
 .event-time {
-min-width: 100px;
-flex-shrink: 0;
-text-align: center;
+    min-width: 100px;
+    flex-shrink: 0;
+    text-align: center;
 }
 
 .event-time .badge {
-padding: 0.4em 0.8em;
-font-size: 0.85em;
-font-weight: 500;
-border-radius: 6px;
+    padding: 0.4em 0.8em;
+    font-size: 0.85em;
+    font-weight: 500;
+    border-radius: 6px;
 }
 
 .event-details h6 {
-font-weight: 500;
-color: var(--text-primary);
-margin: 0 0 0.25rem 0;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0 0 0.25rem 0;
 }
 
 .event-details small {
-font-size: 0.85em;
-color: var(--text-muted);
-display: block;
-line-height: 1.4;
+    font-size: 0.85em;
+    color: var(--text-muted);
+    display: block;
+    line-height: 1.4;
 }
 
 /* Dark Theme Adjustments */
 [data-theme="dark"] .card-title-modern,
 .theme-dark .card-title-modern {
-color: #ffffff;
-border-bottom-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
 [data-theme="dark"] .event-details h6,
 .theme-dark .event-details h6 {
-color: #ffffff;
+    color: #ffffff;
 }
 
 [data-theme="dark"] .event-details small,
 .theme-dark .event-details small {
-color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.7);
 }
 
 /* Modern Cards */
@@ -683,13 +692,10 @@ color: rgba(255, 255, 255, 0.7);
     transform: translateY(-4px);
 }
 
-/* Use only cyan for all stat cards for consistency */
-.stat-card.primary,
-.stat-card.success,
-.stat-card.warning,
-.stat-card.danger { 
-    border-left-color: var(--accent-cyan);
-}
+.stat-card.primary { border-left-color: var(--accent-cyan); }
+.stat-card.success { border-left-color: var(--btn-success); }
+.stat-card.warning { border-left-color: var(--btn-warning); }
+.stat-card.danger { border-left-color: var(--accent-pink); }
 
 .stat-icon {
     width: 56px;
@@ -704,14 +710,10 @@ color: rgba(255, 255, 255, 0.7);
     color: var(--accent-cyan);
 }
 
-/* All stat icons use cyan for consistency */
-.stat-card.primary .stat-icon,
-.stat-card.success .stat-icon,
-.stat-card.warning .stat-icon,
-.stat-card.danger .stat-icon {
-    background: rgba(77, 208, 225, 0.1);
-    color: var(--accent-cyan);
-}
+.stat-card.primary .stat-icon { background: rgba(77, 208, 225, 0.1); color: var(--accent-cyan); }
+.stat-card.success .stat-icon { background: rgba(69, 176, 124, 0.12); color: var(--btn-success); }
+.stat-card.warning .stat-icon { background: rgba(242, 164, 88, 0.14); color: var(--btn-warning); }
+.stat-card.danger .stat-icon { background: rgba(240, 98, 146, 0.14); color: var(--accent-pink); }
 
 .stat-value {
     font-size: 32px;
@@ -1020,18 +1022,56 @@ color: rgba(255, 255, 255, 0.7);
     border-color: #3ABCD1 !important;
 }
 
+.btn-info-modern,
+.btn.btn-info {
+    background: var(--btn-info) !important;
+    color: #ffffff !important;
+    border-color: var(--btn-info) !important;
+}
+
+.btn-info-modern:hover,
+.btn.btn-info:hover {
+    background: var(--btn-info-hover) !important;
+    border-color: var(--btn-info-hover) !important;
+}
+
+.btn-outline-info-modern,
+.btn.btn-outline-info {
+    border-color: var(--btn-info) !important;
+    color: var(--btn-info) !important;
+}
+
+.btn-outline-info-modern:hover,
+.btn.btn-outline-info:hover {
+    background: var(--btn-info) !important;
+    border-color: var(--btn-info) !important;
+    color: #ffffff !important;
+}
+
 .btn-success-modern,
 .btn.btn-success {
-    background: var(--accent-green) !important;
+    background: var(--btn-success) !important;
     color: white !important;
-    border-color: var(--accent-green) !important;
+    border-color: var(--btn-success) !important;
+}
+
+.btn-success-modern:hover,
+.btn.btn-success:hover {
+    background: var(--btn-success-hover) !important;
+    border-color: var(--btn-success-hover) !important;
 }
 
 .btn-warning-modern,
 .btn.btn-warning {
-    background: var(--accent-yellow) !important;
-    color: var(--text-dark) !important;
-    border-color: var(--accent-yellow) !important;
+    background: var(--btn-warning) !important;
+    color: #ffffff !important;
+    border-color: var(--btn-warning) !important;
+}
+
+.btn-warning-modern:hover,
+.btn.btn-warning:hover {
+    background: var(--btn-warning-hover) !important;
+    border-color: var(--btn-warning-hover) !important;
 }
 
 .btn-danger-modern,
@@ -1074,22 +1114,22 @@ color: rgba(255, 255, 255, 0.7);
 .badge-success-modern,
 .badge-success,
 .bg-success {
-    background: rgba(77, 208, 225, 0.15) !important;
-    color: var(--accent-cyan) !important;
+    background: rgba(76, 175, 80, 0.15) !important;
+    color: var(--accent-green) !important;
 }
 
 .badge-warning-modern,
 .badge-warning,
 .bg-warning {
-    background: rgba(44, 82, 130, 0.1) !important;
-    color: var(--secondary-navy) !important;
+    background: rgba(245, 158, 11, 0.16) !important;
+    color: var(--accent-orange) !important;
 }
 
 .badge-danger-modern,
 .badge-danger,
 .bg-danger {
-    background: rgba(108, 117, 125, 0.1) !important;
-    color: #6C757D !important;
+    background: rgba(240, 98, 146, 0.16) !important;
+    color: var(--accent-pink) !important;
 }
 
 .badge-info-modern,

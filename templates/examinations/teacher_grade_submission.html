@@ -60,6 +60,8 @@
         </div>
     </div>
 
+    {{ submission.id|json_script:"submissionId" }}
+
     <form id="gradingForm">
         {% csrf_token %}
         {% for answer in answers %}
@@ -179,17 +181,71 @@
                 <i class="fas fa-arrow-left"></i> Back to List
             </a>
             <button type="button" id="saveGradingBtn" class="btn btn-success btn-lg">
-                <i class="fas fa-save"></i> Save Grading
+                <i class="fas fa-save" id="saveGradingIcon"></i>
+                <span id="saveGradingText">Save Grading</span>
             </button>
         </div>
     </form>
 
+    <div class="modal fade" id="gradingSavedModal" tabindex="-1" aria-labelledby="gradingSavedModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="gradingSavedModalLabel">Success</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="gradingSavedModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const submissionId = {{ submission.id }};
+    const submissionId = JSON.parse(document.getElementById('submissionId').textContent);
     const schoolSlug = '{{ school_slug }}';
+    let redirectAfterModal = false;
+    let isSavingGrading = false;
+
+    function showGradingSavedModal(message, title) {
+        const titleEl = document.getElementById('gradingSavedModalLabel');
+        const bodyEl = document.getElementById('gradingSavedModalBody');
+        if (titleEl) titleEl.textContent = title || 'Success';
+        if (bodyEl) bodyEl.textContent = message || '';
+        const modalEl = document.getElementById('gradingSavedModal');
+        if (modalEl && window.bootstrap && typeof bootstrap.Modal === 'function') {
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        } else {
+            alert(message || 'Saved');
+        }
+    }
+
+    const modalEl = document.getElementById('gradingSavedModal');
+    if (modalEl) {
+        modalEl.addEventListener('hidden.bs.modal', function() {
+            if (redirectAfterModal) {
+                window.location.href = `/school/${schoolSlug}/examinations/grading/`;
+            }
+        });
+    }
     
     document.getElementById('saveGradingBtn').addEventListener('click', function() {
+        if (isSavingGrading) return;
+        isSavingGrading = true;
+        redirectAfterModal = false;
+
+        const saveBtn = document.getElementById('saveGradingBtn');
+        const saveIcon = document.getElementById('saveGradingIcon');
+        const saveText = document.getElementById('saveGradingText');
+        if (saveBtn) saveBtn.disabled = true;
+        if (saveIcon) {
+            saveIcon.classList.remove('fa-save');
+            saveIcon.classList.add('fa-spinner', 'fa-spin');
+        }
+        if (saveText) saveText.textContent = 'Saving...';
+
         const answers = [];
         
         document.querySelectorAll('.points-input').forEach(input => {
@@ -216,15 +272,25 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Grading saved successfully! Final Score: ' + data.percentage.toFixed(1) + '%');
-                window.location.href = `/school/${schoolSlug}/examinations/grading/`;
+                redirectAfterModal = true;
+                const pct = (typeof data.percentage === 'number') ? data.percentage.toFixed(1) : '';
+                showGradingSavedModal('Grading saved successfully! Final Score: ' + pct + '%', 'Success');
             } else {
-                alert('Error: ' + data.error);
+                showGradingSavedModal('Error: ' + data.error, 'Error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Failed to save grading');
+            showGradingSavedModal('Failed to save grading', 'Error');
+        })
+        .finally(() => {
+            isSavingGrading = false;
+            if (saveBtn) saveBtn.disabled = false;
+            if (saveIcon) {
+                saveIcon.classList.remove('fa-spinner', 'fa-spin');
+                saveIcon.classList.add('fa-save');
+            }
+            if (saveText) saveText.textContent = 'Save Grading';
         });
     });
 });

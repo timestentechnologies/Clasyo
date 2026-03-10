@@ -8,53 +8,38 @@
 
 {% block content %}
 
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h6 class="text-muted">Your Score</h6>
-                    <h2 class="{% if submission.is_passed %}text-success{% else %}text-danger{% endif %}">
-                        {{ submission.percentage|floatformat:1 }}%
-                    </h2>
-                    <p class="mb-0">{{ submission.points_obtained|floatformat:1 }}/{{ submission.total_points|floatformat:1 }}</p>
-                </div>
-            </div>
+    {% if subject_marks %}
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-book-open"></i> Subject-wise Performance</h5>
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h6 class="text-muted">Grade</h6>
-                    {% if submission.grade %}
-                    <h2 class="text-primary">{{ submission.grade.name }}</h2>
-                    <p class="mb-0">{{ submission.grade.point }} GPA</p>
-                    {% else %}
-                    <h2 class="text-muted">-</h2>
-                    <p class="mb-0">No grade assigned</p>
-                    {% endif %}
+        <div class="card-body">
+            <div class="row">
+                {% for mark in subject_marks %}
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 {% if mark.marks_obtained|percentage_of:mark.total_marks >= 80 %}border-success{% elif mark.marks_obtained|percentage_of:mark.total_marks >= 60 %}border-info{% elif mark.marks_obtained|percentage_of:mark.total_marks >= 40 %}border-warning{% else %}border-danger{% endif %}">
+                        <div class="card-body text-center">
+                            <h6 class="text-muted mb-2">{{ mark.subject.name }}</h6>
+                            <h3 class="mb-1">{{ mark.marks_obtained|floatformat:0 }} <small class="text-muted">/ {{ mark.total_marks|floatformat:0 }}</small></h3>
+                            {% with percentage=mark.marks_obtained|percentage_of:mark.total_marks %}
+                            <h4 class="{% if percentage >= 80 %}text-success{% elif percentage >= 60 %}text-info{% elif percentage >= 40 %}text-warning{% else %}text-danger{% endif %}">
+                                {{ percentage|floatformat:1 }}%
+                            </h4>
+                            {% endwith %}
+                            {% if mark.grade %}
+                            <span class="badge bg-info">{{ mark.grade.name }}</span>
+                            {% endif %}
+                            {% if mark.remarks %}
+                            <p class="text-muted mt-2 mb-0"><small><i class="fas fa-comment"></i> {{ mark.remarks }}</small></p>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h6 class="text-muted">Result</h6>
-                    <h2>
-                        <i class="fas fa-{% if submission.is_passed %}check-circle text-success{% else %}times-circle text-danger{% endif %}"></i>
-                    </h2>
-                    <p class="mb-0">{{ submission.is_passed|yesno:"Passed,Failed" }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h6 class="text-muted">Time Taken</h6>
-                    <h2 class="text-info">{{ submission.time_taken_minutes|default:"N/A" }}</h2>
-                    <p class="mb-0">minutes</p>
-                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
+    {% endif %}
 
     {% if submission.teacher_remarks %}
     <div class="alert alert-info mb-4">
@@ -139,7 +124,7 @@
 
             {% if not answer.is_correct or answer.question.question_type in 'essay,short_answer' %}
             <div class="mt-3">
-                <h6 class="text-primary">
+                <h6 class="text-info">
                     <i class="fas fa-pencil-alt"></i> Submit Your Correction
                     {% if answer.correction_text %}
                     <span class="badge bg-success ms-2">Correction Submitted</span>
@@ -150,7 +135,7 @@
                           rows="4" 
                           placeholder="Write your corrected answer here to show your understanding...">{{ answer.correction_text }}</textarea>
                 <button type="button" 
-                        class="btn btn-sm btn-primary mt-2 submit-correction-btn" 
+                        class="btn btn-sm btn-info mt-2 submit-correction-btn" 
                         data-answer-id="{{ answer.id }}">
                     <i class="fas fa-paper-plane"></i> Submit Correction
                 </button>

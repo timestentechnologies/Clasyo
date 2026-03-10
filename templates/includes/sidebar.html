@@ -3,7 +3,7 @@
 <!-- Sidebar Overlay for Mobile -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-<style>
+ <style>
  #sidebar.modern-sidebar { transition: width 0.2s ease; }
  #sidebar.modern-sidebar.collapsed { width: 72px; }
  #sidebar.modern-sidebar .sidebar-menu li a { display: flex; align-items: center; gap: 12px; }
@@ -20,15 +20,15 @@
  #sidebar.modern-sidebar.collapsed .brand-logo { width: 100%; display: flex; align-items: center; justify-content: center; }
  #sidebar.modern-sidebar .sidebar-collapse { position: relative; padding: 4px 12px; min-height: 40px; margin-bottom: 6px; display: flex; justify-content: flex-end; }
  #sidebar.modern-sidebar .sidebar-collapse .toggle-text { display: none !important; }
- #sidebar.modern-sidebar .sidebar-collapse .btn { width: 36px !important; height: 36px; border-radius: 50%; padding: 0; display: inline-flex; align-items: center; justify-content: center; position: static; margin-left: auto; background-color: #06b6d4; border-color: #06b6d4; color: #fff; }
+ #sidebar.modern-sidebar .sidebar-collapse .btn { width: 36px !important; height: 36px; border-radius: 50%; padding: 0; display: inline-flex; align-items: center; justify-content: center; position: static; margin-left: auto; background-color: var(--accent-cyan); border-color: var(--accent-cyan); color: #fff; }
  #sidebar.modern-sidebar .sidebar-collapse .btn:hover,
- #sidebar.modern-sidebar .sidebar-collapse .btn:focus { background-color: #0891b2; border-color: #0891b2; color: #fff; box-shadow: 0 0 0 0.2rem rgba(6, 182, 212, 0.25); }
+ #sidebar.modern-sidebar .sidebar-collapse .btn:focus { background-color: #3ABCD1; border-color: #3ABCD1; color: #fff; box-shadow: 0 0 0 0.2rem rgba(77, 208, 225, 0.25); }
  #sidebar.modern-sidebar .school-logo { max-width: 100%; height: auto; }
  #sidebar.modern-sidebar.collapsed .school-logo { max-width: 42px; max-height: 42px; margin: 4px auto; display: block; }
  @media (max-width: 768px) {
    #sidebar.modern-sidebar.collapsed { width: 72px; }
  }
-</style>
+ </style>
 
 <!-- Modern Sidebar -->
 <div class="modern-sidebar" id="sidebar">
@@ -197,6 +197,11 @@
             <span>Students</span>
         </a></li>
 
+        <li class="{% if '/teachers/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/hr/teachers/">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <span>Teachers</span>
+        </a></li>
+
         {% if user.role == 'admin' %}
         <li class="{% if '/students/parents/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/students/parents/">
             <i class="fas fa-users"></i>
@@ -234,7 +239,7 @@
             <span>Homework</span>
         </a></li>
 
-        <li class="{% if '/examinations/' in request.path and '/grades/' not in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/examinations/">
+        <li class="{% if '/examinations/' in request.path and '/grades/' not in request.path and '/grading/' not in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/examinations/">
             <i class="fas fa-file-alt"></i>
             <span>Examinations</span>
         </a></li>
@@ -272,11 +277,6 @@
         {% if user.role == 'admin' or user.role == 'accountant' %}
         <div class="menu-section-title">Human Resource</div>
         
-        <li class="{% if '/teachers/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/hr/teachers/">
-            <i class="fas fa-chalkboard-teacher"></i>
-            <span>Teachers</span>
-        </a></li>
-
         <li class="{% if '/staff/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/hr/staff/">
             <i class="fas fa-users"></i>
             <span>Staff</span>

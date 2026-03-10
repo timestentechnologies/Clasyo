@@ -22,10 +22,14 @@ class Exam(models.Model):
     end_date = models.DateField()
     note = models.TextField(blank=True)
     is_published = models.BooleanField(default=False)
+
+    attachment = models.FileField(upload_to='exam_attachments/', null=True, blank=True)
     
     # Class assignment - which class(es) this exam is for
     class_assigned = models.ForeignKey(Class, on_delete=models.CASCADE, null=True, blank=True, related_name='exams')
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, null=True, blank=True, related_name='exams')
+
+    subjects = models.ManyToManyField(Subject, through='ExamSubjectConfig', related_name='multi_subject_exams', blank=True)
     
     # Online exam fields
     is_online = models.BooleanField(default=False)
@@ -43,6 +47,20 @@ class Exam(models.Model):
     
     def __str__(self):
         return f"{self.name} ({self.get_exam_type_display()})"
+
+
+class ExamSubjectConfig(models.Model):
+    """Per-exam subject configuration for multi-subject exams (offline/physical exams)."""
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='subject_configs')
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='exam_subject_configs')
+    total_marks = models.DecimalField(max_digits=6, decimal_places=2, default=100)
+
+    class Meta:
+        unique_together = ['exam', 'subject']
+        ordering = ['subject_id']
+
+    def __str__(self):
+        return f"{self.exam} - {self.subject} ({self.total_marks})"
 
 
 class ExamQuestion(models.Model):

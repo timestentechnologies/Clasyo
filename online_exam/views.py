@@ -121,19 +121,20 @@ class OnlineExamDashboardView(LoginRequiredMixin, TemplateView):
             if not user.is_school_admin:
                 exams_qs = exams_qs.filter(created_by=user)
 
-            attempts_qs = ExamAttempt.objects.all()
-            if school:
-                attempts_qs = attempts_qs.filter(exam__school=school)
-            completed_attempts_qs = attempts_qs.filter(is_completed=True)
-            completed_count = completed_attempts_qs.count()
-            pass_count = completed_attempts_qs.filter(passed=True).count()
-            pass_rate = (pass_count / completed_count * 100) if completed_count else 0
+            now = timezone.now()
+            total_exams = exams_qs.count()
+            upcoming_exams = exams_qs.filter(start_time__gt=now).count()
+            ongoing_exams = exams_qs.filter(
+                is_published=True,
+                start_time__lte=now,
+                end_time__gte=now
+            ).count()
+            completed_exams = exams_qs.filter(end_time__lt=now).count()
 
-            context['stats'] = {
-                'total_exams': exams_qs.count(),
-                'total_attempts': attempts_qs.count(),
-                'pass_rate': pass_rate,
-            }
+            context['total_exams'] = total_exams
+            context['upcoming_exams'] = upcoming_exams
+            context['ongoing_exams'] = ongoing_exams
+            context['completed_exams'] = completed_exams
         
         return context
 

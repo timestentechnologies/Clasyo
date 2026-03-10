@@ -51,12 +51,23 @@
 
                 <div class="mb-3">
                     <label class="form-label">Subjects *</label>
-                    <select class="form-select" name="subject_ids" multiple size="10" required {% if not has_active_year %}disabled{% endif %}>
+                    <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                        <div class="form-check mb-2 border-bottom pb-2">
+                            <input class="form-check-input" type="checkbox" id="selectAllSubjects">
+                            <label class="form-check-label fw-bold" for="selectAllSubjects">
+                                Select All Subjects
+                            </label>
+                        </div>
                         {% for subj in subjects %}
-                            <option value="{{ subj.id }}">{{ subj.name }} ({{ subj.code }})</option>
+                        <div class="form-check">
+                            <input class="form-check-input subject-checkbox" type="checkbox" name="subject_ids" value="{{ subj.id }}" id="subj_{{ subj.id }}">
+                            <label class="form-check-label" for="subj_{{ subj.id }}">
+                                {{ subj.name }} ({{ subj.code }})
+                            </label>
+                        </div>
                         {% endfor %}
-                    </select>
-                    <div class="form-text">Hold Ctrl/Shift to select multiple.</div>
+                    </div>
+                    <div class="form-text">Check the subjects to assign to this class.</div>
                 </div>
 
                 <div class="d-grid">
@@ -112,4 +123,33 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAllSubjects');
+    const subjectCheckboxes = document.querySelectorAll('.subject-checkbox');
+    
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            subjectCheckboxes.forEach(cb => {
+                cb.checked = selectAllCheckbox.checked;
+            });
+        });
+    }
+    
+    // Update Select All checkbox state based on individual checkboxes
+    subjectCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            const allChecked = Array.from(subjectCheckboxes).every(c => c.checked);
+            const someChecked = Array.from(subjectCheckboxes).some(c => c.checked);
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = allChecked;
+                selectAllCheckbox.indeterminate = someChecked && !allChecked;
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

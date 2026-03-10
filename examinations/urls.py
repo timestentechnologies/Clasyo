@@ -6,7 +6,14 @@ app_name = 'examinations'
 urlpatterns = [
     path('', views.ExamListView.as_view(), name='exam_list'),
     path('add/', views.ExamCreateView.as_view(), name='exam_create'),
+    path('<int:exam_id>/detail/', views.ExamDetailView.as_view(), name='exam_detail'),
+    path('<int:exam_id>/update/', views.ExamUpdateView.as_view(), name='exam_update'),
+    path('class/<int:class_id>/subjects/', views.ClassSubjectsView.as_view(), name='class_subjects'),
+    path('marks/<int:exam_id>/students/', views.GetStudentsForMarksEntryView.as_view(), name='marks_students'),
+    path('marks/<int:exam_id>/subjects/', views.MarksSubjectsView.as_view(), name='marks_subjects'),
+    path('marks/<int:exam_id>/save/', views.SaveMarksGridView.as_view(), name='marks_grid_save'),
     path('<int:pk>/delete/', views.ExamDeleteView.as_view(), name='exam_delete'),
+    path('<int:exam_id>/view/', views.StudentExamView.as_view(), name='student_exam_view'),
     
     # Question management for online exams
     path('<int:exam_id>/questions/', views.QuestionListView.as_view(), name='question_list'),
@@ -35,6 +42,5 @@ urlpatterns = [
     
     # Student results and corrections
     path('my-results/', views.StudentResultsView.as_view(), name='student_results'),
-    path('my-results/<int:submission_id>/', views.StudentResultDetailView.as_view(), name='student_result_detail'),
     path('correction/<int:answer_id>/submit/', views.StudentSubmitCorrectionView.as_view(), name='student_submit_correction'),
 ]
