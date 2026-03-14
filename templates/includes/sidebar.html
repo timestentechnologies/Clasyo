@@ -419,6 +419,11 @@
             <span>My Subjects</span>
         </a></li>
 
+        <li class="{% if '/homework/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'homework:student_assignments' school_slug=school_slug %}{% else %}#{% endif %}">
+            <i class="fas fa-book-reader"></i>
+            <span>My Homework</span>
+        </a></li>
+
         <li class="{% if '/my-class-routine/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'core:my_class_routine' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-clock"></i>
             <span>My Class Routine</span>

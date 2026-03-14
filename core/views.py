@@ -12,6 +12,7 @@ from datetime import datetime, time, timedelta
 from pathlib import Path
 from django.conf import settings as django_settings
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from tenants.models import School
 from core.utils import get_current_school
 from superadmin.models import (
@@ -1075,12 +1076,27 @@ class SystemSettingsApiView(View):
                     updated = True
 
             # Toggle maintenance mode if provided
+            # Toggle maintenance mode and schedule if provided
             if 'maintenance_mode' in request.POST:
                 enabled_val = request.POST.get('maintenance_mode', '').lower()
                 enabled = enabled_val in ['1', 'true', 'on', 'yes']
                 settings_obj.maintenance_mode = enabled
+                
+                # Also capture start/end times if available
+                if 'maintenance_start' in request.POST:
+                    start_val = request.POST.get('maintenance_start')
+                    settings_obj.maintenance_start = parse_datetime(start_val) if start_val else None
+                if 'maintenance_end' in request.POST:
+                    end_val = request.POST.get('maintenance_end')
+                    settings_obj.maintenance_end = parse_datetime(end_val) if end_val else None
+                
                 settings_obj.save()
-                return JsonResponse({'success': True, 'maintenance_mode': settings_obj.maintenance_mode})
+                return JsonResponse({
+                    'success': True, 
+                    'maintenance_mode': settings_obj.maintenance_mode,
+                    'maintenance_start': settings_obj.maintenance_start.isoformat() if settings_obj.maintenance_start else None,
+                    'maintenance_end': settings_obj.maintenance_end.isoformat() if settings_obj.maintenance_end else None,
+                })
 
             if updated:
                 settings_obj.save()
@@ -1400,6 +1416,8 @@ class SystemSettingsView(LoginRequiredMixin, TemplateView):
                 source='env',
             )
         context['global_db_config'] = global_db
+
+        context['settings'] = SystemSetting.get_settings()
 
         return context
 
@@ -2235,15 +2253,45 @@ class BillingView(LoginRequiredMixin, TemplateView):
             all_history.extend(trial_history)
             all_history.extend(free_plan_history)
             
-            # Sort by created_at if available, otherwise by date
-            context['billing_history'] = sorted(
-                all_history,
-                key=lambda x: (
-                    (x.created_at if hasattr(x, 'created_at') else (x.get('created_at', x.get('date')) if isinstance(x, dict) else None)),
-                    (getattr(x, 'id', 0) if not isinstance(x, dict) else x.get('id', 0))
-                ),
-                reverse=True
-            )
+            # Helper function to normalize dates for comparison
+            def get_sort_key(x):
+                from datetime import datetime, date
+                from django.utils import timezone
+                try:
+                    # Get the date value
+                    if hasattr(x, 'created_at'):
+                        d = x.created_at
+                    elif isinstance(x, dict):
+                        d = x.get('created_at') or x.get('date')
+                    else:
+                        d = None
+                    
+                    if d is None:
+                        return (0, 0)
+                    
+                    # Convert date to datetime
+                    if isinstance(d, date) and not isinstance(d, datetime):
+                        d = datetime.combine(d, datetime.min.time())
+                    
+                    # Make datetime timezone-aware if it's naive
+                    if isinstance(d, datetime):
+                        if timezone.is_naive(d):
+                            d = timezone.make_aware(d, timezone.get_default_timezone())
+                        # Convert to timestamp for safe comparison
+                        return (d.timestamp(), getattr(x, 'id', 0) if not isinstance(x, dict) else x.get('id', 0))
+                    
+                    return (0, 0)
+                except Exception:
+                    # If anything goes wrong, return a default sort key
+                    return (0, 0)
+            
+            # Sort by normalized date (newest first)
+            try:
+                context['billing_history'] = sorted(all_history, key=get_sort_key, reverse=True)
+            except Exception as sort_error:
+                print(f"Sorting error: {sort_error}")
+                # Fallback: just use the unsorted history
+                context['billing_history'] = all_history
             
             # Debug information
             print(f"School: {school.name}")
@@ -3412,3 +3460,41 @@ def offline_view(request, *args, **kwargs):
     need to use it directly.
     """
     return render(request, 'offline.html', status=200)
+
+
+@require_GET
+def maintenance_view(request, *args, **kwargs):
+    """View for maintenance mode page.
+    """
+    settings = SystemSetting.get_settings()
+    duration = None
+    # Pick the correct dates based on the mode
+    start_dt = settings.maintenance_start
+    end_dt = settings.maintenance_end
+    
+    if settings.superadmin_only_mode:
+        start_dt = settings.superadmin_maintenance_start or start_dt
+        end_dt = settings.superadmin_maintenance_end or end_dt
+
+    if start_dt and end_dt:
+        diff = end_dt - start_dt
+        days = diff.days
+        hours = diff.seconds // 3600
+        minutes = (diff.seconds // 60) % 60
+        
+        parts = []
+        if days > 0:
+            parts.append(f"{days} day{'s' if days > 1 else ''}")
+        if hours > 0:
+            parts.append(f"{hours} hr{'s' if hours > 1 else ''}")
+        if minutes > 0 and days == 0:  # Only show minutes if less than a day for brevity
+            parts.append(f"{minutes} min{'s' if minutes > 1 else ''}")
+        
+        duration = ", ".join(parts) if parts else "a few moments"
+
+    context = {
+        'system_settings': settings,
+        'duration': duration,
+        'school_slug': kwargs.get('school_slug', 'default')
+    }
+    return render(request, 'maintenance.html', context, status=200)

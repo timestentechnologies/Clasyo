@@ -94,4 +94,7 @@ urlpatterns = [
     
     # Offline page
     path('offline/', views.offline_view, name='offline'),
+    
+    # Maintenance page
+    path('maintenance/', views.maintenance_view, name='maintenance'),
 ]

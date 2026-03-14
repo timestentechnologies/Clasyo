@@ -1,14 +1,14 @@
-"""
-Context processors to make variables available globally in templates
-"""
 from tenants.models import School
+from core.models import SystemSetting
 
 
 def school_context(request):
     """
-    Add school object to context for all views that have school_slug
+    Add school and system settings to context globally
     """
-    context = {}
+    context = {
+        'system_settings': SystemSetting.get_settings()
+    }
     
     # Try to get school_slug from URL kwargs
     if hasattr(request, 'resolver_match') and request.resolver_match:

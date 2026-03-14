@@ -43,7 +43,11 @@ class LoginView(View):
                 messages.warning(request, 'No active school found. Please contact administrator or logout.')
                 return redirect('frontend:home')
         
-        # For unauthenticated users, show home page with login modal
+        # For unauthenticated users, show home page with login modal (unless maintenance mode is active)
+        from core.models import SystemSetting
+        if SystemSetting.get_settings().maintenance_mode:
+            return redirect('core:maintenance', school_slug='default')
+            
         messages.info(request, 'Please use the login modal to sign in.')
         return redirect('frontend:home')
     
@@ -56,12 +60,28 @@ class LoginView(View):
             
             if user is not None:
                 if user.is_active:
+                    # Check superadmin-only maintenance mode
+                    from core.models import SystemSetting
+                    sys_settings = SystemSetting.get_settings()
+                    if sys_settings.maintenance_mode and sys_settings.superadmin_only_mode:
+                        if user.role != 'superadmin' and not user.is_superuser:
+                            # Clear ALL messages before adding our specific error to prevent stacking
+                            storage = messages.get_messages(request)
+                            for _ in storage: pass # clear them
+                            
+                            messages.error(request, 'System is under exclusive maintenance. Only super administrators can log in.')
+                            
+                            # Redirect to maintenance page instead of home page
+                            school = getattr(user, 'school', None)
+                            slug = school.slug if school else 'default'
+                            return redirect('core:maintenance', school_slug=slug)
+                    
                     # Clear any stale impersonation session data before login
                     if 'impersonated_user_id' in request.session:
                         del request.session['impersonated_user_id']
                     if 'original_user_id' in request.session:
                         del request.session['original_user_id']
-                    
+                        
                     login(request, user)
                     
                     # Log the login
@@ -97,6 +117,10 @@ class LoginView(View):
                         school = School.objects.filter(is_active=True).first()
                     
                     if school:
+                        # Clear existing messages before adding welcome
+                        storage = messages.get_messages(request)
+                        storage.used = True
+                        
                         # Redirect to apps home page
                         messages.success(request, f'Welcome back, {user.get_full_name()}!')
                         return redirect('core:apps_home', school_slug=school.slug)
@@ -139,6 +163,11 @@ class LogoutView(LoginRequiredMixin, View):
             del request.session['original_user_id']
         
         logout(request)
+        
+        # Clear any existing messages to prevent piling up (e.g. Welcome back)
+        storage = messages.get_messages(request)
+        storage.used = True
+        
         messages.success(request, 'You have been logged out successfully.')
         return redirect('frontend:home')
 

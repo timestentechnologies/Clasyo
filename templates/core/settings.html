@@ -170,7 +170,22 @@
                     Enable Maintenance Mode
                 </label>
             </div>
-            <p class="text-muted small">When enabled, only administrators can access the system.</p>
+            <div id="maintenance-schedule-fields" class="{% if not settings.maintenance_mode %}d-none{% endif %}">
+                <div class="mb-3">
+                    <label for="maintenance_start" class="form-label">Start Time</label>
+                    <input type="datetime-local" class="form-control" id="maintenance_start" value="{{ settings.maintenance_start|date:'Y-m-d\TH:i' }}">
+                </div>
+                <div class="mb-3">
+                    <label for="maintenance_end" class="form-label">End Time (Expected)</label>
+                    <input type="datetime-local" class="form-control" id="maintenance_end" value="{{ settings.maintenance_end|date:'Y-m-d\TH:i' }}">
+                </div>
+                <div class="mb-3">
+                    <button id="btn-update-schedule" class="btn btn-primary btn-sm w-100">
+                        <i class="fas fa-save"></i> Update Schedule
+                    </button>
+                </div>
+            </div>
+            <p class="text-muted small mt-2">When enabled, only administrators can access the system.</p>
         </div>
     </div>
 </div>
@@ -208,436 +223,121 @@
         </div>
     </div>
 </div>
-
-<div class="row">
-    <div class="col-md-6">
-        <div class="modern-card">
-            <h4 class="mb-3"><i class="fas fa-check-circle"></i> Active SMS Configurations</h4>
-            {% if sms_configs %}
-                {% with has_active=False %}
-                    {% for config in sms_configs %}
-                        {% if config.is_active %}
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <div>
-                                    <strong>{{ config.get_provider_display }}</strong><br>
-                                    <small class="text-muted">
-                                        {% if config.custom_sender_id %}
-                                            Sender: {{ config.custom_sender_id }}
-                                        {% elif config.default_sender_id %}
-                                            Sender: {{ config.default_sender_id }}
-                                        {% else %}
-                                            No custom sender ID
-                                        {% endif %}
-                                    </small>
-                                </div>
-                                <div class="d-flex align-items-center">
-                                    {% if config.use_global_settings %}
-                                        <span class="badge bg-info me-2">Global</span>
-                                    {% endif %}
-                                    <span class="badge bg-success">Active</span>
-                                </div>
-                            </div>
-                        {% endif %}
-                    {% endfor %}
-                {% endwith %}
-                {% if not sms_configs %}
-                    <p class="text-muted mb-0">No SMS configurations found.</p>
-                {% endif %}
-            {% else %}
-                <p class="text-muted mb-0">
-                    No school-specific SMS configurations found.
-                    {% if global_sms_config.default_sender_id %}
-                        Using global sender {{ global_sms_config.default_sender_id }}.
-                    {% else %}
-                        Global SMS configuration will be used from environment settings.
-                    {% endif %}
-                </p>
-            {% endif %}
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="modern-card">
-            <h4 class="mb-3"><i class="fas fa-check-circle"></i> Active Email Configurations</h4>
-            {% if email_configs %}
-                {% for config in email_configs %}
-                    {% if config.is_active %}
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div>
-                                <strong>{{ config.get_provider_display }}</strong><br>
-                                <small class="text-muted">
-                                    {% if config.custom_from_email %}
-                                        From: {{ config.custom_from_email }}
-                                    {% elif config.default_from_email %}
-                                        From: {{ config.default_from_email }}
-                                    {% else %}
-                                        No custom from email
-                                    {% endif %}
-                                </small>
-                            </div>
-                            <div class="d-flex align-items-center">
-                                {% if config.use_global_settings %}
-                                    <span class="badge bg-info me-2">Global</span>
-                                {% endif %}
-                                <span class="badge bg-success">Active</span>
-                            </div>
-                        </div>
-                    {% endif %}
-                {% endfor %}
-                {% if not email_configs %}
-                    <p class="text-muted mb-0">No email configurations found.</p>
-                {% endif %}
-            {% else %}
-                <p class="text-muted mb-0">
-                    No school-specific email configurations found.
-                    {% if global_email_config.default_from_email %}
-                        Using global from address {{ global_email_config.default_from_email }}.
-                    {% else %}
-                        Global email configuration will be used from environment settings.
-                    {% endif %}
-                </p>
-            {% endif %}
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-6">
-        <div class="modern-card mb-4">
-            <h4 class="mb-3"><i class="fas fa-robot"></i> AI Configuration</h4>
-            <p class="text-muted mb-3">
-                Configure AI provider, API keys and response settings for this school. If no school-specific
-                configuration is set, the global AI settings will be used.
-            </p>
-            <a href="{% url 'superadmin:school_admin_ai_config' school_slug=school.slug %}" class="btn btn-outline-primary btn-sm">
-                Manage AI
-            </a>
-        </div>
-    </div>
-</div>
 {% endif %}
 
 <script>
-document.getElementById('schoolSettingsForm')?.addEventListener('submit', function(e) {
-    e.preventDefault();
+// General form submission helper
+function submitForm(formId, url, successMsg) {
+    const form = document.getElementById(formId);
+    if (!form) return;
 
-    const form = this;
-    const formData = new FormData(form);
-    const params = new URLSearchParams();
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const params = new URLSearchParams();
 
-    // Include all fields
-    for (const [key, value] of formData.entries()) {
-        params.append(key, value);
-    }
+        for (const [key, value] of formData.entries()) {
+            if (form.elements[key] && form.elements[key].type === 'checkbox') {
+                params.append(key, form.elements[key].checked ? 'on' : 'off');
+            } else {
+                params.append(key, value);
+            }
+        }
 
+        fetch(url, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: params
+        }).then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  if (window.showSuccess) window.showSuccess(data.message || successMsg);
+                  else alert(data.message || successMsg);
+              } else {
+                  if (window.showError) window.showError(data.error || 'Update failed');
+                  else alert(data.error || 'Update failed');
+              }
+          }).catch(err => {
+              console.error('Error:', err);
+              if (window.showError) window.showError('An error occurred');
+          });
+    });
+}
+
+// Initialize forms
+submitForm('schoolSettingsForm', "{% url 'core:settings_update' school_slug=school_slug %}", 'School information updated.');
+submitForm('academicSettingsForm', "{% url 'core:settings_update' school_slug=school_slug %}", 'Academic settings updated.');
+submitForm('notificationSettingsForm', "{% url 'core:settings_update' school_slug=school_slug %}", 'Notification settings updated.');
+
+// Institution type change handler
+document.getElementById('institution_type')?.addEventListener('change', function() {
     fetch("{% url 'core:settings_update' school_slug=school_slug %}", {
         method: 'POST',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-        },
-        body: params
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: new URLSearchParams({ 'institution_type': this.value })
     }).then(response => response.json())
       .then(data => {
-          if (data.success) {
-              const message = data.message || 'School information updated successfully.';
-              if (window.showSuccess) {
-                  window.showSuccess(message);
-              } else if (window.showMessage) {
-                  window.showMessage('School Information Updated', message, true);
-              } else {
-                  alert(message);
-              }
-          } else {
-              const errorMsg = data.error || 'Failed to update school information.';
-              if (window.showError) {
-                  window.showError(errorMsg);
-              } else if (window.showMessage) {
-                  window.showMessage('Error', errorMsg, false);
-              } else {
-                  alert(errorMsg);
-              }
-          }
-      }).catch(err => {
-          console.error('Error updating school settings', err);
-          const fallbackMsg = 'An error occurred while updating school information.';
-          if (window.showError) {
-              window.showError(fallbackMsg);
-          } else if (window.showMessage) {
-              window.showMessage('Error', fallbackMsg, false);
-          } else {
-              alert(fallbackMsg);
-          }
+          if (data.success && window.showSuccess) window.showSuccess('Institution type updated.');
       });
 });
 
-// Institution type change handler (instant update)
-document.getElementById('institution_type')?.addEventListener('change', function() {
-    const value = this.value;
+// Maintenance mode toggle & schedule
+const maintenanceCheckbox = document.getElementById('maintenance_mode');
+const scheduleFields = document.getElementById('maintenance-schedule-fields');
+const maintenanceStartInput = document.getElementById('maintenance_start');
+const maintenanceEndInput = document.getElementById('maintenance_end');
+const btnUpdateSchedule = document.getElementById('btn-update-schedule');
+
+function updateMaintenanceSettings(showNotification = true) {
+    const enabled = maintenanceCheckbox.checked ? 'on' : 'off';
+    const startTime = maintenanceStartInput.value;
+    const endTime = maintenanceEndInput.value;
+
     fetch("{% url 'core:settings_update' school_slug=school_slug %}", {
         method: 'POST',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-        },
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
         body: new URLSearchParams({
-            'institution_type': value
+            'maintenance_mode': enabled,
+            'maintenance_start': startTime,
+            'maintenance_end': endTime
         })
     }).then(response => response.json())
       .then(data => {
-          if (data.success) {
-              const label = data.institution_type_label || 'Institution type updated.';
-              if (window.showSuccess) {
-                  window.showSuccess(`Institution type set to <strong>${label}</strong>.`);
-              } else if (window.showMessage) {
-                  window.showMessage('Institution Type Updated', `Institution type set to <strong>${label}</strong>.`, true);
-              } else {
-                  alert('Institution type updated to: ' + label);
-              }
-          } else {
-              const errorMsg = data.error || 'Failed to update institution type.';
-              if (window.showError) {
-                  window.showError(errorMsg);
-              } else if (window.showMessage) {
-                  window.showMessage('Error', errorMsg, false);
-              } else {
-                  alert(errorMsg);
-              }
-          }
-      }).catch(err => {
-          console.error('Error updating institution type', err);
-          const fallbackMsg = 'An error occurred while updating institution type.';
-          if (window.showError) {
-              window.showError(fallbackMsg);
-          } else if (window.showMessage) {
-              window.showMessage('Error', fallbackMsg, false);
-          } else {
-              alert(fallbackMsg);
+          if (data.success && showNotification) {
+              const status = data.maintenance_mode ? 'ACTIVATED' : 'DEACTIVATED';
+              if (window.showSuccess) window.showSuccess(`Maintenance mode has been <strong>${status}</strong>.`);
           }
       });
-});
-
-document.getElementById('academicSettingsForm')?.addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    const form = this;
-    const formData = new FormData(form);
-    const params = new URLSearchParams();
-
-    for (const [key, value] of formData.entries()) {
-        params.append(key, value);
-    }
-
-    fetch("{% url 'core:settings_update' school_slug=school_slug %}", {
-        method: 'POST',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-        },
-        body: params
-    }).then(response => response.json())
-      .then(data => {
-          if (data.success) {
-              const message = data.message || 'Academic settings updated successfully.';
-              if (window.showSuccess) {
-                  window.showSuccess(message);
-              } else if (window.showMessage) {
-                  window.showMessage('Academic Settings Updated', message, true);
-              } else {
-                  alert(message);
-              }
-          } else {
-              const errorMsg = data.error || 'Failed to update academic settings.';
-              if (window.showError) {
-                  window.showError(errorMsg);
-              } else if (window.showMessage) {
-                  window.showMessage('Error', errorMsg, false);
-              } else {
-                  alert(errorMsg);
-              }
-          }
-      }).catch(err => {
-          console.error('Error updating academic settings', err);
-          const fallbackMsg = 'An error occurred while updating academic settings.';
-          if (window.showError) {
-              window.showError(fallbackMsg);
-          } else if (window.showMessage) {
-              window.showMessage('Error', fallbackMsg, false);
-          } else {
-              alert(fallbackMsg);
-          }
-      });
-});
-
-document.getElementById('notificationSettingsForm')?.addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    const form = this;
-    const formData = new FormData(form);
-    const params = new URLSearchParams();
-
-    for (const [key, value] of formData.entries()) {
-        // For checkboxes, include them only if checked; otherwise, send as 'off' to indicate false
-        if (form.elements[key].type === 'checkbox') {
-            params.append(key, form.elements[key].checked ? 'on' : 'off');
-        } else {
-            params.append(key, value);
-        }
-    }
-
-    fetch("{% url 'core:settings_update' school_slug=school_slug %}", {
-        method: 'POST',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-        },
-        body: params
-    }).then(response => response.json())
-      .then(data => {
-          if (data.success) {
-              const message = data.message || 'Notification settings updated successfully.';
-              if (window.showSuccess) {
-                  window.showSuccess(message);
-              } else if (window.showMessage) {
-                  window.showMessage('Notification Settings Updated', message, true);
-              } else {
-                  alert(message);
-              }
-          } else {
-              const errorMsg = data.error || 'Failed to update notification settings.';
-              if (window.showError) {
-                  window.showError(errorMsg);
-              } else if (window.showMessage) {
-                  window.showMessage('Error', errorMsg, false);
-              } else {
-                  alert(errorMsg);
-              }
-          }
-      }).catch(err => {
-          console.error('Error updating notification settings', err);
-          const fallbackMsg = 'An error occurred while updating notification settings.';
-          if (window.showError) {
-              window.showError(fallbackMsg);
-          } else if (window.showMessage) {
-              window.showMessage('Error', fallbackMsg, false);
-          } else {
-              alert(fallbackMsg);
-          }
-      });
-});
-
-// Maintenance mode toggle
-const maintenanceCheckbox = document.getElementById('maintenance_mode');
-if (maintenanceCheckbox) {
-    maintenanceCheckbox.addEventListener('change', function() {
-        const enabled = this.checked ? 'on' : 'off';
-        fetch("{% url 'core:settings_update' school_slug=school_slug %}", {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: new URLSearchParams({
-                'maintenance_mode': enabled
-            })
-        }).then(response => response.json())
-          .then(data => {
-              if (!data.success) {
-                  console.error('Failed to update maintenance mode', data);
-              }
-          }).catch(err => console.error('Error updating maintenance mode', err));
-    });
 }
+
+maintenanceCheckbox?.addEventListener('change', function() {
+    if (this.checked) scheduleFields.classList.remove('d-none');
+    else scheduleFields.classList.add('d-none');
+    updateMaintenanceSettings();
+});
+
+btnUpdateSchedule?.addEventListener('click', function() {
+    updateMaintenanceSettings();
+});
 
 // Database actions
 function callDatabaseAction(action) {
     fetch("{% url 'core:database_actions' school_slug=school_slug %}", {
         method: 'POST',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-        },
-        body: new URLSearchParams({
-            'action': action
-        })
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: new URLSearchParams({ 'action': action })
     }).then(response => response.json())
       .then(data => {
-          if (data.success) {
-              let title = 'Database Action';
-              let body = '';
-
-              if (action === 'backup') {
-                  title = 'Database Backup';
-                  if (data.details) {
-                      body = `
-                          <p class="mb-2">${data.message || 'Backup completed successfully.'}</p>
-                          <ul class="mb-0">
-                              <li><strong>File:</strong> ${data.details.path || data.file || ''}</li>
-                              <li><strong>Size:</strong> ${data.details.size_mb || 0} MB (${data.details.size_bytes || 0} bytes)</li>
-                              <li><strong>Engine:</strong> ${data.details.engine || ''}</li>
-                              <li><strong>Created at:</strong> ${data.details.created_at || ''}</li>
-                          </ul>
-                      `;
-                  } else {
-                      body = data.message || 'Database backup created successfully.';
-                  }
-              } else if (action === 'clear_cache') {
-                  title = 'Cache Cleared';
-                  if (data.details) {
-                      body = `
-                          <p class="mb-2">${data.message || 'Cache cleared successfully.'}</p>
-                          <p class="mb-0"><strong>Cleared at:</strong> ${data.details.cleared_at || ''}</p>
-                      `;
-                  } else {
-                      body = data.message || 'Cache cleared successfully.';
-                  }
-              } else if (action === 'sync') {
-                  title = 'Data Sync';
-                  if (data.details) {
-                      body = `
-                          <p class="mb-2">${data.message || 'Data sync triggered successfully.'}</p>
-                          <p class="mb-0"><strong>Triggered at:</strong> ${data.details.run_at || ''}</p>
-                      `;
-                  } else {
-                      body = data.message || 'Data sync triggered successfully.';
-                  }
-              } else {
-                  body = data.message || 'Operation completed successfully.';
-              }
-
-              if (window.showMessage) {
-                  window.showMessage(title, body, true);
-              } else {
-                  // Fallback if modal system is not available
-                  alert(data.message || 'Operation completed successfully.');
-              }
-          } else {
-              console.error('Database action failed', data);
-              const errorMsg = data.error || 'Database action failed';
-              if (window.showError) {
-                  window.showError(errorMsg);
-              } else if (window.showMessage) {
-                  window.showMessage('Error', errorMsg, false);
-              } else {
-                  alert(errorMsg);
-              }
-          }
-      }).catch(err => {
-          console.error('Error calling database action', err);
-          const fallbackMsg = 'An error occurred while performing the action.';
-          if (window.showError) {
-              window.showError(fallbackMsg);
-          } else if (window.showMessage) {
-              window.showMessage('Error', fallbackMsg, false);
-          } else {
-              alert(fallbackMsg);
+          if (data.success && window.showMessage) {
+              window.showMessage(action.toUpperCase(), data.message, true);
+          } else if (window.showError) {
+              window.showError(data.error);
           }
       });
 }
 
-document.getElementById('btn-backup-db')?.addEventListener('click', function() {
-    callDatabaseAction('backup');
-});
-
-document.getElementById('btn-clear-cache')?.addEventListener('click', function() {
-    callDatabaseAction('clear_cache');
-});
-
-document.getElementById('btn-sync-data')?.addEventListener('click', function() {
-    callDatabaseAction('sync');
-});
+document.getElementById('btn-backup-db')?.addEventListener('click', () => callDatabaseAction('backup'));
+document.getElementById('btn-clear-cache')?.addEventListener('click', () => callDatabaseAction('clear_cache'));
+document.getElementById('btn-sync-data')?.addEventListener('click', () => callDatabaseAction('sync'));
 </script>
 {% endblock %}

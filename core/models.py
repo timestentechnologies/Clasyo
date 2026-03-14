@@ -178,6 +178,14 @@ class SystemSetting(models.Model):
     # Maintenance Mode
     maintenance_mode = models.BooleanField(_("Maintenance Mode"), default=False,
                                            help_text="When enabled, only administrators can access the system.")
+    maintenance_start = models.DateTimeField(_("Maintenance Start"), null=True, blank=True)
+    maintenance_end = models.DateTimeField(_("Maintenance End"), null=True, blank=True)
+    
+    # Super Admin Exclusive Maintenance
+    superadmin_only_mode = models.BooleanField(_("Super Admin Only Mode"), default=False,
+                                             help_text="When enabled during maintenance, even school admins cannot login. Only super admins can access.")
+    superadmin_maintenance_start = models.DateTimeField(_("Super Admin Maintenance Start"), null=True, blank=True)
+    superadmin_maintenance_end = models.DateTimeField(_("Super Admin Maintenance End"), null=True, blank=True)
     
     # Student Settings
     admission_number_prefix = models.CharField(_("Admission Number Prefix"), max_length=10, default='STU',

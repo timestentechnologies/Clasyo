@@ -17,6 +17,7 @@ class ItemCategory(models.Model):
         ('equipment', 'Equipment'),
         ('furniture', 'Furniture'),
         ('supplies', 'Supplies'),
+        ('canteen', 'Canteen'),
         ('other', 'Other'),
     ]
     

@@ -4,6 +4,20 @@
 
 {% block title %}Global Settings - Clasyo{% endblock %}
 
+{% block extra_css %}
+<style>
+    .transition-all { transition: all 0.3s ease; }
+    .hover-shadow:hover { box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1); transform: translateY(-2px); }
+    .cursor-pointer { cursor: pointer; }
+    .bg-light-success { background-color: rgba(25, 135, 84, 0.05); }
+    .bg-light-warning { background-color: rgba(255, 193, 7, 0.05); }
+    .bg-light-danger { background-color: rgba(220, 53, 69, 0.05); }
+    .maintenance-status-selector .form-check-input:checked + .form-check-label span {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
 {% block page_header %}{% endblock %}
 
 {% block content %}
@@ -85,6 +99,95 @@
                     <a href="{% url 'superadmin:db_config_list' %}" class="btn btn-light btn-sm">
                         Manage Database <i class="fas fa-arrow-right ms-2"></i>
                     </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Maintenance Mode Settings -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-tools me-2"></i>System Maintenance Control</h5>
+                    {% if system_settings.maintenance_mode %}
+                        <span class="badge bg-danger">MAINTENANCE ACTIVE</span>
+                    {% else %}
+                        <span class="badge bg-success">SYSTEM ONLINE</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{% url 'superadmin:global_settings' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_maintenance">
+                        <div class="row">
+                            <!-- Modern Maintenance Control -->
+                            <div class="col-md-5 border-end">
+                                <label class="form-label h5 mb-3 text-primary"><i class="fas fa-power-off me-2"></i>System Status</label>
+                                
+                                <div class="maintenance-status-selector">
+                                    <div class="form-check mb-3 p-3 border rounded-3 position-relative transition-all hover-shadow {% if not system_settings.maintenance_mode %}bg-light-success border-success{% endif %}">
+                                        <input class="form-check-input ms-0 me-3" type="radio" name="maintenance_status" id="status_online" value="off" {% if not system_settings.maintenance_mode %}checked{% endif %}>
+                                        <label class="form-check-label d-block cursor-pointer" for="status_online">
+                                            <span class="d-block fw-bold text-success">Online</span>
+                                            <span class="text-muted small">System is fully accessible to all users.</span>
+                                        </label>
+                                    </div>
+
+                                    <div class="form-check mb-3 p-3 border rounded-3 position-relative transition-all hover-shadow {% if system_settings.maintenance_mode and not system_settings.superadmin_only_mode %}bg-light-warning border-warning{% endif %}">
+                                        <input class="form-check-input ms-0 me-3" type="radio" name="maintenance_status" id="status_staff" value="school_admin" {% if system_settings.maintenance_mode and not system_settings.superadmin_only_mode %}checked{% endif %}>
+                                        <label class="form-check-label d-block cursor-pointer" for="status_staff">
+                                            <span class="d-block fw-bold text-warning">Staff Maintenance</span>
+                                            <span class="text-muted small">Access allowed only for <strong>Super Admins</strong> and <strong>School Admins</strong>.</span>
+                                        </label>
+                                    </div>
+
+                                    <div class="form-check mb-0 p-3 border rounded-3 position-relative transition-all hover-shadow {% if system_settings.maintenance_mode and system_settings.superadmin_only_mode %}bg-light-danger border-danger{% endif %}">
+                                        <input class="form-check-input ms-0 me-3" type="radio" name="maintenance_status" id="status_superadmin" value="superadmin" {% if system_settings.maintenance_mode and system_settings.superadmin_only_mode %}checked{% endif %}>
+                                        <label class="form-check-label d-block cursor-pointer" for="status_superadmin">
+                                            <span class="d-block fw-bold text-danger">Strict Maintenance</span>
+                                            <span class="text-muted small">Access restricted <strong>ONLY to Super Admins</strong>.</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Global Exclusive Dates -->
+                            <div class="col-md-7">
+                                <div class="d-flex align-items-center mb-3">
+                                    <h6 class="text-danger mb-0"><i class="fas fa-user-secret me-2"></i>Global Exclusive Schedule</h6>
+                                    <span class="badge bg-light text-dark ms-2 border small">Super Admin Only</span>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="superadmin_maintenance_start" class="form-label small fw-bold">Maintenance Start</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                            <input type="datetime-local" class="form-control" id="superadmin_maintenance_start" name="superadmin_maintenance_start" value="{{ system_settings.superadmin_maintenance_start|date:'Y-m-d\TH:i' }}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="superadmin_maintenance_end" class="form-label small fw-bold">Maintenance End (Expected)</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-hourglass-end"></i></span>
+                                            <input type="datetime-local" class="form-control" id="superadmin_maintenance_end" name="superadmin_maintenance_end" value="{{ system_settings.superadmin_maintenance_end|date:'Y-m-d\TH:i' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info mt-3 py-2 border-0 shadow-sm" style="background: rgba(13, 110, 253, 0.05);">
+                                    <small><i class="fas fa-info-circle me-1"></i> These dates determine the "Maintenance Time" displayed to users when the system is offline.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-12 text-end">
+                                <button type="submit" class="btn btn-warning px-4">
+                                    <i class="fas fa-save me-2"></i>Apply Global Settings
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

@@ -1703,7 +1703,55 @@ class GlobalSettingsView(SuperAdminRequiredMixin, TemplateView):
         context['current_db'] = CurrentDB(**current_db)
         context['current_email'] = CurrentEmail(**current_email)
         
+        from core.models import SystemSetting
+        context['system_settings'] = SystemSetting.get_settings()
+        
         return context
+
+    def post(self, request, *args, **kwargs):
+        from core.models import SystemSetting
+        from django.utils.dateparse import parse_datetime
+        
+        settings_obj = SystemSetting.get_settings()
+        action = request.POST.get('action')
+        
+        if action == 'update_maintenance':
+            # Checkboxes: if present in POST, they are checked. If missing, they are unchecked.
+            maintenance_status = request.POST.get('maintenance_status', 'off')
+            
+            if maintenance_status == 'off':
+                settings_obj.maintenance_mode = False
+                settings_obj.superadmin_only_mode = False
+                status_msg = "deactivated"
+            elif maintenance_status == 'school_admin':
+                settings_obj.maintenance_mode = True
+                settings_obj.superadmin_only_mode = False
+                status_msg = "activated (Staff Access)"
+            elif maintenance_status == 'superadmin':
+                settings_obj.maintenance_mode = True
+                settings_obj.superadmin_only_mode = True
+                status_msg = "activated (Super Admin Only)"
+            
+            # Standard maintenance dates
+            if 'maintenance_start' in request.POST:
+                start_val = request.POST.get('maintenance_start')
+                settings_obj.maintenance_start = parse_datetime(start_val) if start_val else None
+            if 'maintenance_end' in request.POST:
+                end_val = request.POST.get('maintenance_end')
+                settings_obj.maintenance_end = parse_datetime(end_val) if end_val else None
+            
+            # Superadmin exclusive dates
+            if 'superadmin_maintenance_start' in request.POST:
+                sa_start_val = request.POST.get('superadmin_maintenance_start')
+                settings_obj.superadmin_maintenance_start = parse_datetime(sa_start_val) if sa_start_val else None
+            if 'superadmin_maintenance_end' in request.POST:
+                sa_end_val = request.POST.get('superadmin_maintenance_end')
+                settings_obj.superadmin_maintenance_end = parse_datetime(sa_end_val) if sa_end_val else None
+            
+            settings_obj.save()
+            messages.success(request, f'Maintenance mode {status_msg} successfully.')
+        
+        return redirect('superadmin:global_settings')
 
 
 class GlobalSMSConfigurationListView(SuperAdminRequiredMixin, ListView):

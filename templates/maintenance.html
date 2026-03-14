@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4DD0E1">
+    <title>Maintenance - {{ system_settings.school_name|default:"Clasyo" }}</title>
+    
+    <!-- Dynamic & Static Favicons -->
+    {% if system_settings.school_favicon %}
+    <link rel="icon" type="image/png" href="{{ system_settings.school_favicon.url }}">
+    <link rel="shortcut icon" href="{{ system_settings.school_favicon.url }}" type="image/x-icon">
+    {% else %}
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+    <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+    <link rel="icon" type="image/png" href="{% static 'images/erpupdated.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/erpupdated.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/erpupdated.png' %}">
+    <link rel="apple-touch-icon" sizes="192x192" href="{% static 'images/erpupdated.png' %}">
+    <link rel="apple-touch-icon" sizes="512x512" href="{% static 'images/erpupdated.png' %}">
+    {% endif %}
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #1e293b;
+            text-align: center;
+            padding: 1rem;
+            line-height: 1.6;
+        }
+        .maintenance-container {
+            position: relative;
+            background: white;
+            padding: 3rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            max-width: 32rem;
+            width: 100%;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .close-btn {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: #f1f5f9;
+            color: #64748b;
+            padding: 0.5rem;
+            border-radius: 50%;
+            text-decoration: none;
+            line-height: 1;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.25rem;
+            height: 2.25rem;
+            border: none;
+            cursor: pointer;
+        }
+        .close-btn:hover {
+            background: #e2e8f0;
+            color: #ef4444;
+            transform: rotate(90deg);
+        }
+        .maintenance-icon {
+            display: inline-flex;
+            padding: 1.5rem;
+            background: #fff7ed;
+            border-radius: 1rem;
+            color: #f59e0b;
+            margin-bottom: 2rem;
+            animation: pulse 3s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+        h1 {
+            color: #0f172a;
+            font-size: 2.25rem;
+            font-weight: 800;
+            margin: 0 0 1rem 0;
+            letter-spacing: -0.025em;
+        }
+        p {
+            color: #64748b;
+            margin: 0 0 2rem 0;
+            font-size: 1.125rem;
+        }
+        .schedule-box {
+            background: #f8fafc;
+            padding: 1.25rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            text-align: left;
+            border: 1px solid #e2e8f0;
+        }
+        .schedule-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+        .schedule-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        .schedule-label {
+            font-weight: 600;
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+        .schedule-value {
+            color: #0f172a;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .btn {
+            display: inline-block;
+            background: #4DD0E1; 
+            color: white;
+            padding: 0.875rem 2.5rem;
+            border-radius: 0.75rem;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+            cursor: pointer;
+            width: 100%;
+        }
+        .btn:hover {
+            background: #26C6DA; 
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(77, 208, 225, 0.3);
+        }
+        .admin-link {
+            display: block;
+            margin-top: 2rem;
+            color: #4DD0E1;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .admin-link:hover {
+            color: #26C6DA;
+            text-decoration: underline;
+        }
+        @media (max-width: 640px) {
+            .maintenance-container {
+                padding: 2rem 1.5rem;
+            }
+            h1 { font-size: 1.75rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="maintenance-container">
+        <!-- Messages Section -->
+        {% if messages %}
+        <div class="container-fluid px-0 mb-4">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show text-start mb-2" role="alert" style="font-size: 0.875rem; border-radius: 0.75rem;">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="padding: 1rem;"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if user.is_authenticated %}
+        <a href="{% url 'accounts:logout' %}" class="close-btn" title="Logout and Exit">
+            <i class="fas fa-times"></i>
+        </a>
+        {% else %}
+        <a href="{% url 'frontend:home' %}" class="close-btn" title="Back to Home">
+            <i class="fas fa-times"></i>
+        </a>
+        {% endif %}
+        <div class="maintenance-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+        </div>
+        <h1>System Maintenance</h1>
+        <p>We're currently updating our system to serve you better. We'll be back shortly!</p>
+        
+        {% if system_settings.superadmin_only_mode %}
+            {% if system_settings.superadmin_maintenance_start or system_settings.superadmin_maintenance_end %}
+            <div class="schedule-box">
+                {% if system_settings.superadmin_maintenance_start %}
+                <div class="schedule-item">
+                    <span class="schedule-label">Started at:</span>
+                    <span class="schedule-value">{{ system_settings.superadmin_maintenance_start|date:"M d, Y H:i" }}</span>
+                </div>
+                {% endif %}
+                {% if system_settings.superadmin_maintenance_end %}
+                <div class="schedule-item">
+                    <span class="schedule-label">Expected back:</span>
+                    <span class="schedule-value">{{ system_settings.superadmin_maintenance_end|date:"M d, Y H:i" }}</span>
+                </div>
+                {% endif %}
+                {% if duration %}
+                <div class="schedule-item">
+                    <span class="schedule-label">Estimated duration:</span>
+                    <span class="schedule-value"><i class="fas fa-hourglass-half me-1"></i>~ {{ duration }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        {% else %}
+            {% if system_settings.maintenance_start or system_settings.maintenance_end %}
+            <div class="schedule-box">
+                {% if system_settings.maintenance_start %}
+                <div class="schedule-item">
+                    <span class="schedule-label">Started at:</span>
+                    <span class="schedule-value">{{ system_settings.maintenance_start|date:"M d, Y H:i" }}</span>
+                </div>
+                {% endif %}
+                {% if system_settings.maintenance_end %}
+                <div class="schedule-item">
+                    <span class="schedule-label">Expected back:</span>
+                    <span class="schedule-value">{{ system_settings.maintenance_end|date:"M d, Y H:i" }}</span>
+                </div>
+                {% endif %}
+                {% if duration %}
+                <div class="schedule-item">
+                    <span class="schedule-label">Estimated duration:</span>
+                    <span class="schedule-value"><i class="fas fa-hourglass-half me-1"></i>~ {{ duration }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        {% endif %}
+
+        <button class="btn" onclick="window.location.reload()">Check Status</button>
+        
+        {% if not user.is_authenticated %}
+        <a href="{% url 'accounts:login' %}" class="admin-link">Administrator Login</a>
+        {% endif %}
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

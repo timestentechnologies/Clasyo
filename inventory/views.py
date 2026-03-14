@@ -59,9 +59,19 @@ class InventoryListView(LoginRequiredMixin, ListView):
                     name=name,
                     defaults={"category_type": cat_type, "is_active": True, "school": school},
                 )
-            categories_qs = ItemCategory.objects.filter(is_active=True)
-            if school:
-                categories_qs = categories_qs.filter(school=school)
+        # Ensure 'Canteen' category always exists and is synced
+        canteen_cat, created = ItemCategory.objects.get_or_create(
+            name="Canteen",
+            school=school,
+            defaults={"category_type": "canteen", "is_canteen": True, "is_active": True}
+        )
+        if not canteen_cat.is_canteen:
+            canteen_cat.is_canteen = True
+            canteen_cat.save(update_fields=['is_canteen'])
+            
+        categories_qs = ItemCategory.objects.filter(is_active=True)
+        if school:
+            categories_qs = categories_qs.filter(school=school)
 
         context['categories'] = categories_qs
         low_stock_qs = Item.objects.filter(quantity_in_stock__lte=F('reorder_level'), is_active=True)
