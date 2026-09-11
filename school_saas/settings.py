@@ -14,11 +14,11 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-key-change-in-product
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = [host.strip() for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')]
+ALLOWED_HOSTS = [host.strip() for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1,clasyo.timestentechnologies.co.ke,.timestentechnologies.co.ke,.onrender.com').split(',') if host.strip()]
 
 # CSRF Settings
 CSRF_FAILURE_VIEW = 'accounts.views.csrf_failure'
-CSRF_TRUSTED_ORIGINS = [f'https://{host.strip()}' for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')]
+CSRF_TRUSTED_ORIGINS = [f'https://{host.strip()}' for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1,clasyo.timestentechnologies.co.ke,.timestentechnologies.co.ke,.onrender.com').split(',') if host.strip()]
 CSRF_COOKIE_AGE = 3600  # 1 hour
 CSRF_COOKIE_HTTPONLY = False
 
