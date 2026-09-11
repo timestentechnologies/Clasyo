@@ -17,9 +17,12 @@ class StaticViewSitemap(Sitemap):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Get the current site's domain
-        current_site = Site.objects.get_current()
-        self.domain = current_site.domain
+        # Get the current site's domain safely
+        try:
+            current_site = Site.objects.get_current()
+            self.domain = current_site.domain
+        except Exception:
+            self.domain = getattr(settings, 'RENDER_EXTERNAL_HOSTNAME', '') or 'localhost'
 
     def items(self):
         # Define URLs with their metadata

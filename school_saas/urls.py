@@ -7,7 +7,7 @@ from frontend.sitemaps import StaticViewSitemap
 from inventory.views import CanteenPOSView
 
 sitemaps = {
-    'static': StaticViewSitemap(),  # Instantiate the sitemap class
+    'static': StaticViewSitemap,  # Pass class to avoid instantiating during urlconf import
 }
 
 urlpatterns = [
