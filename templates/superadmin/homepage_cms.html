@@ -21,16 +21,19 @@
         align-items: center;
         gap: 8px;
     }
+
     .cms-tab-btn:hover {
         background: #f1f5f9;
         color: #0f172a;
     }
+
     .cms-tab-btn.active {
-        background: linear-gradient(135deg, #06B6D4 0%, #0284C7 100%);
+        background-color: #0284c7;
         color: #ffffff;
         border-color: transparent;
-        box-shadow: 0 4px 14px rgba(6, 182, 212, 0.3);
+        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
     }
+
     .cms-card {
         background: #ffffff;
         border-radius: 16px;
@@ -39,10 +42,12 @@
         padding: 1.75rem;
         margin-bottom: 1.5rem;
     }
+
     .color-picker-input {
         height: 42px;
         padding: 4px 8px;
     }
+
     .step-preview-badge {
         display: inline-flex;
         align-items: center;
@@ -85,7 +90,8 @@
     <div class="row">
         <div class="col-lg-8">
             <div class="cms-card">
-                <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-bolt text-primary me-2"></i>Hero Section Content & Styling</h5>
+                <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-bolt text-primary me-2"></i>Hero Section Content &
+                    Styling</h5>
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="save_hero">
@@ -105,7 +111,8 @@
                         <div class="col-12">
                             <label class="form-label fw-semibold">Typing Animated Phrases (One per line)</label>
                             {{ hero_form.typing_texts }}
-                            <small class="text-muted">Each line will be typed out and erased sequentially in the animated loop.</small>
+                            <small class="text-muted">Each line will be typed out and erased sequentially in the
+                                animated loop.</small>
                         </div>
 
                         <div class="col-12">
@@ -146,7 +153,8 @@
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label fw-semibold">Custom CSS Gradient (Used if type is 'gradient')</label>
+                            <label class="form-label fw-semibold">Custom CSS Gradient (Used if type is
+                                'gradient')</label>
                             {{ hero_form.bg_gradient }}
                         </div>
 
@@ -169,12 +177,15 @@
 
         <div class="col-lg-4">
             <div class="cms-card">
-                <h6 class="fw-bold text-dark mb-3"><i class="fas fa-info-circle text-info me-2"></i>Tips & Guidelines</h6>
+                <h6 class="fw-bold text-dark mb-3"><i class="fas fa-info-circle text-info me-2"></i>Tips & Guidelines
+                </h6>
                 <p class="text-muted small">
-                    <strong>Typing Effect:</strong> Enter multiple educational themes (e.g. <em>CBC School Management</em>, <em>Financial Ledger</em>, <em>Student Attendance</em>).
+                    <strong>Typing Effect:</strong> Enter multiple educational themes (e.g. <em>CBC School
+                        Management</em>, <em>Financial Ledger</em>, <em>Student Attendance</em>).
                 </p>
                 <p class="text-muted small">
-                    <strong>Backgrounds:</strong> If using a background image, ensure high resolution (1920x1080) and set an overlay darkness around <code>0.80</code> for maximum text contrast.
+                    <strong>Backgrounds:</strong> If using a background image, ensure high resolution (1920x1080) and
+                    set an overlay darkness around <code>0.80</code> for maximum text contrast.
                 </p>
             </div>
         </div>
@@ -187,7 +198,8 @@
     {% if active_tab == 'process' %}
     <div class="row">
         <div class="col-12 mb-3 d-flex justify-content-between align-items-center">
-            <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-list-ol text-warning me-2"></i>How It Works Stepper Steps</h5>
+            <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-list-ol text-warning me-2"></i>How It Works Stepper
+                Steps</h5>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#stepModal">
                 <i class="fas fa-plus me-1"></i> Add New Step
             </button>
@@ -213,15 +225,19 @@
                             <tr>
                                 <td class="fw-bold fs-6">0{{ step.step_number }}</td>
                                 <td>
-                                    <span class="step-preview-badge" style="background-color: {{ step.accent_color }}20; color: {{ step.accent_color }}; border: 1px solid {{ step.accent_color }}50;">
+                                    <span class="step-preview-badge"
+                                        style="background-color: {{ step.accent_color }}20; color: {{ step.accent_color }}; border: 1px solid {{ step.accent_color }}50;">
                                         {{ step.phase_tag }}
                                     </span>
                                 </td>
                                 <td class="fw-bold text-dark">{{ step.title }}</td>
-                                <td class="text-muted small" style="max-width: 320px;">{{ step.description|truncatewords:20 }}</td>
+                                <td class="text-muted small" style="max-width: 320px;">{{
+                                    step.description|truncatewords:20 }}</td>
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
-                                        <div style="width: 20px; height: 20px; border-radius: 4px; background-color: {{ step.accent_color }};"></div>
+                                        <div
+                                            style="width: 20px; height: 20px; border-radius: 4px; background-color: {{ step.accent_color }};">
+                                        </div>
                                         <small class="text-muted">{{ step.accent_color }}</small>
                                     </div>
                                 </td>
@@ -233,10 +249,12 @@
                                     {% endif %}
                                 </td>
                                 <td class="text-end">
-                                    <a href="?tab=process&edit_step={{ step.id }}" class="btn btn-sm btn-outline-primary me-1">
+                                    <a href="?tab=process&edit_step={{ step.id }}"
+                                        class="btn btn-sm btn-outline-primary me-1">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <form method="post" class="d-inline" onsubmit="return confirm('Delete this step?');">
+                                    <form method="post" class="d-inline"
+                                        onsubmit="return confirm('Delete this step?');">
                                         {% csrf_token %}
                                         <input type="hidden" name="action" value="delete_step">
                                         <input type="hidden" name="step_id" value="{{ step.id }}">
@@ -248,7 +266,8 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="7" class="text-center py-4 text-muted">No process steps found. Click "+ Add New Step" above.</td>
+                                <td colspan="7" class="text-center py-4 text-muted">No process steps found. Click "+ Add
+                                    New Step" above.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -304,7 +323,8 @@
                     </div>
                 </div>
                 <div class="col-12 pt-2">
-                    <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-save me-1"></i> Update Step</button>
+                    <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-save me-1"></i> Update
+                        Step</button>
                     <a href="?tab=process" class="btn btn-outline-secondary ms-2">Cancel</a>
                 </div>
             </div>
@@ -328,11 +348,13 @@
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">Step #</label>
-                                <input type="number" class="form-control" name="step_number" value="{{ process_steps.count|add:1 }}" required>
+                                <input type="number" class="form-control" name="step_number"
+                                    value="{{ process_steps.count|add:1 }}" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold">Phase Tag</label>
-                                <input type="text" class="form-control" name="phase_tag" value="PHASE {{ process_steps.count|add:1 }}" required>
+                                <input type="text" class="form-control" name="phase_tag"
+                                    value="PHASE {{ process_steps.count|add:1 }}" required>
                             </div>
                             <div class="col-md-5">
                                 <label class="form-label fw-semibold">Accent Color</label>
@@ -340,7 +362,8 @@
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-semibold">Step Title</label>
-                                <input type="text" class="form-control" name="title" required placeholder="e.g. Discovery & Setup">
+                                <input type="text" class="form-control" name="title" required
+                                    placeholder="e.g. Discovery & Setup">
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-semibold">Detailed Description</label>
@@ -352,11 +375,13 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Display Order</label>
-                                <input type="number" class="form-control" name="order" value="{{ process_steps.count|add:1 }}">
+                                <input type="number" class="form-control" name="order"
+                                    value="{{ process_steps.count|add:1 }}">
                             </div>
                             <div class="col-12">
                                 <div class="form-check form-switch">
-                                    <input type="checkbox" class="form-check-input" name="is_active" checked id="step_active_new">
+                                    <input type="checkbox" class="form-check-input" name="is_active" checked
+                                        id="step_active_new">
                                     <label class="form-check-label fw-semibold" for="step_active_new">Active</label>
                                 </div>
                             </div>
@@ -364,7 +389,8 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-plus me-1"></i> Add Step</button>
+                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-plus me-1"></i> Add
+                            Step</button>
                     </div>
                 </form>
             </div>
@@ -378,7 +404,8 @@
     {% if active_tab == 'features' %}
     <div class="row">
         <div class="col-12 mb-3 d-flex justify-content-between align-items-center">
-            <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-th-large text-info me-2"></i>Comprehensive Feature Cards</h5>
+            <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-th-large text-info me-2"></i>Comprehensive Feature Cards
+            </h5>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#featureModal">
                 <i class="fas fa-plus me-1"></i> Add New Feature Card
             </button>
@@ -402,7 +429,8 @@
                             {% for feat in features %}
                             <tr>
                                 <td>
-                                    <div style="width: 38px; height: 38px; border-radius: 10px; background: #ecfeff; color: #0891b2; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                                    <div
+                                        style="width: 38px; height: 38px; border-radius: 10px; background: #ecfeff; color: #0891b2; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
                                         <i class="{{ feat.icon|default:'fas fa-star' }}"></i>
                                     </div>
                                 </td>
@@ -417,10 +445,12 @@
                                     {% endif %}
                                 </td>
                                 <td class="text-end">
-                                    <a href="?tab=features&edit_feature={{ feat.id }}" class="btn btn-sm btn-outline-primary me-1">
+                                    <a href="?tab=features&edit_feature={{ feat.id }}"
+                                        class="btn btn-sm btn-outline-primary me-1">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <form method="post" class="d-inline" onsubmit="return confirm('Delete this feature?');">
+                                    <form method="post" class="d-inline"
+                                        onsubmit="return confirm('Delete this feature?');">
                                         {% csrf_token %}
                                         <input type="hidden" name="action" value="delete_feature">
                                         <input type="hidden" name="feature_id" value="{{ feat.id }}">
@@ -445,7 +475,8 @@
     <!-- Edit Feature Form -->
     {% if edit_feature %}
     <div class="cms-card border-primary">
-        <h6 class="fw-bold text-primary mb-3"><i class="fas fa-edit me-2"></i>Editing Feature: {{ edit_feature.title }}</h6>
+        <h6 class="fw-bold text-primary mb-3"><i class="fas fa-edit me-2"></i>Editing Feature: {{ edit_feature.title }}
+        </h6>
         <form method="post">
             {% csrf_token %}
             <input type="hidden" name="action" value="save_feature">
@@ -476,7 +507,8 @@
                     </div>
                 </div>
                 <div class="col-12 pt-2">
-                    <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-save me-1"></i> Update Feature</button>
+                    <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-save me-1"></i> Update
+                        Feature</button>
                     <a href="?tab=features" class="btn btn-outline-secondary ms-2">Cancel</a>
                 </div>
             </div>
@@ -500,7 +532,8 @@
                         <div class="row g-3">
                             <div class="col-12">
                                 <label class="form-label fw-semibold">Title</label>
-                                <input type="text" class="form-control" name="title" required placeholder="e.g. Attendance & SMS">
+                                <input type="text" class="form-control" name="title" required
+                                    placeholder="e.g. Attendance & SMS">
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-semibold">Description</label>
@@ -508,15 +541,18 @@
                             </div>
                             <div class="col-8">
                                 <label class="form-label fw-semibold">Icon Class</label>
-                                <input type="text" class="form-control" name="icon" value="fas fa-star" placeholder="e.g. fas fa-user-graduate">
+                                <input type="text" class="form-control" name="icon" value="fas fa-star"
+                                    placeholder="e.g. fas fa-user-graduate">
                             </div>
                             <div class="col-4">
                                 <label class="form-label fw-semibold">Order</label>
-                                <input type="number" class="form-control" name="order" value="{{ features.count|add:1 }}">
+                                <input type="number" class="form-control" name="order"
+                                    value="{{ features.count|add:1 }}">
                             </div>
                             <div class="col-12">
                                 <div class="form-check form-switch">
-                                    <input type="checkbox" class="form-check-input" name="is_active" checked id="feat_active_new">
+                                    <input type="checkbox" class="form-check-input" name="is_active" checked
+                                        id="feat_active_new">
                                     <label class="form-check-label fw-semibold" for="feat_active_new">Active</label>
                                 </div>
                             </div>
@@ -524,7 +560,8 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-plus me-1"></i> Add Feature</button>
+                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-plus me-1"></i> Add
+                            Feature</button>
                     </div>
                 </form>
             </div>
@@ -538,7 +575,8 @@
     {% if active_tab == 'parallax' %}
     <div class="row">
         <div class="col-12 mb-3 d-flex justify-content-between align-items-center">
-            <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-image text-primary me-2"></i>Parallax Banners & Showcase Sections</h5>
+            <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-image text-primary me-2"></i>Parallax Banners & Showcase
+                Sections</h5>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#parallaxModal">
                 <i class="fas fa-plus me-1"></i> Add Parallax Banner
             </button>
@@ -563,7 +601,8 @@
                             {% for p in parallax_sections %}
                             <tr>
                                 <td>
-                                    <span class="badge bg-light text-info border border-info mb-1">{{ p.badge_text|default:"SHOWCASE" }}</span>
+                                    <span class="badge bg-light text-info border border-info mb-1">{{
+                                        p.badge_text|default:"SHOWCASE" }}</span>
                                     <div class="fw-bold text-dark">{{ p.title }}</div>
                                     <small class="text-muted">{{ p.subtitle|truncatewords:15 }}</small>
                                 </td>
@@ -579,13 +618,16 @@
                                     <span class="badge bg-primary"><i class="fas fa-image me-1"></i> Image</span>
                                     {% else %}
                                     <div class="d-flex align-items-center gap-1">
-                                        <div style="width: 16px; height: 16px; border-radius: 4px; background: {{ p.bg_color }};"></div>
+                                        <div
+                                            style="width: 16px; height: 16px; border-radius: 4px; background: {{ p.bg_color }};">
+                                        </div>
                                         <small class="text-muted">{{ p.bg_color }}</small>
                                     </div>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <small class="d-block text-primary fw-semibold">{{ p.primary_btn_text|default:"-" }}</small>
+                                    <small class="d-block text-primary fw-semibold">{{ p.primary_btn_text|default:"-"
+                                        }}</small>
                                     <small class="text-muted">{{ p.secondary_btn_text|default:"" }}</small>
                                 </td>
                                 <td>
@@ -596,10 +638,12 @@
                                     {% endif %}
                                 </td>
                                 <td class="text-end">
-                                    <a href="?tab=parallax&edit_parallax={{ p.id }}" class="btn btn-sm btn-outline-primary me-1">
+                                    <a href="?tab=parallax&edit_parallax={{ p.id }}"
+                                        class="btn btn-sm btn-outline-primary me-1">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <form method="post" class="d-inline" onsubmit="return confirm('Delete this parallax section?');">
+                                    <form method="post" class="d-inline"
+                                        onsubmit="return confirm('Delete this parallax section?');">
                                         {% csrf_token %}
                                         <input type="hidden" name="action" value="delete_parallax">
                                         <input type="hidden" name="parallax_id" value="{{ p.id }}">
@@ -611,7 +655,8 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="7" class="text-center py-4 text-muted">No parallax sections found. Click "+ Add Parallax Banner" above.</td>
+                                <td colspan="7" class="text-center py-4 text-muted">No parallax sections found. Click "+
+                                    Add Parallax Banner" above.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -624,7 +669,8 @@
     <!-- Edit Parallax Form -->
     {% if edit_parallax %}
     <div class="cms-card border-primary">
-        <h6 class="fw-bold text-primary mb-3"><i class="fas fa-edit me-2"></i>Editing Parallax Banner: {{ edit_parallax.title }}</h6>
+        <h6 class="fw-bold text-primary mb-3"><i class="fas fa-edit me-2"></i>Editing Parallax Banner: {{
+            edit_parallax.title }}</h6>
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             <input type="hidden" name="action" value="save_parallax">
@@ -692,7 +738,8 @@
                     </div>
                 </div>
                 <div class="col-12 pt-2">
-                    <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-save me-1"></i> Update Banner</button>
+                    <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-save me-1"></i> Update
+                        Banner</button>
                     <a href="?tab=parallax" class="btn btn-outline-secondary ms-2">Cancel</a>
                 </div>
             </div>
@@ -716,15 +763,18 @@
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold">Badge Pill Text</label>
-                                <input type="text" class="form-control" name="badge_text" placeholder="e.g. AI-POWERED SCHOOLS">
+                                <input type="text" class="form-control" name="badge_text"
+                                    placeholder="e.g. AI-POWERED SCHOOLS">
                             </div>
                             <div class="col-md-8">
                                 <label class="form-label fw-semibold">Heading Title</label>
-                                <input type="text" class="form-control" name="title" required placeholder="e.g. Digitize Your School Operations">
+                                <input type="text" class="form-control" name="title" required
+                                    placeholder="e.g. Digitize Your School Operations">
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-semibold">Subtitle</label>
-                                <input type="text" class="form-control" name="subtitle" placeholder="Short impactful subtitle">
+                                <input type="text" class="form-control" name="subtitle"
+                                    placeholder="Short impactful subtitle">
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-semibold">Body Content</label>
@@ -750,7 +800,8 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Overlay Darkness (0.0 to 1.0)</label>
-                                <input type="number" step="0.05" min="0" max="1" class="form-control" name="overlay_opacity" value="0.75">
+                                <input type="number" step="0.05" min="0" max="1" class="form-control"
+                                    name="overlay_opacity" value="0.75">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Background Image</label>
@@ -762,7 +813,8 @@
                             </div>
                             <div class="col-12">
                                 <div class="form-check form-switch">
-                                    <input type="checkbox" class="form-check-input" name="is_active" checked id="p_active_new">
+                                    <input type="checkbox" class="form-check-input" name="is_active" checked
+                                        id="p_active_new">
                                     <label class="form-check-label fw-semibold" for="p_active_new">Active</label>
                                 </div>
                             </div>
@@ -770,7 +822,8 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-plus me-1"></i> Add Parallax Banner</button>
+                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-plus me-1"></i> Add
+                            Parallax Banner</button>
                     </div>
                 </form>
             </div>

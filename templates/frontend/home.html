@@ -7,10 +7,10 @@
 {% block extra_css %}
 <style>
     /* ==========================================================================
-       Hero Section Styles
+       Hero Section Styles (Clean Solid Palette - No Gradients)
        ========================================================================== */
     .hero-section {
-        color: white;
+        color: #ffffff;
         padding: 5.5rem 0 4.5rem;
         position: relative;
         overflow: hidden;
@@ -18,10 +18,8 @@
         background: url('{{ hero_content.bg_image.url }}') center/cover no-repeat;
         {% elif hero_content and hero_content.bg_type == 'color' %}
         background-color: {{ hero_content.bg_color }};
-        {% elif hero_content and hero_content.bg_gradient %}
-        background: {{ hero_content.bg_gradient }};
         {% else %}
-        background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #164e63 100%);
+        background-color: #0f172a;
         {% endif %}
     }
     
@@ -35,17 +33,6 @@
         z-index: 1;
         pointer-events: none;
     }
-
-    .hero-radial-glow {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: radial-gradient(circle at 50% 30%, rgba(6, 182, 212, 0.18), transparent 70%);
-        z-index: 2;
-        pointer-events: none;
-    }
     
     /* Decorative background icons */
     .bg-icons {
@@ -55,14 +42,14 @@
         right: 0;
         bottom: 0;
         overflow: hidden;
-        opacity: 0.05;
+        opacity: 0.04;
         pointer-events: none;
         z-index: 2;
     }
     
     .bg-icon {
         position: absolute;
-        color: white;
+        color: #ffffff;
         animation: float 20s ease-in-out infinite;
     }
     
@@ -96,14 +83,13 @@
         justify-content: center;
         flex-wrap: wrap;
         letter-spacing: -0.5px;
+        color: #ffffff;
     }
     
     .typing-text {
         margin-right: 6px;
-        background: linear-gradient(135deg, #ffffff 60%, #a5f3fc 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        color: #38bdf8;
+        font-weight: 800;
     }
     
     .cursor {
@@ -122,7 +108,7 @@
         font-size: 1.15rem;
         color: #cbd5e1;
         margin-bottom: 2.25rem;
-        max-width: 580px;
+        max-width: 620px;
         margin-left: auto;
         margin-right: auto;
         line-height: 1.6;
@@ -162,36 +148,33 @@
     }
     
     .btn-hero-primary {
-        background: linear-gradient(135deg, #06B6D4 0%, #0284C7 100%);
+        background-color: #0284c7;
         color: #ffffff;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        box-shadow: 0 4px 16px rgba(6, 182, 212, 0.35);
+        border: 1px solid #0284c7;
+        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
     }
     
     .btn-hero-primary:hover,
     .btn-hero-primary:focus {
-        background: linear-gradient(135deg, #0891B2 0%, #0369A1 100%);
+        background-color: #0369a1;
+        border-color: #0369a1;
         color: #ffffff;
         transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(6, 182, 212, 0.45);
-        border-color: rgba(255, 255, 255, 0.35);
+        box-shadow: 0 8px 20px rgba(2, 132, 199, 0.45);
     }
     
     .btn-hero-outline {
-        background: rgba(255, 255, 255, 0.08);
+        background-color: rgba(255, 255, 255, 0.08);
         color: #ffffff;
         border: 1.5px solid rgba(255, 255, 255, 0.4);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
     }
     
     .btn-hero-outline:hover,
     .btn-hero-outline:focus {
-        background: rgba(255, 255, 255, 0.2);
+        background-color: rgba(255, 255, 255, 0.18);
         border-color: #ffffff;
         color: #ffffff;
         transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
     }
     
     /* ==========================================================================
@@ -199,7 +182,7 @@
        ========================================================================== */
     .stats-section {
         padding: 3.5rem 0 2.5rem;
-        background: #f8fafc;
+        background-color: #f8fafc;
         margin-top: 0;
         position: relative;
         z-index: 10;
@@ -207,11 +190,11 @@
     }
     
     .stat-card {
-        background: #ffffff;
+        background-color: #ffffff;
         padding: 1.5rem 1rem;
         border-radius: 16px;
         text-align: center;
-        box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
         transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
         border: 1px solid #e2e8f0;
         height: 100%;
@@ -223,22 +206,22 @@
     
     .stat-card:hover {
         transform: translateY(-4px);
-        box-shadow: 0 12px 28px -4px rgba(6, 182, 212, 0.15);
-        border-color: #a5f3fc;
+        box-shadow: 0 10px 24px rgba(2, 132, 199, 0.12);
+        border-color: #bae6fd;
     }
     
     .stat-icon {
         width: 48px;
         height: 48px;
-        background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
+        background-color: #e0f2fe;
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
         margin: 0 auto 0.75rem;
-        color: #0891b2;
+        color: #0284c7;
         font-size: 1.25rem;
-        border: 1px solid #a5f3fc;
+        border: 1px solid #bae6fd;
     }
     
     .stat-number {
@@ -262,7 +245,7 @@
        ========================================================================== */
     .process-section {
         padding: 6rem 0;
-        background: #ffffff;
+        background-color: #ffffff;
         position: relative;
     }
 
@@ -272,7 +255,7 @@
         gap: 6px;
         font-size: 0.82rem;
         font-weight: 700;
-        color: #f59e0b;
+        color: #d97706;
         text-transform: uppercase;
         letter-spacing: 1.2px;
         margin-bottom: 0.75rem;
@@ -284,7 +267,7 @@
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        background-color: #f59e0b;
+        background-color: #d97706;
     }
 
     .process-header-title {
@@ -310,16 +293,27 @@
         padding-left: 2.5rem;
     }
 
-    /* Continuous Timeline Track Line */
-    .process-timeline::before {
-        content: '';
+    /* Continuous Background Track Line */
+    .process-timeline-rail {
         position: absolute;
         left: 12px;
-        top: 15px;
-        bottom: 25px;
+        top: 14px;
+        bottom: 24px;
         width: 2px;
-        background: #e2e8f0;
+        background-color: #e2e8f0;
         z-index: 1;
+    }
+
+    /* Dynamic Highlight Progress Bar that moves on scroll */
+    .process-timeline-progress {
+        position: absolute;
+        left: 12px;
+        top: 14px;
+        width: 2px;
+        height: 0;
+        background-color: #d97706;
+        z-index: 2;
+        transition: height 0.2s cubic-bezier(0.2, 0.8, 0.4, 1);
     }
 
     .process-phase-block {
@@ -340,12 +334,12 @@
         width: 26px;
         height: 26px;
         border-radius: 50%;
-        background: #ffffff;
+        background-color: #ffffff;
         border: 2px solid #cbd5e1;
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 2;
+        z-index: 3;
         transition: all 0.3s ease;
     }
 
@@ -353,24 +347,33 @@
         width: 10px;
         height: 10px;
         border-radius: 50%;
-        background: #cbd5e1;
+        background-color: #cbd5e1;
         transition: all 0.3s ease;
     }
 
     .process-phase-block.active .phase-marker {
-        border-color: #f59e0b;
-        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
+        border-color: #d97706;
+        box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.2);
     }
 
     .process-phase-block.active .phase-marker-dot {
-        background: #f59e0b;
+        background-color: #d97706;
         transform: scale(1.2);
+    }
+
+    .process-phase-block.completed .phase-marker {
+        border-color: #d97706;
+        background-color: #ffffff;
+    }
+
+    .process-phase-block.completed .phase-marker-dot {
+        background-color: #d97706;
     }
 
     .phase-tag {
         font-size: 0.8rem;
         font-weight: 700;
-        color: #f59e0b;
+        color: #d97706;
         text-transform: uppercase;
         letter-spacing: 1px;
         margin-bottom: 0.4rem;
@@ -389,7 +392,7 @@
         font-size: 1rem;
         color: #64748b;
         line-height: 1.65;
-        max-width: 540px;
+        max-width: 560px;
     }
 
     /* Sticky Navigation Card (Right Column) */
@@ -400,11 +403,11 @@
     }
 
     .process-sticky-card {
-        background: #0b1528;
+        background-color: #0b132b;
         border-radius: 24px;
         padding: 2.25rem 2rem;
-        box-shadow: 0 20px 50px -10px rgba(15, 23, 42, 0.35);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.3);
+        border: 1px solid #1e293b;
     }
 
     .process-nav-list {
@@ -433,14 +436,14 @@
 
     .process-nav-item:hover {
         color: #ffffff;
-        background: rgba(255, 255, 255, 0.04);
+        background-color: #1e293b;
     }
 
     .process-nav-num {
         width: 32px;
         height: 32px;
         border-radius: 8px;
-        background: rgba(255, 255, 255, 0.06);
+        background-color: #1e293b;
         color: #94a3b8;
         display: flex;
         align-items: center;
@@ -453,20 +456,18 @@
 
     /* Active Glowing State in Sticky Card */
     .process-nav-item.active {
-        background: rgba(245, 158, 11, 0.08);
-        border-color: rgba(245, 158, 11, 0.6);
+        background-color: rgba(217, 119, 6, 0.12);
+        border-color: #d97706;
         color: #ffffff;
-        box-shadow: 0 4px 20px rgba(245, 158, 11, 0.15);
     }
 
     .process-nav-item.active .process-nav-num {
-        background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+        background-color: #d97706;
         color: #ffffff;
-        box-shadow: 0 0 14px rgba(245, 158, 11, 0.4);
     }
 
     /* ==========================================================================
-       Parallax Sections
+       Parallax Sections (Solid Palette - No Gradients)
        ========================================================================== */
     .parallax-section {
         position: relative;
@@ -514,8 +515,8 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        background: rgba(6, 182, 212, 0.15);
-        border: 1px solid rgba(6, 182, 212, 0.4);
+        background-color: rgba(2, 132, 199, 0.2);
+        border: 1px solid #0284c7;
         color: #38bdf8;
         padding: 0.4rem 1.1rem;
         border-radius: 50px;
@@ -524,7 +525,6 @@
         letter-spacing: 1px;
         text-transform: uppercase;
         margin-bottom: 1.5rem;
-        backdrop-filter: blur(8px);
     }
 
     .parallax-title {
@@ -548,17 +548,33 @@
        Features Section
        ========================================================================== */
     .features-section {
-        padding: 5rem 0;
-        background: #f8fafc;
+        padding: 5.5rem 0;
+        background-color: #f8fafc;
+    }
+
+    .section-title {
+        font-size: 2.4rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.5px;
+    }
+
+    .section-subtitle {
+        font-size: 1.1rem;
+        color: #64748b;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
     }
 
     .feature-card {
-        background: #ffffff;
-        padding: 1.6rem 1.35rem;
+        background-color: #ffffff;
+        padding: 1.75rem 1.35rem;
         border-radius: 16px;
         text-align: center;
         height: 100%;
-        box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.04);
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
         transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
         border: 1px solid #e2e8f0;
         display: flex;
@@ -568,33 +584,35 @@
     
     .feature-card:hover {
         transform: translateY(-4px);
-        box-shadow: 0 14px 30px -4px rgba(6, 182, 212, 0.12);
-        border-color: #cffafe;
+        box-shadow: 0 12px 28px rgba(2, 132, 199, 0.12);
+        border-color: #bae6fd;
     }
     
     .feature-icon {
         width: 52px;
         height: 52px;
-        background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
+        background-color: #e0f2fe;
         border-radius: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
         margin: 0 auto 1.1rem;
-        color: #0891b2;
+        color: #0284c7;
         font-size: 1.3rem;
-        border: 1px solid #a5f3fc;
+        border: 1px solid #bae6fd;
         transition: transform 0.25s ease;
     }
 
     .feature-card:hover .feature-icon {
         transform: scale(1.08);
+        background-color: #0284c7;
+        color: #ffffff;
     }
     
     .feature-title {
         font-size: 1.08rem;
         font-weight: 700;
-        color: #1e293b;
+        color: #0f172a;
         margin-bottom: 0.5rem;
     }
     
@@ -609,8 +627,8 @@
        CTA Section
        ========================================================================== */
     .cta-section {
-        background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
-        color: white;
+        background-color: #0f172a;
+        color: #ffffff;
         padding: 4.5rem 0 4rem;
         position: relative;
         overflow: hidden;
@@ -619,7 +637,7 @@
     .cta-icon {
         width: 68px;
         height: 68px;
-        background: linear-gradient(135deg, #06B6D4 0%, #0284C7 100%);
+        background-color: #0284c7;
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -627,13 +645,20 @@
         margin: 0 auto 1.25rem;
         font-size: 1.65rem;
         border: 2px solid rgba(255, 255, 255, 0.2);
-        color: white;
-        box-shadow: 0 8px 24px rgba(6, 182, 212, 0.35);
+        color: #ffffff;
+        box-shadow: 0 6px 20px rgba(2, 132, 199, 0.35);
     }
     
     /* ==========================================================================
        Mobile Responsive Optimizations
        ========================================================================== */
+    @media (max-width: 991px) {
+        .process-sticky-container,
+        .process-sticky-card {
+            display: none !important;
+        }
+    }
+
     @media (max-width: 768px) {
         .hero-section {
             padding: 3.25rem 0 2.5rem !important;
@@ -738,6 +763,10 @@
             padding: 3.5rem 0 !important;
         }
         
+        .section-title {
+            font-size: 1.85rem !important;
+        }
+
         .feature-card {
             padding: 1.25rem 1rem !important;
             border-radius: 14px !important;
@@ -826,42 +855,64 @@
         // =======================================================
         // 2. Interactive Scroll Stepper (Scroll-Spy & Sticky Card)
         // =======================================================
+        const timeline = document.querySelector('.process-timeline');
+        const progressBar = document.querySelector('.process-timeline-progress');
         const phaseBlocks = document.querySelectorAll('.process-phase-block');
         const navItems = document.querySelectorAll('.process-nav-item');
 
-        if (phaseBlocks.length > 0 && navItems.length > 0) {
+        if (phaseBlocks.length > 0) {
             function updateActivePhase() {
-                const scrollPosition = window.scrollY + (window.innerHeight * 0.45);
-                let currentStep = '1';
+                const triggerPoint = window.innerHeight * 0.45;
+                let activeIndex = 0;
+                let activeStep = phaseBlocks[0].getAttribute('data-step');
 
-                phaseBlocks.forEach(block => {
-                    const blockTop = block.offsetTop;
-                    const blockHeight = block.offsetHeight;
-                    if (scrollPosition >= blockTop && scrollPosition < blockTop + blockHeight) {
-                        currentStep = block.getAttribute('data-step');
+                phaseBlocks.forEach((block, index) => {
+                    const rect = block.getBoundingClientRect();
+                    // When the top of block is at or above the trigger line
+                    if (rect.top <= triggerPoint) {
+                        activeIndex = index;
+                        activeStep = block.getAttribute('data-step');
                     }
                 });
 
-                // Update timeline blocks
-                phaseBlocks.forEach(block => {
-                    if (block.getAttribute('data-step') === currentStep) {
+                // Update timeline blocks active/completed status
+                phaseBlocks.forEach((block, index) => {
+                    if (index === activeIndex) {
                         block.classList.add('active');
+                        block.classList.remove('completed');
+                    } else if (index < activeIndex) {
+                        block.classList.remove('active');
+                        block.classList.add('completed');
                     } else {
                         block.classList.remove('active');
+                        block.classList.remove('completed');
                     }
                 });
 
-                // Update sticky navigation items
+                // Update sticky navigation items on the right
                 navItems.forEach(item => {
-                    if (item.getAttribute('data-step') === currentStep) {
+                    if (item.getAttribute('data-step') === activeStep) {
                         item.classList.add('active');
                     } else {
                         item.classList.remove('active');
                     }
                 });
+
+                // Update progress bar height down the vertical rail
+                if (progressBar && timeline && phaseBlocks.length > 0) {
+                    const activeBlock = phaseBlocks[activeIndex];
+                    const marker = activeBlock.querySelector('.phase-marker');
+                    if (marker) {
+                        const markerRect = marker.getBoundingClientRect();
+                        const timelineRect = timeline.getBoundingClientRect();
+                        const progressHeight = Math.max(0, markerRect.top + (markerRect.height / 2) - timelineRect.top - 14);
+                        progressBar.style.height = progressHeight + 'px';
+                    }
+                }
             }
 
             window.addEventListener('scroll', updateActivePhase, { passive: true });
+            window.addEventListener('resize', updateActivePhase);
             updateActivePhase(); // Initial check
 
             // Click-to-scroll on sticky card items
@@ -871,7 +922,7 @@
                     const targetStep = this.getAttribute('data-step');
                     const targetBlock = document.querySelector(`.process-phase-block[data-step="${targetStep}"]`);
                     if (targetBlock) {
-                        const yOffset = -140;
+                        const yOffset = -120;
                         const y = targetBlock.getBoundingClientRect().top + window.pageYOffset + yOffset;
                         window.scrollTo({ top: y, behavior: 'smooth' });
                     }
@@ -892,21 +943,17 @@
                 if (!bg) return;
                 
                 const rect = section.getBoundingClientRect();
-                // Check if in viewport
                 if (rect.top <= viewportHeight && rect.bottom >= 0) {
                     const progress = (viewportHeight - rect.top) / (viewportHeight + rect.height);
                     const effect = section.getAttribute('data-effect');
 
                     if (effect === 'zoom_in') {
-                        // Scales from 1.0 up to 1.18
                         const scale = 1.0 + (progress * 0.18);
                         bg.style.transform = `scale(${scale.toFixed(3)}) translate3d(0, 0, 0)`;
                     } else if (effect === 'zoom_out') {
-                        // Scales down from 1.18 to 1.0
                         const scale = 1.18 - (progress * 0.18);
                         bg.style.transform = `scale(${scale.toFixed(3)}) translate3d(0, 0, 0)`;
                     } else if (effect === 'standard') {
-                        // Smooth Y-translation
                         const yPos = (progress - 0.5) * 80;
                         bg.style.transform = `translate3d(0, ${yPos.toFixed(1)}px, 0)`;
                     }
@@ -929,7 +976,6 @@
          ========================================================================= -->
     <section class="hero-section">
         <div class="hero-overlay"></div>
-        <div class="hero-radial-glow"></div>
         
         <!-- Background Icons -->
         <div class="bg-icons">
@@ -964,7 +1010,7 @@
     </section>
 
     <!-- =========================================================================
-         2. Stats Section (2x2 grid on mobile, 4 columns on desktop with clean spacing)
+         2. Stats Section (2x2 grid on mobile, 4 columns on desktop)
          ========================================================================= -->
     <section class="stats-section">
         <div class="container">
@@ -1024,14 +1070,19 @@
 
             <div class="row position-relative">
                 <!-- Left Column: Scroll Timeline Blocks -->
-                <div class="col-lg-7">
+                <div class="col-12 col-lg-7">
                     <div class="process-timeline">
+                        <!-- Neutral background rail track -->
+                        <div class="process-timeline-rail"></div>
+                        <!-- Active dynamic progress fill that tracks scroll -->
+                        <div class="process-timeline-progress"></div>
+
                         {% for step in process_steps %}
                         <div class="process-phase-block {% if forloop.first %}active{% endif %}" data-step="{{ step.step_number }}" id="phase-step-{{ step.step_number }}">
                             <div class="phase-marker">
-                                <div class="phase-marker-dot" style="background-color: {{ step.accent_color|default:'#f59e0b' }};"></div>
+                                <div class="phase-marker-dot"></div>
                             </div>
-                            <span class="phase-tag" style="color: {{ step.accent_color|default:'#f59e0b' }};">{{ step.phase_tag }}</span>
+                            <span class="phase-tag">{{ step.phase_tag }}</span>
                             <h3 class="phase-title">{{ step.title }}</h3>
                             <p class="phase-description">{{ step.description }}</p>
                         </div>
@@ -1071,7 +1122,7 @@
                     </div>
                 </div>
 
-                <!-- Right Column: Sticky Navigation Card (Highlights Active Step on Scroll) -->
+                <!-- Right Column: Sticky Navigation Card (Hidden on Mobile, Visible on Desktop) -->
                 <div class="col-lg-5 d-none d-lg-block">
                     <div class="process-sticky-container">
                         <div class="process-sticky-card">
@@ -1124,7 +1175,7 @@
     </section>
 
     <!-- =========================================================================
-         4. Parallax Showcase Sections (Dynamic Parallax with Zoom / Fixed Effects)
+         4. Parallax Showcase Sections (Solid Colors, No Gradients)
          ========================================================================= -->
     {% for parallax in parallax_sections %}
     <section class="parallax-section" data-effect="{{ parallax.scroll_effect|default:'fixed_bg' }}">
@@ -1136,7 +1187,7 @@
         <div class="container text-center parallax-content-container">
             {% if parallax.badge_text %}
             <div class="parallax-badge">
-                <i class="fas fa-sparkles me-1 text-info"></i> {{ parallax.badge_text }}
+                <i class="fas fa-check-circle me-1 text-info"></i> {{ parallax.badge_text }}
             </div>
             {% endif %}
             <h2 class="parallax-title">{{ parallax.title }}</h2>
@@ -1170,13 +1221,13 @@
     {% endfor %}
 
     <!-- =========================================================================
-         5. Comprehensive Features Section
+         5. Comprehensive Features Section (All 16 Key School Modules)
          ========================================================================= -->
     <section class="features-section" id="features">
         <div class="container">
             <div class="text-center mb-4 mb-lg-5">
                 <h2 class="section-title">Comprehensive Features</h2>
-                <p class="section-subtitle mb-0">Everything you need to manage your school efficiently</p>
+                <p class="section-subtitle mb-0">Complete suite of tools engineered for Kenyan primary, secondary, CBC and TVET institutions</p>
             </div>
             <div class="row g-3 g-lg-4">
                 {% for feature in features %}
@@ -1190,33 +1241,117 @@
                     </div>
                 </div>
                 {% empty %}
-                <!-- Fallback feature cards -->
+                <!-- Fallback 16 feature cards covering the entire system -->
                 <div class="col-12 col-sm-6 col-lg-3">
                     <div class="feature-card">
                         <div class="feature-icon"><i class="fas fa-user-graduate"></i></div>
-                        <h5 class="feature-title">Student Management</h5>
-                        <p class="feature-description">Complete student profiles, admissions, and academic tracking system</p>
+                        <h5 class="feature-title">Student Information & CBC</h5>
+                        <p class="feature-description">Complete student profiles, UPI/NEMIS tracking, admissions, and digital archive</p>
                     </div>
                 </div>
                 <div class="col-12 col-sm-6 col-lg-3">
                     <div class="feature-card">
                         <div class="feature-icon"><i class="fas fa-chalkboard-teacher"></i></div>
-                        <h5 class="feature-title">Academic Management</h5>
-                        <p class="feature-description">Classes, subjects, timetables, and digital study materials</p>
+                        <h5 class="feature-title">Academics & Timetables</h5>
+                        <p class="feature-description">Class streams, subject allocations, routine scheduling, and lesson planning</p>
                     </div>
                 </div>
                 <div class="col-12 col-sm-6 col-lg-3">
                     <div class="feature-card">
                         <div class="feature-icon"><i class="fas fa-dollar-sign"></i></div>
-                        <h5 class="feature-title">Fee Management</h5>
-                        <p class="feature-description">Flexible fee structure with multiple payment options and real-time balances</p>
+                        <h5 class="feature-title">Fee Management & Billing</h5>
+                        <p class="feature-description">Flexible termly voteheads, student invoices, waivers, and real-time balances</p>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-mobile-alt"></i></div>
+                        <h5 class="feature-title">M-Pesa STK & Paybill</h5>
+                        <p class="feature-description">Direct Daraja STK Push, Paybill C2B automated receipting & reconciliation</p>
                     </div>
                 </div>
                 <div class="col-12 col-sm-6 col-lg-3">
                     <div class="feature-card">
                         <div class="feature-icon"><i class="fas fa-file-alt"></i></div>
-                        <h5 class="feature-title">Examinations & CBC</h5>
-                        <p class="feature-description">Complete exam system with online testing and automated grading</p>
+                        <h5 class="feature-title">Examinations & Grading</h5>
+                        <p class="feature-description">Termly exams, automatic grading curves, and instant PDF report cards</p>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-clipboard-check"></i></div>
+                        <h5 class="feature-title">CBC Assessment Rubrics</h5>
+                        <p class="feature-description">Strand & sub-strand formative/summative rubrics with performance levels</p>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-calculator"></i></div>
+                        <h5 class="feature-title">Double-Entry Accounting</h5>
+                        <p class="feature-description">Chart of Accounts, General Ledger, Cashbook, Trial Balance, and Expenses</p>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-boxes"></i></div>
+                        <h5 class="feature-title">Inventory & Procurement</h5>
+                        <p class="feature-description">Store stock tracking, supplier management, purchase orders & distribution</p>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-utensils"></i></div>
+                        <h5 class="feature-title">Canteen POS & Meals</h5>
+                        <p class="feature-description">Cashless student POS terminal, meal allowance tracking & sales reports</p>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-bus"></i></div>
+                        <h5 class="feature-title">Transport & Logistics</h5>
+                        <p class="feature-description">Fleet management, bus route planning, pickup zones, and driver assignments</p>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-bed"></i></div>
+                        <h5 class="feature-title">Hostels & Dormitories</h5>
+                        <p class="feature-description">Boarding facility allocation, room capacity tracking, and student bed logs</p>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-book"></i></div>
+                        <h5 class="feature-title">Digital Library & Barcodes</h5>
+                        <p class="feature-description">Book catalogue, ISBN/barcode scanning, issue & return records with overdue alerts</p>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-users-cog"></i></div>
+                        <h5 class="feature-title">Staff HR & Payroll</h5>
+                        <p class="feature-description">Staff profiles, role delegations, leave approvals, and automated payslip generation</p>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-sms"></i></div>
+                        <h5 class="feature-title">Attendance & SMS Alerts</h5>
+                        <p class="feature-description">Daily student roll-call with automated instant SMS notifications to parents</p>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-laptop-code"></i></div>
+                        <h5 class="feature-title">Online CBT & Homework</h5>
+                        <p class="feature-description">Digital homework uploads, timed online computer-based examinations & results</p>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-robot"></i></div>
+                        <h5 class="feature-title">AI Assistant & Analytics</h5>
+                        <p class="feature-description">Predictive fee collection forecasts, student performance analysis & smart queries</p>
                     </div>
                 </div>
                 {% endfor %}
@@ -1245,3 +1380,4 @@
     </section>
 
 {% endblock %}
+
