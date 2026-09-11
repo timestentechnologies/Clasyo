@@ -165,10 +165,8 @@
     }
     
     .btn-hero {
-        padding: 0.75rem 1.85rem;
         font-weight: 600;
         border-radius: 50px;
-        font-size: 1rem;
         transition: all 0.25s ease;
         text-decoration: none;
         display: inline-flex;
@@ -176,6 +174,19 @@
         justify-content: center;
         letter-spacing: 0.2px;
         cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .btn-hero-action {
+        padding: 0.75rem 1.75rem;
+        font-size: 0.98rem;
+    }
+
+    .btn-cta {
+        padding: 0.75rem 2.2rem;
+        font-size: 1rem;
+        width: auto;
+        display: inline-flex;
     }
     
     .btn-hero-primary {
@@ -213,11 +224,12 @@
     
     /* Stats Section */
     .stats-section {
-        padding: 3rem 0;
-        background: transparent;
-        margin-top: -2.5rem;
+        padding: 3.5rem 0 2.5rem;
+        background: #f8fafc;
+        margin-top: 0;
         position: relative;
         z-index: 10;
+        border-bottom: 1px solid #e2e8f0;
     }
     
     .stat-card {
@@ -274,7 +286,7 @@
     /* Features Section */
     .features-section {
         padding: 5rem 0;
-        background: #f8fafc;
+        background: #ffffff;
     }
 
     .feature-card {
@@ -334,21 +346,21 @@
     .cta-section {
         background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
         color: white;
-        padding: 5rem 0 4.5rem;
+        padding: 4.5rem 0 4rem;
         position: relative;
         overflow: hidden;
     }
     
     .cta-icon {
-        width: 72px;
-        height: 72px;
+        width: 68px;
+        height: 68px;
         background: linear-gradient(135deg, #06B6D4 0%, #0284C7 100%);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin: 0 auto 1.5rem;
-        font-size: 1.8rem;
+        margin: 0 auto 1.25rem;
+        font-size: 1.65rem;
         border: 2px solid rgba(255, 255, 255, 0.2);
         color: white;
         box-shadow: 0 8px 24px rgba(6, 182, 212, 0.35);
@@ -357,7 +369,7 @@
     /* Mobile Responsive Optimizations */
     @media (max-width: 768px) {
         .hero-section {
-            padding: 3.5rem 0 3rem !important;
+            padding: 3.25rem 0 2.5rem !important;
         }
 
         .hero-title {
@@ -378,16 +390,26 @@
             width: 100%;
         }
         
-        .btn-hero {
+        .btn-hero-action {
             padding: 0.6rem 1.15rem !important;
             font-size: 0.88rem !important;
             flex: 1 1 calc(50% - 0.5rem);
             max-width: 165px;
+            white-space: nowrap !important;
+        }
+
+        .btn-cta {
+            padding: 0.65rem 1.4rem !important;
+            font-size: 0.9rem !important;
+            width: auto !important;
+            max-width: 100% !important;
+            white-space: nowrap !important;
+            flex: none !important;
         }
 
         .stats-section {
-            padding: 1.75rem 0 !important;
-            margin-top: -1.75rem !important;
+            padding: 2.25rem 0 1.75rem !important;
+            margin-top: 0 !important;
         }
         
         .stat-card {
@@ -437,14 +459,14 @@
         }
 
         .cta-section {
-            padding: 3.5rem 0 3rem !important;
+            padding: 3.25rem 0 2.75rem !important;
         }
 
         .cta-icon {
-            width: 58px !important;
-            height: 58px !important;
-            font-size: 1.4rem !important;
-            margin-bottom: 1.25rem !important;
+            width: 54px !important;
+            height: 54px !important;
+            font-size: 1.3rem !important;
+            margin-bottom: 1rem !important;
         }
     }
 </style>
@@ -471,17 +493,17 @@
             </h1>
             <p class="hero-subtitle">Complete cloud-based solution for modern education management. Streamline operations and enhance learning experiences.</p>
             <div class="hero-buttons-container">
-                <button class="btn btn-hero btn-hero-primary" data-bs-toggle="modal" data-bs-target="#registerModal">
+                <button class="btn btn-hero btn-hero-action btn-hero-primary" data-bs-toggle="modal" data-bs-target="#registerModal">
                     <i class="fas fa-rocket me-2"></i>Start Free Trial
                 </button>
-                <button class="btn btn-hero btn-hero-outline" data-bs-toggle="modal" data-bs-target="#loginModal">
+                <button class="btn btn-hero btn-hero-action btn-hero-outline" data-bs-toggle="modal" data-bs-target="#loginModal">
                     <i class="fas fa-sign-in-alt me-2"></i>Sign In
                 </button>
             </div>
         </div>
     </section>
 
-    <!-- Stats Section (2x2 grid on mobile, 4 columns on desktop) -->
+    <!-- Stats Section (2x2 grid on mobile, 4 columns on desktop with clean spacing) -->
     <section class="stats-section">
         <div class="container">
             <div class="row g-3 g-lg-4 justify-content-center">
@@ -653,11 +675,11 @@
                 <i class="fas fa-rocket"></i>
             </div>
             <h2 class="display-5 fw-bold mb-3">Ready to Get Started?</h2>
-            <p class="lead mb-4 text-light opacity-90" style="font-size: 1.1rem;">
+            <p class="lead mb-4 text-light opacity-90" style="font-size: 1.05rem;">
                 <i class="fas fa-check-circle me-2 text-info"></i>
                 Join hundreds of schools already transforming education with Clasyo
             </p>
-            <a href="{% url 'frontend:pricing' %}" class="btn btn-hero btn-hero-primary">
+            <a href="{% url 'frontend:pricing' %}" class="btn btn-hero btn-cta btn-hero-primary">
                 <i class="fas fa-star me-2"></i>View Pricing Plans
                 <i class="fas fa-arrow-right ms-2"></i>
             </a>
