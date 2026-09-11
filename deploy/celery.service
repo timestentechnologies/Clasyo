@@ -1,0 +1,16 @@
+[Unit]
+Description=Celery Worker for School SaaS
+After=network.target redis-server.service
+
+[Service]
+Type=forking
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/schoolsaas
+Environment="PATH=/home/ubuntu/schoolsaas/venv/bin"
+ExecStart=/home/ubuntu/schoolsaas/venv/bin/celery -A school_saas worker --loglevel=INFO --detach
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,6 +1,7 @@
 from pathlib import Path
 from decouple import config
 import os
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -33,6 +34,15 @@ if ADDITIONAL_TRUSTED_ORIGINS and ADDITIONAL_TRUSTED_ORIGINS[0]:
     for origin in ADDITIONAL_TRUSTED_ORIGINS:
         if origin.strip():
             CSRF_TRUSTED_ORIGINS += [f'https://{origin.strip()}', f'http://{origin.strip()}']
+
+# Render.com automatic host configuration
+RENDER_EXTERNAL_HOSTNAME = config('RENDER_EXTERNAL_HOSTNAME', default=None)
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+    CSRF_TRUSTED_ORIGINS.append(f'https://{RENDER_EXTERNAL_HOSTNAME}')
+
+# Silence non-critical system check warnings
+SILENCED_SYSTEM_CHECKS = ['ckeditor.W001']
 
 # Application definition
 INSTALLED_APPS = [
@@ -87,6 +97,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.gzip.GZipMiddleware',
     'tenants.middleware.TenantMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -128,9 +139,21 @@ WSGI_APPLICATION = 'school_saas.wsgi.application'
 ASGI_APPLICATION = 'school_saas.asgi.application'
 
 # Database
-DB_ENGINE = config('DB_ENGINE', default='sqlite3')
+# Auto-detect environment: Neon PostgreSQL (DATABASE_URL), MySQL, or Local SQLite
+DATABASE_URL = config('DATABASE_URL', default=None)
+IS_PRODUCTION = config('IS_PRODUCTION', default=not DEBUG, cast=bool)
+DB_ENGINE = config('DB_ENGINE', default='mysql' if IS_PRODUCTION else 'sqlite3')
 
-if DB_ENGINE == 'mysql':
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=True,
+        )
+    }
+elif DB_ENGINE == 'mysql':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
@@ -183,6 +206,11 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
+# Django Allauth Configuration (Custom User model uses email, no username field)
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
+
 LOGIN_URL = 'accounts:login'
 # LOGIN_REDIRECT_URL for social logins (regular email/password handled in LoginView)
 LOGIN_REDIRECT_URL = '/accounts/social-login-complete/'
@@ -206,6 +234,16 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+
+# Whitenoise static files storage
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
 
 # Media files
 MEDIA_URL = '/media/'
