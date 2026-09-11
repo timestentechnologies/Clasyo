@@ -7,36 +7,40 @@ import django.db.models.deletion
 
 def add_approved_fields_if_missing(apps, schema_editor):
     connection = schema_editor.connection
+    vendor = connection.vendor
     with connection.cursor() as cursor:
-        # Check if approved_at column already exists
-        cursor.execute("SHOW COLUMNS FROM lesson_plan_lessonplan LIKE 'approved_at'")
-        if cursor.fetchone():
-            # Column already exists, skip adding it
-            return
-        
-        # Add approved_at field
-        cursor.execute("""
-            ALTER TABLE lesson_plan_lessonplan 
-            ADD COLUMN approved_at DATETIME NULL
-        """)
-        
-        # Check if approved_by column already exists
-        cursor.execute("SHOW COLUMNS FROM lesson_plan_lessonplan LIKE 'approved_by'")
-        if not cursor.fetchone():
-            # Add approved_by field
+        if vendor == 'postgresql':
             cursor.execute("""
-                ALTER TABLE lesson_plan_lessonplan 
-                ADD COLUMN approved_by_id BIGINT NULL
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'lesson_plan_lessonplan'
             """)
-        
-        # Check if attachments column already exists
-        cursor.execute("SHOW COLUMNS FROM lesson_plan_lessonplan LIKE 'attachments'")
-        if not cursor.fetchone():
-            # Add attachments field
-            cursor.execute("""
-                ALTER TABLE lesson_plan_lessonplan 
-                ADD COLUMN attachments VARCHAR(100) NULL
-            """)
+            existing = {row[0] for row in cursor.fetchall()}
+            if 'approved_at' not in existing:
+                cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN approved_at TIMESTAMP WITH TIME ZONE NULL")
+            if 'approved_by_id' not in existing:
+                cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN approved_by_id BIGINT NULL")
+            if 'attachments' not in existing:
+                cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN attachments VARCHAR(100) NULL")
+        elif vendor == 'mysql':
+            cursor.execute("SHOW COLUMNS FROM lesson_plan_lessonplan LIKE 'approved_at'")
+            if cursor.fetchone():
+                return
+            cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN approved_at DATETIME NULL")
+            cursor.execute("SHOW COLUMNS FROM lesson_plan_lessonplan LIKE 'approved_by'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN approved_by_id BIGINT NULL")
+            cursor.execute("SHOW COLUMNS FROM lesson_plan_lessonplan LIKE 'attachments'")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN attachments VARCHAR(100) NULL")
+        elif vendor == 'sqlite':
+            cursor.execute("PRAGMA table_info(lesson_plan_lessonplan)")
+            existing = {row[1] for row in cursor.fetchall()}
+            if 'approved_at' not in existing:
+                cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN approved_at DATETIME NULL")
+            if 'approved_by_id' not in existing:
+                cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN approved_by_id BIGINT NULL")
+            if 'attachments' not in existing:
+                cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN attachments VARCHAR(100) NULL")
 
 
 def reverse_approved_fields(apps, schema_editor):

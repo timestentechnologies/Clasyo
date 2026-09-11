@@ -18,6 +18,22 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
+            name='LessonPlanTemplate',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('description', models.TextField(blank=True)),
+                ('is_active', models.BooleanField(default=True)),
+                ('is_default', models.BooleanField(default=False)),
+                ('name', models.CharField(max_length=100)),
+                ('structure', models.JSONField(default=dict)),
+                ('template_type', models.CharField(choices=[('custom', 'Custom'), ('differentiated', 'Differentiated Instruction'), ('direct_instruction', 'Direct Instruction'), ('flipped_classroom', 'Flipped Classroom'), ('inquiry_based', 'Inquiry Based Learning'), ('project_based', 'Project Based Learning'), ('standard', 'Standard')], default='standard', max_length=30)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('created_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_lesson_templates', to=settings.AUTH_USER_MODEL)),
+                ('school', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='lesson_plan_templates', to='tenants.school')),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+            ],
+        ),
+        migrations.CreateModel(
             name='LessonPlan',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -84,22 +100,6 @@ class Migration(migrations.Migration):
                 ('description', models.TextField()),
                 ('standard_code', models.CharField(max_length=50)),
                 ('lesson_plan', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='standards', to='lesson_plan.lessonplan')),
-            ],
-        ),
-        migrations.CreateModel(
-            name='LessonPlanTemplate',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('description', models.TextField(blank=True)),
-                ('is_active', models.BooleanField(default=True)),
-                ('is_default', models.BooleanField(default=False)),
-                ('name', models.CharField(max_length=100)),
-                ('structure', models.JSONField(default=dict)),
-                ('template_type', models.CharField(choices=[('custom', 'Custom'), ('differentiated', 'Differentiated Instruction'), ('direct_instruction', 'Direct Instruction'), ('flipped_classroom', 'Flipped Classroom'), ('inquiry_based', 'Inquiry Based Learning'), ('project_based', 'Project Based Learning'), ('standard', 'Standard')], default='standard', max_length=30)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('created_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_lesson_templates', to=settings.AUTH_USER_MODEL)),
-                ('school', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='lesson_plan_templates', to='tenants.school')),
-                ('updated_at', models.DateTimeField(auto_now=True)),
             ],
         ),
     ]
