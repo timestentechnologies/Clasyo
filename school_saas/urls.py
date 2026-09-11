@@ -2,15 +2,24 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
 from django.contrib.sitemaps.views import sitemap
 from frontend.sitemaps import StaticViewSitemap
 from inventory.views import CanteenPOSView
+
+def health_check(request):
+    return JsonResponse({'status': 'ok', 'service': 'schoolsaas'}, status=200)
 
 sitemaps = {
     'static': StaticViewSitemap,  # Pass class to avoid instantiating during urlconf import
 }
 
 urlpatterns = [
+    # Health checks (for Cron-job.org, UptimeRobot, Render Health Check)
+    path('health/', health_check, name='health_check'),
+    path('healthz/', health_check, name='healthz_check'),
+    path('ping/', health_check, name='ping_check'),
+    
     # Admin
     path('admin/', admin.site.urls),
     
