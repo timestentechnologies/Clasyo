@@ -14,19 +14,32 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-key-change-in-product
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = [host.strip() for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1,clasyo.timestentechnologies.co.ke,.timestentechnologies.co.ke,.onrender.com').split(',') if host.strip()]
+raw_hosts = config('ALLOWED_HOSTS', default='*')
+ALLOWED_HOSTS = [host.strip() for host in raw_hosts.split(',') if host.strip()]
+for required_host in ['clasyo.timestentechnologies.co.ke', '.timestentechnologies.co.ke', '.onrender.com', 'localhost', '127.0.0.1', '*']:
+    if required_host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(required_host)
 
 # CSRF Settings
 CSRF_FAILURE_VIEW = 'accounts.views.csrf_failure'
-CSRF_TRUSTED_ORIGINS = [f'https://{host.strip()}' for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1,clasyo.timestentechnologies.co.ke,.timestentechnologies.co.ke,.onrender.com').split(',') if host.strip()]
+CSRF_TRUSTED_ORIGINS = [
+    'https://clasyo.timestentechnologies.co.ke',
+    'https://*.timestentechnologies.co.ke',
+    'https://*.onrender.com',
+    'http://localhost',
+    'http://127.0.0.1',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+]
+for host in ALLOWED_HOSTS:
+    if host and host != '*':
+        h_clean = host.lstrip('.')
+        if f'https://{h_clean}' not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(f'https://{h_clean}')
+        if f'https://*.{h_clean}' not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(f'https://*.{h_clean}')
 CSRF_COOKIE_AGE = 3600  # 1 hour
 CSRF_COOKIE_HTTPONLY = False
-
-# Add HTTP versions for all hosts (needed for development and some production scenarios)
-CSRF_TRUSTED_ORIGINS += [f'http://{host.strip()}' for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')]
-
-# Add development preview server origins
-CSRF_TRUSTED_ORIGINS += ['http://127.0.0.1:8000', 'http://localhost:8000']
 
 # Add any additional custom domains from environment variable
 ADDITIONAL_TRUSTED_ORIGINS = config('ADDITIONAL_TRUSTED_ORIGINS', default='').split(',')
