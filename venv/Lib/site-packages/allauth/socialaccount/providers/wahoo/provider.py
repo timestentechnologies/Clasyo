@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from allauth.account.models import EmailAddress
 from allauth.socialaccount import app_settings
 from allauth.socialaccount.providers.base import ProviderAccount
@@ -20,7 +22,7 @@ class WahooProvider(OAuth2Provider):
         return str(data["id"])
 
     def extract_common_fields(self, data):
-        extra_common = super(WahooProvider, self).extract_common_fields(data)
+        extra_common = super().extract_common_fields(data)
         extra_common.update(
             # Additional properties we ignore: gender, created_at, updated_at
             height=data.get("height"),

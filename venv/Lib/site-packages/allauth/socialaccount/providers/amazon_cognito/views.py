@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from django.http import HttpRequest
+
 from allauth.socialaccount import app_settings
 from allauth.socialaccount.adapter import get_adapter
 from allauth.socialaccount.models import SocialToken
@@ -30,26 +34,25 @@ class AmazonCognitoOAuth2Adapter(OAuth2Adapter):
 
     @property
     def access_token_url(self):
-        return "{}/oauth2/token".format(self.domain)
+        return f"{self.domain}/oauth2/token"
 
     @property
     def authorize_url(self):
-        return "{}/oauth2/authorize".format(self.domain)
+        return f"{self.domain}/oauth2/authorize"
 
     @property
     def profile_url(self):
-        return "{}/oauth2/userInfo".format(self.domain)
+        return f"{self.domain}/oauth2/userInfo"
 
-    def complete_login(self, request, app, token: SocialToken, **kwargs):
+    def complete_login(self, request: HttpRequest, app, token: SocialToken, **kwargs):
         headers = {
-            "Authorization": "Bearer {}".format(token.token),
+            "Authorization": f"Bearer {token.token}",
         }
-        extra_data = (
-            get_adapter().get_requests_session().get(self.profile_url, headers=headers)
-        )
-        extra_data.raise_for_status()
-
-        return self.get_provider().sociallogin_from_response(request, extra_data.json())
+        with get_adapter().get_requests_session() as sess:
+            response = sess.get(self.profile_url, headers=headers)
+            response.raise_for_status()
+            extra_data = response.json()
+        return self.get_provider().sociallogin_from_response(request, extra_data)
 
 
 oauth2_login = OAuth2LoginView.adapter_view(AmazonCognitoOAuth2Adapter)

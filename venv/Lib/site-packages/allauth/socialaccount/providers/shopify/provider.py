@@ -1,5 +1,11 @@
-from django.conf import settings
+from __future__ import annotations
 
+from typing import Any
+
+from django.conf import settings
+from django.http import HttpRequest
+
+from allauth.account.models import EmailAddress
 from allauth.socialaccount.providers.base import ProviderAccount
 from allauth.socialaccount.providers.oauth2.provider import OAuth2Provider
 from allauth.socialaccount.providers.shopify.views import ShopifyOAuth2Adapter
@@ -26,7 +32,7 @@ class ShopifyProvider(OAuth2Provider):
         )
         return grant_options.lower().strip() == "per-user"
 
-    def get_auth_params_from_request(self, request, action):
+    def get_auth_params_from_request(self, request: HttpRequest, action):
         ret = super().get_auth_params_from_request(request, action)
         shop = request.GET.get("shop", None)
         if shop:
@@ -54,6 +60,29 @@ class ShopifyProvider(OAuth2Provider):
             # Without online mode, User is only available with Shopify Plus,
             # email is the only common field
             return dict(email=data["shop"]["email"])
+
+    def extract_email_addresses(self, data: dict[str, Any]) -> list[EmailAddress]:
+        ret = []
+        email = None
+        email_verified = False
+        if self.is_per_user:
+            if associated_user := data.get("associated_user"):
+                email = associated_user.get("email")
+                email_verified = associated_user.get("email_verified", False)
+        else:
+            # The documentation of Shopify does not state anything about
+            # verified email addresses.
+            email = (data.get("shop") or {}).get("email")
+            email_verified = False
+        if email:
+            ret.append(
+                EmailAddress(
+                    email=email,
+                    verified=email_verified,
+                    primary=True,
+                )
+            )
+        return ret
 
 
 provider_classes = [ShopifyProvider]

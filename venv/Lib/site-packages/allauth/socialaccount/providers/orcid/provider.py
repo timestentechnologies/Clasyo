@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from allauth.socialaccount.providers.base import ProviderAccount
 from allauth.socialaccount.providers.oauth2.provider import OAuth2Provider
 from allauth.socialaccount.providers.orcid.views import OrcidOAuth2Adapter
@@ -34,7 +36,7 @@ class OrcidProvider(OAuth2Provider):
                 data, ["person", "name", "given-names", "value"]
             ),
         )
-        return dict((key, value) for (key, value) in common_fields.items() if value)
+        return {key: value for (key, value) in common_fields.items() if value}
 
 
 provider_classes = [OrcidProvider]

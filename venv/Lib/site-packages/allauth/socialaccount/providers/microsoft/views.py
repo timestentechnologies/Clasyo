@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 import json
+
+from django.http import HttpRequest
 
 from allauth.core import context
 from allauth.socialaccount import app_settings
@@ -15,15 +19,13 @@ def _check_errors(response):
     try:
         data = response.json()
     except json.decoder.JSONDecodeError:
-        raise OAuth2Error(
-            "Invalid JSON from Microsoft Graph API: {}".format(response.text)
-        )
+        raise OAuth2Error(f"Invalid JSON from Microsoft Graph API: {response.text}")
 
     if "id" not in data:
         error_message = "Error retrieving Microsoft profile"
         microsoft_error_message = data.get("error", {}).get("message")
         if microsoft_error_message:
-            error_message = ": ".join((error_message, microsoft_error_message))
+            error_message = f"{error_message}: {microsoft_error_message}"
         raise OAuth2Error(error_message)
 
     return data
@@ -73,18 +75,13 @@ class MicrosoftGraphOAuth2Adapter(OAuth2Adapter):
     )
     profile_url_params = {"$select": ",".join(user_properties)}
 
-    def complete_login(self, request, app, token, **kwargs):
-        headers = {"Authorization": "Bearer {0}".format(token.token)}
-        response = (
-            get_adapter()
-            .get_requests_session()
-            .get(
-                self.profile_url,
-                params=self.profile_url_params,
-                headers=headers,
+    def complete_login(self, request: HttpRequest, app, token, **kwargs):
+        headers = {"Authorization": f"Bearer {token.token}"}
+        with get_adapter().get_requests_session() as sess:
+            response = sess.get(
+                self.profile_url, params=self.profile_url_params, headers=headers
             )
-        )
-        extra_data = _check_errors(response)
+            extra_data = _check_errors(response)
         return self.get_provider().sociallogin_from_response(request, extra_data)
 
 

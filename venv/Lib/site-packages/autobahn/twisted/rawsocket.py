@@ -60,8 +60,8 @@ class WampRawSocketProtocol(Int32StringReceiver):
 
     log = txaio.make_logger()
 
-    peer: Optional[str] = None
-    is_server: Optional[bool] = None
+    peer: str | None = None
+    is_server: bool | None = None
 
     def __init__(self):
         # set the RawSocket maximum message size by default
@@ -69,7 +69,7 @@ class WampRawSocketProtocol(Int32StringReceiver):
         self._transport_details = None
 
     @property
-    def transport_details(self) -> Optional[TransportDetails]:
+    def transport_details(self) -> TransportDetails | None:
         """
         Implements :func:`autobahn.wamp.interfaces.ITransport.transport_details`
         """
@@ -78,9 +78,7 @@ class WampRawSocketProtocol(Int32StringReceiver):
     def lengthLimitExceeded(self, length):
         # override hook in Int32StringReceiver base class that is fired when a message is (to be) received
         # that is larger than what we agreed to handle (by negotiation in the RawSocket opening handshake)
-        emsg = "RawSocket connection: length of received message exceeded (message was {} bytes, but current maximum is {} bytes)".format(
-            length, self.MAX_LENGTH
-        )
+        emsg = f"RawSocket connection: length of received message exceeded (message was {length} bytes, but current maximum is {self.MAX_LENGTH} bytes)"
         raise PayloadExceededError(emsg)
 
     def connectionMade(self):
@@ -260,16 +258,12 @@ class WampRawSocketProtocol(Int32StringReceiver):
             except SerializationError as e:
                 # all exceptions raised from above should be serialization errors ..
                 raise SerializationError(
-                    "WampRawSocketProtocol: unable to serialize WAMP application payload ({0})".format(
-                        e
-                    )
+                    f"WampRawSocketProtocol: unable to serialize WAMP application payload ({e})"
                 )
             else:
                 payload_len = len(payload)
                 if 0 < self._max_len_send < payload_len:
-                    emsg = "tried to send RawSocket message with size {} exceeding payload limit of {} octets".format(
-                        payload_len, self._max_len_send
-                    )
+                    emsg = f"tried to send RawSocket message with size {payload_len} exceeding payload limit of {self._max_len_send} octets"
                     self.log.warn(emsg)
                     raise PayloadExceededError(emsg)
                 else:
@@ -301,7 +295,12 @@ class WampRawSocketProtocol(Int32StringReceiver):
         """
         Implements :func:`autobahn.wamp.interfaces.ITransport.abort`
         """
-        if self.isOpen():
+        # Guard on the transport, not isOpen(): isOpen() requires an attached
+        # WAMP session, but abort() must also tear down the transport when
+        # called before the session is established - e.g. on a failed opening
+        # handshake (bad magic byte / no suitable serializer), see #1850.
+        # Only a genuinely missing transport is a lost transport.
+        if self.transport is not None:
             if hasattr(self.transport, "abortConnection"):
                 # ProcessProtocol lacks abortConnection()
                 self.transport.abortConnection()
@@ -344,6 +343,7 @@ class WampRawSocketServerProtocol(WampRawSocketProtocol):
                         magic=_magic,
                     )
                     self.abort()
+                    return
                 else:
                     self.log.debug(
                         "WampRawSocketServerProtocol: correct magic byte received"
@@ -373,6 +373,7 @@ class WampRawSocketServerProtocol(WampRawSocketProtocol):
                         serializers=self.factory._serializers.keys(),
                     )
                     self.abort()
+                    return
 
                 # we request the client to send message of maximum length 2**reply_max_len_exp
                 #
@@ -466,6 +467,7 @@ class WampRawSocketClientProtocol(WampRawSocketProtocol):
                         magic=_LazyHexFormatter(self._handshake_bytes[0]),
                     )
                     self.abort()
+                    return
 
                 # peer requests us to _send_ messages of maximum length 2**max_len_exp
                 #
@@ -485,6 +487,7 @@ class WampRawSocketClientProtocol(WampRawSocketProtocol):
                         serializers=self._serializer.RAWSOCKET_SERIALIZER_ID,
                     )
                     self.abort()
+                    return
 
                 self._handshake_complete = True
 

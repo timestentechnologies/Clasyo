@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from allauth.socialaccount.providers.base import ProviderAccount
 from allauth.socialaccount.providers.gitea.views import GiteaOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.provider import OAuth2Provider
@@ -11,7 +13,7 @@ class GiteaAccount(ProviderAccount):
         return self.account.extra_data.get("avatar_url")
 
     def to_str(self):
-        dflt = super(GiteaAccount, self).to_str()
+        dflt = super().to_str()
         return next(
             value
             for value in (

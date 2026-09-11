@@ -1,6 +1,9 @@
+from __future__ import annotations
+
+from django.utils.module_loading import import_string
+
 from allauth.core.internal.adapter import BaseAdapter
 from allauth.usersessions import app_settings
-from allauth.utils import import_attribute
 
 
 class DefaultUserSessionsAdapter(BaseAdapter):
@@ -11,10 +14,10 @@ class DefaultUserSessionsAdapter(BaseAdapter):
     implementation of the methods according to your own needs.
     """
 
-    def end_sessions(self, sessions):
+    def end_sessions(self, sessions) -> None:
         for session in sessions:
             session.end()
 
 
-def get_adapter():
-    return import_attribute(app_settings.ADAPTER)()
+def get_adapter() -> DefaultUserSessionsAdapter:
+    return import_string(app_settings.ADAPTER)()

@@ -23,9 +23,12 @@
 # THE SOFTWARE.
 #
 ###############################################################################
+
+from __future__ import annotations
+
 from binascii import a2b_hex
 from pprint import pformat
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from autobahn.util import public
 from autobahn.wamp.request import Publication, Registration, Subscription
@@ -56,7 +59,7 @@ __all__ = (
 
 
 @public
-class ComponentConfig(object):
+class ComponentConfig:
     """
     WAMP application component configuration. An instance of this class is
     provided to the constructor of :class:`autobahn.wamp.protocol.ApplicationSession`.
@@ -126,18 +129,11 @@ class ComponentConfig(object):
         self.runner = runner
 
     def __str__(self):
-        return "ComponentConfig(realm=<{}>, extra={}, keyring={}, controller={}, shared={}, runner={})".format(
-            self.realm,
-            self.extra,
-            self.keyring,
-            self.controller,
-            self.shared,
-            self.runner,
-        )
+        return f"ComponentConfig(realm=<{self.realm}>, extra={self.extra}, keyring={self.keyring}, controller={self.controller}, shared={self.shared}, runner={self.runner})"
 
 
 @public
-class HelloReturn(object):
+class HelloReturn:
     """
     Base class for ``HELLO`` return information.
     """
@@ -160,12 +156,12 @@ class Accept(HelloReturn):
 
     def __init__(
         self,
-        realm: Optional[str] = None,
-        authid: Optional[str] = None,
-        authrole: Optional[str] = None,
-        authmethod: Optional[str] = None,
-        authprovider: Optional[str] = None,
-        authextra: Optional[Dict[str, Any]] = None,
+        realm: str | None = None,
+        authid: str | None = None,
+        authrole: str | None = None,
+        authmethod: str | None = None,
+        authprovider: str | None = None,
+        authextra: dict[str, Any] | None = None,
     ):
         """
 
@@ -191,14 +187,7 @@ class Accept(HelloReturn):
         self.authextra = authextra
 
     def __str__(self):
-        return "Accept(realm=<{}>, authid=<{}>, authrole=<{}>, authmethod={}, authprovider={}, authextra={})".format(
-            self.realm,
-            self.authid,
-            self.authrole,
-            self.authmethod,
-            self.authprovider,
-            self.authextra,
-        )
+        return f"Accept(realm=<{self.realm}>, authid=<{self.authid}>, authrole=<{self.authrole}>, authmethod={self.authmethod}, authprovider={self.authprovider}, authextra={self.authextra})"
 
 
 @public
@@ -228,7 +217,7 @@ class Deny(HelloReturn):
         self.message = message
 
     def __str__(self):
-        return "Deny(reason=<{}>, message='{}')".format(self.reason, self.message)
+        return f"Deny(reason=<{self.reason}>, message='{self.message}')"
 
 
 @public
@@ -259,11 +248,11 @@ class Challenge(HelloReturn):
         self.extra = extra or {}
 
     def __str__(self):
-        return "Challenge(method={}, extra={})".format(self.method, self.extra)
+        return f"Challenge(method={self.method}, extra={self.extra})"
 
 
 @public
-class HelloDetails(object):
+class HelloDetails:
     """
     Provides details of a WAMP session while still attaching.
     """
@@ -351,22 +340,11 @@ class HelloDetails(object):
         self.resume_token = resume_token
 
     def __str__(self):
-        return "HelloDetails(realm=<{}>, authmethods={}, authid=<{}>, authrole=<{}>, authextra={}, session_roles={}, pending_session={}, resumable={}, resume_session={}, resume_token={})".format(
-            self.realm,
-            self.authmethods,
-            self.authid,
-            self.authrole,
-            self.authextra,
-            self.session_roles,
-            self.pending_session,
-            self.resumable,
-            self.resume_session,
-            self.resume_token,
-        )
+        return f"HelloDetails(realm=<{self.realm}>, authmethods={self.authmethods}, authid=<{self.authid}>, authrole=<{self.authrole}>, authextra={self.authextra}, session_roles={self.session_roles}, pending_session={self.pending_session}, resumable={self.resumable}, resume_session={self.resume_session}, resume_token={self.resume_token})"
 
 
 @public
-class SessionIdent(object):
+class SessionIdent:
     """
     WAMP session identification information.
 
@@ -408,9 +386,7 @@ class SessionIdent(object):
         self.authrole = authrole
 
     def __str__(self):
-        return "SessionIdent(session={}, authid={}, authrole={})".format(
-            self.session, self.authid, self.authrole
-        )
+        return f"SessionIdent(session={self.session}, authid={self.authid}, authrole={self.authrole})"
 
     def marshal(self):
         obj = {
@@ -476,7 +452,7 @@ class SessionIdent(object):
 
 
 @public
-class CloseDetails(object):
+class CloseDetails:
     """
     Provides details for a WAMP session upon close.
 
@@ -511,13 +487,11 @@ class CloseDetails(object):
         return obj
 
     def __str__(self):
-        return "CloseDetails(reason=<{}>, message='{}')".format(
-            self.reason, self.message
-        )
+        return f"CloseDetails(reason=<{self.reason}>, message='{self.message}')"
 
 
 @public
-class SubscribeOptions(object):
+class SubscribeOptions:
     """
     Used to provide options for subscribing in
     :meth:`autobahn.wamp.interfaces.ISubscriber.subscribe`.
@@ -617,17 +591,11 @@ class SubscribeOptions(object):
         return options
 
     def __str__(self):
-        return "SubscribeOptions(match={}, details={}, details_arg={}, get_retained={}, forward_for={})".format(
-            self.match,
-            self.details,
-            self.details_arg,
-            self.get_retained,
-            self.forward_for,
-        )
+        return f"SubscribeOptions(match={self.match}, details={self.details}, details_arg={self.details_arg}, get_retained={self.get_retained}, forward_for={self.forward_for})"
 
 
 @public
-class EventDetails(object):
+class EventDetails:
     """
     Provides details on an event when calling an event handler
     previously registered.
@@ -729,22 +697,11 @@ class EventDetails(object):
         self.forward_for = forward_for
 
     def __str__(self):
-        return "EventDetails(subscription={}, publication={}, publisher={}, publisher_authid={}, publisher_authrole={}, topic=<{}>, retained={}, transaction_hash={}, enc_algo={}, forward_for={})".format(
-            self.subscription,
-            self.publication,
-            self.publisher,
-            self.publisher_authid,
-            self.publisher_authrole,
-            self.topic,
-            self.retained,
-            self.transaction_hash,
-            self.enc_algo,
-            self.forward_for,
-        )
+        return f"EventDetails(subscription={self.subscription}, publication={self.publication}, publisher={self.publisher}, publisher_authid={self.publisher_authid}, publisher_authrole={self.publisher_authrole}, topic=<{self.topic}>, retained={self.retained}, transaction_hash={self.transaction_hash}, enc_algo={self.enc_algo}, forward_for={self.forward_for})"
 
 
 @public
-class PublishOptions(object):
+class PublishOptions:
     """
     Used to provide options for subscribing in
     :meth:`autobahn.wamp.interfaces.IPublisher.publish`.
@@ -873,14 +830,12 @@ class PublishOptions(object):
         assert transaction_hash is None or type(transaction_hash) == str
 
         assert forward_for is None or type(forward_for) == list, (
-            "forward_for, when present, must have list type - was {}".format(
-                type(forward_for)
-            )
+            f"forward_for, when present, must have list type - was {type(forward_for)}"
         )
         if forward_for:
             for ff in forward_for:
                 assert type(ff) == dict, (
-                    "forward_for must be type dict - was {}".format(type(ff))
+                    f"forward_for must be type dict - was {type(ff)}"
                 )
                 assert "session" in ff, "forward_for must have session attribute"
                 assert type(ff["session"]) == int, (
@@ -980,23 +935,11 @@ class PublishOptions(object):
         return options
 
     def __str__(self):
-        return "PublishOptions(acknowledge={}, exclude_me={}, exclude={}, exclude_authid={}, exclude_authrole={}, eligible={}, eligible_authid={}, eligible_authrole={}, retain={}, transaction_hash={}, forward_for={})".format(
-            self.acknowledge,
-            self.exclude_me,
-            self.exclude,
-            self.exclude_authid,
-            self.exclude_authrole,
-            self.eligible,
-            self.eligible_authid,
-            self.eligible_authrole,
-            self.retain,
-            self.transaction_hash,
-            self.forward_for,
-        )
+        return f"PublishOptions(acknowledge={self.acknowledge}, exclude_me={self.exclude_me}, exclude={self.exclude}, exclude_authid={self.exclude_authid}, exclude_authrole={self.exclude_authrole}, eligible={self.eligible}, eligible_authid={self.eligible_authid}, eligible_authrole={self.eligible_authrole}, retain={self.retain}, transaction_hash={self.transaction_hash}, forward_for={self.forward_for})"
 
 
 @public
-class RegisterOptions(object):
+class RegisterOptions:
     """
     Used to provide options for registering in
     :meth:`autobahn.wamp.interfaces.ICallee.register`.
@@ -1128,19 +1071,11 @@ class RegisterOptions(object):
         return options
 
     def __str__(self):
-        return "RegisterOptions(match={}, invoke={}, concurrency={}, details={}, details_arg={}, force_reregister={}, forward_for={})".format(
-            self.match,
-            self.invoke,
-            self.concurrency,
-            self.details,
-            self.details_arg,
-            self.force_reregister,
-            self.forward_for,
-        )
+        return f"RegisterOptions(match={self.match}, invoke={self.invoke}, concurrency={self.concurrency}, details={self.details}, details_arg={self.details_arg}, force_reregister={self.force_reregister}, forward_for={self.forward_for})"
 
 
 @public
-class CallDetails(object):
+class CallDetails:
     """
     Provides details on a call when an endpoint previously
     registered is being called and opted to receive call details.
@@ -1230,21 +1165,11 @@ class CallDetails(object):
         self.forward_for = forward_for
 
     def __str__(self):
-        return "CallDetails(registration={}, progress={}, caller={}, caller_authid={}, caller_authrole={}, procedure=<{}>, transaction_hash={}, enc_algo={}, forward_for={})".format(
-            self.registration,
-            self.progress,
-            self.caller,
-            self.caller_authid,
-            self.caller_authrole,
-            self.procedure,
-            self.transaction_hash,
-            self.enc_algo,
-            self.forward_for,
-        )
+        return f"CallDetails(registration={self.registration}, progress={self.progress}, caller={self.caller}, caller_authid={self.caller_authid}, caller_authrole={self.caller_authrole}, procedure=<{self.procedure}>, transaction_hash={self.transaction_hash}, enc_algo={self.enc_algo}, forward_for={self.forward_for})"
 
 
 @public
-class CallOptions(object):
+class CallOptions:
     """
     Used to provide options for calling with :meth:`autobahn.wamp.interfaces.ICaller.call`.
     """
@@ -1363,20 +1288,11 @@ class CallOptions(object):
         return options
 
     def __str__(self):
-        return "CallOptions(on_progress={}, timeout={}, transaction_hash={}, caller={}, caller_authid={}, caller_authrole={}, forward_for={}, details={})".format(
-            self.on_progress,
-            self.timeout,
-            self.transaction_hash,
-            self.caller,
-            self.caller_authid,
-            self.caller_authrole,
-            self.forward_for,
-            self.details,
-        )
+        return f"CallOptions(on_progress={self.on_progress}, timeout={self.timeout}, transaction_hash={self.transaction_hash}, caller={self.caller}, caller_authid={self.caller_authid}, caller_authrole={self.caller_authrole}, forward_for={self.forward_for}, details={self.details})"
 
 
 @public
-class CallResult(object):
+class CallResult:
     """
     Wrapper for remote procedure call results that contain multiple positional
     return values or keyword-based return values.
@@ -1432,19 +1348,11 @@ class CallResult(object):
         self.kwresults = kwresults
 
     def __str__(self):
-        return "CallResult(results={}, kwresults={}, enc_algo={}, callee={}, callee_authid={}, callee_authrole={}, forward_for={})".format(
-            self.results,
-            self.kwresults,
-            self.enc_algo,
-            self.callee,
-            self.callee_authid,
-            self.callee_authrole,
-            self.forward_for,
-        )
+        return f"CallResult(results={self.results}, kwresults={self.kwresults}, enc_algo={self.enc_algo}, callee={self.callee}, callee_authid={self.callee_authid}, callee_authrole={self.callee_authrole}, forward_for={self.forward_for})"
 
 
 @public
-class EncodedPayload(object):
+class EncodedPayload:
     """
     Wrapper holding an encoded application payload when using WAMP payload transparency.
     """
@@ -1478,7 +1386,7 @@ class EncodedPayload(object):
 
 
 @public
-class IPublication(object):
+class IPublication:
     """
     Represents a publication of an event. This is used with acknowledged publications.
     """
@@ -1490,7 +1398,7 @@ class IPublication(object):
 
 
 @public
-class ISubscription(object):
+class ISubscription:
     """
     Represents a subscription to a topic.
     """
@@ -1529,7 +1437,7 @@ class ISubscription(object):
 
 
 @public
-class IRegistration(object):
+class IRegistration:
     """
     Represents a registration of an endpoint.
     """
@@ -1568,7 +1476,7 @@ class IRegistration(object):
 
 
 @public
-class TransportDetails(object):
+class TransportDetails:
     """
     Details about a WAMP transport used for carrying a WAMP session. WAMP can be communicated
     over different bidirectional underlying transport mechanisms, such as TCP, TLS, Serial
@@ -1682,23 +1590,23 @@ class TransportDetails(object):
 
     def __init__(
         self,
-        channel_type: Optional[int] = None,
-        channel_framing: Optional[int] = None,
-        channel_serializer: Optional[int] = None,
-        own: Optional[str] = None,
-        peer: Optional[str] = None,
-        is_server: Optional[bool] = None,
-        own_pid: Optional[int] = None,
-        own_tid: Optional[int] = None,
-        own_fd: Optional[int] = None,
-        is_secure: Optional[bool] = None,
-        channel_id: Optional[Dict[str, bytes]] = None,
-        peer_cert: Optional[Dict[str, Any]] = None,
-        websocket_protocol: Optional[str] = None,
-        websocket_extensions_in_use: Optional[List[str]] = None,
-        http_headers_received: Optional[Dict[str, Any]] = None,
-        http_headers_sent: Optional[Dict[str, Any]] = None,
-        http_cbtid: Optional[str] = None,
+        channel_type: int | None = None,
+        channel_framing: int | None = None,
+        channel_serializer: int | None = None,
+        own: str | None = None,
+        peer: str | None = None,
+        is_server: bool | None = None,
+        own_pid: int | None = None,
+        own_tid: int | None = None,
+        own_fd: int | None = None,
+        is_secure: bool | None = None,
+        channel_id: dict[str, bytes] | None = None,
+        peer_cert: dict[str, Any] | None = None,
+        websocket_protocol: str | None = None,
+        websocket_extensions_in_use: list[str] | None = None,
+        http_headers_received: dict[str, Any] | None = None,
+        http_headers_sent: dict[str, Any] | None = None,
+        http_cbtid: str | None = None,
     ):
         self._channel_type = channel_type
         self._channel_framing = channel_framing
@@ -1761,7 +1669,7 @@ class TransportDetails(object):
         return not self.__eq__(other)
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> "TransportDetails":
+    def parse(data: dict[str, Any]) -> TransportDetails:
         assert type(data) == dict
 
         obj = TransportDetails()
@@ -1859,16 +1767,12 @@ class TransportDetails(object):
             for binding_type in data["channel_id"]:
                 if binding_type not in ["tls-unique"]:
                     raise ValueError(
-                        'invalid binding type "{}" in "channel_id" map'.format(
-                            binding_type
-                        )
+                        f'invalid binding type "{binding_type}" in "channel_id" map'
                     )
                 binding_id_hex = data["channel_id"][binding_type]
                 if type(binding_id_hex) != str or len(binding_id_hex) != 64:
                     raise ValueError(
-                        'invalid binding ID "{}" in "channel_id" map'.format(
-                            binding_id_hex
-                        )
+                        f'invalid binding ID "{binding_id_hex}" in "channel_id" map'
                     )
                 binding_id = a2b_hex(binding_id_hex)
                 channel_id[binding_type] = binding_id
@@ -1921,7 +1825,7 @@ class TransportDetails(object):
             obj.http_cbtid = data["http_cbtid"]
         return obj
 
-    def marshal(self) -> Dict[str, Any]:
+    def marshal(self) -> dict[str, Any]:
         return {
             "channel_type": self.CHANNEL_TYPE_TO_STR.get(self._channel_type, None),
             "channel_framing": self.CHANNEL_FRAMING_TO_STR.get(
@@ -1963,47 +1867,43 @@ class TransportDetails(object):
 
         :return:
         """
-        return "{}-{}-{}".format(
-            self.CHANNEL_TYPE_TO_STR[self.channel_type or 0],
-            self.CHANNEL_FRAMING_TO_STR[self.channel_framing or 0],
-            self.CHANNEL_SERIALIZER_TO_STR[self.channel_serializer or 0],
-        )
+        return f"{self.CHANNEL_TYPE_TO_STR[self.channel_type or 0]}-{self.CHANNEL_FRAMING_TO_STR[self.channel_framing or 0]}-{self.CHANNEL_SERIALIZER_TO_STR[self.channel_serializer or 0]}"
 
     @property
-    def channel_type(self) -> Optional[int]:
+    def channel_type(self) -> int | None:
         """
         The underlying transport type, e.g. TCP.
         """
         return self._channel_type
 
     @channel_type.setter
-    def channel_type(self, value: Optional[int]):
+    def channel_type(self, value: int | None):
         self._channel_type = value
 
     @property
-    def channel_framing(self) -> Optional[int]:
+    def channel_framing(self) -> int | None:
         """
         The message framing used on this transport, e.g. WebSocket.
         """
         return self._channel_framing
 
     @channel_framing.setter
-    def channel_framing(self, value: Optional[int]):
+    def channel_framing(self, value: int | None):
         self._channel_framing = value
 
     @property
-    def channel_serializer(self) -> Optional[int]:
+    def channel_serializer(self) -> int | None:
         """
         The message serializer used on this transport, e.g. CBOR (batched or unbatched).
         """
         return self._channel_serializer
 
     @channel_serializer.setter
-    def channel_serializer(self, value: Optional[int]):
+    def channel_serializer(self, value: int | None):
         self._channel_serializer = value
 
     @property
-    def own(self) -> Optional[str]:
+    def own(self) -> str | None:
         """
 
         https://github.com/crossbario/autobahn-python/blob/master/autobahn/websocket/test/test_websocket_url.py
@@ -2026,11 +1926,11 @@ class TransportDetails(object):
         return self._own
 
     @own.setter
-    def own(self, value: Optional[str]):
+    def own(self, value: str | None):
         self._own = value
 
     @property
-    def peer(self) -> Optional[str]:
+    def peer(self) -> str | None:
         """
         The peer this transport is connected to.
 
@@ -2045,11 +1945,11 @@ class TransportDetails(object):
         return self._peer
 
     @peer.setter
-    def peer(self, value: Optional[str]):
+    def peer(self, value: str | None):
         self._peer = value
 
     @property
-    def is_server(self) -> Optional[bool]:
+    def is_server(self) -> bool | None:
         """
         Flag indicating whether this side of the peer is a "server" (on underlying transports that
             follows a client-server approach).
@@ -2057,22 +1957,22 @@ class TransportDetails(object):
         return self._is_server
 
     @is_server.setter
-    def is_server(self, value: Optional[bool]):
+    def is_server(self, value: bool | None):
         self._is_server = value
 
     @property
-    def own_pid(self) -> Optional[int]:
+    def own_pid(self) -> int | None:
         """
         The process ID (PID) of this end of the connection.
         """
         return self._own_pid
 
     @own_pid.setter
-    def own_pid(self, value: Optional[int]):
+    def own_pid(self, value: int | None):
         self._own_pid = value
 
     @property
-    def own_tid(self) -> Optional[int]:
+    def own_tid(self) -> int | None:
         """
         The native thread ID of this end of the connection.
 
@@ -2086,22 +1986,22 @@ class TransportDetails(object):
         return self._own_tid
 
     @own_tid.setter
-    def own_tid(self, value: Optional[int]):
+    def own_tid(self, value: int | None):
         self._own_tid = value
 
     @property
-    def own_fd(self) -> Optional[int]:
+    def own_fd(self) -> int | None:
         """
         The file descriptor (FD) at this end of the connection.
         """
         return self._own_fd
 
     @own_fd.setter
-    def own_fd(self, value: Optional[int]):
+    def own_fd(self, value: int | None):
         self._own_fd = value
 
     @property
-    def is_secure(self) -> Optional[bool]:
+    def is_secure(self) -> bool | None:
         """
         Flag indicating whether this transport runs over TLS (or similar), and hence is encrypting at
         the byte stream or datagram transport level (beneath WAMP payload encryption).
@@ -2109,11 +2009,11 @@ class TransportDetails(object):
         return self._is_secure
 
     @is_secure.setter
-    def is_secure(self, value: Optional[bool]):
+    def is_secure(self, value: bool | None):
         self._is_secure = value
 
     @property
-    def channel_id(self) -> Dict[str, bytes]:
+    def channel_id(self) -> dict[str, bytes] | None:
         """
         If this transport runs over a secure underlying connection, e.g. TLS,
         return a map of channel binding by binding type.
@@ -2157,11 +2057,11 @@ class TransportDetails(object):
         return self._channel_id
 
     @channel_id.setter
-    def channel_id(self, value: Dict[str, bytes]):
+    def channel_id(self, value: dict[str, bytes]):
         self._channel_id = value
 
     @property
-    def peer_cert(self) -> Dict[str, Any]:
+    def peer_cert(self) -> dict[str, Any] | None:
         """
         If this transport is using TLS and the TLS peer has provided a valid certificate,
         this attribute returns the peer certificate.
@@ -2172,11 +2072,11 @@ class TransportDetails(object):
         return self._peer_cert
 
     @peer_cert.setter
-    def peer_cert(self, value: Dict[str, Any]):
+    def peer_cert(self, value: dict[str, Any]):
         self._peer_cert = value
 
     @property
-    def websocket_protocol(self) -> Optional[str]:
+    def websocket_protocol(self) -> str | None:
         """
         If the underlying connection uses a regular HTTP based WebSocket opening handshake,
         the WebSocket subprotocol negotiated, e.g. ``"wamp.2.cbor.batched"``.
@@ -2184,11 +2084,11 @@ class TransportDetails(object):
         return self._websocket_protocol
 
     @websocket_protocol.setter
-    def websocket_protocol(self, value: Optional[str]):
+    def websocket_protocol(self, value: str | None):
         self._websocket_protocol = value
 
     @property
-    def websocket_extensions_in_use(self) -> Optional[List[str]]:
+    def websocket_extensions_in_use(self) -> list[str] | None:
         """
         If the underlying connection uses a regular HTTP based WebSocket opening handshake, the WebSocket extensions
         negotiated, e.g. ``["permessage-deflate", "client_no_context_takeover", "client_max_window_bits"]``.
@@ -2196,11 +2096,11 @@ class TransportDetails(object):
         return self._websocket_extensions_in_use
 
     @websocket_extensions_in_use.setter
-    def websocket_extensions_in_use(self, value: Optional[List[str]]):
+    def websocket_extensions_in_use(self, value: list[str] | None):
         self._websocket_extensions_in_use = value
 
     @property
-    def http_headers_received(self) -> Dict[str, Any]:
+    def http_headers_received(self) -> dict[str, Any] | None:
         """
         If the underlying connection uses a regular HTTP based WebSocket opening handshake,
         the HTTP request headers as received from the client on this connection.
@@ -2208,11 +2108,11 @@ class TransportDetails(object):
         return self._http_headers_received
 
     @http_headers_received.setter
-    def http_headers_received(self, value: Dict[str, Any]):
+    def http_headers_received(self, value: dict[str, Any]):
         self._http_headers_received = value
 
     @property
-    def http_headers_sent(self) -> Dict[str, Any]:
+    def http_headers_sent(self) -> dict[str, Any] | None:
         """
         If the underlying connection uses a regular HTTP based WebSocket opening handshake,
         the HTTP response headers as sent from the server on this connection.
@@ -2220,11 +2120,11 @@ class TransportDetails(object):
         return self._http_headers_sent
 
     @http_headers_sent.setter
-    def http_headers_sent(self, value: Dict[str, Any]):
+    def http_headers_sent(self, value: dict[str, Any]):
         self._http_headers_sent = value
 
     @property
-    def http_cbtid(self) -> Optional[str]:
+    def http_cbtid(self) -> str | None:
         """
         If the underlying connection uses a regular HTTP based WebSocket opening handshake,
         the HTTP cookie value of the WAMP tracking cookie if any is associated with this
@@ -2233,12 +2133,12 @@ class TransportDetails(object):
         return self._http_cbtid
 
     @http_cbtid.setter
-    def http_cbtid(self, value: Optional[str]):
+    def http_cbtid(self, value: str | None):
         self._http_cbtid = value
 
 
 @public
-class SessionDetails(object):
+class SessionDetails:
     """
     Provides details for a WAMP session upon open.
 
@@ -2262,18 +2162,18 @@ class SessionDetails(object):
 
     def __init__(
         self,
-        realm: Optional[str] = None,
-        session: Optional[int] = None,
-        authid: Optional[str] = None,
-        authrole: Optional[str] = None,
-        authmethod: Optional[str] = None,
-        authprovider: Optional[str] = None,
-        authextra: Optional[Dict[str, Any]] = None,
-        serializer: Optional[str] = None,
-        transport: Optional[TransportDetails] = None,
-        resumed: Optional[bool] = None,
-        resumable: Optional[bool] = None,
-        resume_token: Optional[str] = None,
+        realm: str | None = None,
+        session: int | None = None,
+        authid: str | None = None,
+        authrole: str | None = None,
+        authmethod: str | None = None,
+        authprovider: str | None = None,
+        authextra: dict[str, Any] | None = None,
+        serializer: str | None = None,
+        transport: TransportDetails | None = None,
+        resumed: bool | None = None,
+        resumable: bool | None = None,
+        resume_token: str | None = None,
     ):
         """
 
@@ -2349,7 +2249,7 @@ class SessionDetails(object):
         return not self.__eq__(other)
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> "SessionDetails":
+    def parse(data: dict[str, Any]) -> SessionDetails:
         """
 
         :param data:
@@ -2413,9 +2313,7 @@ class SessionDetails(object):
             for key in data["authextra"].keys():
                 if type(key) != str:
                     raise ValueError(
-                        'key "{}" in authextra must be a string, was {}'.format(
-                            key, type(key)
-                        )
+                        f'key "{key}" in authextra must be a string, was {type(key)}'
                     )
             obj._authextra = data["authextra"]
 
@@ -2456,7 +2354,7 @@ class SessionDetails(object):
 
         return obj
 
-    def marshal(self) -> Dict[str, Any]:
+    def marshal(self) -> dict[str, Any]:
         """
 
         :return:
@@ -2481,51 +2379,51 @@ class SessionDetails(object):
         return pformat(self.marshal())
 
     @property
-    def realm(self) -> Optional[str]:
+    def realm(self) -> str | None:
         """
         The WAMP realm this session is attached to, e.g. ``"realm1"``.
         """
         return self._realm
 
     @realm.setter
-    def realm(self, value: Optional[str]):
+    def realm(self, value: str | None):
         self._realm = value
 
     @property
-    def session(self) -> Optional[int]:
+    def session(self) -> int | None:
         """
         WAMP session ID of this session, e.g. ``7069739155960584``.
         """
         return self._session
 
     @session.setter
-    def session(self, value: Optional[int]):
+    def session(self, value: int | None):
         self._session = value
 
     @property
-    def authid(self) -> Optional[str]:
+    def authid(self) -> str | None:
         """
         The WAMP authid this session is joined as, e.g. ``"joe89"``
         """
         return self._authid
 
     @authid.setter
-    def authid(self, value: Optional[str]):
+    def authid(self, value: str | None):
         self._authid = value
 
     @property
-    def authrole(self) -> Optional[str]:
+    def authrole(self) -> str | None:
         """
         The WAMP authrole this session is joined as, e.g. ``"user"``.
         """
         return self._authrole
 
     @authrole.setter
-    def authrole(self, value: Optional[str]):
+    def authrole(self, value: str | None):
         self._authrole = value
 
     @property
-    def authmethod(self) -> Optional[str]:
+    def authmethod(self) -> str | None:
         """
         The WAMP authentication method the session is authenticated under, e.g. ``"anonymous"``
         or ``"wampcra"``.
@@ -2533,11 +2431,11 @@ class SessionDetails(object):
         return self._authmethod
 
     @authmethod.setter
-    def authmethod(self, value: Optional[str]):
+    def authmethod(self, value: str | None):
         self._authmethod = value
 
     @property
-    def authprovider(self) -> Optional[str]:
+    def authprovider(self) -> str | None:
         """
         The WAMP authentication provider that handled the session authentication, e.g. ``"static"``
         or ``"dynamic"``.
@@ -2545,71 +2443,71 @@ class SessionDetails(object):
         return self._authprovider
 
     @authprovider.setter
-    def authprovider(self, value: Optional[str]):
+    def authprovider(self, value: str | None):
         self._authprovider = value
 
     @property
-    def authextra(self) -> Optional[Dict[str, Any]]:
+    def authextra(self) -> dict[str, Any] | None:
         """
         The (optional) WAMP authentication extra that was provided to the authenticating session.
         """
         return self._authextra
 
     @authextra.setter
-    def authextra(self, value: Optional[Dict[str, Any]]):
+    def authextra(self, value: dict[str, Any] | None):
         self._authextra = value
 
     @property
-    def serializer(self) -> Optional[str]:
+    def serializer(self) -> str | None:
         """
         The WAMP serializer (variant) this session is using, e.g. ``"json"`` or ``"cbor.batched"``.
         """
         return self._serializer
 
     @serializer.setter
-    def serializer(self, value: Optional[str]):
+    def serializer(self, value: str | None):
         self._serializer = value
 
     @property
-    def transport(self) -> Optional[TransportDetails]:
+    def transport(self) -> TransportDetails | None:
         """
         The details of the WAMP transport this session is hosted on (communicates over).
         """
         return self._transport
 
     @transport.setter
-    def transport(self, value: Optional[TransportDetails]):
+    def transport(self, value: TransportDetails | None):
         self._transport = value
 
     @property
-    def resumed(self) -> Optional[bool]:
+    def resumed(self) -> bool | None:
         """
         Whether the session is a resumed one.
         """
         return self._resumed
 
     @resumed.setter
-    def resumed(self, value: Optional[bool]):
+    def resumed(self, value: bool | None):
         self._resumed = value
 
     @property
-    def resumable(self) -> Optional[bool]:
+    def resumable(self) -> bool | None:
         """
         Whether this session can be resumed later.
         """
         return self._resumable
 
     @resumable.setter
-    def resumable(self, value: Optional[bool]):
+    def resumable(self, value: bool | None):
         self._resumable = value
 
     @property
-    def resume_token(self) -> Optional[str]:
+    def resume_token(self) -> str | None:
         """
         The secure authorization token to resume the session.
         """
         return self._resume_token
 
     @resume_token.setter
-    def resume_token(self, value: Optional[str]):
+    def resume_token(self, value: str | None):
         self._resume_token = value

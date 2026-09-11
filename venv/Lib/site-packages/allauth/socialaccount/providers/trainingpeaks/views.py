@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from django.http import HttpRequest
+
 from allauth.socialaccount import app_settings
 from allauth.socialaccount.adapter import get_adapter
 from allauth.socialaccount.providers.oauth2.views import (
@@ -24,32 +28,31 @@ class TrainingPeaksOAuth2Adapter(OAuth2Adapter):
 
     @property
     def access_token_url(self):
-        return "https://oauth." + self.get_hostname() + "/oauth/token"
+        return f"https://oauth.{self.get_hostname()}/oauth/token"
 
     @property
     def authorize_url(self):
-        return "https://oauth." + self.get_hostname() + "/OAuth/Authorize"
+        return f"https://oauth.{self.get_hostname()}/OAuth/Authorize"
 
     @property
     def profile_url(self):
-        return "https://api." + self.get_hostname() + "/v1/athlete/profile"
+        return f"https://api.{self.get_hostname()}/v1/athlete/profile"
 
     @property
     def api_hostname(self):
         """Return https://api.hostname.tld"""
-        return "https://api." + self.get_hostname()
+        return f"https://api.{self.get_hostname()}"
 
     # https://oauth.sandbox.trainingpeaks.com/oauth/deauthorize
 
     scope_delimiter = " "
 
-    def complete_login(self, request, app, token, **kwargs):
-        headers = {"Authorization": "Bearer {0}".format(token.token)}
-        response = (
-            get_adapter().get_requests_session().get(self.profile_url, headers=headers)
-        )
-        response.raise_for_status()
-        extra_data = response.json()
+    def complete_login(self, request: HttpRequest, app, token, **kwargs):
+        headers = {"Authorization": f"Bearer {token.token}"}
+        with get_adapter().get_requests_session() as sess:
+            response = sess.get(self.profile_url, headers=headers)
+            response.raise_for_status()
+            extra_data = response.json()
         return self.get_provider().sociallogin_from_response(request, extra_data)
 
 

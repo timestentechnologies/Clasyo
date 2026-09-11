@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from django.http import HttpRequest
+
 from allauth.socialaccount import app_settings
 from allauth.socialaccount.adapter import get_adapter
 from allauth.socialaccount.providers.oauth2.views import (
@@ -14,17 +18,17 @@ class NetIQOAuth2Adapter(OAuth2Adapter):
 
     @property
     def access_token_url(self):
-        return "{}/nidp/oauth/nam/token".format(self.provider_base_url)
+        return f"{self.provider_base_url}/nidp/oauth/nam/token"
 
     @property
     def authorize_url(self):
-        return "{}/nidp/oauth/nam/authz".format(self.provider_base_url)
+        return f"{self.provider_base_url}/nidp/oauth/nam/authz"
 
     @property
     def userinfo_url(self):
-        return "{}/nidp/oauth/nam/userinfo".format(self.provider_base_url)
+        return f"{self.provider_base_url}/nidp/oauth/nam/userinfo"
 
-    def complete_login(self, request, app, token, **kwargs):
+    def complete_login(self, request: HttpRequest, app, token, **kwargs):
         """
         Get the user info from userinfo endpoint and return a
         A populated instance of the `SocialLogin` model (unsaved)
@@ -35,19 +39,12 @@ class NetIQOAuth2Adapter(OAuth2Adapter):
         :return:
         """
 
-        resp = (
-            get_adapter()
-            .get_requests_session()
-            .get(
-                self.userinfo_url,
-                headers={"Authorization": "Bearer {}".format(token.token)},
-            )
-        )
-
-        resp.raise_for_status()
-        extra_data = resp.json()
-        login = self.get_provider().sociallogin_from_response(request, extra_data)
-        return login
+        headers = {"Authorization": f"Bearer {token.token}"}
+        with get_adapter().get_requests_session() as sess:
+            resp = sess.get(self.userinfo_url, headers=headers)
+            resp.raise_for_status()
+            extra_data = resp.json()
+        return self.get_provider().sociallogin_from_response(request, extra_data)
 
 
 oauth2_login = OAuth2LoginView.adapter_view(NetIQOAuth2Adapter)

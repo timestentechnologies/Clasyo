@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 import requests
+
+from django.http import HttpRequest
 
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.adapter import get_adapter
@@ -64,7 +68,7 @@ class GoogleProvider(OAuth2Provider):
             scope.append(Scope.EMAIL)
         return scope
 
-    def get_auth_params_from_request(self, request, action):
+    def get_auth_params_from_request(self, request: HttpRequest, action):
         ret = super().get_auth_params_from_request(request, action)
         if action == AuthAction.REAUTHENTICATE:
             ret["prompt"] = "select_account consent"
@@ -90,7 +94,7 @@ class GoogleProvider(OAuth2Provider):
             ret.append(EmailAddress(email=email, verified=verified, primary=True))
         return ret
 
-    def verify_token(self, request, token):
+    def verify_token(self, request: HttpRequest, token):
         from allauth.socialaccount.providers.google import views
 
         credential = token.get("id_token")

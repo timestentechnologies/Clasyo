@@ -1,5 +1,4 @@
 from collections import OrderedDict
-from typing import Type
 
 from django import forms
 from django.conf import settings
@@ -327,7 +326,7 @@ class GuardedModelAdminMixin:
             return "admin/guardian/contrib/grappelli/obj_perms_manage_user.html"
         return self.obj_perms_manage_user_template
 
-    def get_obj_perms_user_select_form(self, request: HttpRequest) -> Type[forms.Form]:
+    def get_obj_perms_user_select_form(self, request: HttpRequest) -> type[forms.Form]:
         """Get the form class for selecting a user for permissions management.
 
         Parameters:
@@ -339,7 +338,7 @@ class GuardedModelAdminMixin:
         """
         return UserManage
 
-    def get_obj_perms_group_select_form(self, request: HttpRequest) -> Type[forms.Form]:
+    def get_obj_perms_group_select_form(self, request: HttpRequest) -> type[forms.Form]:
         """Get the form class for group object permissions management.
         Parameters:
             request (HttpRequest): The HTTP request object.
@@ -350,7 +349,7 @@ class GuardedModelAdminMixin:
         """
         return GroupManage
 
-    def get_obj_perms_manage_user_form(self, request: HttpRequest) -> Type[forms.Form]:
+    def get_obj_perms_manage_user_form(self, request: HttpRequest) -> type[forms.Form]:
         """Get the form class for user object permissions management.
 
         Parameters:
@@ -424,6 +423,45 @@ class GuardedModelAdminMixin:
         return AdminGroupObjectPermissionsForm
 
 
+class ReinforcedGuardedModelAdminMixin(GuardedModelAdminMixin):
+    """Mixin helper for custom subclassing `admin.ModelAdmin`.
+
+    Like `GuardedModelAdminMixin`, but also requires the guardian
+    view/change permissions for the object permissions management views
+    themselves. `GuardedModelAdminMixin` only checks `has_change_permission`
+    for the underlying model, so any staff user allowed to change a model
+    instance can also view and edit *every* user's and group's object
+    permissions for it, whether or not they hold the guardian permission
+    for that. This mixin is opt-in to avoid changing the behavior of
+    existing `GuardedModelAdminMixin` subclasses.
+    """
+
+    def obj_perms_manage_view(self, request, object_pk):
+        # The delegated view always renders both users_perms and
+        # groups_perms on the same page, with no way to omit either half,
+        # so reaching it requires both view permissions. Requiring just
+        # one would let a user who can only view user-object permissions
+        # see every group's object permissions too, and vice versa.
+        if not request.user.has_perm("guardian.view_userobjectpermission") or not request.user.has_perm(
+            "guardian.view_groupobjectpermission"
+        ):
+            post_url = reverse("admin:index", current_app=self.admin_site.name)
+            return redirect(post_url)
+        return super().obj_perms_manage_view(request, object_pk)
+
+    def obj_perms_manage_user_view(self, request, object_pk, user_id):
+        if not request.user.has_perm("guardian.change_userobjectpermission"):
+            post_url = reverse("admin:index", current_app=self.admin_site.name)
+            return redirect(post_url)
+        return super().obj_perms_manage_user_view(request, object_pk, user_id)
+
+    def obj_perms_manage_group_view(self, request, object_pk, group_id):
+        if not request.user.has_perm("guardian.change_groupobjectpermission"):
+            post_url = reverse("admin:index", current_app=self.admin_site.name)
+            return redirect(post_url)
+        return super().obj_perms_manage_group_view(request, object_pk, group_id)
+
+
 class GuardedModelAdmin(GuardedModelAdminMixin, admin.ModelAdmin):
     """Provide views for managing object permissions on the Django admin panel.
 
@@ -472,6 +510,14 @@ class GuardedModelAdmin(GuardedModelAdminMixin, admin.ModelAdmin):
 
         admin.site.register(Author, AuthorAdmin)
         ```
+    """
+
+
+class ReinforcedGuardedModelAdmin(ReinforcedGuardedModelAdminMixin, admin.ModelAdmin):
+    """Like `GuardedModelAdmin`, but requires the guardian view/change
+    permissions for the object permissions management views themselves.
+
+    See `ReinforcedGuardedModelAdminMixin` for details.
     """
 
 

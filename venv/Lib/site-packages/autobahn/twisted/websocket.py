@@ -24,8 +24,10 @@
 #
 ###############################################################################
 
+from __future__ import annotations
+
 from base64 import b64decode, b64encode
-from typing import Optional
+from typing import Any
 
 import txaio
 from zope.interface import implementer
@@ -79,23 +81,21 @@ __all__ = (
 )
 
 
-def create_client_agent(reactor):
+def create_client_agent(reactor) -> _TwistedWebSocketClientAgent:
     """
     :returns: an instance implementing IWebSocketClientAgent
     """
     return _TwistedWebSocketClientAgent(reactor)
 
 
-def check_transport_config(transport_config):
+def check_transport_config(transport_config: str) -> None:
     """
     raises a ValueError if `transport_config` is invalid
     """
     # XXX move me to "autobahn.websocket.util"
     if not isinstance(transport_config, str):
         raise ValueError(
-            "'transport_config' must be a string, found {}".format(
-                type(transport_config)
-            )
+            f"'transport_config' must be a string, found {type(transport_config)}"
         )
     # XXX also accept everything Crossbar has in client transport configs? e.g like:
     # { "type": "websocket", "endpoint": {"type": "tcp", "host": "example.com", ...}}
@@ -107,7 +107,7 @@ def check_transport_config(transport_config):
     return None
 
 
-def check_client_options(options):
+def check_client_options(options: dict[str, Any]) -> None:
     """
     raises a ValueError if `options` is invalid
     """
@@ -125,7 +125,7 @@ def check_client_options(options):
     ]
     for actual_k in options.keys():
         if actual_k not in valid_keys:
-            raise ValueError("'options' may not contain '{}'".format(actual_k))
+            raise ValueError(f"'options' may not contain '{actual_k}'")
 
 
 def _endpoint_from_config(reactor, factory, transport_config, options):
@@ -261,10 +261,10 @@ class WebSocketAdapterProtocol(twisted.internet.protocol.Protocol):
 
     log = txaio.make_logger()
 
-    peer: Optional[str] = None
-    is_server: Optional[bool] = None
+    peer: str | None = None
+    is_server: bool | None = None
 
-    def connectionMade(self):
+    def connectionMade(self) -> None:
         # Twisted networking framework entry point, called by Twisted
         # when the connection is established (either a client or a server)
 
@@ -296,7 +296,7 @@ class WebSocketAdapterProtocol(twisted.internet.protocol.Protocol):
             peer=hlval(self.peer),
         )
 
-    def connectionLost(self, reason: Failure = connectionDone):
+    def connectionLost(self, reason: Failure = connectionDone) -> None:
         # Twisted networking framework entry point, called by Twisted
         # when the connection is lost (either a client or a server)
 
@@ -352,7 +352,7 @@ class WebSocketAdapterProtocol(twisted.internet.protocol.Protocol):
                 reason=reason,
             )
 
-    def dataReceived(self, data: bytes):
+    def dataReceived(self, data: bytes) -> None:
         self.log.debug(
             '{func} received {data_len} bytes for peer="{peer}"',
             func=hltype(self.dataReceived),
@@ -363,14 +363,14 @@ class WebSocketAdapterProtocol(twisted.internet.protocol.Protocol):
         # bytes received from Twisted, forward to the networking framework independent code for websocket
         self._dataReceived(data)
 
-    def _closeConnection(self, abort=False):
+    def _closeConnection(self, abort: bool=False) -> None:
         if abort and hasattr(self.transport, "abortConnection"):
             self.transport.abortConnection()
         else:
             # e.g. ProcessProtocol lacks abortConnection()
             self.transport.loseConnection()
 
-    def _onOpen(self):
+    def _onOpen(self) -> None:
         if self._transport_details.is_secure:
             # now that the TLS opening handshake is complete, the actual TLS channel ID
             # will be available. make sure to set it!
@@ -383,37 +383,37 @@ class WebSocketAdapterProtocol(twisted.internet.protocol.Protocol):
 
         self.onOpen()
 
-    def _onMessageBegin(self, isBinary):
+    def _onMessageBegin(self, isBinary: bool) -> None:
         self.onMessageBegin(isBinary)
 
-    def _onMessageFrameBegin(self, length):
+    def _onMessageFrameBegin(self, length: int) -> None:
         self.onMessageFrameBegin(length)
 
-    def _onMessageFrameData(self, payload):
+    def _onMessageFrameData(self, payload) -> None:
         self.onMessageFrameData(payload)
 
-    def _onMessageFrameEnd(self):
+    def _onMessageFrameEnd(self) -> None:
         self.onMessageFrameEnd()
 
-    def _onMessageFrame(self, payload):
+    def _onMessageFrame(self, payload) -> None:
         self.onMessageFrame(payload)
 
-    def _onMessageEnd(self):
+    def _onMessageEnd(self) -> None:
         self.onMessageEnd()
 
-    def _onMessage(self, payload, isBinary):
+    def _onMessage(self, payload, isBinary: bool) -> None:
         self.onMessage(payload, isBinary)
 
-    def _onPing(self, payload):
+    def _onPing(self, payload) -> None:
         self.onPing(payload)
 
-    def _onPong(self, payload):
+    def _onPong(self, payload) -> None:
         self.onPong(payload)
 
-    def _onClose(self, wasClean, code, reason):
+    def _onClose(self, wasClean: bool, code, reason) -> None:
         self.onClose(wasClean, code, reason)
 
-    def registerProducer(self, producer, streaming):
+    def registerProducer(self, producer, streaming) -> None:
         """
         Register a Twisted producer with this protocol.
 
@@ -424,7 +424,7 @@ class WebSocketAdapterProtocol(twisted.internet.protocol.Protocol):
         """
         self.transport.registerProducer(producer, streaming)
 
-    def unregisterProducer(self):
+    def unregisterProducer(self) -> None:
         """
         Unregister Twisted producer with this protocol.
         """
@@ -474,7 +474,7 @@ class WebSocketClientProtocol(
         self.transport.startTLS(self.factory.contextFactory)
 
 
-class WebSocketAdapterFactory(object):
+class WebSocketAdapterFactory:
     """
     Adapter class for Twisted-based WebSocket client and server factories.
     """
@@ -560,7 +560,7 @@ class WebSocketClientFactory(
 
 
 @implementer(ITransport)
-class WrappingWebSocketAdapter(object):
+class WrappingWebSocketAdapter:
     """
     An adapter for stream-based transport over WebSocket.
 
@@ -590,28 +590,24 @@ class WrappingWebSocketAdapter(object):
                     return p
             raise ConnectionDeny(
                 ConnectionDeny.NOT_ACCEPTABLE,
-                "this server only speaks {0} WebSocket subprotocols".format(
-                    self.factory._subprotocols
-                ),
+                f"this server only speaks {self.factory._subprotocols} WebSocket subprotocols",
             )
         elif isinstance(requestOrResponse, ConnectionResponse):
             response = requestOrResponse
             if response.protocol not in self.factory._subprotocols:
                 self._fail_connection(
                     protocol.WebSocketProtocol.CLOSE_STATUS_CODE_PROTOCOL_ERROR,
-                    "this client only speaks {0} WebSocket subprotocols".format(
-                        self.factory._subprotocols
-                    ),
+                    f"this client only speaks {self.factory._subprotocols} WebSocket subprotocols",
                 )
             self._binaryMode = response.protocol != "base64"
         else:
             # should not arrive here
             raise Exception("logic error")
 
-    def onOpen(self):
+    def onOpen(self) -> None:
         self._proto.connectionMade()
 
-    def onMessage(self, payload, isBinary):
+    def onMessage(self, payload: bytes, isBinary: bool) -> None:
         if isBinary != self._binaryMode:
             self._fail_connection(
                 protocol.WebSocketProtocol.CLOSE_STATUS_CODE_UNSUPPORTED_DATA,
@@ -624,7 +620,7 @@ class WrappingWebSocketAdapter(object):
                 except Exception as e:
                     self._fail_connection(
                         protocol.WebSocketProtocol.CLOSE_STATUS_CODE_INVALID_PAYLOAD,
-                        "message payload base64 decoding error: {0}".format(e),
+                        f"message payload base64 decoding error: {e}",
                     )
             self._proto.dataReceived(payload)
 
@@ -632,7 +628,7 @@ class WrappingWebSocketAdapter(object):
     def onClose(self, wasClean, code, reason):
         self._proto.connectionLost(None)
 
-    def write(self, data):
+    def write(self, data: bytes) -> None:
         # part of ITransport
         assert type(data) == bytes
         if self._binaryMode:
@@ -641,12 +637,12 @@ class WrappingWebSocketAdapter(object):
             data = b64encode(data)
             self.sendMessage(data, isBinary=False)
 
-    def writeSequence(self, data):
+    def writeSequence(self, data: bytes) -> None:
         # part of ITransport
         for d in data:
             self.write(d)
 
-    def loseConnection(self):
+    def loseConnection(self) -> None:
         # part of ITransport
         self.sendClose()
 

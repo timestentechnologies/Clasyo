@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from allauth.socialaccount.providers.base import ProviderAccount
 from allauth.socialaccount.providers.oauth2.provider import OAuth2Provider
 from allauth.socialaccount.providers.trainingpeaks.views import (
@@ -23,11 +25,11 @@ class TrainingPeaksProvider(OAuth2Provider):
         return str(data["Id"])
 
     def extract_common_fields(self, data):
-        extra_common = super(TrainingPeaksProvider, self).extract_common_fields(data)
+        extra_common = super().extract_common_fields(data)
         firstname = data.get("FirstName")
         lastname = data.get("LastName")
         # fallback username as there is actually no Username in response
-        username = firstname.strip().lower() + "." + lastname.strip().lower()
+        username = f"{firstname.strip().lower()}.{lastname.strip().lower()}"
         name = " ".join(part for part in (firstname, lastname) if part)
         extra_common.update(
             username=data.get("username", username),

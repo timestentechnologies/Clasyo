@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from django.conf import settings
+from django.http import HttpRequest
 
 from allauth.socialaccount.adapter import get_adapter
 from allauth.socialaccount.providers.oauth2.views import (
@@ -11,11 +14,11 @@ from allauth.socialaccount.providers.oauth2.views import (
 ENVIRONMENTS = {
     "production": {
         "auth_url": "https://www.dwolla.com/oauth/v2/authenticate",
-        "token_url": "https://www.dwolla.com/oauth/v2/token",
+        "token_url": "https://www.dwolla.com/oauth/v2/token",  # nosec
     },
     "sandbox": {
         "auth_url": "https://uat.dwolla.com/oauth/v2/authenticate",
-        "token_url": "https://uat.dwolla.com/oauth/v2/token",
+        "token_url": "https://uat.dwolla.com/oauth/v2/token",  # nosec
     },
 }
 
@@ -38,20 +41,17 @@ class DwollaOAuth2Adapter(OAuth2Adapter):
     access_token_url = TOKEN_URL
     authorize_url = AUTH_URL
 
-    def complete_login(self, request, app, token, response, **kwargs):
-        resp = (
-            get_adapter()
-            .get_requests_session()
-            .get(
+    def complete_login(self, request: HttpRequest, app, token, **kwargs):
+        response = kwargs["response"]
+        with get_adapter().get_requests_session() as sess:
+            resp = sess.get(
                 response["_links"]["account"]["href"],
                 headers={
-                    "authorization": "Bearer %s" % token.token,
+                    "authorization": f"Bearer {token.token}",
                     "accept": "application/vnd.dwolla.v1.hal+json",
                 },
             )
-        )
-
-        extra_data = resp.json()
+            extra_data = resp.json()
 
         return self.get_provider().sociallogin_from_response(request, extra_data)
 

@@ -6,13 +6,13 @@ Test cases for using NMEA sentences.
 from __future__ import annotations
 
 import datetime
+from collections.abc import Iterable
 from operator import attrgetter
-from typing import Callable, Iterable, TypedDict
+from typing import Callable, Literal, Protocol, TypedDict
 
 from zope.interface import implementer
 
 from constantly import NamedConstant
-from typing_extensions import Literal, Protocol
 
 from twisted.positioning import base, ipositioning, nmea
 from twisted.positioning.base import Angles

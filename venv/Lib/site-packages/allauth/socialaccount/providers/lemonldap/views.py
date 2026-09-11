@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from django.http import HttpRequest
+
 from allauth.socialaccount import app_settings
 from allauth.socialaccount.adapter import get_adapter
 from allauth.socialaccount.models import SocialToken
@@ -14,18 +18,16 @@ class LemonLDAPOAuth2Adapter(OAuth2Adapter):
     settings = app_settings.PROVIDERS.get(provider_id, {})
     provider_base_url = settings.get("LEMONLDAP_URL")
 
-    access_token_url = "{0}/oauth2/token".format(provider_base_url)
-    authorize_url = "{0}/oauth2/authorize".format(provider_base_url)
-    profile_url = "{0}/oauth2/userinfo".format(provider_base_url)
+    access_token_url = f"{provider_base_url}/oauth2/token"
+    authorize_url = f"{provider_base_url}/oauth2/authorize"
+    profile_url = f"{provider_base_url}/oauth2/userinfo"
 
-    def complete_login(self, request, app, token: SocialToken, **kwargs):
-        response = (
-            get_adapter()
-            .get_requests_session()
-            .post(self.profile_url, headers={"Authorization": "Bearer " + token.token})
-        )
-        response.raise_for_status()
-        extra_data = response.json()
+    def complete_login(self, request: HttpRequest, app, token: SocialToken, **kwargs):
+        headers = {"Authorization": f"Bearer {token.token}"}
+        with get_adapter().get_requests_session() as sess:
+            response = sess.post(self.profile_url, headers=headers)
+            response.raise_for_status()
+            extra_data = response.json()
         extra_data["id"] = extra_data["sub"]
         del extra_data["sub"]
 

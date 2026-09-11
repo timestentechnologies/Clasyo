@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from allauth.socialaccount.providers.base import ProviderAccount
 from allauth.socialaccount.providers.oauth2.provider import OAuth2Provider
 from allauth.socialaccount.providers.stripe.views import StripeOAuth2Adapter
@@ -5,11 +7,11 @@ from allauth.socialaccount.providers.stripe.views import StripeOAuth2Adapter
 
 class StripeAccount(ProviderAccount):
     def to_str(self):
-        default = super(StripeAccount, self).to_str()
+        default = super().to_str()
         email = self.account.extra_data.get("email")
         business = self.account.extra_data.get("business_name")
         if business:
-            return "%s (%s)" % (email or default, business)
+            return f"{email or default} ({business})"
         else:
             return email or default
 

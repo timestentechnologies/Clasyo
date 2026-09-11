@@ -1,22 +1,23 @@
+from __future__ import annotations
+
 import importlib
 from collections import OrderedDict
 
 from django.apps import apps
 from django.conf import settings
-
-from allauth.utils import import_attribute
+from django.utils.module_loading import import_string
 
 
 class ProviderRegistry:
-    def __init__(self):
-        self.provider_map = OrderedDict()
+    def __init__(self) -> None:
+        self.provider_map: OrderedDict[str, type] = OrderedDict()
         self.loaded = False
 
     def get_class_list(self):
         self.load()
         return list(self.provider_map.values())
 
-    def register(self, cls):
+    def register(self, cls) -> None:
         self.provider_map[cls.id] = cls
 
     def get_class(self, id):
@@ -27,7 +28,7 @@ class ProviderRegistry:
         for provider_cls in self.provider_map.values():
             yield (provider_cls.id, provider_cls.name)
 
-    def load(self):
+    def load(self) -> None:
         # TODO: Providers register with the provider registry when
         # loaded. Here, we build the URLs for all registered providers. So, we
         # really need to be sure all providers did register, which is why we're
@@ -37,7 +38,7 @@ class ProviderRegistry:
         if not self.loaded:
             for app_config in apps.get_app_configs():
                 try:
-                    module_name = app_config.name + ".provider"
+                    module_name = f"{app_config.name}.provider"
                     provider_module = importlib.import_module(module_name)
                 except ImportError as e:
                     if e.name != module_name:
@@ -49,7 +50,7 @@ class ProviderRegistry:
                             "provider_class"
                         )
                         if provider_class:
-                            cls = import_attribute(provider_class)
+                            cls = import_string(provider_class)
                         self.register(cls)
             self.loaded = True
 

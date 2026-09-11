@@ -1,8 +1,10 @@
-from io import BytesIO
-from typing import Dict
-from urllib.parse import quote
+from __future__ import annotations
 
-from django.utils.http import urlencode
+from io import BytesIO
+from urllib.parse import quote, urlencode
+
+from django.contrib.auth.base_user import AbstractBaseUser
+from django.utils.module_loading import import_string
 from django.utils.translation import gettext, gettext_lazy as _
 
 from allauth import app_settings as allauth_settings
@@ -17,7 +19,6 @@ from allauth.core import context
 from allauth.core.internal.adapter import BaseAdapter
 from allauth.mfa import app_settings
 from allauth.mfa.models import Authenticator
-from allauth.utils import import_attribute
 
 
 class DefaultMFAAdapter(BaseAdapter):
@@ -44,13 +45,13 @@ class DefaultMFAAdapter(BaseAdapter):
     }
     "The error messages that can occur as part of MFA form handling."
 
-    def get_totp_label(self, user) -> str:
+    def get_totp_label(self, user: AbstractBaseUser) -> str:
         """Returns the label used for representing the given user in a TOTP QR
         code.
         """
         return self._get_user_identifier(user)
 
-    def _get_user_identifier(self, user) -> str:
+    def _get_user_identifier(self, user: AbstractBaseUser) -> str:
         """Human-palatable identifier for a user account. It is intended only
         for display.
         """
@@ -70,7 +71,7 @@ class DefaultMFAAdapter(BaseAdapter):
             issuer = self._get_site_name()
         return issuer
 
-    def build_totp_url(self, user, secret: str) -> str:
+    def build_totp_url(self, user: AbstractBaseUser, secret: str) -> str:
         label = self.get_totp_label(user)
         issuer = self.get_totp_issuer()
         params = {
@@ -83,7 +84,7 @@ class DefaultMFAAdapter(BaseAdapter):
             params["digits"] = app_settings.TOTP_DIGITS
         if app_settings.TOTP_PERIOD != 30:
             params["period"] = app_settings.TOTP_PERIOD
-        return f"otpauth://totp/{quote(label)}?{urlencode(params)}"
+        return f"otpauth://totp/{quote(label)}?{urlencode(params, quote_via=quote)}"
 
     def build_totp_svg(self, url: str) -> str:
         import qrcode
@@ -117,40 +118,42 @@ class DefaultMFAAdapter(BaseAdapter):
     def can_delete_authenticator(self, authenticator: Authenticator) -> bool:
         return True
 
-    def send_notification_mail(self, *args, **kwargs):
+    def send_notification_mail(self, *args, **kwargs) -> None:
         return get_account_adapter().send_notification_mail(*args, **kwargs)
 
-    def is_mfa_enabled(self, user, types=None) -> bool:
+    def is_mfa_enabled(self, user: AbstractBaseUser, types=None) -> bool:
         """
         Returns ``True`` if (and only if) the user has 2FA enabled.
         """
         if user.is_anonymous:
             return False
-        qs = Authenticator.objects.filter(user=user)
+        qs = Authenticator.objects.filter(user_id=user.pk)
         if types is not None:
             qs = qs.filter(type__in=types)
         return qs.exists()
 
-    def generate_authenticator_name(self, user, type: Authenticator.Type) -> str:
+    def generate_authenticator_name(
+        self, user: AbstractBaseUser, type: Authenticator.Type
+    ) -> str:
         """
         Generate a human friendly name for the key. Used to prefill the "Add
         key" form.
         """
-        n = Authenticator.objects.filter(user=user, type=type).count()
+        n = Authenticator.objects.filter(user_id=user.pk, type=type).count()
         if n == 0:
             return gettext("Master key")
         elif n == 1:
             return gettext("Backup key")
         return gettext("Key nr. {number}").format(number=n + 1)
 
-    def get_public_key_credential_rp_entity(self) -> Dict[str, str]:
+    def get_public_key_credential_rp_entity(self) -> dict[str, str]:
         name = self._get_site_name()
         return {
             "id": context.request.get_host().partition(":")[0],
             "name": name,
         }
 
-    def get_public_key_credential_user_entity(self, user) -> dict:
+    def get_public_key_credential_user_entity(self, user: AbstractBaseUser) -> dict:
         return {
             "id": user_pk_to_url_str(user).encode("utf8"),
             "display_name": user_display(user),
@@ -159,4 +162,4 @@ class DefaultMFAAdapter(BaseAdapter):
 
 
 def get_adapter() -> DefaultMFAAdapter:
-    return import_attribute(app_settings.ADAPTER)()
+    return import_string(app_settings.ADAPTER)()

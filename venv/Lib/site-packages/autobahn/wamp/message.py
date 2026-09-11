@@ -24,11 +24,13 @@
 #
 ###############################################################################
 
+from __future__ import annotations
+
 import binascii
 import re
 import textwrap
 from pprint import pformat
-from typing import Any, Dict, Optional
+from typing import Any, Literal, overload
 
 import autobahn
 from autobahn.util import hlval
@@ -37,8 +39,8 @@ from autobahn.wamp.role import ROLE_NAME_TO_CLASS
 
 try:
     import cbor2
-    from autobahn import flatbuffers
 
+    from autobahn import flatbuffers
     from autobahn.wamp import message_fbs
 except ImportError:
     _HAS_WAMP_FLATBUFFERS = False
@@ -174,7 +176,7 @@ ENC_SERS = {
 ENC_SERS_FROMSTR = {key: value for value, key in ENC_SERS.items()}
 
 
-def is_valid_enc_algo(enc_algo):
+def is_valid_enc_algo(enc_algo: str):
     """
     For WAMP payload transparency mode, check if the provided ``enc_algo``
     identifier in the WAMP message is a valid one.
@@ -200,7 +202,7 @@ def is_valid_enc_algo(enc_algo):
     )
 
 
-def is_valid_enc_serializer(enc_serializer):
+def is_valid_enc_serializer(enc_serializer: str):
     """
     For WAMP payload transparency mode, check if the provided ``enc_serializer``
     identifier in the WAMP message is a valid one.
@@ -236,14 +238,14 @@ def b2a(data, max_len=40):
     elif data is None:
         s = "-"
     else:
-        s = "{}".format(data)
+        s = f"{data}"
     if len(s) > max_len:
         return s[:max_len] + ".."
     else:
         return s
 
 
-def identify_realm_name_category(value: Any) -> Optional[str]:
+def identify_realm_name_category(value: Any) -> str | None:
     """
     Identify the real name category of the given value:
 
@@ -272,6 +274,30 @@ def identify_realm_name_category(value: Any) -> Optional[str]:
         return None
 
 
+@overload
+def check_or_raise_uri(
+    value: Any,
+    message: str,
+    strict: bool,
+    allow_empty_components: bool,
+    allow_last_empty: bool,
+    allow_none: Literal[True],
+) -> str | None:
+    pass
+
+
+@overload
+def check_or_raise_uri(
+    value: Any,
+    message: str = "WAMP message invalid",
+    strict: bool = False,
+    allow_empty_components: bool = False,
+    allow_last_empty: bool = False,
+    allow_none: Literal[False] = False,
+) -> str:
+    pass
+
+
 def check_or_raise_uri(
     value: Any,
     message: str = "WAMP message invalid",
@@ -279,7 +305,7 @@ def check_or_raise_uri(
     allow_empty_components: bool = False,
     allow_last_empty: bool = False,
     allow_none: bool = False,
-) -> str:
+) -> str | None:
     """
     Check a value for being a valid WAMP URI.
 
@@ -301,13 +327,11 @@ def check_or_raise_uri(
         if allow_none:
             return
         else:
-            raise InvalidUriError("{0}: URI cannot be null".format(message))
+            raise InvalidUriError(f"{message}: URI cannot be null")
 
     if type(value) != str:
         if not (value is None and allow_none):
-            raise InvalidUriError(
-                "{0}: invalid type {1} for URI".format(message, type(value))
-            )
+            raise InvalidUriError(f"{message}: invalid type {type(value)} for URI")
 
     if strict:
         if allow_last_empty:
@@ -326,15 +350,7 @@ def check_or_raise_uri(
 
     if not pat.match(value):
         raise InvalidUriError(
-            '{0}: invalid value "{1}" for URI (did not match pattern "{2}" with options strict={3}, allow_empty_components={4}, allow_last_empty={5}, allow_none={6})'.format(
-                message,
-                value,
-                pat.pattern,
-                strict,
-                allow_empty_components,
-                allow_last_empty,
-                allow_none,
-            )
+            f'{message}: invalid value "{value}" for URI (did not match pattern "{pat.pattern}" with options strict={strict}, allow_empty_components={allow_empty_components}, allow_last_empty={allow_last_empty}, allow_none={allow_none})'
         )
     else:
         return value
@@ -355,33 +371,26 @@ def check_or_raise_realm_name(value, message="WAMP message invalid", allow_eth=T
     :raises: instance of :class:`autobahn.wamp.exception.InvalidUriError`
     """
     if value is None:
-        raise InvalidUriError("{0}: realm name cannot be null".format(message))
+        raise InvalidUriError(f"{message}: realm name cannot be null")
 
     if type(value) != str:
-        raise InvalidUriError(
-            "{0}: invalid type {1} for realm name".format(message, type(value))
-        )
+        raise InvalidUriError(f"{message}: invalid type {type(value)} for realm name")
 
     if allow_eth:
         if _URI_PAT_REALM_NAME.match(value) or _URI_PAT_REALM_NAME_ETH.match(value):
             return value
         else:
             raise InvalidUriError(
-                '{0}: invalid value "{1}" for realm name (did not match patterns '
-                '"{2}" or "{3}")'.format(
-                    message,
-                    value,
-                    _URI_PAT_REALM_NAME.pattern,
-                    _URI_PAT_REALM_NAME_ETH.pattern,
-                )
+                f'{message}: invalid value "{value}" for realm name (did not match patterns '
+                f'"{_URI_PAT_REALM_NAME.pattern}" or "{_URI_PAT_REALM_NAME_ETH.pattern}")'
             )
     else:
         if _URI_PAT_REALM_NAME.match(value):
             return value
         else:
             raise InvalidUriError(
-                '{0}: invalid value "{1}" for realm name (did not match pattern '
-                '"{2}")'.format(message, value, _URI_PAT_REALM_NAME.pattern)
+                f'{message}: invalid value "{value}" for realm name (did not match pattern '
+                f'"{_URI_PAT_REALM_NAME.pattern}")'
             )
 
 
@@ -398,17 +407,17 @@ def check_or_raise_id(value: Any, message: str = "WAMP message invalid") -> int:
     :raises: instance of :class:`autobahn.wamp.exception.ProtocolError`
     """
     if type(value) != int:
-        raise ProtocolError("{0}: invalid type {1} for ID".format(message, type(value)))
+        raise ProtocolError(f"{message}: invalid type {type(value)} for ID")
     # the value 0 for WAMP IDs is possible in certain WAMP messages, e.g. UNREGISTERED with
     # router revocation signaling!
     if value < 0 or value > 9007199254740992:  # 2**53
-        raise ProtocolError("{0}: invalid value {1} for ID".format(message, value))
+        raise ProtocolError(f"{message}: invalid value {value} for ID")
     return value
 
 
 def check_or_raise_extra(
     value: Any, message: str = "WAMP message invalid"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Check a value for being a valid WAMP extra dictionary.
 
@@ -421,15 +430,11 @@ def check_or_raise_extra(
     :raises: instance of :class:`autobahn.wamp.exception.ProtocolError`
     """
     if type(value) != dict:
-        raise ProtocolError(
-            "{0}: invalid type {1} for WAMP extra".format(message, type(value))
-        )
+        raise ProtocolError(f"{message}: invalid type {type(value)} for WAMP extra")
     for k in value.keys():
         if not isinstance(k, str):
             raise ProtocolError(
-                "{0}: invalid type {1} for key in WAMP extra ('{2}')".format(
-                    message, type(k), k
-                )
+                f"{message}: invalid type {type(k)} for key in WAMP extra ('{k}')"
             )
     return value
 
@@ -464,19 +469,17 @@ def _validate_kwargs(kwargs, message="WAMP message invalid"):
     if kwargs is not None:
         if type(kwargs) != dict:
             raise ProtocolError(
-                "{0}: invalid type {1} for WAMP kwargs".format(message, type(kwargs))
+                f"{message}: invalid type {type(kwargs)} for WAMP kwargs"
             )
         for k in kwargs.keys():
             if not isinstance(k, str):
                 raise ProtocolError(
-                    "{0}: invalid type {1} for key in WAMP kwargs ('{2}')".format(
-                        message, type(k), k
-                    )
+                    f"{message}: invalid type {type(k)} for key in WAMP kwargs ('{k}')"
                 )
         return kwargs
 
 
-class Message(object):
+class Message:
     """
     WAMP message base class.
 
@@ -672,7 +675,7 @@ class Message(object):
         return self._serialized[serializer]
 
 
-class MessageWithAppPayload(object):
+class MessageWithAppPayload:
     """
     Mixin for WAMP messages carrying application payload (Category 4).
 
@@ -771,9 +774,9 @@ class MessageWithAppPayload(object):
             # msgpack supports memoryview (zero-copy)
             return msgpack.unpackb(data_bytes)
         elif ser_id == "ubjson":
-            import ubjson
+            # The WAMP "ubjson" serializer is backed by bjdata (see serializer.py)
+            import bjdata as ubjson
 
-            # ubjson supports memoryview (zero-copy)
             return ubjson.loadb(data_bytes)
         else:
             # Fallback to CBOR for unknown serializers
@@ -877,7 +880,7 @@ class MessageWithAppPayload(object):
         self._enc_serializer = value
 
 
-class MessageWithForwardFor(object):
+class MessageWithForwardFor:
     """
     Mixin for WAMP messages with forward_for (Category 3 & 4).
 
@@ -932,7 +935,10 @@ class MessageWithForwardFor(object):
         if self._forward_for is None and self._from_fbs:
             # Check if this message type has forward_for in FlatBuffers schema
             # Category 1 messages don't have forward_for
-            if hasattr(self._from_fbs, 'ForwardForLength') and self._from_fbs.ForwardForLength():
+            if (
+                hasattr(self._from_fbs, "ForwardForLength")
+                and self._from_fbs.ForwardForLength()
+            ):
                 forward_for = []
                 for j in range(self._from_fbs.ForwardForLength()):
                     principal = self._from_fbs.ForwardFor(j)
@@ -1321,9 +1327,7 @@ class Hello(Message):
         assert len(wmsg) > 0 and wmsg[0] == Hello.MESSAGE_TYPE
 
         if len(wmsg) != 3:
-            raise ProtocolError(
-                "invalid message length {0} for HELLO".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for HELLO")
 
         realm = check_or_raise_uri(wmsg[1], "'realm' in HELLO", allow_none=True)
         details = check_or_raise_extra(wmsg[2], "'details' in HELLO")
@@ -1343,22 +1347,20 @@ class Hello(Message):
         for role in details_roles:
             if role not in ["subscriber", "publisher", "caller", "callee"]:
                 raise ProtocolError(
-                    "invalid role '{0}' in 'roles' in 'details' in HELLO".format(role)
+                    f"invalid role '{role}' in 'roles' in 'details' in HELLO"
                 )
 
             role_cls = ROLE_NAME_TO_CLASS[role]
 
             details_role = check_or_raise_extra(
                 details_roles[role],
-                "role '{0}' in 'roles' in 'details' in HELLO".format(role),
+                f"role '{role}' in 'roles' in 'details' in HELLO",
             )
 
             if "features" in details_role:
                 check_or_raise_extra(
                     details_role["features"],
-                    "'features' in role '{0}' in 'roles' in 'details' in HELLO".format(
-                        role
-                    ),
+                    f"'features' in role '{role}' in 'roles' in 'details' in HELLO",
                 )
 
                 role_features = role_cls(**details_role["features"])
@@ -1373,17 +1375,13 @@ class Hello(Message):
             details_authmethods = details["authmethods"]
             if type(details_authmethods) != list:
                 raise ProtocolError(
-                    "invalid type {0} for 'authmethods' detail in HELLO".format(
-                        type(details_authmethods)
-                    )
+                    f"invalid type {type(details_authmethods)} for 'authmethods' detail in HELLO"
                 )
 
             for auth_method in details_authmethods:
                 if type(auth_method) != str:
                     raise ProtocolError(
-                        "invalid type {0} for item in 'authmethods' detail in HELLO".format(
-                            type(auth_method)
-                        )
+                        f"invalid type {type(auth_method)} for item in 'authmethods' detail in HELLO"
                     )
 
             authmethods = details_authmethods
@@ -1393,9 +1391,7 @@ class Hello(Message):
             details_authid = details["authid"]
             if type(details_authid) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'authid' detail in HELLO".format(
-                        type(details_authid)
-                    )
+                    f"invalid type {type(details_authid)} for 'authid' detail in HELLO"
                 )
 
             authid = details_authid
@@ -1405,9 +1401,7 @@ class Hello(Message):
             details_authrole = details["authrole"]
             if type(details_authrole) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'authrole' detail in HELLO".format(
-                        type(details_authrole)
-                    )
+                    f"invalid type {type(details_authrole)} for 'authrole' detail in HELLO"
                 )
 
             authrole = details_authrole
@@ -1417,9 +1411,7 @@ class Hello(Message):
             details_authextra = details["authextra"]
             if type(details_authextra) != dict:
                 raise ProtocolError(
-                    "invalid type {0} for 'authextra' detail in HELLO".format(
-                        type(details_authextra)
-                    )
+                    f"invalid type {type(details_authextra)} for 'authextra' detail in HELLO"
                 )
 
             authextra = details_authextra
@@ -1429,9 +1421,7 @@ class Hello(Message):
             resumable = details["resumable"]
             if type(resumable) != bool:
                 raise ProtocolError(
-                    "invalid type {0} for 'resumable' detail in HELLO".format(
-                        type(resumable)
-                    )
+                    f"invalid type {type(resumable)} for 'resumable' detail in HELLO"
                 )
 
         resume_session = None
@@ -1439,9 +1429,7 @@ class Hello(Message):
             resume_session = details["resume-session"]
             if type(resume_session) != int:
                 raise ProtocolError(
-                    "invalid type {0} for 'resume-session' detail in HELLO".format(
-                        type(resume_session)
-                    )
+                    f"invalid type {type(resume_session)} for 'resume-session' detail in HELLO"
                 )
 
         resume_token = None
@@ -1449,9 +1437,7 @@ class Hello(Message):
             resume_token = details["resume-token"]
             if type(resume_token) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'resume-token' detail in HELLO".format(
-                        type(resume_token)
-                    )
+                    f"invalid type {type(resume_token)} for 'resume-token' detail in HELLO"
                 )
         else:
             if resume_session:
@@ -1932,9 +1918,7 @@ class Welcome(Message):
         assert len(wmsg) > 0 and wmsg[0] == Welcome.MESSAGE_TYPE
 
         if len(wmsg) != 3:
-            raise ProtocolError(
-                "invalid message length {0} for WELCOME".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for WELCOME")
 
         session = check_or_raise_id(wmsg[1], "'session' in WELCOME")
         details = check_or_raise_extra(wmsg[2], "'details' in WELCOME")
@@ -1952,9 +1936,7 @@ class Welcome(Message):
             resumed = details["resumed"]
             if not type(resumed) == bool:
                 raise ProtocolError(
-                    "invalid type {0} for 'resumed' detail in WELCOME".format(
-                        type(resumed)
-                    )
+                    f"invalid type {type(resumed)} for 'resumed' detail in WELCOME"
                 )
 
         resumable = None
@@ -1962,9 +1944,7 @@ class Welcome(Message):
             resumable = details["resumable"]
             if not type(resumable) == bool:
                 raise ProtocolError(
-                    "invalid type {0} for 'resumable' detail in WELCOME".format(
-                        type(resumable)
-                    )
+                    f"invalid type {type(resumable)} for 'resumable' detail in WELCOME"
                 )
 
         resume_token = None
@@ -1972,9 +1952,7 @@ class Welcome(Message):
             resume_token = details["resume_token"]
             if not type(resume_token) == str:
                 raise ProtocolError(
-                    "invalid type {0} for 'resume_token' detail in WELCOME".format(
-                        type(resume_token)
-                    )
+                    f"invalid type {type(resume_token)} for 'resume_token' detail in WELCOME"
                 )
         elif resumable:
             raise ProtocolError(
@@ -1998,22 +1976,20 @@ class Welcome(Message):
         for role in details_roles:
             if role not in ["broker", "dealer"]:
                 raise ProtocolError(
-                    "invalid role '{0}' in 'roles' in 'details' in WELCOME".format(role)
+                    f"invalid role '{role}' in 'roles' in 'details' in WELCOME"
                 )
 
             role_cls = ROLE_NAME_TO_CLASS[role]
 
             details_role = check_or_raise_extra(
                 details_roles[role],
-                "role '{0}' in 'roles' in 'details' in WELCOME".format(role),
+                f"role '{role}' in 'roles' in 'details' in WELCOME",
             )
 
             if "features" in details_role:
                 check_or_raise_extra(
                     details_role["features"],
-                    "'features' in role '{0}' in 'roles' in 'details' in WELCOME".format(
-                        role
-                    ),
+                    f"'features' in role '{role}' in 'roles' in 'details' in WELCOME",
                 )
 
                 role_features = role_cls(**details_roles[role]["features"])
@@ -2212,7 +2188,7 @@ class Abort(Message):
         message_fbs.AbortGen.AbortStart(builder)
 
         # Add fields
-        session = getattr(self, 'session', None)
+        session = getattr(self, "session", None)
         if session:
             message_fbs.AbortGen.AbortAddSession(builder, session)
         if reason:
@@ -2245,9 +2221,7 @@ class Abort(Message):
         assert len(wmsg) > 0 and wmsg[0] == Abort.MESSAGE_TYPE
 
         if len(wmsg) != 3:
-            raise ProtocolError(
-                "invalid message length {0} for ABORT".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for ABORT")
 
         details = check_or_raise_extra(wmsg[1], "'details' in ABORT")
         reason = check_or_raise_uri(wmsg[2], "'reason' in ABORT")
@@ -2258,9 +2232,7 @@ class Abort(Message):
             details_message = details["message"]
             if type(details_message) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'message' detail in ABORT".format(
-                        type(details_message)
-                    )
+                    f"invalid type {type(details_message)} for 'message' detail in ABORT"
                 )
 
             message = details_message
@@ -2339,11 +2311,11 @@ class Challenge(Message):
             # Map AuthMethod enum to string
             # AuthMethod: NULL=0, TICKET=1, CRA=2, SCRAM=3, CRYPTOSIGN=4
             AUTH_METHOD_MAP = {
-                0: None,           # NULL/anonymous
-                1: "ticket",       # TICKET
-                2: "wampcra",      # CRA (Challenge-Response Authentication)
-                3: "wamp-scram",   # SCRAM
-                4: "cryptosign",   # CRYPTOSIGN
+                0: None,  # NULL/anonymous
+                1: "ticket",  # TICKET
+                2: "wampcra",  # CRA (Challenge-Response Authentication)
+                3: "wamp-scram",  # SCRAM
+                4: "cryptosign",  # CRYPTOSIGN
             }
             self._method = AUTH_METHOD_MAP.get(method_val)
         return self._method
@@ -2399,7 +2371,7 @@ class Challenge(Message):
         message_fbs.ChallengeGen.ChallengeStart(builder)
 
         # Add fields
-        session = getattr(self, 'session', None)
+        session = getattr(self, "session", None)
         if session:
             message_fbs.ChallengeGen.ChallengeAddSession(builder, session)
 
@@ -2407,11 +2379,11 @@ class Challenge(Message):
         # AuthMethod: NULL=0, TICKET=1, CRA=2, SCRAM=3, CRYPTOSIGN=4
         if self.method:
             STRING_TO_AUTH_METHOD = {
-                "anonymous": 0,     # NULL
-                "ticket": 1,        # TICKET
-                "wampcra": 2,       # CRA (Challenge-Response Authentication)
-                "wamp-scram": 3,    # SCRAM
-                "cryptosign": 4,    # CRYPTOSIGN
+                "anonymous": 0,  # NULL
+                "ticket": 1,  # TICKET
+                "wampcra": 2,  # CRA (Challenge-Response Authentication)
+                "wamp-scram": 3,  # SCRAM
+                "cryptosign": 4,  # CRYPTOSIGN
             }
             method_enum = STRING_TO_AUTH_METHOD.get(self.method, 0)
             message_fbs.ChallengeGen.ChallengeAddMethod(builder, method_enum)
@@ -2426,7 +2398,9 @@ class Challenge(Message):
 
         # Wrap in Message union with type
         message_fbs.Message.MessageStart(builder)
-        message_fbs.Message.MessageAddMsgType(builder, message_fbs.MessageType.CHALLENGE)
+        message_fbs.Message.MessageAddMsgType(
+            builder, message_fbs.MessageType.CHALLENGE
+        )
         message_fbs.Message.MessageAddMsg(builder, msg)
         union_msg = message_fbs.Message.MessageEnd(builder)
 
@@ -2446,14 +2420,12 @@ class Challenge(Message):
         assert len(wmsg) > 0 and wmsg[0] == Challenge.MESSAGE_TYPE
 
         if len(wmsg) != 3:
-            raise ProtocolError(
-                "invalid message length {0} for CHALLENGE".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for CHALLENGE")
 
         method = wmsg[1]
         if type(method) != str:
             raise ProtocolError(
-                "invalid type {0} for 'method' in CHALLENGE".format(type(method))
+                f"invalid type {type(method)} for 'method' in CHALLENGE"
             )
 
         extra = check_or_raise_extra(wmsg[2], "'extra' in CHALLENGE")
@@ -2587,7 +2559,7 @@ class Authenticate(Message):
         message_fbs.AuthenticateGen.AuthenticateStart(builder)
 
         # Add fields
-        session = getattr(self, 'session', None)
+        session = getattr(self, "session", None)
         if session:
             message_fbs.AuthenticateGen.AuthenticateAddSession(builder, session)
         if signature:
@@ -2603,7 +2575,9 @@ class Authenticate(Message):
 
         # Wrap in Message union with type
         message_fbs.Message.MessageStart(builder)
-        message_fbs.Message.MessageAddMsgType(builder, message_fbs.MessageType.AUTHENTICATE)
+        message_fbs.Message.MessageAddMsgType(
+            builder, message_fbs.MessageType.AUTHENTICATE
+        )
         message_fbs.Message.MessageAddMsg(builder, msg)
         union_msg = message_fbs.Message.MessageEnd(builder)
 
@@ -2623,16 +2597,12 @@ class Authenticate(Message):
         assert len(wmsg) > 0 and wmsg[0] == Authenticate.MESSAGE_TYPE
 
         if len(wmsg) != 3:
-            raise ProtocolError(
-                "invalid message length {0} for AUTHENTICATE".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for AUTHENTICATE")
 
         signature = wmsg[1]
         if type(signature) != str:
             raise ProtocolError(
-                "invalid type {0} for 'signature' in AUTHENTICATE".format(
-                    type(signature)
-                )
+                f"invalid type {type(signature)} for 'signature' in AUTHENTICATE"
             )
 
         extra = check_or_raise_extra(wmsg[2], "'extra' in AUTHENTICATE")
@@ -2790,7 +2760,7 @@ class Goodbye(Message):
         message_fbs.GoodbyeGen.GoodbyeStart(builder)
 
         # Add fields
-        session = getattr(self, 'session', None)
+        session = getattr(self, "session", None)
         if session:
             message_fbs.GoodbyeGen.GoodbyeAddSession(builder, session)
         if reason:
@@ -2825,9 +2795,7 @@ class Goodbye(Message):
         assert len(wmsg) > 0 and wmsg[0] == Goodbye.MESSAGE_TYPE
 
         if len(wmsg) != 3:
-            raise ProtocolError(
-                "invalid message length {0} for GOODBYE".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for GOODBYE")
 
         details = check_or_raise_extra(wmsg[1], "'details' in GOODBYE")
         reason = check_or_raise_uri(wmsg[2], "'reason' in GOODBYE")
@@ -2839,9 +2807,7 @@ class Goodbye(Message):
             details_message = details["message"]
             if type(details_message) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'message' detail in GOODBYE".format(
-                        type(details_message)
-                    )
+                    f"invalid type {type(details_message)} for 'message' detail in GOODBYE"
                 )
 
             message = details_message
@@ -2850,9 +2816,7 @@ class Goodbye(Message):
             resumable = details["resumable"]
             if type(resumable) != bool:
                 raise ProtocolError(
-                    "invalid type {0} for 'resumable' detail in GOODBYE".format(
-                        type(resumable)
-                    )
+                    f"invalid type {type(resumable)} for 'resumable' detail in GOODBYE"
                 )
 
         obj = Goodbye(reason=reason, message=message, resumable=resumable)
@@ -3216,14 +3180,12 @@ class Error(MessageWithAppPayload, MessageWithForwardFor, Message):
         assert len(wmsg) > 0 and wmsg[0] == Error.MESSAGE_TYPE
 
         if len(wmsg) not in (5, 6, 7):
-            raise ProtocolError(
-                "invalid message length {0} for ERROR".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for ERROR")
 
         request_type = wmsg[1]
         if type(request_type) != int:
             raise ProtocolError(
-                "invalid type {0} for 'request_type' in ERROR".format(request_type)
+                f"invalid type {request_type} for 'request_type' in ERROR"
             )
 
         if request_type not in [
@@ -3236,7 +3198,7 @@ class Error(MessageWithAppPayload, MessageWithForwardFor, Message):
             Invocation.MESSAGE_TYPE,
         ]:
             raise ProtocolError(
-                "invalid value {0} for 'request_type' in ERROR".format(request_type)
+                f"invalid value {request_type} for 'request_type' in ERROR"
             )
 
         request = check_or_raise_id(wmsg[2], "'request' in ERROR")
@@ -3260,23 +3222,19 @@ class Error(MessageWithAppPayload, MessageWithForwardFor, Message):
             enc_algo = details.get("enc_algo", None)
             if enc_algo and not is_valid_enc_algo(enc_algo):
                 raise ProtocolError(
-                    "invalid value {0} for 'enc_algo' detail in EVENT".format(enc_algo)
+                    f"invalid value {enc_algo} for 'enc_algo' detail in EVENT"
                 )
 
             enc_key = details.get("enc_key", None)
             if enc_key and type(enc_key) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'enc_key' detail in EVENT".format(
-                        type(enc_key)
-                    )
+                    f"invalid type {type(enc_key)} for 'enc_key' detail in EVENT"
                 )
 
             enc_serializer = details.get("enc_serializer", None)
             if enc_serializer and not is_valid_enc_serializer(enc_serializer):
                 raise ProtocolError(
-                    "invalid value {0} for 'enc_serializer' detail in EVENT".format(
-                        enc_serializer
-                    )
+                    f"invalid value {enc_serializer} for 'enc_serializer' detail in EVENT"
                 )
 
         else:
@@ -3284,23 +3242,21 @@ class Error(MessageWithAppPayload, MessageWithForwardFor, Message):
                 args = wmsg[5]
                 if args is not None and type(args) != list:
                     raise ProtocolError(
-                        "invalid type {0} for 'args' in ERROR".format(type(args))
+                        f"invalid type {type(args)} for 'args' in ERROR"
                     )
 
             if len(wmsg) > 6:
                 kwargs = wmsg[6]
                 if type(kwargs) != dict:
                     raise ProtocolError(
-                        "invalid type {0} for 'kwargs' in ERROR".format(type(kwargs))
+                        f"invalid type {type(kwargs)} for 'kwargs' in ERROR"
                     )
 
         if "callee" in details:
             detail_callee = details["callee"]
             if type(detail_callee) != int:
                 raise ProtocolError(
-                    "invalid type {0} for 'callee' detail in ERROR".format(
-                        type(detail_callee)
-                    )
+                    f"invalid type {type(detail_callee)} for 'callee' detail in ERROR"
                 )
 
             callee = detail_callee
@@ -3309,9 +3265,7 @@ class Error(MessageWithAppPayload, MessageWithForwardFor, Message):
             detail_callee_authid = details["callee_authid"]
             if type(detail_callee_authid) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'callee_authid' detail in ERROR".format(
-                        type(detail_callee_authid)
-                    )
+                    f"invalid type {type(detail_callee_authid)} for 'callee_authid' detail in ERROR"
                 )
 
             callee_authid = detail_callee_authid
@@ -3320,9 +3274,7 @@ class Error(MessageWithAppPayload, MessageWithForwardFor, Message):
             detail_callee_authrole = details["callee_authrole"]
             if type(detail_callee_authrole) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'callee_authrole' detail in ERROR".format(
-                        type(detail_callee_authrole)
-                    )
+                    f"invalid type {type(detail_callee_authrole)} for 'callee_authrole' detail in ERROR"
                 )
 
             callee_authrole = detail_callee_authrole
@@ -4014,11 +3966,11 @@ class Publish(MessageWithAppPayload, MessageWithForwardFor, Message):
         forward_for = None
         if self.forward_for:
             from autobahn.wamp.gen.wamp.proto.Principal import (
-                PrincipalStart,
-                PrincipalAddSession,
                 PrincipalAddAuthid,
                 PrincipalAddAuthrole,
+                PrincipalAddSession,
                 PrincipalEnd,
+                PrincipalStart,
             )
 
             _forward_for = []
@@ -4126,9 +4078,7 @@ class Publish(MessageWithAppPayload, MessageWithForwardFor, Message):
         assert len(wmsg) > 0 and wmsg[0] == Publish.MESSAGE_TYPE
 
         if len(wmsg) not in (4, 5, 6):
-            raise ProtocolError(
-                "invalid message length {0} for PUBLISH".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for PUBLISH")
 
         request = check_or_raise_id(wmsg[1], "'request' in PUBLISH")
         options = check_or_raise_extra(wmsg[2], "'options' in PUBLISH")
@@ -4144,25 +4094,19 @@ class Publish(MessageWithAppPayload, MessageWithForwardFor, Message):
             enc_algo = options.get("enc_algo", None)
             if enc_algo and not is_valid_enc_algo(enc_algo):
                 raise ProtocolError(
-                    "invalid value {0} for 'enc_algo' option in PUBLISH".format(
-                        enc_algo
-                    )
+                    f"invalid value {enc_algo} for 'enc_algo' option in PUBLISH"
                 )
 
             enc_key = options.get("enc_key", None)
             if enc_key and type(enc_key) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'enc_key' option in PUBLISH".format(
-                        type(enc_key)
-                    )
+                    f"invalid type {type(enc_key)} for 'enc_key' option in PUBLISH"
                 )
 
             enc_serializer = options.get("enc_serializer", None)
             if enc_serializer and not is_valid_enc_serializer(enc_serializer):
                 raise ProtocolError(
-                    "invalid value {0} for 'enc_serializer' option in PUBLISH".format(
-                        enc_serializer
-                    )
+                    f"invalid value {enc_serializer} for 'enc_serializer' option in PUBLISH"
                 )
 
         else:
@@ -4170,14 +4114,14 @@ class Publish(MessageWithAppPayload, MessageWithForwardFor, Message):
                 args = wmsg[4]
                 if type(args) not in [list, str, bytes]:
                     raise ProtocolError(
-                        "invalid type {0} for 'args' in PUBLISH".format(type(args))
+                        f"invalid type {type(args)} for 'args' in PUBLISH"
                     )
 
             if len(wmsg) > 5:
                 kwargs = wmsg[5]
                 if type(kwargs) not in [dict, str, bytes]:
                     raise ProtocolError(
-                        "invalid type {0} for 'kwargs' in PUBLISH".format(type(kwargs))
+                        f"invalid type {type(kwargs)} for 'kwargs' in PUBLISH"
                     )
 
             enc_algo = None
@@ -4200,9 +4144,7 @@ class Publish(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_acknowledge = options["acknowledge"]
             if type(option_acknowledge) != bool:
                 raise ProtocolError(
-                    "invalid type {0} for 'acknowledge' option in PUBLISH".format(
-                        type(option_acknowledge)
-                    )
+                    f"invalid type {type(option_acknowledge)} for 'acknowledge' option in PUBLISH"
                 )
 
             acknowledge = option_acknowledge
@@ -4211,9 +4153,7 @@ class Publish(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_exclude_me = options["exclude_me"]
             if type(option_exclude_me) != bool:
                 raise ProtocolError(
-                    "invalid type {0} for 'exclude_me' option in PUBLISH".format(
-                        type(option_exclude_me)
-                    )
+                    f"invalid type {type(option_exclude_me)} for 'exclude_me' option in PUBLISH"
                 )
 
             exclude_me = option_exclude_me
@@ -4222,17 +4162,13 @@ class Publish(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_exclude = options["exclude"]
             if type(option_exclude) != list:
                 raise ProtocolError(
-                    "invalid type {0} for 'exclude' option in PUBLISH".format(
-                        type(option_exclude)
-                    )
+                    f"invalid type {type(option_exclude)} for 'exclude' option in PUBLISH"
                 )
 
             for _sessionid in option_exclude:
                 if type(_sessionid) != int:
                     raise ProtocolError(
-                        "invalid type {0} for value in 'exclude' option in PUBLISH".format(
-                            type(_sessionid)
-                        )
+                        f"invalid type {type(_sessionid)} for value in 'exclude' option in PUBLISH"
                     )
 
             exclude = option_exclude
@@ -4241,17 +4177,13 @@ class Publish(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_exclude_authid = options["exclude_authid"]
             if type(option_exclude_authid) != list:
                 raise ProtocolError(
-                    "invalid type {0} for 'exclude_authid' option in PUBLISH".format(
-                        type(option_exclude_authid)
-                    )
+                    f"invalid type {type(option_exclude_authid)} for 'exclude_authid' option in PUBLISH"
                 )
 
             for _authid in option_exclude_authid:
                 if type(_authid) != str:
                     raise ProtocolError(
-                        "invalid type {0} for value in 'exclude_authid' option in PUBLISH".format(
-                            type(_authid)
-                        )
+                        f"invalid type {type(_authid)} for value in 'exclude_authid' option in PUBLISH"
                     )
 
             exclude_authid = option_exclude_authid
@@ -4260,17 +4192,13 @@ class Publish(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_exclude_authrole = options["exclude_authrole"]
             if type(option_exclude_authrole) != list:
                 raise ProtocolError(
-                    "invalid type {0} for 'exclude_authrole' option in PUBLISH".format(
-                        type(option_exclude_authrole)
-                    )
+                    f"invalid type {type(option_exclude_authrole)} for 'exclude_authrole' option in PUBLISH"
                 )
 
             for _authrole in option_exclude_authrole:
                 if type(_authrole) != str:
                     raise ProtocolError(
-                        "invalid type {0} for value in 'exclude_authrole' option in PUBLISH".format(
-                            type(_authrole)
-                        )
+                        f"invalid type {type(_authrole)} for value in 'exclude_authrole' option in PUBLISH"
                     )
 
             exclude_authrole = option_exclude_authrole
@@ -4279,17 +4207,13 @@ class Publish(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_eligible = options["eligible"]
             if type(option_eligible) != list:
                 raise ProtocolError(
-                    "invalid type {0} for 'eligible' option in PUBLISH".format(
-                        type(option_eligible)
-                    )
+                    f"invalid type {type(option_eligible)} for 'eligible' option in PUBLISH"
                 )
 
             for sessionId in option_eligible:
                 if type(sessionId) != int:
                     raise ProtocolError(
-                        "invalid type {0} for value in 'eligible' option in PUBLISH".format(
-                            type(sessionId)
-                        )
+                        f"invalid type {type(sessionId)} for value in 'eligible' option in PUBLISH"
                     )
 
             eligible = option_eligible
@@ -4298,17 +4222,13 @@ class Publish(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_eligible_authid = options["eligible_authid"]
             if type(option_eligible_authid) != list:
                 raise ProtocolError(
-                    "invalid type {0} for 'eligible_authid' option in PUBLISH".format(
-                        type(option_eligible_authid)
-                    )
+                    f"invalid type {type(option_eligible_authid)} for 'eligible_authid' option in PUBLISH"
                 )
 
             for _authid in option_eligible_authid:
                 if type(_authid) != str:
                     raise ProtocolError(
-                        "invalid type {0} for value in 'eligible_authid' option in PUBLISH".format(
-                            type(_authid)
-                        )
+                        f"invalid type {type(_authid)} for value in 'eligible_authid' option in PUBLISH"
                     )
 
             eligible_authid = option_eligible_authid
@@ -4317,17 +4237,13 @@ class Publish(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_eligible_authrole = options["eligible_authrole"]
             if type(option_eligible_authrole) != list:
                 raise ProtocolError(
-                    "invalid type {0} for 'eligible_authrole' option in PUBLISH".format(
-                        type(option_eligible_authrole)
-                    )
+                    f"invalid type {type(option_eligible_authrole)} for 'eligible_authrole' option in PUBLISH"
                 )
 
             for _authrole in option_eligible_authrole:
                 if type(_authrole) != str:
                     raise ProtocolError(
-                        "invalid type {0} for value in 'eligible_authrole' option in PUBLISH".format(
-                            type(_authrole)
-                        )
+                        f"invalid type {type(_authrole)} for value in 'eligible_authrole' option in PUBLISH"
                     )
 
             eligible_authrole = option_eligible_authrole
@@ -4336,18 +4252,14 @@ class Publish(MessageWithAppPayload, MessageWithForwardFor, Message):
             retain = options["retain"]
             if type(retain) != bool:
                 raise ProtocolError(
-                    "invalid type {0} for 'retain' option in PUBLISH".format(
-                        type(retain)
-                    )
+                    f"invalid type {type(retain)} for 'retain' option in PUBLISH"
                 )
 
         if "transaction_hash" in options:
             transaction_hash = options["transaction_hash"]
             if type(transaction_hash) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'transaction_hash' option in PUBLISH".format(
-                        type(transaction_hash)
-                    )
+                    f"invalid type {type(transaction_hash)} for 'transaction_hash' option in PUBLISH"
                 )
 
         if "forward_for" in options:
@@ -4536,9 +4448,7 @@ class Published(Message):
         assert len(wmsg) > 0 and wmsg[0] == Published.MESSAGE_TYPE
 
         if len(wmsg) != 3:
-            raise ProtocolError(
-                "invalid message length {0} for PUBLISHED".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for PUBLISHED")
 
         request = check_or_raise_id(wmsg[1], "'request' in PUBLISHED")
         publication = check_or_raise_id(wmsg[2], "'publication' in PUBLISHED")
@@ -4563,7 +4473,7 @@ class Published(Message):
     def build(self, builder, serializer=None):
         message_fbs.PublishedGen.PublishedStart(builder)
 
-        session = getattr(self, 'session', None)
+        session = getattr(self, "session", None)
         if session:
             message_fbs.PublishedGen.PublishedAddSession(builder, session)
         if self.request:
@@ -4575,7 +4485,9 @@ class Published(Message):
 
         # Wrap in Message union with type
         message_fbs.Message.MessageStart(builder)
-        message_fbs.Message.MessageAddMsgType(builder, message_fbs.MessageType.PUBLISHED)
+        message_fbs.Message.MessageAddMsgType(
+            builder, message_fbs.MessageType.PUBLISHED
+        )
         message_fbs.Message.MessageAddMsg(builder, msg)
         union_msg = message_fbs.Message.MessageEnd(builder)
 
@@ -4757,9 +4669,7 @@ class Subscribe(MessageWithForwardFor, Message):
         assert len(wmsg) > 0 and wmsg[0] == Subscribe.MESSAGE_TYPE
 
         if len(wmsg) != 4:
-            raise ProtocolError(
-                "invalid message length {0} for SUBSCRIBE".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for SUBSCRIBE")
 
         request = check_or_raise_id(wmsg[1], "'request' in SUBSCRIBE")
         options = check_or_raise_extra(wmsg[2], "'options' in SUBSCRIBE")
@@ -4775,9 +4685,7 @@ class Subscribe(MessageWithForwardFor, Message):
             option_match = options["match"]
             if type(option_match) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'match' option in SUBSCRIBE".format(
-                        type(option_match)
-                    )
+                    f"invalid type {type(option_match)} for 'match' option in SUBSCRIBE"
                 )
 
             if option_match not in [
@@ -4786,9 +4694,7 @@ class Subscribe(MessageWithForwardFor, Message):
                 Subscribe.MATCH_WILDCARD,
             ]:
                 raise ProtocolError(
-                    "invalid value {0} for 'match' option in SUBSCRIBE".format(
-                        option_match
-                    )
+                    f"invalid value {option_match} for 'match' option in SUBSCRIBE"
                 )
 
             match = option_match
@@ -4798,9 +4704,7 @@ class Subscribe(MessageWithForwardFor, Message):
 
             if type(get_retained) != bool:
                 raise ProtocolError(
-                    "invalid type {0} for 'get_retained' option in SUBSCRIBE".format(
-                        type(get_retained)
-                    )
+                    f"invalid type {type(get_retained)} for 'get_retained' option in SUBSCRIBE"
                 )
 
         if "forward_for" in options:
@@ -4875,7 +4779,7 @@ class Subscribe(MessageWithForwardFor, Message):
         message_fbs.SubscribeGen.SubscribeStart(builder)
 
         # Add fields
-        session = getattr(self, 'session', None)
+        session = getattr(self, "session", None)
         if session:
             message_fbs.SubscribeGen.SubscribeAddSession(builder, session)
         if self.request:
@@ -4901,7 +4805,9 @@ class Subscribe(MessageWithForwardFor, Message):
 
         # Wrap in Message union with type
         message_fbs.Message.MessageStart(builder)
-        message_fbs.Message.MessageAddMsgType(builder, message_fbs.MessageType.SUBSCRIBE)
+        message_fbs.Message.MessageAddMsgType(
+            builder, message_fbs.MessageType.SUBSCRIBE
+        )
         message_fbs.Message.MessageAddMsg(builder, msg)
         union_msg = message_fbs.Message.MessageEnd(builder)
 
@@ -4967,9 +4873,7 @@ class Subscribed(Message):
         assert len(wmsg) > 0 and wmsg[0] == Subscribed.MESSAGE_TYPE
 
         if len(wmsg) != 3:
-            raise ProtocolError(
-                "invalid message length {0} for SUBSCRIBED".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for SUBSCRIBED")
 
         request = check_or_raise_id(wmsg[1], "'request' in SUBSCRIBED")
         subscription = check_or_raise_id(wmsg[2], "'subscription' in SUBSCRIBED")
@@ -4994,7 +4898,7 @@ class Subscribed(Message):
     def build(self, builder, serializer=None):
         message_fbs.SubscribedGen.SubscribedStart(builder)
 
-        session = getattr(self, 'session', None)
+        session = getattr(self, "session", None)
         if session:
             message_fbs.SubscribedGen.SubscribedAddSession(builder, session)
         if self.request:
@@ -5008,7 +4912,9 @@ class Subscribed(Message):
 
         # Wrap in Message union with type
         message_fbs.Message.MessageStart(builder)
-        message_fbs.Message.MessageAddMsgType(builder, message_fbs.MessageType.SUBSCRIBED)
+        message_fbs.Message.MessageAddMsgType(
+            builder, message_fbs.MessageType.SUBSCRIBED
+        )
         message_fbs.Message.MessageAddMsg(builder, msg)
         union_msg = message_fbs.Message.MessageEnd(builder)
 
@@ -5130,7 +5036,7 @@ class Unsubscribe(MessageWithForwardFor, Message):
 
         if len(wmsg) not in [3, 4]:
             raise ProtocolError(
-                "invalid message length {0} for WAMP UNSUBSCRIBE".format(len(wmsg))
+                f"invalid message length {len(wmsg)} for WAMP UNSUBSCRIBE"
             )
 
         request = check_or_raise_id(wmsg[1], "'request' in UNSUBSCRIBE")
@@ -5189,7 +5095,7 @@ class Unsubscribe(MessageWithForwardFor, Message):
     def build(self, builder, serializer=None):
         message_fbs.UnsubscribeGen.UnsubscribeStart(builder)
 
-        session = getattr(self, 'session', None)
+        session = getattr(self, "session", None)
         if session:
             message_fbs.UnsubscribeGen.UnsubscribeAddSession(builder, session)
         if self.request:
@@ -5203,7 +5109,9 @@ class Unsubscribe(MessageWithForwardFor, Message):
 
         # Wrap in Message union with type
         message_fbs.Message.MessageStart(builder)
-        message_fbs.Message.MessageAddMsgType(builder, message_fbs.MessageType.UNSUBSCRIBE)
+        message_fbs.Message.MessageAddMsgType(
+            builder, message_fbs.MessageType.UNSUBSCRIBE
+        )
         message_fbs.Message.MessageAddMsg(builder, msg)
         union_msg = message_fbs.Message.MessageEnd(builder)
 
@@ -5326,9 +5234,7 @@ class Unsubscribed(Message):
         assert len(wmsg) > 0 and wmsg[0] == Unsubscribed.MESSAGE_TYPE
 
         if len(wmsg) not in [2, 3]:
-            raise ProtocolError(
-                "invalid message length {0} for UNSUBSCRIBED".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for UNSUBSCRIBED")
 
         request = check_or_raise_id(wmsg[1], "'request' in UNSUBSCRIBED")
 
@@ -5342,9 +5248,7 @@ class Unsubscribed(Message):
                 details_subscription = details["subscription"]
                 if type(details_subscription) != int:
                     raise ProtocolError(
-                        "invalid type {0} for 'subscription' detail in UNSUBSCRIBED".format(
-                            type(details_subscription)
-                        )
+                        f"invalid type {type(details_subscription)} for 'subscription' detail in UNSUBSCRIBED"
                     )
                 subscription = details_subscription
 
@@ -5390,7 +5294,7 @@ class Unsubscribed(Message):
         message_fbs.UnsubscribedGen.UnsubscribedStart(builder)
 
         # Add fields
-        session = getattr(self, 'session', None)
+        session = getattr(self, "session", None)
         if session:
             message_fbs.UnsubscribedGen.UnsubscribedAddSession(builder, session)
         if self.request:
@@ -5407,7 +5311,9 @@ class Unsubscribed(Message):
 
         # Wrap in Message union with type
         message_fbs.Message.MessageStart(builder)
-        message_fbs.Message.MessageAddMsgType(builder, message_fbs.MessageType.UNSUBSCRIBED)
+        message_fbs.Message.MessageAddMsgType(
+            builder, message_fbs.MessageType.UNSUBSCRIBED
+        )
         message_fbs.Message.MessageAddMsg(builder, msg)
         union_msg = message_fbs.Message.MessageEnd(builder)
 
@@ -5794,11 +5700,11 @@ class Event(MessageWithAppPayload, MessageWithForwardFor, Message):
         forward_for = None
         if self.forward_for:
             from autobahn.wamp.gen.wamp.proto.Principal import (
-                PrincipalStart,
-                PrincipalAddSession,
                 PrincipalAddAuthid,
                 PrincipalAddAuthrole,
+                PrincipalAddSession,
                 PrincipalEnd,
+                PrincipalStart,
             )
 
             _forward_for = []
@@ -5894,9 +5800,7 @@ class Event(MessageWithAppPayload, MessageWithForwardFor, Message):
         assert len(wmsg) > 0 and wmsg[0] == Event.MESSAGE_TYPE
 
         if len(wmsg) not in (4, 5, 6):
-            raise ProtocolError(
-                "invalid message length {0} for EVENT".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for EVENT")
 
         subscription = check_or_raise_id(wmsg[1], "'subscription' in EVENT")
         publication = check_or_raise_id(wmsg[2], "'publication' in EVENT")
@@ -5915,23 +5819,19 @@ class Event(MessageWithAppPayload, MessageWithForwardFor, Message):
             enc_algo = details.get("enc_algo", None)
             if enc_algo and not is_valid_enc_algo(enc_algo):
                 raise ProtocolError(
-                    "invalid value {0} for 'enc_algo' detail in EVENT".format(enc_algo)
+                    f"invalid value {enc_algo} for 'enc_algo' detail in EVENT"
                 )
 
             enc_key = details.get("enc_key", None)
             if enc_key and type(enc_key) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'enc_key' detail in EVENT".format(
-                        type(enc_key)
-                    )
+                    f"invalid type {type(enc_key)} for 'enc_key' detail in EVENT"
                 )
 
             enc_serializer = details.get("enc_serializer", None)
             if enc_serializer and not is_valid_enc_serializer(enc_serializer):
                 raise ProtocolError(
-                    "invalid value {0} for 'enc_serializer' detail in EVENT".format(
-                        enc_serializer
-                    )
+                    f"invalid value {enc_serializer} for 'enc_serializer' detail in EVENT"
                 )
 
         else:
@@ -5939,13 +5839,13 @@ class Event(MessageWithAppPayload, MessageWithForwardFor, Message):
                 args = wmsg[4]
                 if args is not None and type(args) != list:
                     raise ProtocolError(
-                        "invalid type {0} for 'args' in EVENT".format(type(args))
+                        f"invalid type {type(args)} for 'args' in EVENT"
                     )
             if len(wmsg) > 5:
                 kwargs = wmsg[5]
                 if type(kwargs) != dict:
                     raise ProtocolError(
-                        "invalid type {0} for 'kwargs' in EVENT".format(type(kwargs))
+                        f"invalid type {type(kwargs)} for 'kwargs' in EVENT"
                     )
 
         publisher = None
@@ -5961,9 +5861,7 @@ class Event(MessageWithAppPayload, MessageWithForwardFor, Message):
             detail_publisher = details["publisher"]
             if type(detail_publisher) != int:
                 raise ProtocolError(
-                    "invalid type {0} for 'publisher' detail in EVENT".format(
-                        type(detail_publisher)
-                    )
+                    f"invalid type {type(detail_publisher)} for 'publisher' detail in EVENT"
                 )
 
             publisher = detail_publisher
@@ -5972,9 +5870,7 @@ class Event(MessageWithAppPayload, MessageWithForwardFor, Message):
             detail_publisher_authid = details["publisher_authid"]
             if type(detail_publisher_authid) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'publisher_authid' detail in EVENT".format(
-                        type(detail_publisher_authid)
-                    )
+                    f"invalid type {type(detail_publisher_authid)} for 'publisher_authid' detail in EVENT"
                 )
 
             publisher_authid = detail_publisher_authid
@@ -5983,9 +5879,7 @@ class Event(MessageWithAppPayload, MessageWithForwardFor, Message):
             detail_publisher_authrole = details["publisher_authrole"]
             if type(detail_publisher_authrole) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'publisher_authrole' detail in EVENT".format(
-                        type(detail_publisher_authrole)
-                    )
+                    f"invalid type {type(detail_publisher_authrole)} for 'publisher_authrole' detail in EVENT"
                 )
 
             publisher_authrole = detail_publisher_authrole
@@ -5994,9 +5888,7 @@ class Event(MessageWithAppPayload, MessageWithForwardFor, Message):
             detail_topic = details["topic"]
             if type(detail_topic) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'topic' detail in EVENT".format(
-                        type(detail_topic)
-                    )
+                    f"invalid type {type(detail_topic)} for 'topic' detail in EVENT"
                 )
 
             topic = detail_topic
@@ -6005,18 +5897,14 @@ class Event(MessageWithAppPayload, MessageWithForwardFor, Message):
             retained = details["retained"]
             if type(retained) != bool:
                 raise ProtocolError(
-                    "invalid type {0} for 'retained' detail in EVENT".format(
-                        type(retained)
-                    )
+                    f"invalid type {type(retained)} for 'retained' detail in EVENT"
                 )
 
         if "transaction_hash" in details:
             detail_transaction_hash = details["transaction_hash"]
             if type(detail_transaction_hash) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'transaction_hash' detail in EVENT".format(
-                        type(detail_transaction_hash)
-                    )
+                    f"invalid type {type(detail_transaction_hash)} for 'transaction_hash' detail in EVENT"
                 )
 
             transaction_hash = detail_transaction_hash
@@ -6025,9 +5913,7 @@ class Event(MessageWithAppPayload, MessageWithForwardFor, Message):
             x_acknowledged_delivery = details["x_acknowledged_delivery"]
             if type(x_acknowledged_delivery) != bool:
                 raise ProtocolError(
-                    "invalid type {0} for 'x_acknowledged_delivery' detail in EVENT".format(
-                        type(x_acknowledged_delivery)
-                    )
+                    f"invalid type {type(x_acknowledged_delivery)} for 'x_acknowledged_delivery' detail in EVENT"
                 )
 
         if "forward_for" in details:
@@ -6218,7 +6104,7 @@ class EventReceived(Message):
 
         if len(wmsg) != 2:
             raise ProtocolError(
-                "invalid message length {0} for EVENT_RECEIVED".format(len(wmsg))
+                f"invalid message length {len(wmsg)} for EVENT_RECEIVED"
             )
 
         publication = check_or_raise_id(wmsg[1], "'publication' in EVENT_RECEIVED")
@@ -6715,7 +6601,7 @@ class Call(MessageWithAppPayload, MessageWithForwardFor, Message):
         assert len(wmsg) > 0 and wmsg[0] == Call.MESSAGE_TYPE
 
         if len(wmsg) not in (4, 5, 6):
-            raise ProtocolError("invalid message length {0} for CALL".format(len(wmsg)))
+            raise ProtocolError(f"invalid message length {len(wmsg)} for CALL")
 
         request = check_or_raise_id(wmsg[1], "'request' in CALL")
         options = check_or_raise_extra(wmsg[2], "'options' in CALL")
@@ -6734,38 +6620,32 @@ class Call(MessageWithAppPayload, MessageWithForwardFor, Message):
             enc_algo = options.get("enc_algo", None)
             if enc_algo and not is_valid_enc_algo(enc_algo):
                 raise ProtocolError(
-                    "invalid value {0} for 'enc_algo' detail in CALL".format(enc_algo)
+                    f"invalid value {enc_algo} for 'enc_algo' detail in CALL"
                 )
 
             enc_key = options.get("enc_key", None)
             if enc_key and type(enc_key) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'enc_key' detail in CALL".format(
-                        type(enc_key)
-                    )
+                    f"invalid type {type(enc_key)} for 'enc_key' detail in CALL"
                 )
 
             enc_serializer = options.get("enc_serializer", None)
             if enc_serializer and not is_valid_enc_serializer(enc_serializer):
                 raise ProtocolError(
-                    "invalid value {0} for 'enc_serializer' detail in CALL".format(
-                        enc_serializer
-                    )
+                    f"invalid value {enc_serializer} for 'enc_serializer' detail in CALL"
                 )
 
         else:
             if len(wmsg) > 4:
                 args = wmsg[4]
                 if args is not None and type(args) != list:
-                    raise ProtocolError(
-                        "invalid type {0} for 'args' in CALL".format(type(args))
-                    )
+                    raise ProtocolError(f"invalid type {type(args)} for 'args' in CALL")
 
             if len(wmsg) > 5:
                 kwargs = wmsg[5]
                 if type(kwargs) != dict:
                     raise ProtocolError(
-                        "invalid type {0} for 'kwargs' in CALL".format(type(kwargs))
+                        f"invalid type {type(kwargs)} for 'kwargs' in CALL"
                     )
 
         timeout = None
@@ -6780,16 +6660,12 @@ class Call(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_timeout = options["timeout"]
             if type(option_timeout) != int:
                 raise ProtocolError(
-                    "invalid type {0} for 'timeout' option in CALL".format(
-                        type(option_timeout)
-                    )
+                    f"invalid type {type(option_timeout)} for 'timeout' option in CALL"
                 )
 
             if option_timeout < 0:
                 raise ProtocolError(
-                    "invalid value {0} for 'timeout' option in CALL".format(
-                        option_timeout
-                    )
+                    f"invalid value {option_timeout} for 'timeout' option in CALL"
                 )
 
             timeout = option_timeout
@@ -6798,9 +6674,7 @@ class Call(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_receive_progress = options["receive_progress"]
             if type(option_receive_progress) != bool:
                 raise ProtocolError(
-                    "invalid type {0} for 'receive_progress' option in CALL".format(
-                        type(option_receive_progress)
-                    )
+                    f"invalid type {type(option_receive_progress)} for 'receive_progress' option in CALL"
                 )
 
             receive_progress = option_receive_progress
@@ -6809,9 +6683,7 @@ class Call(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_transaction_hash = options["transaction_hash"]
             if type(option_transaction_hash) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'transaction_hash' detail in CALL".format(
-                        type(option_transaction_hash)
-                    )
+                    f"invalid type {type(option_transaction_hash)} for 'transaction_hash' detail in CALL"
                 )
 
             transaction_hash = option_transaction_hash
@@ -6820,9 +6692,7 @@ class Call(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_caller = options["caller"]
             if type(option_caller) != int:
                 raise ProtocolError(
-                    "invalid type {0} for 'caller' detail in CALL".format(
-                        type(option_caller)
-                    )
+                    f"invalid type {type(option_caller)} for 'caller' detail in CALL"
                 )
 
             caller = option_caller
@@ -6831,9 +6701,7 @@ class Call(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_caller_authid = options["caller_authid"]
             if type(option_caller_authid) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'caller_authid' detail in CALL".format(
-                        type(option_caller_authid)
-                    )
+                    f"invalid type {type(option_caller_authid)} for 'caller_authid' detail in CALL"
                 )
 
             caller_authid = option_caller_authid
@@ -6842,9 +6710,7 @@ class Call(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_caller_authrole = options["caller_authrole"]
             if type(option_caller_authrole) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'caller_authrole' detail in CALL".format(
-                        type(option_caller_authrole)
-                    )
+                    f"invalid type {type(option_caller_authrole)} for 'caller_authrole' detail in CALL"
                 )
 
             caller_authrole = option_caller_authrole
@@ -7082,9 +6948,7 @@ class Cancel(MessageWithForwardFor, Message):
         assert len(wmsg) > 0 and wmsg[0] == Cancel.MESSAGE_TYPE
 
         if len(wmsg) != 3:
-            raise ProtocolError(
-                "invalid message length {0} for CANCEL".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for CANCEL")
 
         request = check_or_raise_id(wmsg[1], "'request' in CANCEL")
         options = check_or_raise_extra(wmsg[2], "'options' in CANCEL")
@@ -7098,16 +6962,12 @@ class Cancel(MessageWithForwardFor, Message):
             option_mode = options["mode"]
             if type(option_mode) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'mode' option in CANCEL".format(
-                        type(option_mode)
-                    )
+                    f"invalid type {type(option_mode)} for 'mode' option in CANCEL"
                 )
 
             if option_mode not in [Cancel.SKIP, Cancel.KILLNOWAIT, Cancel.KILL]:
                 raise ProtocolError(
-                    "invalid value '{0}' for 'mode' option in CANCEL".format(
-                        option_mode
-                    )
+                    f"invalid value '{option_mode}' for 'mode' option in CANCEL"
                 )
 
             mode = option_mode
@@ -7179,7 +7039,9 @@ class Cancel(MessageWithForwardFor, Message):
                 PrincipalGen.AddAuthrole(builder, _authrole)
                 _forward_for.append(PrincipalGen.End(builder))
 
-            message_fbs.CancelGen.CancelStartForwardForVector(builder, len(_forward_for))
+            message_fbs.CancelGen.CancelStartForwardForVector(
+                builder, len(_forward_for)
+            )
             for principal in reversed(_forward_for):
                 builder.PrependUOffsetTRelative(principal)
             forward_for = builder.EndVector()
@@ -7549,9 +7411,7 @@ class Result(MessageWithAppPayload, MessageWithForwardFor, Message):
         assert len(wmsg) > 0 and wmsg[0] == Result.MESSAGE_TYPE
 
         if len(wmsg) not in (3, 4, 5):
-            raise ProtocolError(
-                "invalid message length {0} for RESULT".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for RESULT")
 
         request = check_or_raise_id(wmsg[1], "'request' in RESULT")
         details = check_or_raise_extra(wmsg[2], "'details' in RESULT")
@@ -7574,23 +7434,19 @@ class Result(MessageWithAppPayload, MessageWithForwardFor, Message):
             enc_algo = details.get("enc_algo", None)
             if enc_algo and not is_valid_enc_algo(enc_algo):
                 raise ProtocolError(
-                    "invalid value {0} for 'enc_algo' detail in RESULT".format(enc_algo)
+                    f"invalid value {enc_algo} for 'enc_algo' detail in RESULT"
                 )
 
             enc_key = details.get("enc_key", None)
             if enc_key and type(enc_key) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'enc_key' detail in RESULT".format(
-                        type(enc_key)
-                    )
+                    f"invalid type {type(enc_key)} for 'enc_key' detail in RESULT"
                 )
 
             enc_serializer = details.get("enc_serializer", None)
             if enc_serializer and not is_valid_enc_serializer(enc_serializer):
                 raise ProtocolError(
-                    "invalid value {0} for 'enc_serializer' detail in RESULT".format(
-                        enc_serializer
-                    )
+                    f"invalid value {enc_serializer} for 'enc_serializer' detail in RESULT"
                 )
 
         else:
@@ -7598,23 +7454,21 @@ class Result(MessageWithAppPayload, MessageWithForwardFor, Message):
                 args = wmsg[3]
                 if args is not None and type(args) != list:
                     raise ProtocolError(
-                        "invalid type {0} for 'args' in RESULT".format(type(args))
+                        f"invalid type {type(args)} for 'args' in RESULT"
                     )
 
             if len(wmsg) > 4:
                 kwargs = wmsg[4]
                 if type(kwargs) != dict:
                     raise ProtocolError(
-                        "invalid type {0} for 'kwargs' in RESULT".format(type(kwargs))
+                        f"invalid type {type(kwargs)} for 'kwargs' in RESULT"
                     )
 
         if "progress" in details:
             detail_progress = details["progress"]
             if type(detail_progress) != bool:
                 raise ProtocolError(
-                    "invalid type {0} for 'progress' option in RESULT".format(
-                        type(detail_progress)
-                    )
+                    f"invalid type {type(detail_progress)} for 'progress' option in RESULT"
                 )
 
             progress = detail_progress
@@ -7623,9 +7477,7 @@ class Result(MessageWithAppPayload, MessageWithForwardFor, Message):
             detail_callee = details["callee"]
             if type(detail_callee) != int:
                 raise ProtocolError(
-                    "invalid type {0} for 'callee' detail in RESULT".format(
-                        type(detail_callee)
-                    )
+                    f"invalid type {type(detail_callee)} for 'callee' detail in RESULT"
                 )
 
             callee = detail_callee
@@ -7634,9 +7486,7 @@ class Result(MessageWithAppPayload, MessageWithForwardFor, Message):
             detail_callee_authid = details["callee_authid"]
             if type(detail_callee_authid) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'callee_authid' detail in RESULT".format(
-                        type(detail_callee_authid)
-                    )
+                    f"invalid type {type(detail_callee_authid)} for 'callee_authid' detail in RESULT"
                 )
 
             callee_authid = detail_callee_authid
@@ -7645,9 +7495,7 @@ class Result(MessageWithAppPayload, MessageWithForwardFor, Message):
             detail_callee_authrole = details["callee_authrole"]
             if type(detail_callee_authrole) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'callee_authrole' detail in RESULT".format(
-                        type(detail_callee_authrole)
-                    )
+                    f"invalid type {type(detail_callee_authrole)} for 'callee_authrole' detail in RESULT"
                 )
 
             callee_authrole = detail_callee_authrole
@@ -7966,9 +7814,7 @@ class Register(MessageWithForwardFor, Message):
         assert len(wmsg) > 0 and wmsg[0] == Register.MESSAGE_TYPE
 
         if len(wmsg) != 4:
-            raise ProtocolError(
-                "invalid message length {0} for REGISTER".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for REGISTER")
 
         request = check_or_raise_id(wmsg[1], "'request' in REGISTER")
         options = check_or_raise_extra(wmsg[2], "'options' in REGISTER")
@@ -7983,9 +7829,7 @@ class Register(MessageWithForwardFor, Message):
             option_match = options["match"]
             if type(option_match) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'match' option in REGISTER".format(
-                        type(option_match)
-                    )
+                    f"invalid type {type(option_match)} for 'match' option in REGISTER"
                 )
 
             if option_match not in [
@@ -7994,9 +7838,7 @@ class Register(MessageWithForwardFor, Message):
                 Register.MATCH_WILDCARD,
             ]:
                 raise ProtocolError(
-                    "invalid value {0} for 'match' option in REGISTER".format(
-                        option_match
-                    )
+                    f"invalid value {option_match} for 'match' option in REGISTER"
                 )
 
             match = option_match
@@ -8027,9 +7869,7 @@ class Register(MessageWithForwardFor, Message):
             option_invoke = options["invoke"]
             if type(option_invoke) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'invoke' option in REGISTER".format(
-                        type(option_invoke)
-                    )
+                    f"invalid type {type(option_invoke)} for 'invoke' option in REGISTER"
                 )
 
             if option_invoke not in [
@@ -8040,9 +7880,7 @@ class Register(MessageWithForwardFor, Message):
                 Register.INVOKE_RANDOM,
             ]:
                 raise ProtocolError(
-                    "invalid value {0} for 'invoke' option in REGISTER".format(
-                        option_invoke
-                    )
+                    f"invalid value {option_invoke} for 'invoke' option in REGISTER"
                 )
 
             invoke = option_invoke
@@ -8051,16 +7889,12 @@ class Register(MessageWithForwardFor, Message):
             options_concurrency = options["concurrency"]
             if type(options_concurrency) != int:
                 raise ProtocolError(
-                    "invalid type {0} for 'concurrency' option in REGISTER".format(
-                        type(options_concurrency)
-                    )
+                    f"invalid type {type(options_concurrency)} for 'concurrency' option in REGISTER"
                 )
 
             if options_concurrency < 1:
                 raise ProtocolError(
-                    "invalid value {0} for 'concurrency' option in REGISTER".format(
-                        options_concurrency
-                    )
+                    f"invalid value {options_concurrency} for 'concurrency' option in REGISTER"
                 )
 
             concurrency = options_concurrency
@@ -8068,9 +7902,7 @@ class Register(MessageWithForwardFor, Message):
         options_reregister = options.get("force_reregister", None)
         if options_reregister not in [True, False, None]:
             raise ProtocolError(
-                "invalid type {0} for 'force_reregister option in REGISTER".format(
-                    type(options_reregister)
-                )
+                f"invalid type {type(options_reregister)} for 'force_reregister option in REGISTER"
             )
         if options_reregister is not None:
             force_reregister = options_reregister
@@ -8155,7 +7987,7 @@ class Register(MessageWithForwardFor, Message):
         message_fbs.RegisterGen.RegisterStart(builder)
 
         # Add fields
-        session = getattr(self, 'session', None)
+        session = getattr(self, "session", None)
         if session:
             message_fbs.RegisterGen.RegisterAddSession(builder, session)
         if self.request:
@@ -8292,9 +8124,7 @@ class Registered(Message):
         assert len(wmsg) > 0 and wmsg[0] == Registered.MESSAGE_TYPE
 
         if len(wmsg) != 3:
-            raise ProtocolError(
-                "invalid message length {0} for REGISTERED".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for REGISTERED")
 
         request = check_or_raise_id(wmsg[1], "'request' in REGISTERED")
         registration = check_or_raise_id(wmsg[2], "'registration' in REGISTERED")
@@ -8319,7 +8149,7 @@ class Registered(Message):
     def build(self, builder, serializer=None):
         message_fbs.RegisteredGen.RegisteredStart(builder)
 
-        session = getattr(self, 'session', None)
+        session = getattr(self, "session", None)
         if session:
             message_fbs.RegisteredGen.RegisteredAddSession(builder, session)
         if self.request:
@@ -8333,7 +8163,9 @@ class Registered(Message):
 
         # Wrap in Message union with type
         message_fbs.Message.MessageStart(builder)
-        message_fbs.Message.MessageAddMsgType(builder, message_fbs.MessageType.REGISTERED)
+        message_fbs.Message.MessageAddMsgType(
+            builder, message_fbs.MessageType.REGISTERED
+        )
         message_fbs.Message.MessageAddMsg(builder, msg)
         union_msg = message_fbs.Message.MessageEnd(builder)
 
@@ -8431,7 +8263,7 @@ class Unregister(MessageWithForwardFor, Message):
 
         if len(wmsg) not in [3, 4]:
             raise ProtocolError(
-                "invalid message length {0} for WAMP UNREGISTER".format(len(wmsg))
+                f"invalid message length {len(wmsg)} for WAMP UNREGISTER"
             )
 
         request = check_or_raise_id(wmsg[1], "'request' in UNREGISTER")
@@ -8626,9 +8458,7 @@ class Unregistered(Message):
         assert len(wmsg) > 0 and wmsg[0] == Unregistered.MESSAGE_TYPE
 
         if len(wmsg) not in [2, 3]:
-            raise ProtocolError(
-                "invalid message length {0} for UNREGISTERED".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for UNREGISTERED")
 
         request = check_or_raise_id(wmsg[1], "'request' in UNREGISTERED")
 
@@ -8642,9 +8472,7 @@ class Unregistered(Message):
                 details_registration = details["registration"]
                 if type(details_registration) != int:
                     raise ProtocolError(
-                        "invalid type {0} for 'registration' detail in UNREGISTERED".format(
-                            type(details_registration)
-                        )
+                        f"invalid type {type(details_registration)} for 'registration' detail in UNREGISTERED"
                     )
                 registration = details_registration
 
@@ -8690,7 +8518,7 @@ class Unregistered(Message):
         message_fbs.UnregisteredGen.UnregisteredStart(builder)
 
         # Add fields
-        session = getattr(self, 'session', None)
+        session = getattr(self, "session", None)
         if session:
             message_fbs.UnregisteredGen.UnregisteredAddSession(builder, session)
         if self.request:
@@ -8707,7 +8535,9 @@ class Unregistered(Message):
 
         # Wrap in Message union with type
         message_fbs.Message.MessageStart(builder)
-        message_fbs.Message.MessageAddMsgType(builder, message_fbs.MessageType.UNREGISTERED)
+        message_fbs.Message.MessageAddMsgType(
+            builder, message_fbs.MessageType.UNREGISTERED
+        )
         message_fbs.Message.MessageAddMsg(builder, msg)
         union_msg = message_fbs.Message.MessageEnd(builder)
 
@@ -9130,7 +8960,9 @@ class Invocation(MessageWithAppPayload, MessageWithForwardFor, Message):
 
         # Wrap in Message union with type
         message_fbs.Message.MessageStart(builder)
-        message_fbs.Message.MessageAddMsgType(builder, message_fbs.MessageType.INVOCATION)
+        message_fbs.Message.MessageAddMsgType(
+            builder, message_fbs.MessageType.INVOCATION
+        )
         message_fbs.Message.MessageAddMsg(builder, msg)
         union_msg = message_fbs.Message.MessageEnd(builder)
 
@@ -9150,9 +8982,7 @@ class Invocation(MessageWithAppPayload, MessageWithForwardFor, Message):
         assert len(wmsg) > 0 and wmsg[0] == Invocation.MESSAGE_TYPE
 
         if len(wmsg) not in (4, 5, 6):
-            raise ProtocolError(
-                "invalid message length {0} for INVOCATION".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for INVOCATION")
 
         request = check_or_raise_id(wmsg[1], "'request' in INVOCATION")
         registration = check_or_raise_id(wmsg[2], "'registration' in INVOCATION")
@@ -9171,25 +9001,19 @@ class Invocation(MessageWithAppPayload, MessageWithForwardFor, Message):
             enc_algo = details.get("enc_algo", None)
             if enc_algo and not is_valid_enc_algo(enc_algo):
                 raise ProtocolError(
-                    "invalid value {0} for 'enc_algo' detail in INVOCATION".format(
-                        enc_algo
-                    )
+                    f"invalid value {enc_algo} for 'enc_algo' detail in INVOCATION"
                 )
 
             enc_key = details.get("enc_key", None)
             if enc_key and type(enc_key) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'enc_key' detail in INVOCATION".format(
-                        type(enc_key)
-                    )
+                    f"invalid type {type(enc_key)} for 'enc_key' detail in INVOCATION"
                 )
 
             enc_serializer = details.get("enc_serializer", None)
             if enc_serializer and not is_valid_enc_serializer(enc_serializer):
                 raise ProtocolError(
-                    "invalid value {0} for 'enc_serializer' detail in INVOCATION".format(
-                        enc_serializer
-                    )
+                    f"invalid value {enc_serializer} for 'enc_serializer' detail in INVOCATION"
                 )
 
         else:
@@ -9197,16 +9021,14 @@ class Invocation(MessageWithAppPayload, MessageWithForwardFor, Message):
                 args = wmsg[4]
                 if args is not None and type(args) != list:
                     raise ProtocolError(
-                        "invalid type {0} for 'args' in INVOCATION".format(type(args))
+                        f"invalid type {type(args)} for 'args' in INVOCATION"
                     )
 
             if len(wmsg) > 5:
                 kwargs = wmsg[5]
                 if type(kwargs) != dict:
                     raise ProtocolError(
-                        "invalid type {0} for 'kwargs' in INVOCATION".format(
-                            type(kwargs)
-                        )
+                        f"invalid type {type(kwargs)} for 'kwargs' in INVOCATION"
                     )
 
         timeout = None
@@ -9222,16 +9044,12 @@ class Invocation(MessageWithAppPayload, MessageWithForwardFor, Message):
             detail_timeout = details["timeout"]
             if type(detail_timeout) != int:
                 raise ProtocolError(
-                    "invalid type {0} for 'timeout' detail in INVOCATION".format(
-                        type(detail_timeout)
-                    )
+                    f"invalid type {type(detail_timeout)} for 'timeout' detail in INVOCATION"
                 )
 
             if detail_timeout < 0:
                 raise ProtocolError(
-                    "invalid value {0} for 'timeout' detail in INVOCATION".format(
-                        detail_timeout
-                    )
+                    f"invalid value {detail_timeout} for 'timeout' detail in INVOCATION"
                 )
 
             timeout = detail_timeout
@@ -9240,9 +9058,7 @@ class Invocation(MessageWithAppPayload, MessageWithForwardFor, Message):
             detail_receive_progress = details["receive_progress"]
             if type(detail_receive_progress) != bool:
                 raise ProtocolError(
-                    "invalid type {0} for 'receive_progress' detail in INVOCATION".format(
-                        type(detail_receive_progress)
-                    )
+                    f"invalid type {type(detail_receive_progress)} for 'receive_progress' detail in INVOCATION"
                 )
 
             receive_progress = detail_receive_progress
@@ -9251,9 +9067,7 @@ class Invocation(MessageWithAppPayload, MessageWithForwardFor, Message):
             detail_caller = details["caller"]
             if type(detail_caller) != int:
                 raise ProtocolError(
-                    "invalid type {0} for 'caller' detail in INVOCATION".format(
-                        type(detail_caller)
-                    )
+                    f"invalid type {type(detail_caller)} for 'caller' detail in INVOCATION"
                 )
 
             caller = detail_caller
@@ -9262,9 +9076,7 @@ class Invocation(MessageWithAppPayload, MessageWithForwardFor, Message):
             detail_caller_authid = details["caller_authid"]
             if type(detail_caller_authid) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'caller_authid' detail in INVOCATION".format(
-                        type(detail_caller_authid)
-                    )
+                    f"invalid type {type(detail_caller_authid)} for 'caller_authid' detail in INVOCATION"
                 )
 
             caller_authid = detail_caller_authid
@@ -9273,9 +9085,7 @@ class Invocation(MessageWithAppPayload, MessageWithForwardFor, Message):
             detail_caller_authrole = details["caller_authrole"]
             if type(detail_caller_authrole) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'caller_authrole' detail in INVOCATION".format(
-                        type(detail_caller_authrole)
-                    )
+                    f"invalid type {type(detail_caller_authrole)} for 'caller_authrole' detail in INVOCATION"
                 )
 
             caller_authrole = detail_caller_authrole
@@ -9284,9 +9094,7 @@ class Invocation(MessageWithAppPayload, MessageWithForwardFor, Message):
             detail_procedure = details["procedure"]
             if type(detail_procedure) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'procedure' detail in INVOCATION".format(
-                        type(detail_procedure)
-                    )
+                    f"invalid type {type(detail_procedure)} for 'procedure' detail in INVOCATION"
                 )
 
             procedure = detail_procedure
@@ -9295,9 +9103,7 @@ class Invocation(MessageWithAppPayload, MessageWithForwardFor, Message):
             detail_transaction_hash = details["transaction_hash"]
             if type(detail_transaction_hash) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'transaction_hash' detail in EVENT".format(
-                        type(detail_transaction_hash)
-                    )
+                    f"invalid type {type(detail_transaction_hash)} for 'transaction_hash' detail in EVENT"
                 )
 
             transaction_hash = detail_transaction_hash
@@ -9567,9 +9373,7 @@ class Interrupt(MessageWithForwardFor, Message):
         assert len(wmsg) > 0 and wmsg[0] == Interrupt.MESSAGE_TYPE
 
         if len(wmsg) != 3:
-            raise ProtocolError(
-                "invalid message length {0} for INTERRUPT".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for INTERRUPT")
 
         request = check_or_raise_id(wmsg[1], "'request' in INTERRUPT")
         options = check_or_raise_extra(wmsg[2], "'options' in INTERRUPT")
@@ -9584,16 +9388,12 @@ class Interrupt(MessageWithForwardFor, Message):
             option_mode = options["mode"]
             if type(option_mode) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'mode' option in INTERRUPT".format(
-                        type(option_mode)
-                    )
+                    f"invalid type {type(option_mode)} for 'mode' option in INTERRUPT"
                 )
 
             if option_mode not in [Interrupt.KILL, Interrupt.KILLNOWAIT]:
                 raise ProtocolError(
-                    "invalid value '{0}' for 'mode' option in INTERRUPT".format(
-                        option_mode
-                    )
+                    f"invalid value '{option_mode}' for 'mode' option in INTERRUPT"
                 )
 
             mode = option_mode
@@ -9710,7 +9510,9 @@ class Interrupt(MessageWithForwardFor, Message):
 
         # Wrap in Message union with type
         message_fbs.Message.MessageStart(builder)
-        message_fbs.Message.MessageAddMsgType(builder, message_fbs.MessageType.INTERRUPT)
+        message_fbs.Message.MessageAddMsgType(
+            builder, message_fbs.MessageType.INTERRUPT
+        )
         message_fbs.Message.MessageAddMsg(builder, msg)
         union_msg = message_fbs.Message.MessageEnd(builder)
 
@@ -10048,9 +9850,7 @@ class Yield(MessageWithAppPayload, MessageWithForwardFor, Message):
         assert len(wmsg) > 0 and wmsg[0] == Yield.MESSAGE_TYPE
 
         if len(wmsg) not in (3, 4, 5):
-            raise ProtocolError(
-                "invalid message length {0} for YIELD".format(len(wmsg))
-            )
+            raise ProtocolError(f"invalid message length {len(wmsg)} for YIELD")
 
         request = check_or_raise_id(wmsg[1], "'request' in YIELD")
         options = check_or_raise_extra(wmsg[2], "'options' in YIELD")
@@ -10068,23 +9868,19 @@ class Yield(MessageWithAppPayload, MessageWithForwardFor, Message):
             enc_algo = options.get("enc_algo", None)
             if enc_algo and not is_valid_enc_algo(enc_algo):
                 raise ProtocolError(
-                    "invalid value {0} for 'enc_algo' detail in YIELD".format(enc_algo)
+                    f"invalid value {enc_algo} for 'enc_algo' detail in YIELD"
                 )
 
             enc_key = options.get("enc_key", None)
             if enc_key and type(enc_key) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'enc_key' detail in YIELD".format(
-                        type(enc_key)
-                    )
+                    f"invalid type {type(enc_key)} for 'enc_key' detail in YIELD"
                 )
 
             enc_serializer = options.get("enc_serializer", None)
             if enc_serializer and not is_valid_enc_serializer(enc_serializer):
                 raise ProtocolError(
-                    "invalid value {0} for 'enc_serializer' detail in YIELD".format(
-                        enc_serializer
-                    )
+                    f"invalid value {enc_serializer} for 'enc_serializer' detail in YIELD"
                 )
 
         else:
@@ -10092,14 +9888,14 @@ class Yield(MessageWithAppPayload, MessageWithForwardFor, Message):
                 args = wmsg[3]
                 if args is not None and type(args) != list:
                     raise ProtocolError(
-                        "invalid type {0} for 'args' in YIELD".format(type(args))
+                        f"invalid type {type(args)} for 'args' in YIELD"
                     )
 
             if len(wmsg) > 4:
                 kwargs = wmsg[4]
                 if type(kwargs) != dict:
                     raise ProtocolError(
-                        "invalid type {0} for 'kwargs' in YIELD".format(type(kwargs))
+                        f"invalid type {type(kwargs)} for 'kwargs' in YIELD"
                     )
 
         progress = None
@@ -10112,9 +9908,7 @@ class Yield(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_progress = options["progress"]
             if type(option_progress) != bool:
                 raise ProtocolError(
-                    "invalid type {0} for 'progress' option in YIELD".format(
-                        type(option_progress)
-                    )
+                    f"invalid type {type(option_progress)} for 'progress' option in YIELD"
                 )
 
             progress = option_progress
@@ -10123,9 +9917,7 @@ class Yield(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_callee = options["callee"]
             if type(option_callee) != int:
                 raise ProtocolError(
-                    "invalid type {0} for 'callee' detail in YIELD".format(
-                        type(option_callee)
-                    )
+                    f"invalid type {type(option_callee)} for 'callee' detail in YIELD"
                 )
 
             callee = option_callee
@@ -10134,9 +9926,7 @@ class Yield(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_callee_authid = options["callee_authid"]
             if type(option_callee_authid) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'callee_authid' detail in YIELD".format(
-                        type(option_callee_authid)
-                    )
+                    f"invalid type {type(option_callee_authid)} for 'callee_authid' detail in YIELD"
                 )
 
             callee_authid = option_callee_authid
@@ -10145,9 +9935,7 @@ class Yield(MessageWithAppPayload, MessageWithForwardFor, Message):
             option_callee_authrole = options["callee_authrole"]
             if type(option_callee_authrole) != str:
                 raise ProtocolError(
-                    "invalid type {0} for 'callee_authrole' detail in YIELD".format(
-                        type(option_callee_authrole)
-                    )
+                    f"invalid type {type(option_callee_authrole)} for 'callee_authrole' detail in YIELD"
                 )
 
             callee_authrole = option_callee_authrole

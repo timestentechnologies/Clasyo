@@ -1,12 +1,11 @@
+from __future__ import annotations
+
 import json
 import time
 
 from django.core.cache import cache
 
-import jwt
-from cryptography.hazmat.backends import default_backend
-from cryptography.x509 import load_pem_x509_certificate
-
+from allauth.core.internal.deferred import cryptography, jwt
 from allauth.socialaccount.adapter import get_adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Error
 
@@ -19,8 +18,8 @@ def lookup_kid_pem_x509_certificate(keys_data, kid):
     """
     key = keys_data.get(kid)
     if key:
-        public_key = load_pem_x509_certificate(
-            key.encode("utf8"), default_backend()
+        public_key = cryptography.x509.load_pem_x509_certificate(
+            key.encode("utf8"), cryptography.hazmat.backends.default_backend()
         ).public_key()
         return public_key
 
@@ -41,9 +40,14 @@ def lookup_kid_jwk(keys_data, kid):
             }]
         }
     """
+    algorithms = jwt.algorithms.get_default_algorithms()
     for d in keys_data["keys"]:
         if d["kid"] == kid:
-            public_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(d))
+            alg = d.get("alg", "RS256")
+            algorithm = algorithms.get(alg)
+            if not algorithm:
+                raise OAuth2Error(f"Unsupported signing algorithm: {d['alg']}")
+            public_key = algorithm.from_jwk(json.dumps(d))
             return public_key
 
 
@@ -52,9 +56,10 @@ def fetch_key(credential, keys_url, lookup):
     # {'alg': 'RS256', 'kid': '0ad1fec78504f447bae65bcf5afaedb65eec9e81', 'typ': 'JWT'}
     kid = header["kid"]
     alg = header["alg"]
-    response = get_adapter().get_requests_session().get(keys_url)
-    response.raise_for_status()
-    keys_data = response.json()
+    with get_adapter().get_requests_session() as sess:
+        response = sess.get(keys_url)
+        response.raise_for_status()
+        keys_data = response.json()
     key = lookup(keys_data, kid)
     if not key:
         raise OAuth2Error(f"Invalid 'kid': '{kid}'")
@@ -77,8 +82,8 @@ def verify_jti(data: dict) -> None:
 
 
 def verify_and_decode(
-    *, credential, keys_url, issuer, audience, lookup_kid, verify_signature=True
-):
+    *, credential, keys_url, issuer, audience, lookup_kid, verify_signature: bool = True
+) -> dict:
     try:
         if verify_signature:
             alg, key = fetch_key(credential, keys_url, lookup_kid)

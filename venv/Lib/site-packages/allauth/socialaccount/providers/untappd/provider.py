@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from django.http import HttpRequest
 from django.urls import reverse
 
 from allauth.account.models import EmailAddress
@@ -23,11 +26,11 @@ class UntappdProvider(OAuth2Provider):
     account_class = UntappdAccount
     oauth2_adapter_class = UntappdOAuth2Adapter
 
-    def get_auth_params_from_request(self, request, action):
+    def get_auth_params_from_request(self, request: HttpRequest, action):
         params = super().get_auth_params_from_request(request, action)
         # Untappd uses redirect_url instead of redirect_uri
         params["redirect_url"] = request.build_absolute_uri(
-            reverse(self.id + "_callback")
+            reverse(f"{self.id}_callback")
         )
         return params
 
@@ -38,7 +41,7 @@ class UntappdProvider(OAuth2Provider):
         user = data["response"]["user"]
         return dict(
             username=user["user_name"],
-            name=user["first_name"] + " " + user["last_name"],
+            name=f"{user['first_name']} {user['last_name']}",
         )
 
     def extract_email_addresses(self, data):

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.providers.amazon_cognito.utils import (
     convert_to_python_bool_if_value_is_json_string_bool,
@@ -63,7 +65,7 @@ class AmazonCognitoProvider(OAuth2Provider):
     def get_slug(cls):
         # IMPORTANT: Amazon Cognito does not support `_` characters
         #            as part of their redirect URI.
-        return super(AmazonCognitoProvider, cls).get_slug().replace("_", "-")
+        return super().get_slug().replace("_", "-")
 
 
 provider_classes = [AmazonCognitoProvider]
