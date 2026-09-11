@@ -26,6 +26,7 @@ urlpatterns = [
     path('subscriptions/edit/', views.SubscriptionEditView.as_view(), name='subscription_edit'),
     
     # Content Management
+    path('content/homepage/', views.HomepageCMSView.as_view(), name='homepage_cms'),
     path('content/pricing/', views.PricingManagementView.as_view(), name='pricing_management'),
     path('content/faq/', views.FAQManagementView.as_view(), name='faq_management'),
     path('content/pages/', views.PageContentManagementView.as_view(), name='page_content_management'),

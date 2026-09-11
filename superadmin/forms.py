@@ -228,3 +228,100 @@ class SchoolPaymentConfigurationForm(forms.ModelForm):
                 raise forms.ValidationError('Payment Instructions are required for Cash/Cheque payments')
         
         return cleaned_data
+
+
+class HeroContentForm(forms.ModelForm):
+    """Form for SuperAdmin Hero Section CMS"""
+    class Meta:
+        from frontend.models import HeroContent
+        model = HeroContent
+        fields = [
+            'title_prefix', 'typing_texts', 'subtitle',
+            'primary_btn_text', 'primary_btn_url',
+            'secondary_btn_text', 'secondary_btn_url',
+            'bg_type', 'bg_image', 'bg_color', 'bg_gradient',
+            'overlay_opacity', 'is_active'
+        ]
+        widgets = {
+            'title_prefix': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Transform Your'}),
+            'typing_texts': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Enter one phrase per line'}),
+            'subtitle': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'primary_btn_text': forms.TextInput(attrs={'class': 'form-control'}),
+            'primary_btn_url': forms.TextInput(attrs={'class': 'form-control'}),
+            'secondary_btn_text': forms.TextInput(attrs={'class': 'form-control'}),
+            'secondary_btn_url': forms.TextInput(attrs={'class': 'form-control'}),
+            'bg_type': forms.Select(attrs={'class': 'form-select'}),
+            'bg_image': forms.FileInput(attrs={'class': 'form-control'}),
+            'bg_color': forms.TextInput(attrs={'class': 'form-control', 'type': 'color'}),
+            'bg_gradient': forms.TextInput(attrs={'class': 'form-control'}),
+            'overlay_opacity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.05', 'min': '0', 'max': '1'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class ProcessStepForm(forms.ModelForm):
+    """Form for How It Works / Process Step CMS"""
+    class Meta:
+        from frontend.models import ProcessStep
+        model = ProcessStep
+        fields = [
+            'step_number', 'phase_tag', 'title', 'subtitle',
+            'description', 'icon', 'accent_color', 'order', 'is_active'
+        ]
+        widgets = {
+            'step_number': forms.NumberInput(attrs={'class': 'form-control'}),
+            'phase_tag': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. PHASE 1'}),
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Discovery & Strategy'}),
+            'subtitle': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'icon': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. fas fa-school'}),
+            'accent_color': forms.TextInput(attrs={'class': 'form-control', 'type': 'color'}),
+            'order': forms.NumberInput(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class FeatureItemForm(forms.ModelForm):
+    """Form for Features CMS"""
+    class Meta:
+        from frontend.models import FeatureItem
+        model = FeatureItem
+        fields = ['title', 'description', 'icon', 'order', 'is_active']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'icon': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. fas fa-user-graduate'}),
+            'order': forms.NumberInput(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class ParallaxSectionForm(forms.ModelForm):
+    """Form for Parallax Banner CMS"""
+    class Meta:
+        from frontend.models import ParallaxSection
+        model = ParallaxSection
+        fields = [
+            'badge_text', 'title', 'subtitle', 'content',
+            'primary_btn_text', 'primary_btn_url',
+            'secondary_btn_text', 'secondary_btn_url',
+            'bg_image', 'bg_color', 'overlay_opacity', 'scroll_effect',
+            'order', 'is_active'
+        ]
+        widgets = {
+            'badge_text': forms.TextInput(attrs={'class': 'form-control'}),
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'subtitle': forms.TextInput(attrs={'class': 'form-control'}),
+            'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'primary_btn_text': forms.TextInput(attrs={'class': 'form-control'}),
+            'primary_btn_url': forms.TextInput(attrs={'class': 'form-control'}),
+            'secondary_btn_text': forms.TextInput(attrs={'class': 'form-control'}),
+            'secondary_btn_url': forms.TextInput(attrs={'class': 'form-control'}),
+            'bg_image': forms.FileInput(attrs={'class': 'form-control'}),
+            'bg_color': forms.TextInput(attrs={'class': 'form-control', 'type': 'color'}),
+            'overlay_opacity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.05', 'min': '0', 'max': '1'}),
+            'scroll_effect': forms.Select(attrs={'class': 'form-select'}),
+            'order': forms.NumberInput(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+

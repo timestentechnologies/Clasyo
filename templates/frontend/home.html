@@ -5,73 +5,45 @@
 {% block meta_description %}Clasyo is a modern Kenyan school management system for CBC, primary, secondary and TVET institutions. Manage admissions, academics, exams, fees, AI assistant insights, finance & accounting (Chart of Accounts, General Ledger, Trial Balance), inventory, communication and reporting for schools across Kenya.{% endblock %}
 
 {% block extra_css %}
-{% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const texts = ["Transform Your School Management", "Streamline Academic Operations", "Enhance Learning Experiences", "Empower Educators & Students"];
-        const typingText = document.querySelector('.typing-text');
-        const cursor = document.querySelector('.cursor');
-        let textIndex = 0;
-        let charIndex = 0;
-        let isDeleting = false;
-        let typingSpeed = 150; // Typing speed in milliseconds
-        let eraseSpeed = 50;   // Erase speed in milliseconds
-        let newTextDelay = 2000; // Delay before starting new text
-        
-        function type() {
-            const currentText = texts[textIndex];
-            
-            if (isDeleting) {
-                // Delete text
-                typingText.textContent = currentText.substring(0, charIndex - 1);
-                charIndex--;
-            } else {
-                // Type text
-                typingText.textContent = currentText.substring(0, charIndex + 1);
-                charIndex++;
-            }
-            
-            // Check if we've finished typing the current text
-            if (!isDeleting && charIndex === currentText.length) {
-                isDeleting = true;
-                typingSpeed = newTextDelay; // Pause at the end of the text
-            } else if (isDeleting && charIndex === 0) {
-                isDeleting = false;
-                textIndex = (textIndex + 1) % texts.length; // Move to next text
-                typingSpeed = 160; // Reset typing speed
-            }
-            
-            // Set the typing speed for the next character
-            const speed = isDeleting ? eraseSpeed : typingSpeed;
-            
-            // Call the function again after the delay
-            setTimeout(type, speed);
-        }
-        
-        // Start the typing effect after a short delay
-        setTimeout(type, 1000);
-    });
-</script>
-{% endblock %}
-
 <style>
-    /* Hero Section Styles */
+    /* ==========================================================================
+       Hero Section Styles
+       ========================================================================== */
     .hero-section {
-        background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #164e63 100%);
         color: white;
-        padding: 5.5rem 0 5rem;
+        padding: 5.5rem 0 4.5rem;
         position: relative;
         overflow: hidden;
+        {% if hero_content and hero_content.bg_type == 'image' and hero_content.bg_image %}
+        background: url('{{ hero_content.bg_image.url }}') center/cover no-repeat;
+        {% elif hero_content and hero_content.bg_type == 'color' %}
+        background-color: {{ hero_content.bg_color }};
+        {% elif hero_content and hero_content.bg_gradient %}
+        background: {{ hero_content.bg_gradient }};
+        {% else %}
+        background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #164e63 100%);
+        {% endif %}
     }
     
-    .hero-section::before {
-        content: '';
+    .hero-overlay {
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        background: radial-gradient(circle at 50% 30%, rgba(6, 182, 212, 0.15), transparent 70%);
+        background: rgba(15, 23, 42, {{ hero_content.overlay_opacity|default:"0.85" }});
+        z-index: 1;
+        pointer-events: none;
+    }
+
+    .hero-radial-glow {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(circle at 50% 30%, rgba(6, 182, 212, 0.18), transparent 70%);
+        z-index: 2;
         pointer-events: none;
     }
     
@@ -83,9 +55,9 @@
         right: 0;
         bottom: 0;
         overflow: hidden;
-        opacity: 0.06;
+        opacity: 0.05;
         pointer-events: none;
-        z-index: 0;
+        z-index: 2;
     }
     
     .bg-icon {
@@ -110,7 +82,7 @@
     
     .hero-section .container {
         position: relative;
-        z-index: 1;
+        z-index: 3;
     }
     
     .hero-title {
@@ -222,7 +194,9 @@
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
     }
     
-    /* Stats Section */
+    /* ==========================================================================
+       Stats Section
+       ========================================================================== */
     .stats-section {
         padding: 3.5rem 0 2.5rem;
         background: #f8fafc;
@@ -282,11 +256,300 @@
         letter-spacing: 0.75px;
         font-size: 0.75rem;
     }
-    
-    /* Features Section */
+
+    /* ==========================================================================
+       Interactive Process / How It Works Stepper (Matching Screenshot)
+       ========================================================================== */
+    .process-section {
+        padding: 6rem 0;
+        background: #ffffff;
+        position: relative;
+    }
+
+    .process-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #f59e0b;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        margin-bottom: 0.75rem;
+    }
+
+    .process-badge::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #f59e0b;
+    }
+
+    .process-header-title {
+        font-size: 2.75rem;
+        font-weight: 800;
+        color: #0f172a;
+        letter-spacing: -0.75px;
+        line-height: 1.2;
+        margin-bottom: 1rem;
+    }
+
+    .process-header-desc {
+        font-size: 1.12rem;
+        color: #64748b;
+        max-width: 680px;
+        line-height: 1.6;
+        margin-bottom: 4rem;
+    }
+
+    /* Vertical Stepper Timeline (Left Column) */
+    .process-timeline {
+        position: relative;
+        padding-left: 2.5rem;
+    }
+
+    /* Continuous Timeline Track Line */
+    .process-timeline::before {
+        content: '';
+        position: absolute;
+        left: 12px;
+        top: 15px;
+        bottom: 25px;
+        width: 2px;
+        background: #e2e8f0;
+        z-index: 1;
+    }
+
+    .process-phase-block {
+        position: relative;
+        padding-bottom: 3.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .process-phase-block:last-child {
+        padding-bottom: 1rem;
+    }
+
+    /* Phase Marker Indicator Dot */
+    .phase-marker {
+        position: absolute;
+        left: -2.5rem;
+        top: 2px;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 2px solid #cbd5e1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+        transition: all 0.3s ease;
+    }
+
+    .phase-marker-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #cbd5e1;
+        transition: all 0.3s ease;
+    }
+
+    .process-phase-block.active .phase-marker {
+        border-color: #f59e0b;
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
+    }
+
+    .process-phase-block.active .phase-marker-dot {
+        background: #f59e0b;
+        transform: scale(1.2);
+    }
+
+    .phase-tag {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #f59e0b;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.4rem;
+        display: block;
+    }
+
+    .phase-title {
+        font-size: 1.45rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 0.75rem;
+        line-height: 1.3;
+    }
+
+    .phase-description {
+        font-size: 1rem;
+        color: #64748b;
+        line-height: 1.65;
+        max-width: 540px;
+    }
+
+    /* Sticky Navigation Card (Right Column) */
+    .process-sticky-container {
+        position: sticky;
+        top: 110px;
+        z-index: 10;
+    }
+
+    .process-sticky-card {
+        background: #0b1528;
+        border-radius: 24px;
+        padding: 2.25rem 2rem;
+        box-shadow: 0 20px 50px -10px rgba(15, 23, 42, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .process-nav-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .process-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 0.9rem 1.25rem;
+        border-radius: 14px;
+        color: #94a3b8;
+        font-weight: 600;
+        font-size: 0.98rem;
+        text-decoration: none;
+        transition: all 0.25s ease;
+        border: 1px solid transparent;
+        cursor: pointer;
+    }
+
+    .process-nav-item:hover {
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.04);
+    }
+
+    .process-nav-num {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        font-weight: 700;
+        transition: all 0.25s ease;
+        flex-shrink: 0;
+    }
+
+    /* Active Glowing State in Sticky Card */
+    .process-nav-item.active {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: rgba(245, 158, 11, 0.6);
+        color: #ffffff;
+        box-shadow: 0 4px 20px rgba(245, 158, 11, 0.15);
+    }
+
+    .process-nav-item.active .process-nav-num {
+        background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+        color: #ffffff;
+        box-shadow: 0 0 14px rgba(245, 158, 11, 0.4);
+    }
+
+    /* ==========================================================================
+       Parallax Sections
+       ========================================================================== */
+    .parallax-section {
+        position: relative;
+        overflow: hidden;
+        color: #ffffff;
+        padding: 6.5rem 0;
+        background-color: #0f172a;
+    }
+
+    .parallax-bg {
+        position: absolute;
+        top: -10%;
+        left: 0;
+        right: 0;
+        bottom: -10%;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+        z-index: 1;
+        transition: transform 0.1s cubic-bezier(0, 0, 0.2, 1);
+        will-change: transform;
+    }
+
+    .parallax-bg.fixed-bg {
+        background-attachment: fixed;
+        top: 0;
+        bottom: 0;
+    }
+
+    .parallax-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 2;
+    }
+
+    .parallax-content-container {
+        position: relative;
+        z-index: 3;
+    }
+
+    .parallax-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(6, 182, 212, 0.15);
+        border: 1px solid rgba(6, 182, 212, 0.4);
+        color: #38bdf8;
+        padding: 0.4rem 1.1rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        margin-bottom: 1.5rem;
+        backdrop-filter: blur(8px);
+    }
+
+    .parallax-title {
+        font-size: 2.85rem;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: -0.5px;
+        line-height: 1.25;
+        margin-bottom: 1.25rem;
+    }
+
+    .parallax-subtitle {
+        font-size: 1.2rem;
+        color: #cbd5e1;
+        max-width: 680px;
+        margin: 0 auto 2rem;
+        line-height: 1.6;
+    }
+
+    /* ==========================================================================
+       Features Section
+       ========================================================================== */
     .features-section {
         padding: 5rem 0;
-        background: #ffffff;
+        background: #f8fafc;
     }
 
     .feature-card {
@@ -342,7 +605,9 @@
         margin-bottom: 0;
     }
     
-    /* CTA Section */
+    /* ==========================================================================
+       CTA Section
+       ========================================================================== */
     .cta-section {
         background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
         color: white;
@@ -366,7 +631,9 @@
         box-shadow: 0 8px 24px rgba(6, 182, 212, 0.35);
     }
     
-    /* Mobile Responsive Optimizations */
+    /* ==========================================================================
+       Mobile Responsive Optimizations
+       ========================================================================== */
     @media (max-width: 768px) {
         .hero-section {
             padding: 3.25rem 0 2.5rem !important;
@@ -434,6 +701,39 @@
             letter-spacing: 0.5px !important;
         }
 
+        .process-section {
+            padding: 3.5rem 0 !important;
+        }
+
+        .process-header-title {
+            font-size: 1.85rem !important;
+        }
+
+        .process-header-desc {
+            font-size: 0.95rem !important;
+            margin-bottom: 2.5rem !important;
+        }
+
+        .phase-title {
+            font-size: 1.2rem !important;
+        }
+
+        .phase-description {
+            font-size: 0.88rem !important;
+        }
+
+        .parallax-section {
+            padding: 4rem 0 !important;
+        }
+
+        .parallax-title {
+            font-size: 1.75rem !important;
+        }
+
+        .parallax-subtitle {
+            font-size: 0.95rem !important;
+        }
+
         .features-section {
             padding: 3.5rem 0 !important;
         }
@@ -472,10 +772,165 @@
 </style>
 {% endblock %}
 
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // ==========================================
+        // 1. Dynamic Typing Effect for Hero Section
+        // ==========================================
+        {% if hero_content and hero_content.get_typing_list %}
+        const texts = {{ hero_content.get_typing_list|safe }};
+        {% else %}
+        const texts = [
+            "School Management",
+            "Academic Operations",
+            "Learning Experiences",
+            "CBC & TVET Institutions"
+        ];
+        {% endif %}
+
+        const typingText = document.querySelector('.typing-text');
+        if (typingText && texts.length > 0) {
+            let textIndex = 0;
+            let charIndex = 0;
+            let isDeleting = false;
+            let typingSpeed = 140;
+            let eraseSpeed = 50;
+            let newTextDelay = 2000;
+
+            function type() {
+                const currentText = texts[textIndex];
+                if (isDeleting) {
+                    typingText.textContent = currentText.substring(0, charIndex - 1);
+                    charIndex--;
+                } else {
+                    typingText.textContent = currentText.substring(0, charIndex + 1);
+                    charIndex++;
+                }
+
+                if (!isDeleting && charIndex === currentText.length) {
+                    isDeleting = true;
+                    typingSpeed = newTextDelay;
+                } else if (isDeleting && charIndex === 0) {
+                    isDeleting = false;
+                    textIndex = (textIndex + 1) % texts.length;
+                    typingSpeed = 150;
+                }
+
+                const speed = isDeleting ? eraseSpeed : typingSpeed;
+                setTimeout(type, speed);
+            }
+            setTimeout(type, 800);
+        }
+
+        // =======================================================
+        // 2. Interactive Scroll Stepper (Scroll-Spy & Sticky Card)
+        // =======================================================
+        const phaseBlocks = document.querySelectorAll('.process-phase-block');
+        const navItems = document.querySelectorAll('.process-nav-item');
+
+        if (phaseBlocks.length > 0 && navItems.length > 0) {
+            function updateActivePhase() {
+                const scrollPosition = window.scrollY + (window.innerHeight * 0.45);
+                let currentStep = '1';
+
+                phaseBlocks.forEach(block => {
+                    const blockTop = block.offsetTop;
+                    const blockHeight = block.offsetHeight;
+                    if (scrollPosition >= blockTop && scrollPosition < blockTop + blockHeight) {
+                        currentStep = block.getAttribute('data-step');
+                    }
+                });
+
+                // Update timeline blocks
+                phaseBlocks.forEach(block => {
+                    if (block.getAttribute('data-step') === currentStep) {
+                        block.classList.add('active');
+                    } else {
+                        block.classList.remove('active');
+                    }
+                });
+
+                // Update sticky navigation items
+                navItems.forEach(item => {
+                    if (item.getAttribute('data-step') === currentStep) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+
+            window.addEventListener('scroll', updateActivePhase, { passive: true });
+            updateActivePhase(); // Initial check
+
+            // Click-to-scroll on sticky card items
+            navItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetStep = this.getAttribute('data-step');
+                    const targetBlock = document.querySelector(`.process-phase-block[data-step="${targetStep}"]`);
+                    if (targetBlock) {
+                        const yOffset = -140;
+                        const y = targetBlock.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                        window.scrollTo({ top: y, behavior: 'smooth' });
+                    }
+                });
+            });
+        }
+
+        // =======================================================
+        // 3. Parallax Scroll Effects (Zoom-In, Zoom-Out, Translate)
+        // =======================================================
+        const parallaxSections = document.querySelectorAll('.parallax-section');
+        
+        function handleParallax() {
+            const viewportHeight = window.innerHeight;
+            
+            parallaxSections.forEach(section => {
+                const bg = section.querySelector('.parallax-bg');
+                if (!bg) return;
+                
+                const rect = section.getBoundingClientRect();
+                // Check if in viewport
+                if (rect.top <= viewportHeight && rect.bottom >= 0) {
+                    const progress = (viewportHeight - rect.top) / (viewportHeight + rect.height);
+                    const effect = section.getAttribute('data-effect');
+
+                    if (effect === 'zoom_in') {
+                        // Scales from 1.0 up to 1.18
+                        const scale = 1.0 + (progress * 0.18);
+                        bg.style.transform = `scale(${scale.toFixed(3)}) translate3d(0, 0, 0)`;
+                    } else if (effect === 'zoom_out') {
+                        // Scales down from 1.18 to 1.0
+                        const scale = 1.18 - (progress * 0.18);
+                        bg.style.transform = `scale(${scale.toFixed(3)}) translate3d(0, 0, 0)`;
+                    } else if (effect === 'standard') {
+                        // Smooth Y-translation
+                        const yPos = (progress - 0.5) * 80;
+                        bg.style.transform = `translate3d(0, ${yPos.toFixed(1)}px, 0)`;
+                    }
+                }
+            });
+        }
+
+        if (parallaxSections.length > 0) {
+            window.addEventListener('scroll', handleParallax, { passive: true });
+            handleParallax();
+        }
+    });
+</script>
+{% endblock %}
+
 {% block content %}
 
-    <!-- Hero Section -->
+    <!-- =========================================================================
+         1. Hero Section (Fully Dynamic via CMS)
+         ========================================================================= -->
     <section class="hero-section">
+        <div class="hero-overlay"></div>
+        <div class="hero-radial-glow"></div>
+        
         <!-- Background Icons -->
         <div class="bg-icons">
             <i class="fas fa-graduation-cap bg-icon"></i>
@@ -488,22 +943,29 @@
         
         <div class="container text-center">
             <h1 class="hero-title">
-                <span class="typing-text">Transform Your School Management</span>
+                <span class="me-2">{{ hero_content.title_prefix|default:"Transform Your" }}</span>
+                <span class="typing-text">School Management</span>
                 <span class="cursor">|</span>
             </h1>
-            <p class="hero-subtitle">Complete cloud-based solution for modern education management. Streamline operations and enhance learning experiences.</p>
+            <p class="hero-subtitle">{{ hero_content.subtitle|default:"Complete cloud-based solution for modern education management. Streamline operations and enhance learning experiences." }}</p>
             <div class="hero-buttons-container">
-                <button class="btn btn-hero btn-hero-action btn-hero-primary" data-bs-toggle="modal" data-bs-target="#registerModal">
-                    <i class="fas fa-rocket me-2"></i>Start Free Trial
-                </button>
-                <button class="btn btn-hero btn-hero-action btn-hero-outline" data-bs-toggle="modal" data-bs-target="#loginModal">
-                    <i class="fas fa-sign-in-alt me-2"></i>Sign In
-                </button>
+                <a href="{{ hero_content.primary_btn_url|default:'#registerModal' }}" 
+                   class="btn btn-hero btn-hero-action btn-hero-primary"
+                   {% if '#registerModal' in hero_content.primary_btn_url|default:'#registerModal' %}data-bs-toggle="modal" data-bs-target="#registerModal"{% endif %}>
+                    <i class="fas fa-rocket me-2"></i>{{ hero_content.primary_btn_text|default:"Start Free Trial" }}
+                </a>
+                <a href="{{ hero_content.secondary_btn_url|default:'#loginModal' }}" 
+                   class="btn btn-hero btn-hero-action btn-hero-outline"
+                   {% if '#loginModal' in hero_content.secondary_btn_url|default:'#loginModal' %}data-bs-toggle="modal" data-bs-target="#loginModal"{% endif %}>
+                    <i class="fas fa-sign-in-alt me-2"></i>{{ hero_content.secondary_btn_text|default:"Sign In" }}
+                </a>
             </div>
         </div>
     </section>
 
-    <!-- Stats Section (2x2 grid on mobile, 4 columns on desktop with clean spacing) -->
+    <!-- =========================================================================
+         2. Stats Section (2x2 grid on mobile, 4 columns on desktop with clean spacing)
+         ========================================================================= -->
     <section class="stats-section">
         <div class="container">
             <div class="row g-3 g-lg-4 justify-content-center">
@@ -547,128 +1009,224 @@
         </div>
     </section>
 
-    <!-- Features Section -->
-    <section class="features-section">
+    <!-- =========================================================================
+         3. Interactive "How It Works / Process" Section (Scroll-Driven Stepper)
+         ========================================================================= -->
+    <section class="process-section" id="how-it-works">
         <div class="container">
-            <div class="text-center mb-4 mb-lg-5">
-                <h2 class="section-title">Comprehensive Features</h2>
-                <p class="section-subtitle mb-0">Everything you need to manage your school efficiently</p>
+            <div class="text-start">
+                <div class="process-badge">HOW IT WORKS</div>
+                <h2 class="process-header-title">How we get your school from setup to full automation</h2>
+                <p class="process-header-desc">
+                    A structured, seamless process behind every school onboarded onto Clasyo — digitizing CBC curricula, automated fees, and parent engagement.
+                </p>
             </div>
-            <div class="row g-3 g-lg-4">
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-user-graduate"></i>
+
+            <div class="row position-relative">
+                <!-- Left Column: Scroll Timeline Blocks -->
+                <div class="col-lg-7">
+                    <div class="process-timeline">
+                        {% for step in process_steps %}
+                        <div class="process-phase-block {% if forloop.first %}active{% endif %}" data-step="{{ step.step_number }}" id="phase-step-{{ step.step_number }}">
+                            <div class="phase-marker">
+                                <div class="phase-marker-dot" style="background-color: {{ step.accent_color|default:'#f59e0b' }};"></div>
+                            </div>
+                            <span class="phase-tag" style="color: {{ step.accent_color|default:'#f59e0b' }};">{{ step.phase_tag }}</span>
+                            <h3 class="phase-title">{{ step.title }}</h3>
+                            <p class="phase-description">{{ step.description }}</p>
                         </div>
-                        <h5 class="feature-title">Student Management</h5>
-                        <p class="feature-description">Complete student profiles, admissions, and academic tracking system</p>
+                        {% empty %}
+                        <!-- Fallback Steps if DB is empty -->
+                        <div class="process-phase-block active" data-step="1">
+                            <div class="phase-marker"><div class="phase-marker-dot"></div></div>
+                            <span class="phase-tag">PHASE 1</span>
+                            <h3 class="phase-title">School Setup & CBC Configuration</h3>
+                            <p class="phase-description">Configure your school profile, grading structures, Kenyan CBC learning areas, primary/secondary streams, and academic sessions in minutes.</p>
+                        </div>
+                        <div class="process-phase-block" data-step="2">
+                            <div class="phase-marker"><div class="phase-marker-dot"></div></div>
+                            <span class="phase-tag">PHASE 2</span>
+                            <h3 class="phase-title">Student & Staff Onboarding</h3>
+                            <p class="phase-description">Seamlessly import student records, assign unique admission IDs, configure guardian contacts for real-time SMS alerts, and onboard teachers with granular roles.</p>
+                        </div>
+                        <div class="process-phase-block" data-step="3">
+                            <div class="phase-marker"><div class="phase-marker-dot"></div></div>
+                            <span class="phase-tag">PHASE 3</span>
+                            <h3 class="phase-title">Academics, Exams & CBC Assessment</h3>
+                            <p class="phase-description">Generate dynamic timetables, digital lesson plans, termly exams, CBC formative/summative assessment rubrics, and instant branded PDF report cards.</p>
+                        </div>
+                        <div class="process-phase-block" data-step="4">
+                            <div class="phase-marker"><div class="phase-marker-dot"></div></div>
+                            <span class="phase-tag">PHASE 4</span>
+                            <h3 class="phase-title">Fees, Accounting & Inventory Control</h3>
+                            <p class="phase-description">Automate school fee structures, collect payments via direct M-Pesa STK push / Paybill integration, track double-entry Chart of Accounts, General Ledger, and inventory stock.</p>
+                        </div>
+                        <div class="process-phase-block" data-step="5">
+                            <div class="phase-marker"><div class="phase-marker-dot"></div></div>
+                            <span class="phase-tag">PHASE 5</span>
+                            <h3 class="phase-title">AI Insights & Parent Communication</h3>
+                            <p class="phase-description">Empower school leadership with AI-driven fee collection predictions, student performance trends, automated daily attendance SMS, and real-time parent portals.</p>
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-chalkboard-teacher"></i>
+
+                <!-- Right Column: Sticky Navigation Card (Highlights Active Step on Scroll) -->
+                <div class="col-lg-5 d-none d-lg-block">
+                    <div class="process-sticky-container">
+                        <div class="process-sticky-card">
+                            <ul class="process-nav-list">
+                                {% for step in process_steps %}
+                                <li>
+                                    <div class="process-nav-item {% if forloop.first %}active{% endif %}" data-step="{{ step.step_number }}">
+                                        <div class="process-nav-num">{{ step.formatted_step_number }}</div>
+                                        <span>{{ step.title }}</span>
+                                    </div>
+                                </li>
+                                {% empty %}
+                                <li>
+                                    <div class="process-nav-item active" data-step="1">
+                                        <div class="process-nav-num">01</div>
+                                        <span>School Setup & CBC</span>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="process-nav-item" data-step="2">
+                                        <div class="process-nav-num">02</div>
+                                        <span>Student & Staff Onboarding</span>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="process-nav-item" data-step="3">
+                                        <div class="process-nav-num">03</div>
+                                        <span>Academics & Exams</span>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="process-nav-item" data-step="4">
+                                        <div class="process-nav-num">04</div>
+                                        <span>Fees & Accounting</span>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="process-nav-item" data-step="5">
+                                        <div class="process-nav-num">05</div>
+                                        <span>AI Insights & Communication</span>
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
                         </div>
-                        <h5 class="feature-title">Academic Management</h5>
-                        <p class="feature-description">Classes, subjects, timetables, and digital study materials</p>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-dollar-sign"></i>
-                        </div>
-                        <h5 class="feature-title">Fee Management</h5>
-                        <p class="feature-description">Flexible fee structure with multiple payment options and real-time balances</p>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-file-alt"></i>
-                        </div>
-                        <h5 class="feature-title">Examinations</h5>
-                        <p class="feature-description">Complete exam system with online testing and automated grading</p>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-calendar-check"></i>
-                        </div>
-                        <h5 class="feature-title">Attendance</h5>
-                        <p class="feature-description">Daily attendance tracking with real-time SMS alerts to parents</p>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-comments"></i>
-                        </div>
-                        <h5 class="feature-title">Communication</h5>
-                        <p class="feature-description">Real-time chat, SMS, and email notification system</p>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-book"></i>
-                        </div>
-                        <h5 class="feature-title">Library</h5>
-                        <p class="feature-description">Complete digital library management and book tracking</p>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-bus"></i>
-                        </div>
-                        <h5 class="feature-title">Transport</h5>
-                        <p class="feature-description">Route management with GPS vehicle tracking system</p>
-                    </div>
-                </div>
-                <!-- New Features -->
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-robot"></i>
-                        </div>
-                        <h5 class="feature-title">AI Assistant</h5>
-                        <p class="feature-description">Ask natural-language questions and get insights across modules</p>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-coins"></i>
-                        </div>
-                        <h5 class="feature-title">Finance &amp; Accounting</h5>
-                        <p class="feature-description">Double-entry accounting with Chart of Accounts, General Ledger and Trial Balance</p>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-boxes"></i>
-                        </div>
-                        <h5 class="feature-title">Inventory Management</h5>
-                        <p class="feature-description">Track items, suppliers, purchases/receipts, issues and stock levels</p>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-briefcase"></i>
-                        </div>
-                        <h5 class="feature-title">HR &amp; Payroll</h5>
-                        <p class="feature-description">Staff records, payroll processing, payslips and leave management</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- CTA Section -->
+    <!-- =========================================================================
+         4. Parallax Showcase Sections (Dynamic Parallax with Zoom / Fixed Effects)
+         ========================================================================= -->
+    {% for parallax in parallax_sections %}
+    <section class="parallax-section" data-effect="{{ parallax.scroll_effect|default:'fixed_bg' }}">
+        <div class="parallax-bg {% if parallax.scroll_effect == 'fixed_bg' %}fixed-bg{% endif %}" 
+             style="{% if parallax.bg_image %}background-image: url('{{ parallax.bg_image.url }}');{% else %}background-color: {{ parallax.bg_color|default:'#091528' }};{% endif %}">
+        </div>
+        <div class="parallax-overlay" style="background-color: rgba(15, 23, 42, {{ parallax.overlay_opacity|default:'0.75' }});"></div>
+        
+        <div class="container text-center parallax-content-container">
+            {% if parallax.badge_text %}
+            <div class="parallax-badge">
+                <i class="fas fa-sparkles me-1 text-info"></i> {{ parallax.badge_text }}
+            </div>
+            {% endif %}
+            <h2 class="parallax-title">{{ parallax.title }}</h2>
+            {% if parallax.subtitle %}
+            <p class="parallax-subtitle">{{ parallax.subtitle }}</p>
+            {% endif %}
+            {% if parallax.content %}
+            <p class="lead text-light mb-4 opacity-90 mx-auto" style="max-width: 620px; font-size: 1rem;">
+                {{ parallax.content }}
+            </p>
+            {% endif %}
+            
+            <div class="d-flex justify-content-center gap-3 flex-wrap mt-4">
+                {% if parallax.primary_btn_text %}
+                <a href="{{ parallax.primary_btn_url|default:'/pricing/' }}" 
+                   class="btn btn-hero btn-cta btn-hero-primary"
+                   {% if '#registerModal' in parallax.primary_btn_url %}data-bs-toggle="modal" data-bs-target="#registerModal"{% endif %}>
+                    <i class="fas fa-star me-2"></i>{{ parallax.primary_btn_text }}
+                    <i class="fas fa-arrow-right ms-2"></i>
+                </a>
+                {% endif %}
+                {% if parallax.secondary_btn_text %}
+                <a href="{{ parallax.secondary_btn_url|default:'/contact/' }}" 
+                   class="btn btn-hero btn-cta btn-hero-outline">
+                    {{ parallax.secondary_btn_text }}
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+    {% endfor %}
+
+    <!-- =========================================================================
+         5. Comprehensive Features Section
+         ========================================================================= -->
+    <section class="features-section" id="features">
+        <div class="container">
+            <div class="text-center mb-4 mb-lg-5">
+                <h2 class="section-title">Comprehensive Features</h2>
+                <p class="section-subtitle mb-0">Everything you need to manage your school efficiently</p>
+            </div>
+            <div class="row g-3 g-lg-4">
+                {% for feature in features %}
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="{{ feature.icon|default:'fas fa-check-circle' }}"></i>
+                        </div>
+                        <h5 class="feature-title">{{ feature.title }}</h5>
+                        <p class="feature-description">{{ feature.description }}</p>
+                    </div>
+                </div>
+                {% empty %}
+                <!-- Fallback feature cards -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-user-graduate"></i></div>
+                        <h5 class="feature-title">Student Management</h5>
+                        <p class="feature-description">Complete student profiles, admissions, and academic tracking system</p>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+                        <h5 class="feature-title">Academic Management</h5>
+                        <p class="feature-description">Classes, subjects, timetables, and digital study materials</p>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-dollar-sign"></i></div>
+                        <h5 class="feature-title">Fee Management</h5>
+                        <p class="feature-description">Flexible fee structure with multiple payment options and real-time balances</p>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-file-alt"></i></div>
+                        <h5 class="feature-title">Examinations & CBC</h5>
+                        <p class="feature-description">Complete exam system with online testing and automated grading</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- =========================================================================
+         6. Ready to Get Started (CTA) Section
+         ========================================================================= -->
     <section class="cta-section">
         <div class="container text-center position-relative" style="z-index: 1;">
             <div class="cta-icon">

@@ -689,7 +689,8 @@ class AdminUserDeleteView(SuperAdminRequiredMixin, DeleteView):
 
 
 # Content Management Views
-from frontend.models import FAQ, PageContent, ContactMessage
+from frontend.models import FAQ, PageContent, ContactMessage, HeroContent, ProcessStep, FeatureItem, ParallaxSection
+from .forms import HeroContentForm, ProcessStepForm, FeatureItemForm, ParallaxSectionForm
 from django.views import View
 from django import forms
 
@@ -995,6 +996,127 @@ class PageContentManagementView(SuperAdminRequiredMixin, View):
                 'page_contents': page_contents,
                 'form': form
             })
+
+
+class HomepageCMSView(SuperAdminRequiredMixin, View):
+    """SuperAdmin Homepage CMS (Hero, How It Works, Features, Parallax)"""
+    template_name = 'superadmin/homepage_cms.html'
+
+    def get(self, request):
+        hero = HeroContent.objects.first()
+        if not hero:
+            hero = HeroContent.objects.create(id=1)
+        hero_form = HeroContentForm(instance=hero)
+
+        process_steps = ProcessStep.objects.all().order_by('order', 'step_number')
+        features = FeatureItem.objects.all().order_by('order', 'id')
+        parallax_sections = ParallaxSection.objects.all().order_by('order', 'id')
+
+        active_tab = request.GET.get('tab', 'hero')
+        
+        # Check if editing a specific entity
+        edit_step_id = request.GET.get('edit_step')
+        edit_step = get_object_or_404(ProcessStep, id=edit_step_id) if edit_step_id else None
+        step_form = ProcessStepForm(instance=edit_step) if edit_step else ProcessStepForm()
+
+        edit_feat_id = request.GET.get('edit_feature')
+        edit_feature = get_object_or_404(FeatureItem, id=edit_feat_id) if edit_feat_id else None
+        feature_form = FeatureItemForm(instance=edit_feature) if edit_feature else FeatureItemForm()
+
+        edit_parallax_id = request.GET.get('edit_parallax')
+        edit_parallax = get_object_or_404(ParallaxSection, id=edit_parallax_id) if edit_parallax_id else None
+        parallax_form = ParallaxSectionForm(instance=edit_parallax) if edit_parallax else ParallaxSectionForm()
+
+        return render(request, self.template_name, {
+            'hero': hero,
+            'hero_form': hero_form,
+            'process_steps': process_steps,
+            'step_form': step_form,
+            'edit_step': edit_step,
+            'features': features,
+            'feature_form': feature_form,
+            'edit_feature': edit_feature,
+            'parallax_sections': parallax_sections,
+            'parallax_form': parallax_form,
+            'edit_parallax': edit_parallax,
+            'active_tab': active_tab,
+        })
+
+    def post(self, request):
+        action = request.POST.get('action')
+        tab = request.POST.get('tab', 'hero')
+
+        # 1. Hero Section Save
+        if action == 'save_hero':
+            hero = HeroContent.objects.first()
+            if not hero:
+                hero = HeroContent.objects.create(id=1)
+            hero_form = HeroContentForm(request.POST, request.FILES, instance=hero)
+            if hero_form.is_valid():
+                hero_form.save()
+                messages.success(request, 'Hero Section updated successfully!')
+            else:
+                messages.error(request, 'Error updating Hero Section. Please check form values.')
+            return redirect(f"{reverse_lazy('superadmin:homepage_cms')}?tab=hero")
+
+        # 2. Process Step Actions
+        elif action == 'save_step':
+            step_id = request.POST.get('step_id')
+            step = get_object_or_404(ProcessStep, id=step_id) if step_id else None
+            step_form = ProcessStepForm(request.POST, instance=step)
+            if step_form.is_valid():
+                step_form.save()
+                messages.success(request, f'Process step saved successfully!')
+            else:
+                messages.error(request, 'Error saving step. Please check form values.')
+            return redirect(f"{reverse_lazy('superadmin:homepage_cms')}?tab=process")
+
+        elif action == 'delete_step':
+            step_id = request.POST.get('step_id')
+            step = get_object_or_404(ProcessStep, id=step_id)
+            step.delete()
+            messages.success(request, 'Process step deleted successfully!')
+            return redirect(f"{reverse_lazy('superadmin:homepage_cms')}?tab=process")
+
+        # 3. Feature Actions
+        elif action == 'save_feature':
+            feat_id = request.POST.get('feature_id')
+            feature = get_object_or_404(FeatureItem, id=feat_id) if feat_id else None
+            feature_form = FeatureItemForm(request.POST, instance=feature)
+            if feature_form.is_valid():
+                feature_form.save()
+                messages.success(request, 'Feature card saved successfully!')
+            else:
+                messages.error(request, 'Error saving feature. Please check form values.')
+            return redirect(f"{reverse_lazy('superadmin:homepage_cms')}?tab=features")
+
+        elif action == 'delete_feature':
+            feat_id = request.POST.get('feature_id')
+            feature = get_object_or_404(FeatureItem, id=feat_id)
+            feature.delete()
+            messages.success(request, 'Feature deleted successfully!')
+            return redirect(f"{reverse_lazy('superadmin:homepage_cms')}?tab=features")
+
+        # 4. Parallax Section Actions
+        elif action == 'save_parallax':
+            p_id = request.POST.get('parallax_id')
+            parallax = get_object_or_404(ParallaxSection, id=p_id) if p_id else None
+            parallax_form = ParallaxSectionForm(request.POST, request.FILES, instance=parallax)
+            if parallax_form.is_valid():
+                parallax_form.save()
+                messages.success(request, 'Parallax banner saved successfully!')
+            else:
+                messages.error(request, 'Error saving parallax section. Please check form values.')
+            return redirect(f"{reverse_lazy('superadmin:homepage_cms')}?tab=parallax")
+
+        elif action == 'delete_parallax':
+            p_id = request.POST.get('parallax_id')
+            parallax = get_object_or_404(ParallaxSection, id=p_id)
+            parallax.delete()
+            messages.success(request, 'Parallax banner deleted successfully!')
+            return redirect(f"{reverse_lazy('superadmin:homepage_cms')}?tab=parallax")
+
+        return redirect('superadmin:homepage_cms')
 
 
 class ContactMessagesView(SuperAdminRequiredMixin, ListView):

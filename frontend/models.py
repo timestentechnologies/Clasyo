@@ -110,3 +110,140 @@ class ForumPost(models.Model):
 
     def __str__(self):
         return f"Post in {self.thread.title}"
+
+
+class HeroContent(models.Model):
+    """Dynamic Hero Section CMS Configuration"""
+    BG_TYPE_CHOICES = [
+        ('gradient', 'Modern Dark Gradient'),
+        ('color', 'Solid Color'),
+        ('image', 'Background Image with Overlay'),
+    ]
+
+    title_prefix = models.CharField(max_length=150, default="Transform Your", help_text="First part of hero title")
+    typing_texts = models.TextField(
+        default="School Management\nAcademic Operations\nLearning Experiences\nCBC & TVET Institutions",
+        help_text="Line-separated phrases for the typing effect"
+    )
+    subtitle = models.TextField(
+        default="Complete cloud-based solution for modern education management. Streamline operations and enhance learning experiences."
+    )
+    primary_btn_text = models.CharField(max_length=60, default="Start Free Trial")
+    primary_btn_url = models.CharField(max_length=255, default="#registerModal", help_text="URL or modal target like #registerModal")
+    secondary_btn_text = models.CharField(max_length=60, default="Sign In")
+    secondary_btn_url = models.CharField(max_length=255, default="#loginModal", help_text="URL or modal target like #loginModal")
+    
+    bg_type = models.CharField(max_length=20, choices=BG_TYPE_CHOICES, default='gradient')
+    bg_image = models.ImageField(upload_to='frontend/hero/', null=True, blank=True)
+    bg_color = models.CharField(max_length=30, default="#0f172a", help_text="Hex code or CSS color")
+    bg_gradient = models.CharField(
+        max_length=255, 
+        default="linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #164e63 100%)",
+        help_text="Custom CSS gradient string"
+    )
+    overlay_opacity = models.FloatField(
+        default=0.85, 
+        help_text="Overlay darkness from 0.0 (transparent) to 1.0 (solid)"
+    )
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Hero Section Content"
+        verbose_name_plural = "Hero Section Content"
+
+    def __str__(self):
+        return f"Hero Content (Updated {self.updated_at.strftime('%Y-%m-%d')})"
+
+    def get_typing_list(self):
+        return [t.strip() for t in self.typing_texts.split('\n') if t.strip()]
+
+
+class ProcessStep(models.Model):
+    """How It Works / Production Process Stepper"""
+    step_number = models.PositiveIntegerField(default=1, help_text="Order and display number (e.g. 1, 2, 3...)")
+    phase_tag = models.CharField(max_length=50, default="PHASE 1", help_text="e.g. PHASE 1, STEP 1")
+    title = models.CharField(max_length=150, help_text="e.g. Discovery & Strategy")
+    subtitle = models.CharField(max_length=200, blank=True, help_text="Short one-line summary")
+    description = models.TextField(help_text="Detailed description of this step")
+    icon = models.CharField(max_length=60, default="fas fa-compass", help_text="FontAwesome icon class, e.g. fas fa-cogs")
+    accent_color = models.CharField(max_length=30, default="#f59e0b", help_text="Accent color hex code (e.g. #f59e0b, #06b6d4)")
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'step_number']
+        verbose_name = "How It Works Step"
+        verbose_name_plural = "How It Works Steps"
+
+    def __str__(self):
+        return f"{self.phase_tag}: {self.title}"
+
+    @property
+    def formatted_step_number(self):
+        return f"{self.step_number:02d}"
+
+
+class FeatureItem(models.Model):
+    """Homepage Features Card"""
+    title = models.CharField(max_length=100)
+    description = models.TextField()
+    icon = models.CharField(max_length=60, default="fas fa-star", help_text="FontAwesome class e.g. fas fa-user-graduate")
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+        verbose_name = "Feature Item"
+        verbose_name_plural = "Feature Items"
+
+    def __str__(self):
+        return self.title
+
+
+class ParallaxSection(models.Model):
+    """Customizable Parallax Banner Section"""
+    SCROLL_EFFECT_CHOICES = [
+        ('fixed_bg', 'Fixed Background (Classic Parallax)'),
+        ('zoom_in', 'Scroll Zoom In (Expands on Scroll)'),
+        ('zoom_out', 'Scroll Zoom Out (Subtle Shrink)'),
+        ('standard', 'Standard Smooth Translation'),
+        ('none', 'None (Static Background)'),
+    ]
+
+    badge_text = models.CharField(max_length=60, default="NEXT-GEN EDUCATION", blank=True)
+    title = models.CharField(max_length=200, default="Empowering Kenyan Schools with Cutting-Edge Cloud SaaS")
+    subtitle = models.CharField(max_length=255, blank=True, default="Seamless CBC compliance, automated financial ledger, and AI-driven performance tracking.")
+    content = models.TextField(blank=True)
+    
+    primary_btn_text = models.CharField(max_length=60, default="Explore Pricing", blank=True)
+    primary_btn_url = models.CharField(max_length=255, default="/pricing/", blank=True)
+    secondary_btn_text = models.CharField(max_length=60, default="Get in Touch", blank=True)
+    secondary_btn_url = models.CharField(max_length=255, default="/contact/", blank=True)
+    
+    bg_image = models.ImageField(upload_to='frontend/parallax/', null=True, blank=True)
+    bg_color = models.CharField(max_length=30, default="#0f172a", help_text="Fallback background color")
+    overlay_opacity = models.FloatField(
+        default=0.75, 
+        help_text="Overlay darkness from 0.0 (transparent) to 1.0 (black/solid)"
+    )
+    scroll_effect = models.CharField(
+        max_length=20, 
+        choices=SCROLL_EFFECT_CHOICES, 
+        default='fixed_bg',
+        help_text="Parallax movement effect as user scrolls"
+    )
+    
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+        verbose_name = "Parallax Section"
+        verbose_name_plural = "Parallax Sections"
+
+    def __str__(self):
+        return self.title

@@ -1,0 +1,782 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Homepage CMS - Super Admin{% endblock %}
+{% block page_title %}Homepage CMS & Content Customization{% endblock %}
+{% block page_icon %}sliders-h{% endblock %}
+{% block page_subtitle %}Customize Hero, How It Works Stepper, Features, and Parallax Sections{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cms-tab-btn {
+        padding: 0.85rem 1.4rem;
+        font-weight: 600;
+        border-radius: 12px;
+        color: #64748b;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .cms-tab-btn:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+    }
+    .cms-tab-btn.active {
+        background: linear-gradient(135deg, #06B6D4 0%, #0284C7 100%);
+        color: #ffffff;
+        border-color: transparent;
+        box-shadow: 0 4px 14px rgba(6, 182, 212, 0.3);
+    }
+    .cms-card {
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+        padding: 1.75rem;
+        margin-bottom: 1.5rem;
+    }
+    .color-picker-input {
+        height: 42px;
+        padding: 4px 8px;
+    }
+    .step-preview-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 700;
+        font-size: 0.78rem;
+        padding: 0.3rem 0.75rem;
+        border-radius: 50px;
+        text-transform: uppercase;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <!-- Navigation Tabs -->
+    <div class="d-flex gap-2 flex-wrap mb-4">
+        <a href="?tab=hero" class="cms-tab-btn {% if active_tab == 'hero' %}active{% endif %}">
+            <i class="fas fa-bolt"></i> Hero Section
+        </a>
+        <a href="?tab=process" class="cms-tab-btn {% if active_tab == 'process' %}active{% endif %}">
+            <i class="fas fa-list-ol"></i> How It Works Stepper
+        </a>
+        <a href="?tab=features" class="cms-tab-btn {% if active_tab == 'features' %}active{% endif %}">
+            <i class="fas fa-th-large"></i> Feature Cards
+        </a>
+        <a href="?tab=parallax" class="cms-tab-btn {% if active_tab == 'parallax' %}active{% endif %}">
+            <i class="fas fa-image"></i> Parallax Banners
+        </a>
+        <a href="{% url 'frontend:home' %}" target="_blank" class="cms-tab-btn ms-auto bg-light text-primary">
+            <i class="fas fa-external-link-alt"></i> Preview Live Homepage
+        </a>
+    </div>
+
+    <!-- =========================================================================
+         TAB 1: HERO SECTION
+         ========================================================================= -->
+    {% if active_tab == 'hero' %}
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="cms-card">
+                <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-bolt text-primary me-2"></i>Hero Section Content & Styling</h5>
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_hero">
+                    <input type="hidden" name="tab" value="hero">
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Title Prefix</label>
+                            {{ hero_form.title_prefix }}
+                            <small class="text-muted">e.g. "Transform Your" or "Next-Gen"</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Background Type</label>
+                            {{ hero_form.bg_type }}
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Typing Animated Phrases (One per line)</label>
+                            {{ hero_form.typing_texts }}
+                            <small class="text-muted">Each line will be typed out and erased sequentially in the animated loop.</small>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Hero Subtitle</label>
+                            {{ hero_form.subtitle }}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Primary Button Text</label>
+                            {{ hero_form.primary_btn_text }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Primary Button URL / Target</label>
+                            {{ hero_form.primary_btn_url }}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Secondary Button Text</label>
+                            {{ hero_form.secondary_btn_text }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Secondary Button URL / Target</label>
+                            {{ hero_form.secondary_btn_url }}
+                        </div>
+
+                        <!-- Background Customization -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Background Solid Color</label>
+                            {{ hero_form.bg_color }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Overlay Darkness (0.0 to 1.0)</label>
+                            {{ hero_form.overlay_opacity }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Background Image (Optional)</label>
+                            {{ hero_form.bg_image }}
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Custom CSS Gradient (Used if type is 'gradient')</label>
+                            {{ hero_form.bg_gradient }}
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check form-switch mt-2">
+                                {{ hero_form.is_active }}
+                                <label class="form-check-label fw-semibold ms-2">Enable Hero Section on Homepage</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 pt-3 border-top">
+                            <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">
+                                <i class="fas fa-save me-2"></i> Save Hero Section Changes
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="cms-card">
+                <h6 class="fw-bold text-dark mb-3"><i class="fas fa-info-circle text-info me-2"></i>Tips & Guidelines</h6>
+                <p class="text-muted small">
+                    <strong>Typing Effect:</strong> Enter multiple educational themes (e.g. <em>CBC School Management</em>, <em>Financial Ledger</em>, <em>Student Attendance</em>).
+                </p>
+                <p class="text-muted small">
+                    <strong>Backgrounds:</strong> If using a background image, ensure high resolution (1920x1080) and set an overlay darkness around <code>0.80</code> for maximum text contrast.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- =========================================================================
+         TAB 2: HOW IT WORKS STEPPER
+         ========================================================================= -->
+    {% if active_tab == 'process' %}
+    <div class="row">
+        <div class="col-12 mb-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-list-ol text-warning me-2"></i>How It Works Stepper Steps</h5>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#stepModal">
+                <i class="fas fa-plus me-1"></i> Add New Step
+            </button>
+        </div>
+
+        <div class="col-12">
+            <div class="cms-card p-0 overflow-hidden">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 80px;">#</th>
+                                <th>Phase Tag</th>
+                                <th>Title</th>
+                                <th>Description</th>
+                                <th>Accent Color</th>
+                                <th>Status</th>
+                                <th class="text-end" style="width: 140px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for step in process_steps %}
+                            <tr>
+                                <td class="fw-bold fs-6">0{{ step.step_number }}</td>
+                                <td>
+                                    <span class="step-preview-badge" style="background-color: {{ step.accent_color }}20; color: {{ step.accent_color }}; border: 1px solid {{ step.accent_color }}50;">
+                                        {{ step.phase_tag }}
+                                    </span>
+                                </td>
+                                <td class="fw-bold text-dark">{{ step.title }}</td>
+                                <td class="text-muted small" style="max-width: 320px;">{{ step.description|truncatewords:20 }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div style="width: 20px; height: 20px; border-radius: 4px; background-color: {{ step.accent_color }};"></div>
+                                        <small class="text-muted">{{ step.accent_color }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if step.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Hidden</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="?tab=process&edit_step={{ step.id }}" class="btn btn-sm btn-outline-primary me-1">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="post" class="d-inline" onsubmit="return confirm('Delete this step?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete_step">
+                                        <input type="hidden" name="step_id" value="{{ step.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">No process steps found. Click "+ Add New Step" above.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step Edit/Create Form Card (if editing) -->
+    {% if edit_step %}
+    <div class="cms-card border-primary">
+        <h6 class="fw-bold text-primary mb-3"><i class="fas fa-edit me-2"></i>Editing Step: {{ edit_step.title }}</h6>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_step">
+            <input type="hidden" name="step_id" value="{{ edit_step.id }}">
+            <input type="hidden" name="tab" value="process">
+
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Step Number</label>
+                    {{ step_form.step_number }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Phase Tag</label>
+                    {{ step_form.phase_tag }}
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold">Step Title</label>
+                    {{ step_form.title }}
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Accent Color</label>
+                    {{ step_form.accent_color }}
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Detailed Description</label>
+                    {{ step_form.description }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">FontAwesome Icon Class</label>
+                    {{ step_form.icon }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Order</label>
+                    {{ step_form.order }}
+                </div>
+                <div class="col-md-4 d-flex align-items-center mt-4">
+                    <div class="form-check form-switch">
+                        {{ step_form.is_active }}
+                        <label class="form-check-label ms-2 fw-semibold">Is Active</label>
+                    </div>
+                </div>
+                <div class="col-12 pt-2">
+                    <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-save me-1"></i> Update Step</button>
+                    <a href="?tab=process" class="btn btn-outline-secondary ms-2">Cancel</a>
+                </div>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Add Step Modal -->
+    <div class="modal fade" id="stepModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Add New Process Step</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_step">
+                    <input type="hidden" name="tab" value="process">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Step #</label>
+                                <input type="number" class="form-control" name="step_number" value="{{ process_steps.count|add:1 }}" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Phase Tag</label>
+                                <input type="text" class="form-control" name="phase_tag" value="PHASE {{ process_steps.count|add:1 }}" required>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label fw-semibold">Accent Color</label>
+                                <input type="color" class="form-control" name="accent_color" value="#f59e0b">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Step Title</label>
+                                <input type="text" class="form-control" name="title" required placeholder="e.g. Discovery & Setup">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Detailed Description</label>
+                                <textarea class="form-control" name="description" rows="3" required></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Icon Class</label>
+                                <input type="text" class="form-control" name="icon" value="fas fa-school">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Display Order</label>
+                                <input type="number" class="form-control" name="order" value="{{ process_steps.count|add:1 }}">
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check form-switch">
+                                    <input type="checkbox" class="form-check-input" name="is_active" checked id="step_active_new">
+                                    <label class="form-check-label fw-semibold" for="step_active_new">Active</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-plus me-1"></i> Add Step</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- =========================================================================
+         TAB 3: FEATURE CARDS
+         ========================================================================= -->
+    {% if active_tab == 'features' %}
+    <div class="row">
+        <div class="col-12 mb-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-th-large text-info me-2"></i>Comprehensive Feature Cards</h5>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#featureModal">
+                <i class="fas fa-plus me-1"></i> Add New Feature Card
+            </button>
+        </div>
+
+        <div class="col-12">
+            <div class="cms-card p-0 overflow-hidden">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 60px;">Icon</th>
+                                <th>Title</th>
+                                <th>Description</th>
+                                <th>Order</th>
+                                <th>Status</th>
+                                <th class="text-end" style="width: 140px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for feat in features %}
+                            <tr>
+                                <td>
+                                    <div style="width: 38px; height: 38px; border-radius: 10px; background: #ecfeff; color: #0891b2; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                                        <i class="{{ feat.icon|default:'fas fa-star' }}"></i>
+                                    </div>
+                                </td>
+                                <td class="fw-bold text-dark">{{ feat.title }}</td>
+                                <td class="text-muted small">{{ feat.description|truncatewords:20 }}</td>
+                                <td>{{ feat.order }}</td>
+                                <td>
+                                    {% if feat.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Hidden</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="?tab=features&edit_feature={{ feat.id }}" class="btn btn-sm btn-outline-primary me-1">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="post" class="d-inline" onsubmit="return confirm('Delete this feature?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete_feature">
+                                        <input type="hidden" name="feature_id" value="{{ feat.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">No feature items found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Feature Form -->
+    {% if edit_feature %}
+    <div class="cms-card border-primary">
+        <h6 class="fw-bold text-primary mb-3"><i class="fas fa-edit me-2"></i>Editing Feature: {{ edit_feature.title }}</h6>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_feature">
+            <input type="hidden" name="feature_id" value="{{ edit_feature.id }}">
+            <input type="hidden" name="tab" value="features">
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Feature Title</label>
+                    {{ feature_form.title }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">FontAwesome Icon Class</label>
+                    {{ feature_form.icon }}
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Display Order</label>
+                    {{ feature_form.order }}
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Description</label>
+                    {{ feature_form.description }}
+                </div>
+                <div class="col-12">
+                    <div class="form-check form-switch">
+                        {{ feature_form.is_active }}
+                        <label class="form-check-label ms-2 fw-semibold">Is Active</label>
+                    </div>
+                </div>
+                <div class="col-12 pt-2">
+                    <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-save me-1"></i> Update Feature</button>
+                    <a href="?tab=features" class="btn btn-outline-secondary ms-2">Cancel</a>
+                </div>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Add Feature Modal -->
+    <div class="modal fade" id="featureModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Add Feature Card</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_feature">
+                    <input type="hidden" name="tab" value="features">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Title</label>
+                                <input type="text" class="form-control" name="title" required placeholder="e.g. Attendance & SMS">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Description</label>
+                                <textarea class="form-control" name="description" rows="3" required></textarea>
+                            </div>
+                            <div class="col-8">
+                                <label class="form-label fw-semibold">Icon Class</label>
+                                <input type="text" class="form-control" name="icon" value="fas fa-star" placeholder="e.g. fas fa-user-graduate">
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label fw-semibold">Order</label>
+                                <input type="number" class="form-control" name="order" value="{{ features.count|add:1 }}">
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check form-switch">
+                                    <input type="checkbox" class="form-check-input" name="is_active" checked id="feat_active_new">
+                                    <label class="form-check-label fw-semibold" for="feat_active_new">Active</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-plus me-1"></i> Add Feature</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- =========================================================================
+         TAB 4: PARALLAX SECTIONS
+         ========================================================================= -->
+    {% if active_tab == 'parallax' %}
+    <div class="row">
+        <div class="col-12 mb-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-image text-primary me-2"></i>Parallax Banners & Showcase Sections</h5>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#parallaxModal">
+                <i class="fas fa-plus me-1"></i> Add Parallax Banner
+            </button>
+        </div>
+
+        <div class="col-12">
+            <div class="cms-card p-0 overflow-hidden">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Badge & Title</th>
+                                <th>Scroll Effect</th>
+                                <th>Overlay Opacity</th>
+                                <th>Background</th>
+                                <th>Buttons</th>
+                                <th>Status</th>
+                                <th class="text-end" style="width: 140px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in parallax_sections %}
+                            <tr>
+                                <td>
+                                    <span class="badge bg-light text-info border border-info mb-1">{{ p.badge_text|default:"SHOWCASE" }}</span>
+                                    <div class="fw-bold text-dark">{{ p.title }}</div>
+                                    <small class="text-muted">{{ p.subtitle|truncatewords:15 }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-dark">{{ p.get_scroll_effect_display }}</span>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold">{{ p.overlay_opacity|floatformat:2 }}</span>
+                                    <small class="text-muted">({{ p.overlay_opacity|floatformat:0 }}0%)</small>
+                                </td>
+                                <td>
+                                    {% if p.bg_image %}
+                                    <span class="badge bg-primary"><i class="fas fa-image me-1"></i> Image</span>
+                                    {% else %}
+                                    <div class="d-flex align-items-center gap-1">
+                                        <div style="width: 16px; height: 16px; border-radius: 4px; background: {{ p.bg_color }};"></div>
+                                        <small class="text-muted">{{ p.bg_color }}</small>
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="d-block text-primary fw-semibold">{{ p.primary_btn_text|default:"-" }}</small>
+                                    <small class="text-muted">{{ p.secondary_btn_text|default:"" }}</small>
+                                </td>
+                                <td>
+                                    {% if p.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Hidden</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="?tab=parallax&edit_parallax={{ p.id }}" class="btn btn-sm btn-outline-primary me-1">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="post" class="d-inline" onsubmit="return confirm('Delete this parallax section?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete_parallax">
+                                        <input type="hidden" name="parallax_id" value="{{ p.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">No parallax sections found. Click "+ Add Parallax Banner" above.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Parallax Form -->
+    {% if edit_parallax %}
+    <div class="cms-card border-primary">
+        <h6 class="fw-bold text-primary mb-3"><i class="fas fa-edit me-2"></i>Editing Parallax Banner: {{ edit_parallax.title }}</h6>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_parallax">
+            <input type="hidden" name="parallax_id" value="{{ edit_parallax.id }}">
+            <input type="hidden" name="tab" value="parallax">
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Badge Pill Text</label>
+                    {{ parallax_form.badge_text }}
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold">Heading Title</label>
+                    {{ parallax_form.title }}
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Subtitle</label>
+                    {{ parallax_form.subtitle }}
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Body Content (Optional)</label>
+                    {{ parallax_form.content }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Primary Button Text</label>
+                    {{ parallax_form.primary_btn_text }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Primary Button URL</label>
+                    {{ parallax_form.primary_btn_url }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Secondary Button Text</label>
+                    {{ parallax_form.secondary_btn_text }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Secondary Button URL</label>
+                    {{ parallax_form.secondary_btn_url }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Scroll Parallax Effect</label>
+                    {{ parallax_form.scroll_effect }}
+                    <small class="text-muted">Choose: Fixed BG, Zoom In, Zoom Out, or Standard</small>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Overlay Darkness (0.0 to 1.0)</label>
+                    {{ parallax_form.overlay_opacity }}
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">BG Color</label>
+                    {{ parallax_form.bg_color }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">BG Image</label>
+                    {{ parallax_form.bg_image }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Display Order</label>
+                    {{ parallax_form.order }}
+                </div>
+                <div class="col-md-8 d-flex align-items-center mt-4">
+                    <div class="form-check form-switch">
+                        {{ parallax_form.is_active }}
+                        <label class="form-check-label ms-2 fw-semibold">Is Active</label>
+                    </div>
+                </div>
+                <div class="col-12 pt-2">
+                    <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-save me-1"></i> Update Banner</button>
+                    <a href="?tab=parallax" class="btn btn-outline-secondary ms-2">Cancel</a>
+                </div>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Add Parallax Modal -->
+    <div class="modal fade" id="parallaxModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Add Parallax Showcase Banner</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_parallax">
+                    <input type="hidden" name="tab" value="parallax">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Badge Pill Text</label>
+                                <input type="text" class="form-control" name="badge_text" placeholder="e.g. AI-POWERED SCHOOLS">
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label fw-semibold">Heading Title</label>
+                                <input type="text" class="form-control" name="title" required placeholder="e.g. Digitize Your School Operations">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Subtitle</label>
+                                <input type="text" class="form-control" name="subtitle" placeholder="Short impactful subtitle">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Body Content</label>
+                                <textarea class="form-control" name="content" rows="2"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Primary Button Text</label>
+                                <input type="text" class="form-control" name="primary_btn_text" value="Explore Pricing">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Primary Button URL</label>
+                                <input type="text" class="form-control" name="primary_btn_url" value="/pricing/">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Scroll Effect</label>
+                                <select class="form-select" name="scroll_effect">
+                                    <option value="fixed_bg">Fixed Background (Classic Parallax)</option>
+                                    <option value="zoom_in">Scroll Zoom In (Expands on Scroll)</option>
+                                    <option value="zoom_out">Scroll Zoom Out (Subtle Shrink)</option>
+                                    <option value="standard">Standard Smooth Translation</option>
+                                    <option value="none">None (Static)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Overlay Darkness (0.0 to 1.0)</label>
+                                <input type="number" step="0.05" min="0" max="1" class="form-control" name="overlay_opacity" value="0.75">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Background Image</label>
+                                <input type="file" class="form-control" name="bg_image">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Background Fallback Color</label>
+                                <input type="color" class="form-control" name="bg_color" value="#091528">
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check form-switch">
+                                    <input type="checkbox" class="form-check-input" name="is_active" checked id="p_active_new">
+                                    <label class="form-check-label fw-semibold" for="p_active_new">Active</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-plus me-1"></i> Add Parallax Banner</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
