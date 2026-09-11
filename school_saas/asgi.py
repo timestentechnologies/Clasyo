@@ -8,24 +8,32 @@ https://docs.djangoproject.com/en/4.2/howto/deployment/asgi/
 """
 
 import os
-from channels.auth import AuthMiddlewareStack
-from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.security.websocket import AllowedHostsOriginValidator
 from django.core.asgi import get_asgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'school_saas.settings')
 
 django_asgi_app = get_asgi_application()
 
-import chat.routing
+try:
+    from channels.auth import AuthMiddlewareStack
+    from channels.routing import ProtocolTypeRouter, URLRouter
+    from channels.security.websocket import AllowedHostsOriginValidator
 
-application = ProtocolTypeRouter({
-    "http": django_asgi_app,
-    "websocket": AllowedHostsOriginValidator(
-        AuthMiddlewareStack(
-            URLRouter(
-                chat.routing.websocket_urlpatterns
+    try:
+        import chat.routing
+        websocket_patterns = getattr(chat.routing, 'websocket_urlpatterns', [])
+    except (ImportError, AttributeError):
+        websocket_patterns = []
+
+    application = ProtocolTypeRouter({
+        "http": django_asgi_app,
+        "websocket": AllowedHostsOriginValidator(
+            AuthMiddlewareStack(
+                URLRouter(
+                    websocket_patterns
+                )
             )
-        )
-    ),
-})
+        ),
+    })
+except Exception:
+    application = django_asgi_app
