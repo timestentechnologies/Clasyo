@@ -5,6 +5,42 @@ from django.db import migrations, models
 import django.db.models.deletion
 
 
+def add_columns_safely(apps, schema_editor):
+    connection = schema_editor.connection
+    vendor = connection.vendor
+    with connection.cursor() as cursor:
+        if vendor == 'postgresql':
+            cursor.execute("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'lesson_plan_lessonplan'
+            """)
+            existing = {row[0] for row in cursor.fetchall()}
+            if 'approved_at' not in existing:
+                cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN approved_at TIMESTAMP WITH TIME ZONE NULL")
+            if 'approved_by_id' not in existing:
+                cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN approved_by_id BIGINT NULL")
+            if 'attachments' not in existing:
+                cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN attachments VARCHAR(100) NULL")
+        elif vendor == 'mysql':
+            cursor.execute("SHOW COLUMNS FROM lesson_plan_lessonplan")
+            existing = {row[0] for row in cursor.fetchall()}
+            if 'approved_at' not in existing:
+                cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN approved_at DATETIME NULL")
+            if 'approved_by_id' not in existing:
+                cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN approved_by_id BIGINT NULL")
+            if 'attachments' not in existing:
+                cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN attachments VARCHAR(100) NULL")
+        elif vendor == 'sqlite':
+            cursor.execute("PRAGMA table_info(lesson_plan_lessonplan)")
+            existing = {row[1] for row in cursor.fetchall()}
+            if 'approved_at' not in existing:
+                cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN approved_at DATETIME NULL")
+            if 'approved_by_id' not in existing:
+                cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN approved_by_id BIGINT NULL")
+            if 'attachments' not in existing:
+                cursor.execute("ALTER TABLE lesson_plan_lessonplan ADD COLUMN attachments VARCHAR(100) NULL")
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -13,19 +49,26 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='lessonplan',
-            name='approved_at',
-            field=models.DateTimeField(blank=True, null=True, verbose_name='Approved At'),
-        ),
-        migrations.AddField(
-            model_name='lessonplan',
-            name='approved_by',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='approved_lesson_plans', to=settings.AUTH_USER_MODEL),
-        ),
-        migrations.AddField(
-            model_name='lessonplan',
-            name='attachments',
-            field=models.FileField(blank=True, null=True, upload_to='lesson_plans/', verbose_name='Attachments'),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AddField(
+                    model_name='lessonplan',
+                    name='approved_at',
+                    field=models.DateTimeField(blank=True, null=True, verbose_name='Approved At'),
+                ),
+                migrations.AddField(
+                    model_name='lessonplan',
+                    name='approved_by',
+                    field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='approved_lesson_plans', to=settings.AUTH_USER_MODEL),
+                ),
+                migrations.AddField(
+                    model_name='lessonplan',
+                    name='attachments',
+                    field=models.FileField(blank=True, null=True, upload_to='lesson_plans/', verbose_name='Attachments'),
+                ),
+            ],
+            database_operations=[
+                migrations.RunPython(add_columns_safely, migrations.RunPython.noop),
+            ],
         ),
     ]
