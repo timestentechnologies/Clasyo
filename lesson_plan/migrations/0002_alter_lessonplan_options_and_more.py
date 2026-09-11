@@ -76,7 +76,7 @@ class Migration(migrations.Migration):
             name='lessonplantemplate',
             options={'ordering': ['-is_default', 'name'], 'verbose_name': 'Lesson Plan Template', 'verbose_name_plural': 'Lesson Plan Templates'},
         ),
-        migrations.RunPython(add_approved_fields_if_missing, reverse_approved_fields),
+        migrations.RunPython(migrations.RunPython.noop, migrations.RunPython.noop),
         migrations.AlterField(
             model_name='lessonplan',
             name='activities',
