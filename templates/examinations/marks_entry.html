@@ -10,74 +10,7 @@
 
 {% csrf_token %}
 
-<style>
-    /* Horizontal scroll for table with many subjects */
-    .marks-table-wrapper {
-        overflow-x: auto;
-        max-width: 100%;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-    }
-    .marks-table-wrapper table {
-        min-width: 100%;
-        white-space: nowrap;
-    }
-    .marks-table-wrapper th,
-    .marks-table-wrapper td {
-        vertical-align: middle;
-        padding: 8px 12px;
-    }
-    /* Fixed columns for student info */
-    .marks-table-wrapper th:first-child,
-    .marks-table-wrapper td:first-child,
-    .marks-table-wrapper th:nth-child(2),
-    .marks-table-wrapper td:nth-child(2),
-    .marks-table-wrapper th:nth-child(3),
-    .marks-table-wrapper td:nth-child(3) {
-        position: sticky;
-        left: 0;
-        background: #fff;
-        z-index: 10;
-        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-    }
-    .marks-table-wrapper th:nth-child(2),
-    .marks-table-wrapper td:nth-child(2) {
-        left: 50px;
-    }
-    .marks-table-wrapper th:nth-child(3),
-    .marks-table-wrapper td:nth-child(3) {
-        left: 150px;
-    }
-    /* Remove number input spinners */
-    .marks-input::-webkit-outer-spin-button,
-    .marks-input::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-    .marks-input[type=number] {
-        -moz-appearance: textfield;
-        appearance: textfield;
-        text-align: center;
-        font-weight: 500;
-        min-width: 70px;
-        padding: 8px 4px;
-    }
-    /* Subject column styling */
-    .subject-col {
-        min-width: 90px;
-        text-align: center;
-    }
-    .subject-col input {
-        font-size: 14px;
-    }
-    /* Total and percentage badges */
-    .total-marks, .percentage-display {
-        font-size: 13px;
-        padding: 6px 10px;
-        display: inline-block;
-        min-width: 70px;
-    }
-</style>
+
 
 <div class="row mb-4">
     <div class="col-md-12">

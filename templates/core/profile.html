@@ -46,11 +46,22 @@
                     <td>{{ user.date_joined|date:"F d, Y" }}</td>
                 </tr>
                 <tr>
-                    <th>Status:</th>
+                    <th>Navigation Layout:</th>
                     <td>
-                        <span class="badge {% if user.is_active %}bg-success{% else %}bg-danger{% endif %}">
-                            {% if user.is_active %}Active{% else %}Inactive{% endif %}
-                        </span>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span>
+                                {% if user.navigation_layout == 'horizontal' %}
+                                    <i class="fas fa-bars-staggered text-info me-1"></i> Horizontal Tabs
+                                {% elif user.navigation_layout == 'sidebar' %}
+                                    <i class="fas fa-columns text-primary me-1"></i> Vertical Sidebar
+                                {% else %}
+                                    <i class="fas fa-sliders-h text-muted me-1"></i> School Default ({{ navigation_layout|title }})
+                                {% endif %}
+                            </span>
+                            <a href="{% url 'accounts:toggle_navigation_layout' %}" class="btn btn-outline-primary btn-sm ms-2" style="font-size: 11px; padding: 2px 8px;">
+                                <i class="fas fa-sync-alt me-1"></i> Toggle
+                            </a>
+                        </div>
                     </td>
                 </tr>
             </table>

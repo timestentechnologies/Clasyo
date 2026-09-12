@@ -24,4 +24,12 @@ def school_context(request):
             except School.DoesNotExist:
                 context['school'] = None
     
+    # Navigation layout resolution (user preference or system default)
+    user = getattr(request, 'user', None)
+    if user and user.is_authenticated and hasattr(user, 'get_navigation_layout'):
+        context['navigation_layout'] = user.get_navigation_layout()
+    else:
+        sys_settings = context['system_settings']
+        context['navigation_layout'] = getattr(sys_settings, 'default_navigation_layout', 'sidebar') or 'sidebar'
+    
     return context

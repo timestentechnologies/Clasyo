@@ -101,6 +101,15 @@ class User(AbstractUser):
     created_at = models.DateTimeField(_('Created At'), auto_now_add=True)
     updated_at = models.DateTimeField(_('Updated At'), auto_now=True)
     
+    # Preferences
+    navigation_layout = models.CharField(
+        _('Navigation Layout Preference'),
+        max_length=20,
+        choices=[('', 'Use School Default'), ('sidebar', 'Vertical Sidebar'), ('horizontal', 'Horizontal Tabs')],
+        blank=True,
+        default=''
+    )
+
     objects = UserManager()
     
     USERNAME_FIELD = 'email'
@@ -145,6 +154,17 @@ class User(AbstractUser):
     @property
     def is_staff_member(self):
         return self.role in ['admin', 'teacher', 'accountant', 'librarian', 'receptionist']
+
+    def get_navigation_layout(self):
+        """Return effective navigation layout ('sidebar' or 'horizontal')"""
+        if self.navigation_layout in ['sidebar', 'horizontal']:
+            return self.navigation_layout
+        try:
+            from core.models import SystemSetting
+            settings_obj = SystemSetting.get_settings()
+            return getattr(settings_obj, 'default_navigation_layout', 'sidebar') or 'sidebar'
+        except Exception:
+            return 'sidebar'
 
 
 class Role(models.Model):

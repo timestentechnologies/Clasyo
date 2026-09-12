@@ -19,6 +19,7 @@ urlpatterns = [
     path('profile/', views.ProfileView.as_view(), name='profile'),
     path('profile/edit/', views.ProfileEditView.as_view(), name='profile_edit'),
     path('change-password/', views.ChangePasswordView.as_view(), name='change_password'),
+    path('toggle-navigation-layout/', views.ToggleNavigationLayoutView.as_view(), name='toggle_navigation_layout'),
     
     # User Management (Admin)
     path('users/', views.UserListView.as_view(), name='user_list'),

@@ -141,6 +141,17 @@ class SystemSetting(models.Model):
     school_logo = models.ImageField(_("School Logo"), upload_to='settings/', blank=True, null=True)
     school_favicon = models.ImageField(_("School Favicon"), upload_to='settings/', blank=True, null=True)
     
+    # Theme & Branding Customization
+    primary_color = models.CharField(_("Primary Color"), max_length=20, default='#1E3A5F', blank=True)
+    secondary_color = models.CharField(_("Secondary Color"), max_length=20, default='#2C5282', blank=True)
+    accent_color = models.CharField(_("Accent Color"), max_length=20, default='#4DD0E1', blank=True)
+    default_navigation_layout = models.CharField(
+        _("Default Navigation Layout"),
+        max_length=20,
+        choices=[('sidebar', 'Vertical Sidebar'), ('horizontal', 'Horizontal Tabs')],
+        default='sidebar'
+    )
+    
     # Academic Settings
     promote_without_exam = models.BooleanField(_("Promote Students Without Exam"), default=False)
     

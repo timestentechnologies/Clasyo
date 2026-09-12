@@ -1068,6 +1068,14 @@ class SystemSettingsApiView(View):
                     'institution_type_label': school.get_institution_type_display(),
                 })
 
+            # Update default navigation layout if provided
+            if 'default_navigation_layout' in request.POST:
+                layout = request.POST.get('default_navigation_layout', 'sidebar').strip().lower()
+                if layout in ['sidebar', 'horizontal']:
+                    settings_obj.default_navigation_layout = layout
+                    settings_obj.save(update_fields=['default_navigation_layout'])
+                    return JsonResponse({'success': True, 'default_navigation_layout': layout, 'message': 'Default navigation layout updated successfully.'})
+
             # Update admission number prefix if provided
             if 'admission_number_prefix' in request.POST:
                 prefix = request.POST.get('admission_number_prefix', 'STU').strip().upper()

@@ -54,6 +54,41 @@
         </div>
 
         <div class="modern-card mb-4">
+            <h4 class="mb-3"><i class="fas fa-bars-staggered"></i> Default Navigation Layout</h4>
+            <p class="text-muted small mb-3">Choose the default navigation layout style across your school. New users or users without a personal preference will inherit this setting.</p>
+            <form id="navigationLayoutForm">
+                {% csrf_token %}
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded border {% if settings.default_navigation_layout == 'sidebar' or not settings.default_navigation_layout %}border-primary bg-light-subtle{% endif %}" style="cursor: pointer;" onclick="document.getElementById('layout_sidebar').checked = true;">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="default_navigation_layout" id="layout_sidebar" value="sidebar" {% if settings.default_navigation_layout == 'sidebar' or not settings.default_navigation_layout %}checked{% endif %}>
+                                <label class="form-check-label fw-bold ms-1" for="layout_sidebar">
+                                    <i class="fas fa-columns me-1 text-primary"></i> Vertical Sidebar
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mt-2 ms-4">Classic navigation on the left with collapsible multi-level menus.</small>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded border {% if settings.default_navigation_layout == 'horizontal' %}border-primary bg-light-subtle{% endif %}" style="cursor: pointer;" onclick="document.getElementById('layout_horizontal').checked = true;">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="default_navigation_layout" id="layout_horizontal" value="horizontal" {% if settings.default_navigation_layout == 'horizontal' %}checked{% endif %}>
+                                <label class="form-check-label fw-bold ms-1" for="layout_horizontal">
+                                    <i class="fas fa-bars-staggered me-1 text-info"></i> Horizontal Tabs
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mt-2 ms-4">Modern tab-like top navigation bar with clean dropdowns.</small>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i> Save Default Navigation
+                </button>
+            </form>
+        </div>
+
+        <div class="modern-card mb-4">
             <h4 class="mb-4"><i class="fas fa-calendar-alt"></i> Academic Settings</h4>
             <form id="academicSettingsForm">
                 {% csrf_token %}
@@ -192,9 +227,20 @@
 
 {% if school %}
 <div class="row mt-4">
-    <div class="col-md-6">
+    <div class="col-md-4">
         <div class="modern-card mb-4">
-            <h4 class="mb-3"><i class="fas fa-sms"></i> SMS Configurations</h4>
+            <h4 class="mb-3"><i class="fas fa-credit-card text-primary"></i> Payment Gateways</h4>
+            <p class="text-muted mb-3">
+                Configure M-Pesa (Paybill / Till), Stripe, PayPal, and bank gateways for collecting student fees.
+            </p>
+            <a href="{% url 'superadmin:school_payment_config_list' school_slug=school.slug %}" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-cog me-1"></i> Manage Payments
+            </a>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="modern-card mb-4">
+            <h4 class="mb-3"><i class="fas fa-sms text-info"></i> SMS Configurations</h4>
             <p class="text-muted mb-3">
                 {% if sms_configs %}
                     {{ sms_configs|length }} configuration{{ sms_configs|length|pluralize }}
@@ -203,13 +249,13 @@
                 {% endif %}
             </p>
             <a href="{% url 'superadmin:school_sms_config_list' school_slug=school.slug %}" class="btn btn-outline-primary btn-sm">
-                Manage SMS
+                <i class="fas fa-cog me-1"></i> Manage SMS
             </a>
         </div>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-4">
         <div class="modern-card mb-4">
-            <h4 class="mb-3"><i class="fas fa-envelope"></i> Email Configurations</h4>
+            <h4 class="mb-3"><i class="fas fa-envelope text-warning"></i> Email Configurations</h4>
             <p class="text-muted mb-3">
                 {% if email_configs %}
                     {{ email_configs|length }} configuration{{ email_configs|length|pluralize }}
@@ -218,7 +264,7 @@
                 {% endif %}
             </p>
             <a href="{% url 'superadmin:school_email_config_list' school_slug=school.slug %}" class="btn btn-outline-primary btn-sm">
-                Manage Email
+                <i class="fas fa-cog me-1"></i> Manage Email
             </a>
         </div>
     </div>
@@ -339,5 +385,24 @@ function callDatabaseAction(action) {
 document.getElementById('btn-backup-db')?.addEventListener('click', () => callDatabaseAction('backup'));
 document.getElementById('btn-clear-cache')?.addEventListener('click', () => callDatabaseAction('clear_cache'));
 document.getElementById('btn-sync-data')?.addEventListener('click', () => callDatabaseAction('sync'));
+
+// Navigation Layout submit
+document.getElementById('navigationLayoutForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    fetch("{% url 'core:settings_update' school_slug=school_slug %}", {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: new URLSearchParams(formData)
+    }).then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              if (window.showSuccess) window.showSuccess(data.message || 'Default navigation layout updated successfully.');
+              setTimeout(() => window.location.reload(), 800);
+          } else if (window.showError) {
+              window.showError(data.error || 'Failed to update navigation layout');
+          }
+      });
+});
 </script>
 {% endblock %}

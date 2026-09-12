@@ -3,32 +3,6 @@
 <!-- Sidebar Overlay for Mobile -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
- <style>
- #sidebar.modern-sidebar { transition: width 0.2s ease; }
- #sidebar.modern-sidebar.collapsed { width: 72px; }
- #sidebar.modern-sidebar .sidebar-menu li a { display: flex; align-items: center; gap: 12px; }
- #sidebar.modern-sidebar.collapsed .sidebar-menu li a { justify-content: center; gap: 0; }
- #sidebar.modern-sidebar .sidebar-menu li a i { width: 20px; text-align: center; }
- #sidebar.modern-sidebar.collapsed .sidebar-menu li a span { display: none !important; }
- #sidebar.modern-sidebar.collapsed .menu-section-title { display: none !important; }
- #sidebar.modern-sidebar .brand-text { transition: opacity 0.2s ease; }
- #sidebar.modern-sidebar.collapsed .brand-text { display: none !important; }
- #sidebar.modern-sidebar .sidebar-brand { padding-bottom: 8px; }
- #sidebar.modern-sidebar .sidebar-brand h3 { margin-bottom: 2px; }
- #sidebar.modern-sidebar .sidebar-brand p { margin-bottom: 0; }
- #sidebar.modern-sidebar.collapsed .sidebar-brand { display: flex; align-items: center; justify-content: center; padding: 8px 0; }
- #sidebar.modern-sidebar.collapsed .brand-logo { width: 100%; display: flex; align-items: center; justify-content: center; }
- #sidebar.modern-sidebar .sidebar-collapse { position: relative; padding: 4px 12px; min-height: 40px; margin-bottom: 6px; display: flex; justify-content: flex-end; }
- #sidebar.modern-sidebar .sidebar-collapse .toggle-text { display: none !important; }
- #sidebar.modern-sidebar .sidebar-collapse .btn { width: 36px !important; height: 36px; border-radius: 50%; padding: 0; display: inline-flex; align-items: center; justify-content: center; position: static; margin-left: auto; background-color: var(--accent-cyan); border-color: var(--accent-cyan); color: #fff; }
- #sidebar.modern-sidebar .sidebar-collapse .btn:hover,
- #sidebar.modern-sidebar .sidebar-collapse .btn:focus { background-color: #3ABCD1; border-color: #3ABCD1; color: #fff; box-shadow: 0 0 0 0.2rem rgba(77, 208, 225, 0.25); }
- #sidebar.modern-sidebar .school-logo { max-width: 100%; height: auto; }
- #sidebar.modern-sidebar.collapsed .school-logo { max-width: 42px; max-height: 42px; margin: 4px auto; display: block; }
- @media (max-width: 768px) {
-   #sidebar.modern-sidebar.collapsed { width: 72px; }
- }
- </style>
 
 <!-- Modern Sidebar -->
 <div class="modern-sidebar" id="sidebar">
@@ -332,10 +306,6 @@
             <i class="fas fa-money-check-alt"></i>
             <span>Staff Payments</span>
         </a></li>
-        <li class="{% if '/payment-config/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'superadmin:school_payment_config_list' school_slug=school_slug %}{% else %}#{% endif %}">
-            <i class="fas fa-credit-card"></i>
-            <span>Payment Configurations</span>
-        </a></li>
         <div class="menu-section-title">Canteen</div>
 
         <li class="{% if '/canteen/pos/' in request.path %}active{% endif %}"><a href="{% if school_slug %}/school/{{ school_slug }}/canteen/pos/{% else %}#{% endif %}">
@@ -382,6 +352,11 @@
         <li class="{% if '/school/' in request.path and '/settings/' in request.path and '/superadmin/' not in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'core:settings' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-cog"></i>
             <span>Settings</span>
+        </a></li>
+
+        <li class="{% if '/payment-config/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'superadmin:school_payment_config_list' school_slug=school_slug %}{% else %}#{% endif %}">
+            <i class="fas fa-credit-card"></i>
+            <span>Payment Configurations</span>
         </a></li>
 
         <li class="{% if '/superadmin/school/' in request.path and '/settings/sms/' in request.path %}active{% endif %}">
@@ -565,7 +540,7 @@
        <li class="{% if '/profile/' in request.path %}active{% endif %}">
         <a href="{% if user.role == 'superadmin' %}{% url 'superadmin:profile' %}{% elif school_slug %}{% url 'core:profile' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-user"></i>
-            <span>My Profile</span>
+            <span>Profile</span>
         </a>
         </li>
 
@@ -583,7 +558,7 @@
         
         <li><a href="{% url 'frontend:documentation' %}" target="_blank">
             <i class="fas fa-file-pdf"></i>
-            <span>System Documentation</span>
+            <span>Documentation</span>
         </a></li>
         {% endif %}
     </ul>

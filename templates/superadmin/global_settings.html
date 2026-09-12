@@ -4,19 +4,7 @@
 
 {% block title %}Global Settings - Clasyo{% endblock %}
 
-{% block extra_css %}
-<style>
-    .transition-all { transition: all 0.3s ease; }
-    .hover-shadow:hover { box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1); transform: translateY(-2px); }
-    .cursor-pointer { cursor: pointer; }
-    .bg-light-success { background-color: rgba(25, 135, 84, 0.05); }
-    .bg-light-warning { background-color: rgba(255, 193, 7, 0.05); }
-    .bg-light-danger { background-color: rgba(220, 53, 69, 0.05); }
-    .maintenance-status-selector .form-check-input:checked + .form-check-label span {
-        text-decoration: underline;
-    }
-</style>
-{% endblock %}
+{% block extra_css %}{% endblock %}
 
 {% block page_header %}{% endblock %}
 
@@ -27,12 +15,61 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h1 class="h3 mb-0">Global Settings</h1>
-                    <p class="text-muted mb-0">Configure global SMS, email, and database settings for all schools</p>
+                    <p class="text-muted mb-0">Configure global SMS, email, theme colors, and database settings for all schools</p>
                 </div>
                 <div>
                     <a href="{% url 'superadmin:dashboard' %}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
                     </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme & Brand Appearance Settings -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card modern-card">
+                <div class="card-header modern-card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 card-title-modern"><i class="fas fa-palette me-2 text-primary"></i>System Theme & Brand Colors</h5>
+                    <span class="badge badge-soft-primary">Global Visual Branding</span>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{% url 'superadmin:global_settings' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_theme_colors">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold"><i class="fas fa-circle me-1" style="color: {{ system_settings.primary_color|default:'#1E3A5F' }};"></i> Primary Color</label>
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color" id="primary_color_picker" value="{{ system_settings.primary_color|default:'#1E3A5F' }}" onchange="document.getElementById('primary_color_text').value = this.value">
+                                    <input type="text" name="primary_color" id="primary_color_text" class="form-control" value="{{ system_settings.primary_color|default:'#1E3A5F' }}" onchange="document.getElementById('primary_color_picker').value = this.value">
+                                </div>
+                                <small class="text-muted">Main brand color for navbar, headers, and primary buttons.</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold"><i class="fas fa-circle me-1" style="color: {{ system_settings.secondary_color|default:'#2C5282' }};"></i> Secondary Color</label>
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color" id="secondary_color_picker" value="{{ system_settings.secondary_color|default:'#2C5282' }}" onchange="document.getElementById('secondary_color_text').value = this.value">
+                                    <input type="text" name="secondary_color" id="secondary_color_text" class="form-control" value="{{ system_settings.secondary_color|default:'#2C5282' }}" onchange="document.getElementById('secondary_color_picker').value = this.value">
+                                </div>
+                                <small class="text-muted">Secondary brand color for supporting elements & cards.</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold"><i class="fas fa-circle me-1" style="color: {{ system_settings.accent_color|default:'#4DD0E1' }};"></i> Accent Color</label>
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color" id="accent_color_picker" value="{{ system_settings.accent_color|default:'#4DD0E1' }}" onchange="document.getElementById('accent_color_text').value = this.value">
+                                    <input type="text" name="accent_color" id="accent_color_text" class="form-control" value="{{ system_settings.accent_color|default:'#4DD0E1' }}" onchange="document.getElementById('accent_color_picker').value = this.value">
+                                </div>
+                                <small class="text-muted">Highlight color for icons, links, and active states.</small>
+                            </div>
+                        </div>
+                        <div class="mt-4 d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Theme Colors
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

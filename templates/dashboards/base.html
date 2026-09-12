@@ -21,99 +21,77 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}">
-    <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}">
-    <style>
-        .modal-header,
-        .modal-header .modal-title,
-        .modal-header .modal-title i {
-            color: inherit;
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=4.1">
+    <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}?v=4.1">
+    <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=4.1">
+    <style id="custom-theme-variables">
+        :root {
+            {% if system_settings.primary_color %}
+            --brand-primary: {{ system_settings.primary_color }};
+            --primary-navy: {{ system_settings.primary_color }};
+            {% endif %}
+            {% if system_settings.secondary_color %}
+            --brand-secondary: {{ system_settings.secondary_color }};
+            --secondary-navy: {{ system_settings.secondary_color }};
+            {% endif %}
+            {% if system_settings.accent_color %}
+            --brand-accent: {{ system_settings.accent_color }};
+            --accent-cyan: {{ system_settings.accent_color }};
+            {% endif %}
+            --bg-body: #F8FAFC;
+            --bg-surface: #F8FAFC;
+            --bg-card: #F8FAFC;
+            --card-bg: #F8FAFC;
+            --bg-light: #F8FAFC;
+            --bg-white: #F8FAFC;
+            --dark-unified-bg: #0F172A;
+            --modal-header-bg: var(--brand-primary, #1E3A5F);
+            --modal-header-text: #FFFFFF;
         }
 
-        /* Remove legacy Change Password item from sidebar; handled inline on Profile page */
-        .modern-sidebar a[href*="change-password"] { display: none !important; }
-
-        /* Direct dark theme styles for sidebar */
-        body.dark-theme .modern-sidebar,
-        body.theme-dark .modern-sidebar,
-        [data-theme="dark"] .modern-sidebar {
-            background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%) !important;
-            color: #e2e8f0 !important;
-        }
-        
-        body.dark-theme .modern-sidebar a,
-        body.theme-dark .modern-sidebar a,
-        [data-theme="dark"] .modern-sidebar a {
-            color: #e2e8f0 !important;
-        }
-        
-        body.dark-theme .modern-sidebar a:hover,
-        body.theme-dark .modern-sidebar a:hover,
-        [data-theme="dark"] .modern-sidebar a:hover {
-            color: #ffffff !important;
-            background: rgba(255, 255, 255, 0.1) !important;
-        }
-        
-        body.dark-theme .modern-sidebar .active,
-        body.theme-dark .modern-sidebar .active,
-        [data-theme="dark"] .modern-sidebar .active {
-            background: rgba(66, 153, 225, 0.2) !important;
-            border-left: 3px solid #4299e1 !important;
-        }
-        
-        /* Make sure sidebar text is visible in dark mode */
-        body.dark-theme .modern-sidebar .brand-text h3,
-        body.theme-dark .modern-sidebar .brand-text h3,
-        [data-theme="dark"] .modern-sidebar .brand-text h3 {
-            color: #ffffff !important;
-        }
-        
-        body.dark-theme .modern-sidebar .brand-text p,
-        body.theme-dark .modern-sidebar .brand-text p,
-        [data-theme="dark"] .modern-sidebar .brand-text p {
-            color: #cbd5e0 !important;
-        }
-        
-        /* Icons in dark mode */
-        body.dark-theme .modern-sidebar i,
-        body.theme-dark .modern-sidebar i,
-        [data-theme="dark"] .modern-sidebar i {
-            color: #a0aec0 !important;
-        }
-
-        .ai-chat-floating-btn {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            z-index: 1050;
-        }
-
-        .ai-chat-floating-btn .btn {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-            background: #4dd0e1;
-            border: none;
-        }
-
-        .ai-chat-floating-btn .btn i {
-            font-size: 1.4rem;
-            color: #ffffff;
-        }
-
-        .ai-chat-floating-btn .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        [data-theme="dark"],
+        [data-bs-theme="dark"],
+        body.theme-dark,
+        body.dark-theme,
+        html.theme-dark,
+        html.dark-theme {
+            {% if system_settings.primary_color and system_settings.primary_color != '#1E3A5F' %}
+            --dark-unified-bg: {{ system_settings.primary_color }};
+            {% else %}
+            --dark-unified-bg: #0F172A;
+            {% endif %}
+            --bg-body: var(--dark-unified-bg);
+            --bg-card: var(--dark-unified-bg);
+            --bg-surface: var(--dark-unified-bg);
+            --card-bg: var(--dark-unified-bg);
+            --modal-bg: var(--dark-unified-bg);
+            --modal-header-bg: var(--dark-unified-bg);
+            --modal-header-text: #F8FAFC;
+            {% if system_settings.accent_color %}
+            --brand-accent: {{ system_settings.accent_color }};
+            --accent-cyan: {{ system_settings.accent_color }};
+            {% endif %}
         }
     </style>
     {% block extra_css %}{% endblock %}
+    <!-- Early theme apply: prevents flash of wrong theme on page load -->
+    <script>
+        (function() {
+            var saved = localStorage.getItem('theme') ||
+                        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', saved);
+            if (saved === 'dark') {
+                document.documentElement.classList.add('theme-dark', 'dark-theme');
+                document.documentElement.classList.remove('theme-light', 'light-theme');
+            } else {
+                document.documentElement.classList.remove('theme-dark', 'dark-theme');
+                document.documentElement.classList.add('theme-light', 'light-theme');
+            }
+        })();
+    </script>
 </head>
-<body>
-    <!-- Include Unified Sidebar -->
+<body class="{% if navigation_layout == 'horizontal' %}layout-horizontal{% else %}layout-sidebar{% endif %}" data-navigation-layout="{{ navigation_layout|default:'sidebar' }}">
+    <!-- Include Unified Sidebar (accessible on mobile drawer or when sidebar layout is active) -->
     {% include 'includes/sidebar.html' %}
 
     <!-- Main Content -->
@@ -123,6 +101,11 @@
         
         <!-- Include Unified Header -->
         {% include 'includes/header.html' %}
+
+        <!-- Include Horizontal Tab Navigation when active -->
+        {% if navigation_layout == 'horizontal' %}
+        {% include 'includes/horizontal_navbar.html' %}
+        {% endif %}
 
         <!-- Content Container -->
         <div class="content-container">
@@ -181,7 +164,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <!-- Dashboard Scripts -->
-    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script src="{% static 'js/dashboard.js' %}?v=3.6"></script>
 
     <!-- Preserve sidebar scroll position and focus active item -->
     <script>

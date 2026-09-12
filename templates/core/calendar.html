@@ -1,15 +1,17 @@
 {% extends 'core/admin_dashboard.html' %}
 {% load static %}
 
+{% block title %}Calendar{% endblock %}
+{% block page_icon %}calendar-alt{% endblock %}
 {% block page_title %}Calendar{% endblock %}
+{% block page_subtitle %}Academic and School Events Calendar{% endblock %}
+{% block page_actions %}
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEventModal">
+    <i class="fas fa-plus"></i> Add Event
+</button>
+{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-end mb-3">
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEventModal">
-        <i class="fas fa-plus"></i> Add Event
-    </button>
-</div>
-
 <div class="modern-card">
     <div id="calendar"></div>
 </div>
@@ -18,9 +20,9 @@
 <div class="modal fade" id="addEventModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
+            <div class="modal-header">
                 <h5 class="modal-title"><i class="fas fa-calendar-plus"></i> Add Event</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form id="addEventForm">
@@ -83,217 +85,7 @@
     </div>
 </div>
 
-<style>
-#calendar {
-    width: 100%;
-}
-.calendar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-.calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 1px;
-    background: var(--border-light);
-    border: 1px solid var(--border-light);
-    border-radius: 12px;
-    overflow: hidden;
-}
-.calendar-weekday {
-    background: linear-gradient(135deg, var(--primary-navy), var(--secondary-navy));
-    color: white;
-    padding: 15px;
-    text-align: center;
-    font-weight: 600;
-    font-size: 14px;
-}
-.calendar-day {
-    background: white;
-    padding: 10px;
-    min-height: 120px;
-    position: relative;
-    border: 1px solid var(--border-light);
-}
-.calendar-day.other-month {
-    background: var(--bg-light);
-    color: var(--text-muted);
-}
-.calendar-day.today {
-    background: rgba(77, 208, 225, 0.1);
-    border: 2px solid var(--accent-cyan) !important;
-}
-.calendar-day-number {
-    font-weight: 600;
-    color: var(--text-dark);
-    margin-bottom: 8px;
-    font-size: 16px;
-}
-.calendar-event-dot {
-    width: 8px;
-    height: 8px;
-    background: var(--accent-cyan);
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 4px;
-}
-.calendar-event-item {
-    background: var(--accent-cyan);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    margin-top: 4px;
-    cursor: pointer;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.calendar-event-item:hover {
-    background: var(--primary-navy);
-}
-@media (max-width: 768px) {
-    .calendar-header {
-        flex-wrap: nowrap;
-        gap: 8px;
-    }
-    .calendar-header h3 {
-        font-size: 18px;
-    }
-    .calendar-header .btn {
-        padding: 6px 10px;
-        font-size: 12px;
-        white-space: nowrap;
-    }
-    .calendar-grid {
-        grid-template-columns: repeat(7, minmax(0, 1fr));
-    }
-    .calendar-weekday {
-        padding: 10px 4px;
-        font-size: 11px;
-    }
-    .calendar-day {
-        padding: 6px;
-        min-height: 80px;
-    }
-}
 
-/* Dark mode adjustments for calendar */
-[data-theme="dark"] .calendar-grid,
-.theme-dark .calendar-grid {
-    background: rgba(15, 23, 42, 0.9);
-    border-color: rgba(148, 163, 184, 0.4);
-}
-
-[data-theme="dark"] .calendar-day,
-.theme-dark .calendar-day {
-    background: rgba(15, 23, 42, 0.9);
-    border-color: rgba(148, 163, 184, 0.3);
-}
-
-[data-theme="dark"] .calendar-day.other-month,
-.theme-dark .calendar-day.other-month {
-    background: transparent;
-    color: rgba(148, 163, 184, 0.5);
-}
-
-[data-theme="dark"] .calendar-day-number,
-.theme-dark .calendar-day-number {
-    color: #e5e7eb;
-}
-
-[data-theme="dark"] .calendar-weekday,
-.theme-dark .calendar-weekday {
-    background: linear-gradient(135deg, #020617, #0f172a);
-}
-
-[data-theme="dark"] .calendar-day.today,
-.theme-dark .calendar-day.today {
-    background: rgba(56, 189, 248, 0.12);
-    border-color: rgba(56, 189, 248, 0.8) !important;
-}
-
-/* Dark mode adjustments for Add Event modal */
-[data-theme="dark"] #addEventModal .modal-content,
-.theme-dark #addEventModal .modal-content {
-    background-color: #020617;
-    color: #e5e7eb;
-    border-color: rgba(148, 163, 184, 0.4);
-}
-
-[data-theme="dark"] #addEventModal .modal-header,
-.theme-dark #addEventModal .modal-header {
-    border-bottom-color: rgba(148, 163, 184, 0.4);
-}
-
-[data-theme="dark"] #addEventModal .modal-footer,
-.theme-dark #addEventModal .modal-footer {
-    border-top-color: rgba(148, 163, 184, 0.4);
-}
-
-[data-theme="dark"] #addEventModal .form-label,
-.theme-dark #addEventModal .form-label {
-    color: #e5e7eb;
-}
-
-[data-theme="dark"] #addEventModal .form-control,
-[data-theme="dark"] #addEventModal .form-select,
-.theme-dark #addEventModal .form-control,
-.theme-dark #addEventModal .form-select {
-    background-color: #020617;
-    border-color: rgba(148, 163, 184, 0.5);
-    color: #e5e7eb;
-}
-
-[data-theme="dark"] #addEventModal .form-control::placeholder,
-.theme-dark #addEventModal .form-control::placeholder {
-    color: rgba(148, 163, 184, 0.7);
-}
-
-[data-theme="dark"] #addEventModal .btn-primary,
-.theme-dark #addEventModal .btn-primary {
-    background-color: #22d3ee;
-    border-color: #22d3ee;
-    color: #020617;
-}
-
-[data-theme="dark"] #addEventModal .btn-secondary,
-.theme-dark #addEventModal .btn-secondary {
-    background-color: #1f2937;
-    border-color: #4b5563;
-}
-
-/* Dark mode for generic showMessage modal (used by viewEvent) */
-[data-theme="dark"] .modal-content,
-.theme-dark .modal-content {
-    background-color: #020617;
-    color: #e5e7eb;
-    border-color: rgba(148, 163, 184, 0.4);
-}
-
-[data-theme="dark"] .modal-header,
-.theme-dark .modal-header {
-    background-color: #0f172a;
-    border-bottom-color: rgba(148, 163, 184, 0.4);
-}
-
-[data-theme="dark"] .modal-footer,
-.theme-dark .modal-footer {
-    border-top-color: rgba(148, 163, 184, 0.4);
-}
-
-[data-theme="dark"] .modal-title,
-.theme-dark .modal-title {
-    color: #e5e7eb;
-}
-
-[data-theme="dark"] .btn-close,
-.theme-dark .btn-close {
-    filter: invert(1);
-}
-</style>
 
 <script>
 function submitEvent() {

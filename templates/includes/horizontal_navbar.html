@@ -1,0 +1,378 @@
+{% load static %}
+<!-- Horizontal Tab Navigation Bar -->
+<div class="horizontal-navbar-wrapper" id="horizontalNavbar">
+    <div class="horizontal-navbar-container">
+        <ul class="horizontal-nav-tabs">
+            <!-- Apps Link (Non-Superadmin) -->
+            {% if user.role != 'superadmin' %}
+            <li class="nav-tab-item {% if '/apps/' in request.path %}active{% endif %}">
+                <a href="{% if school_slug %}{% url 'core:apps_home' school_slug=school_slug %}{% else %}#{% endif %}" class="nav-tab-link">
+                    <i class="fas fa-th-large"></i>
+                    <span>Apps</span>
+                </a>
+            </li>
+            {% endif %}
+
+            <!-- Dashboard Link (All Users) -->
+            <li class="nav-tab-item {% if 'dashboard' in request.path and '/apps/' not in request.path %}active{% endif %}">
+                <a href="{% if user.role == 'superadmin' %}{% url 'superadmin:dashboard' %}{% elif school_slug %}{% url 'core:dashboard' school_slug=school_slug %}{% else %}#{% endif %}" class="nav-tab-link">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+
+            {% if user.role == 'superadmin' %}
+            {# ========================================= #}
+            {# ===       SUPER ADMIN HORIZONTAL TABS === #}
+            {# ========================================= #}
+            <li class="nav-tab-item dropdown {% if '/schools/' in request.path or '/admins/' in request.path or '/subscriptions/' in request.path %}active{% endif %}">
+                <a href="javascript:void(0)" class="nav-tab-link" role="button">
+                    <i class="fas fa-school"></i>
+                    <span>Management</span>
+                    <i class="fas fa-chevron-down ms-1 dropdown-arrow"></i>
+                </a>
+                <ul class="modern-dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'superadmin:schools' %}"><i class="fas fa-school me-2"></i>Schools</a></li>
+                    <li><a class="dropdown-item" href="{% url 'superadmin:admins' %}"><i class="fas fa-user-shield me-2"></i>School Admins</a></li>
+                    <li><a class="dropdown-item" href="{% url 'superadmin:subscriptions' %}"><i class="fas fa-credit-card me-2"></i>Subscriptions</a></li>
+                </ul>
+            </li>
+
+            <li class="nav-tab-item dropdown {% if '/content/' in request.path or '/pricing/' in request.path or '/faq/' in request.path or '/contact/' in request.path %}active{% endif %}">
+                <a href="javascript:void(0)" class="nav-tab-link" role="button">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>Content & CMS</span>
+                    <i class="fas fa-chevron-down ms-1 dropdown-arrow"></i>
+                </a>
+                <ul class="modern-dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'superadmin:homepage_cms' %}"><i class="fas fa-sliders-h me-2"></i>Homepage CMS</a></li>
+                    <li><a class="dropdown-item" href="{% url 'superadmin:pricing_management' %}"><i class="fas fa-tags me-2"></i>Pricing Plans</a></li>
+                    <li><a class="dropdown-item" href="{% url 'superadmin:page_content_management' %}"><i class="fas fa-file-alt me-2"></i>Page Content</a></li>
+                    <li><a class="dropdown-item" href="{% url 'superadmin:faq_management' %}"><i class="fas fa-question-circle me-2"></i>FAQs</a></li>
+                    <li><a class="dropdown-item" href="{% url 'superadmin:contact_messages' %}"><i class="fas fa-envelope me-2"></i>Contact Messages</a></li>
+                </ul>
+            </li>
+
+            <li class="nav-tab-item dropdown {% if '/payment-config/' in request.path or '/invoices/' in request.path or '/audit-logs/' in request.path %}active{% endif %}">
+                <a href="javascript:void(0)" class="nav-tab-link" role="button">
+                    <i class="fas fa-cogs"></i>
+                    <span>System & Billing</span>
+                    <i class="fas fa-chevron-down ms-1 dropdown-arrow"></i>
+                </a>
+                <ul class="modern-dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'superadmin:payment_config_list' %}"><i class="fas fa-cogs me-2"></i>Payment Configurations</a></li>
+                    <li><a class="dropdown-item" href="{% url 'superadmin:payment_approval_list' %}"><i class="fas fa-check-circle me-2"></i>Payment Approvals</a></li>
+                    <li><a class="dropdown-item" href="{% url 'superadmin:payment_history' %}"><i class="fas fa-history me-2"></i>Payment History</a></li>
+                    <li><a class="dropdown-item" href="{% url 'superadmin:invoices' %}"><i class="fas fa-file-invoice me-2"></i>Invoices</a></li>
+                    <li><a class="dropdown-item" href="{% url 'superadmin:audit_logs' %}"><i class="fas fa-clipboard-list me-2"></i>Audit Logs</a></li>
+                </ul>
+            </li>
+
+            <li class="nav-tab-item dropdown {% if '/global-settings/' in request.path or '/sms-config/' in request.path or '/email-config/' in request.path or '/db-config/' in request.path %}active{% endif %}">
+                <a href="javascript:void(0)" class="nav-tab-link" role="button">
+                    <i class="fas fa-cog"></i>
+                    <span>Global Settings</span>
+                    <i class="fas fa-chevron-down ms-1 dropdown-arrow"></i>
+                </a>
+                <ul class="modern-dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'superadmin:global_settings' %}"><i class="fas fa-cog me-2"></i>Global Settings</a></li>
+                    <li><a class="dropdown-item" href="{% url 'superadmin:sms_config_list' %}"><i class="fas fa-sms me-2"></i>SMS Configurations</a></li>
+                    <li><a class="dropdown-item" href="{% url 'superadmin:email_config_list' %}"><i class="fas fa-envelope me-2"></i>Email Configurations</a></li>
+                    <li><a class="dropdown-item" href="{% url 'superadmin:db_config_list' %}"><i class="fas fa-database me-2"></i>Database Configurations</a></li>
+                    <li><a class="dropdown-item" href="{% url 'superadmin:ai_config_global_list' %}"><i class="fas fa-robot me-2"></i>AI Configurations</a></li>
+                </ul>
+            </li>
+
+            {% else %}
+            {# ========================================= #}
+            {# ===      ADMIN & TEACHER TABS         === #}
+            {# ========================================= #}
+            {% if user.role in 'admin,teacher' %}
+            <li class="nav-tab-item dropdown {% if '/students/' in request.path or '/teachers/' in request.path or '/classes/' in request.path or '/subjects/' in request.path or '/routine/' in request.path or '/attendance/' in request.path or '/lesson-plan/' in request.path or '/homework/' in request.path or '/examinations/' in request.path or '/online-exam/' in request.path or '/grades/' in request.path or '/library/' in request.path or '/clubs/' in request.path or '/academic-years/' in request.path %}active{% endif %}">
+                <a href="javascript:void(0)" class="nav-tab-link" role="button">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>Academic</span>
+                    <i class="fas fa-chevron-down ms-1 dropdown-arrow"></i>
+                </a>
+                <ul class="modern-dropdown-menu dropdown-menu-columns">
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/students/"><i class="fas fa-user-graduate me-2"></i>Students</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/hr/teachers/"><i class="fas fa-chalkboard-teacher me-2"></i>Teachers</a></li>
+                    {% if user.role == 'admin' %}
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/students/parents/"><i class="fas fa-users me-2"></i>Parents</a></li>
+                    {% endif %}
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/academics/classes/"><i class="fas fa-chalkboard me-2"></i>Classes</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/academics/subjects/"><i class="fas fa-book-open me-2"></i>Subjects</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/academics/routine/"><i class="fas fa-clock me-2"></i>Class Routine</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/attendance/mark/"><i class="fas fa-check-circle me-2"></i>Attendance</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/lesson-plan/"><i class="fas fa-tasks me-2"></i>Lesson Plans</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/homework/"><i class="fas fa-book-reader me-2"></i>Homework</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/examinations/"><i class="fas fa-file-alt me-2"></i>Examinations</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/online-exam/"><i class="fas fa-laptop-code me-2"></i>Online Exams</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/examinations/grades/"><i class="fas fa-award me-2"></i>Grading</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/library/"><i class="fas fa-book me-2"></i>Library</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/clubs/list/"><i class="fas fa-users me-2"></i>Clubs & Societies</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/academic-years/"><i class="fas fa-calendar-check me-2"></i>Academic Years</a></li>
+                </ul>
+            </li>
+            {% endif %}
+
+            {# ========================================= #}
+            {# ===        HR & STAFF TABS            === #}
+            {# ========================================= #}
+            {% if user.role == 'admin' or user.role == 'accountant' %}
+            <li class="nav-tab-item dropdown {% if '/staff/' in request.path or '/departments/' in request.path or '/designations/' in request.path or '/leave/' in request.path %}active{% endif %}">
+                <a href="javascript:void(0)" class="nav-tab-link" role="button">
+                    <i class="fas fa-user-tie"></i>
+                    <span>Human Resource</span>
+                    <i class="fas fa-chevron-down ms-1 dropdown-arrow"></i>
+                </a>
+                <ul class="modern-dropdown-menu">
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/hr/staff/"><i class="fas fa-users me-2"></i>Staff Directory</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/hr/departments/"><i class="fas fa-building me-2"></i>Departments</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/hr/designations/"><i class="fas fa-id-badge me-2"></i>Designations</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/leave/"><i class="fas fa-calendar-times me-2"></i>Leave Management</a></li>
+                </ul>
+            </li>
+
+            {# ========================================= #}
+            {# ===        FINANCE & SUPPLIES         === #}
+            {# ========================================= #}
+            <li class="nav-tab-item dropdown {% if '/finance/' in request.path or '/fees/' in request.path or '/canteen/' in request.path or '/inventory/' in request.path %}active{% endif %}">
+                <a href="javascript:void(0)" class="nav-tab-link" role="button">
+                    <i class="fas fa-coins"></i>
+                    <span>Finance & Supplies</span>
+                    <i class="fas fa-chevron-down ms-1 dropdown-arrow"></i>
+                </a>
+                <ul class="modern-dropdown-menu">
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/finance/"><i class="fas fa-coins me-2"></i>Accounting</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/fees/"><i class="fas fa-money-bill-wave me-2"></i>Fee Structure</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/fees/collect/"><i class="fas fa-hand-holding-usd me-2"></i>Collect Fees</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/fees/transactions/"><i class="fas fa-receipt me-2"></i>Fee Transactions</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/inventory/expenses/"><i class="fas fa-dollar-sign me-2"></i>Expenses</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/inventory/payments/"><i class="fas fa-money-check-alt me-2"></i>Staff Payments</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/canteen/pos/"><i class="fas fa-utensils me-2"></i>Canteen POS</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/inventory/"><i class="fas fa-boxes me-2"></i>Inventory</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/inventory/suppliers/"><i class="fas fa-truck me-2"></i>Suppliers</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/inventory/purchase-orders/"><i class="fas fa-shopping-cart me-2"></i>Purchase Orders</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/inventory/distributions/"><i class="fas fa-share-alt me-2"></i>Item Distribution</a></li>
+                </ul>
+            </li>
+
+            {# ========================================= #}
+            {# ===        FACILITIES                 === #}
+            {# ========================================= #}
+            <li class="nav-tab-item dropdown {% if '/transport/' in request.path or '/dormitory/' in request.path %}active{% endif %}">
+                <a href="javascript:void(0)" class="nav-tab-link" role="button">
+                    <i class="fas fa-bus"></i>
+                    <span>Facilities</span>
+                    <i class="fas fa-chevron-down ms-1 dropdown-arrow"></i>
+                </a>
+                <ul class="modern-dropdown-menu">
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/transport/routes/"><i class="fas fa-bus me-2"></i>Transport</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/dormitory/"><i class="fas fa-bed me-2"></i>Dormitory</a></li>
+                </ul>
+            </li>
+            {% endif %}
+
+            {# ========================================= #}
+            {# ===            STUDENT TABS           === #}
+            {# ========================================= #}
+            {% if user.role == 'student' %}
+            <li class="nav-tab-item {% if '/todos/' in request.path %}active{% endif %}">
+                <a href="{% if school_slug %}{% url 'core:todos' school_slug=school_slug %}{% else %}#{% endif %}" class="nav-tab-link">
+                    <i class="fas fa-tasks"></i>
+                    <span>To Do</span>
+                </a>
+            </li>
+            <li class="nav-tab-item {% if '/my-subjects/' in request.path %}active{% endif %}">
+                <a href="{% if school_slug %}{% url 'core:my_subjects' school_slug=school_slug %}{% else %}#{% endif %}" class="nav-tab-link">
+                    <i class="fas fa-book"></i>
+                    <span>Subjects</span>
+                </a>
+            </li>
+            <li class="nav-tab-item {% if '/homework/' in request.path %}active{% endif %}">
+                <a href="{% if school_slug %}{% url 'homework:student_assignments' school_slug=school_slug %}{% else %}#{% endif %}" class="nav-tab-link">
+                    <i class="fas fa-book-reader"></i>
+                    <span>Homework</span>
+                </a>
+            </li>
+            <li class="nav-tab-item {% if '/my-class-routine/' in request.path %}active{% endif %}">
+                <a href="{% if school_slug %}{% url 'core:my_class_routine' school_slug=school_slug %}{% else %}#{% endif %}" class="nav-tab-link">
+                    <i class="fas fa-clock"></i>
+                    <span>Routine</span>
+                </a>
+            </li>
+            <li class="nav-tab-item {% if '/attendance/' in request.path %}active{% endif %}">
+                <a href="{% if school_slug %}{% url 'attendance:my_attendance' school_slug=school_slug %}{% else %}#{% endif %}" class="nav-tab-link">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Attendance</span>
+                </a>
+            </li>
+            <li class="nav-tab-item {% if '/examinations/' in request.path or '/my-results/' in request.path %}active{% endif %}">
+                <a href="{% if school_slug %}{% url 'examinations:exam_list' school_slug=school_slug %}{% else %}#{% endif %}" class="nav-tab-link">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Exams & Results</span>
+                </a>
+            </li>
+            <li class="nav-tab-item {% if '/fees/my-fees/' in request.path %}active{% endif %}">
+                <a href="{% if school_slug %}{% url 'fees:my_fees' school_slug=school_slug %}{% else %}#{% endif %}" class="nav-tab-link">
+                    <i class="fas fa-money-bill"></i>
+                    <span>Fees</span>
+                </a>
+            </li>
+            {% endif %}
+
+            {# ========================================= #}
+            {# ===            PARENT TABS            === #}
+            {# ========================================= #}
+            {% if user.role == 'parent' %}
+            <li class="nav-tab-item {% if '/todos/' in request.path %}active{% endif %}">
+                <a href="{% if school_slug %}{% url 'core:todos' school_slug=school_slug %}{% else %}#{% endif %}" class="nav-tab-link">
+                    <i class="fas fa-tasks"></i>
+                    <span>To Do</span>
+                </a>
+            </li>
+            <li class="nav-tab-item {% if '/my-children/' in request.path %}active{% endif %}">
+                <a href="{% if school_slug %}{% url 'core:my_children' school_slug=school_slug %}{% else %}#{% endif %}" class="nav-tab-link">
+                    <i class="fas fa-users"></i>
+                    <span>My Children</span>
+                </a>
+            </li>
+            <li class="nav-tab-item {% if '/children-routine/' in request.path %}active{% endif %}">
+                <a href="{% if school_slug %}{% url 'core:children_routine' school_slug=school_slug %}{% else %}#{% endif %}" class="nav-tab-link">
+                    <i class="fas fa-clock"></i>
+                    <span>Routine</span>
+                </a>
+            </li>
+            <li class="nav-tab-item {% if '/children-attendance/' in request.path %}active{% endif %}">
+                <a href="{% if school_slug %}/school/{{ school_slug }}/children-attendance/{% else %}#{% endif %}" class="nav-tab-link">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Attendance</span>
+                </a>
+            </li>
+            <li class="nav-tab-item {% if '/children-exams/' in request.path or '/children-results/' in request.path %}active{% endif %}">
+                <a href="{% if school_slug %}/school/{{ school_slug }}/children-results/{% else %}#{% endif %}" class="nav-tab-link">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Exams & Results</span>
+                </a>
+            </li>
+            <li class="nav-tab-item {% if '/fees/my-fees/' in request.path %}active{% endif %}">
+                <a href="{% if school_slug %}{% url 'fees:my_fees' school_slug=school_slug %}{% else %}#{% endif %}" class="nav-tab-link">
+                    <i class="fas fa-money-bill"></i>
+                    <span>Fees</span>
+                </a>
+            </li>
+            {% endif %}
+
+            {# ========================================= #}
+            {# ===        COMMUNICATION TABS         === #}
+            {# ========================================= #}
+            {% if user.role != 'superadmin' %}
+            <li class="nav-tab-item dropdown {% if '/communication/' in request.path or '/calendar/' in request.path or '/events/' in request.path %}active{% endif %}">
+                <a href="javascript:void(0)" class="nav-tab-link" role="button">
+                    <i class="fas fa-comments"></i>
+                    <span>Communication</span>
+                    <i class="fas fa-chevron-down ms-1 dropdown-arrow"></i>
+                </a>
+                <ul class="modern-dropdown-menu">
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/communication/messages/"><i class="fas fa-envelope me-2"></i>Messages</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/communication/notices/"><i class="fas fa-bell me-2"></i>Notices</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/calendar/"><i class="fas fa-calendar-alt me-2"></i>Calendar</a></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/events/"><i class="fas fa-calendar-day me-2"></i>Events</a></li>
+                    {% if user.role in 'admin,teacher' %}
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#calculatorModal"><i class="fas fa-calculator me-2"></i>Calculator</a></li>
+                    {% endif %}
+                </ul>
+            </li>
+            {% endif %}
+
+            {# ========================================= #}
+            {# ===        SETTINGS & ADMIN TABS      === #}
+            {# ========================================= #}
+            {% if user.role == 'admin' %}
+            <li class="nav-tab-item dropdown {% if '/settings/' in request.path or '/billing/' in request.path or '/payment-config/' in request.path %}active{% endif %}">
+                <a href="javascript:void(0)" class="nav-tab-link" role="button">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings & Billing</span>
+                    <i class="fas fa-chevron-down ms-1 dropdown-arrow"></i>
+                </a>
+                <ul class="modern-dropdown-menu">
+                    <li><a class="dropdown-item" href="{% if school_slug %}{% url 'core:settings' school_slug=school_slug %}{% else %}#{% endif %}"><i class="fas fa-cog me-2"></i>School Settings</a></li>
+                    <li><a class="dropdown-item" href="{% if school_slug %}{% url 'superadmin:school_payment_config_list' school_slug=school_slug %}{% else %}#{% endif %}"><i class="fas fa-credit-card me-2"></i>Payment Configurations</a></li>
+                    <li><a class="dropdown-item" href="{% if school_slug %}{% url 'superadmin:school_sms_config_list' school_slug=school_slug %}{% else %}#{% endif %}"><i class="fas fa-sms me-2"></i>SMS Settings</a></li>
+                    <li><a class="dropdown-item" href="{% if school_slug %}{% url 'superadmin:school_email_config_list' school_slug=school_slug %}{% else %}#{% endif %}"><i class="fas fa-envelope me-2"></i>Email Settings</a></li>
+                    <li><a class="dropdown-item" href="{% if school_slug %}{% url 'superadmin:school_audit_logs' school_slug=school_slug %}{% else %}#{% endif %}"><i class="fas fa-clipboard-list me-2"></i>Audit Logs</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/billing/"><i class="fas fa-file-invoice-dollar me-2"></i>Billing & Plans</a></li>
+                </ul>
+            </li>
+            {% endif %}
+
+            {% endif %}
+        </ul>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const navbar = document.getElementById('horizontalNavbar');
+    if (!navbar) return;
+
+    const dropdownItems = navbar.querySelectorAll('.nav-tab-item.dropdown');
+    
+    function closeAllDropdowns() {
+        dropdownItems.forEach(function(item) {
+            item.classList.remove('is-open');
+        });
+    }
+
+    dropdownItems.forEach(function(item) {
+        const link = item.querySelector('.nav-tab-link');
+        
+        // Toggle on click (for mobile, touch, or clicking the tab)
+        if (link) {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const wasOpen = item.classList.contains('is-open');
+                closeAllDropdowns();
+                if (!wasOpen) {
+                    item.classList.add('is-open');
+                }
+            });
+        }
+
+        // Mouseleave tab and menu: ALWAYS close immediately
+        item.addEventListener('mouseleave', function() {
+            item.classList.remove('is-open');
+        });
+
+        // Clicking any menu item inside closes immediately
+        item.querySelectorAll('.dropdown-item').forEach(function(menuLink) {
+            menuLink.addEventListener('click', function() {
+                closeAllDropdowns();
+            });
+        });
+    });
+
+    // Close when clicking outside navbar (useCapture=true ensures it runs even if an inner element stops propagation)
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#horizontalNavbar')) {
+            closeAllDropdowns();
+        }
+    }, true);
+
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeAllDropdowns();
+        }
+    });
+
+    // Close on window scroll
+    window.addEventListener('scroll', function() {
+        closeAllDropdowns();
+    }, { passive: true });
+});
+</script>

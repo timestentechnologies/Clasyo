@@ -7,7 +7,7 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.db.models import Q
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from .models import User, Role, Permission, UserLoginLog
 from .forms import LoginForm, UserRegistrationForm, ProfileEditForm, ChangePasswordForm, UserForm, RoleForm, PermissionForm
 
@@ -18,6 +18,18 @@ def csrf_failure(request, reason=""):
     return redirect('frontend:home')
 
 
+def clear_messages(request):
+    """Safely consume and clear all pending messages from request/storage."""
+    try:
+        storage = messages.get_messages(request)
+        for _ in storage:
+            pass
+        if hasattr(storage, 'used'):
+            storage.used = True
+    except Exception:
+        pass
+
+
 class LoginView(View):
     """User login view - redirects to home page with login modal"""
     template_name = 'frontend/home.html'
@@ -26,37 +38,32 @@ class LoginView(View):
     def get(self, request):
         # Redirect if already authenticated
         if request.user.is_authenticated:
-            messages.info(request, f'You are already logged in as {request.user.email}. Logout first to login with a different account.')
-            
-            if request.user.role == 'superadmin':  # Fixed: was 'super_admin'
+            if request.user.role == 'superadmin':
                 return redirect('superadmin:dashboard')
             else:
                 from tenants.models import School
-                # Prefer the user's linked school
                 school = getattr(request.user, 'school', None)
                 if not school:
                     school = School.objects.filter(is_active=True).first()
                 if school:
                     return redirect('core:apps_home', school_slug=school.slug)
-                
-                # If no school exists, show helpful message
-                messages.warning(request, 'No active school found. Please contact administrator or logout.')
                 return redirect('frontend:home')
         
-        # For unauthenticated users, show home page with login modal (unless maintenance mode is active)
+        # For unauthenticated users, redirect to home page
         from core.models import SystemSetting
         if SystemSetting.get_settings().maintenance_mode:
             return redirect('core:maintenance', school_slug='default')
             
-        messages.info(request, 'Please use the login modal to sign in.')
         return redirect('frontend:home')
     
     def post(self, request):
+        is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == 'true' or 'application/json' in request.META.get('HTTP_ACCEPT', '')
+        
         form = self.form_class(request.POST)
         if form.is_valid():
             email = form.cleaned_data['email']
             password = form.cleaned_data['password']
-            user = authenticate(request, email=email, password=password)
+            user = authenticate(request, username=email, password=password) or authenticate(request, email=email, password=password)
             
             if user is not None:
                 if user.is_active:
@@ -65,13 +72,11 @@ class LoginView(View):
                     sys_settings = SystemSetting.get_settings()
                     if sys_settings.maintenance_mode and sys_settings.superadmin_only_mode:
                         if user.role != 'superadmin' and not user.is_superuser:
-                            # Clear ALL messages before adding our specific error to prevent stacking
-                            storage = messages.get_messages(request)
-                            for _ in storage: pass # clear them
+                            if is_ajax:
+                                return JsonResponse({'success': False, 'message': 'System is under exclusive maintenance. Only super administrators can log in.'}, status=403)
                             
+                            clear_messages(request)
                             messages.error(request, 'System is under exclusive maintenance. Only super administrators can log in.')
-                            
-                            # Redirect to maintenance page instead of home page
                             school = getattr(user, 'school', None)
                             slug = school.slug if school else 'default'
                             return redirect('core:maintenance', school_slug=slug)
@@ -97,48 +102,57 @@ class LoginView(View):
                     user.last_login_ip = ip_address
                     user.save(update_fields=['last_login_ip'])
                     
-                    # Check if there's a next URL parameter in GET or POST
+                    # ALWAYS clear all accumulated messages from session to prevent old errors lingering
+                    clear_messages(request)
+                    
+                    # Determine next URL parameter in GET or POST
                     next_url = request.GET.get('next') or request.POST.get('next')
                     
-                    # Super admin ALWAYS goes to super admin dashboard (ignore next URL)
                     if user.role == 'superadmin':
                         messages.success(request, f'Welcome back, {user.get_full_name()}!')
-                        return redirect('superadmin:dashboard')
-                    
-                    # For other roles, use next URL if provided
-                    if next_url and next_url.startswith('/'):
+                        redirect_target = reverse_lazy('superadmin:dashboard')
+                    elif next_url and next_url.startswith('/'):
                         messages.success(request, f'Welcome back, {user.get_full_name()}!')
-                        return redirect(next_url)
-                    
-                    # Other roles need a school - prefer user's linked school, else first active school
-                    from tenants.models import School
-                    school = getattr(user, 'school', None)
-                    if not school:
-                        school = School.objects.filter(is_active=True).first()
-                    
-                    if school:
-                        # Clear existing messages before adding welcome
-                        storage = messages.get_messages(request)
-                        storage.used = True
-                        
-                        # Redirect to apps home page
-                        messages.success(request, f'Welcome back, {user.get_full_name()}!')
-                        return redirect('core:apps_home', school_slug=school.slug)
+                        redirect_target = next_url
                     else:
-                        # No school found - stay on home page with message
-                        messages.warning(request, f'Welcome {user.get_full_name()}! No school associated with your account. Please contact administrator.')
-                        return redirect('frontend:home')
+                        from tenants.models import School
+                        school = getattr(user, 'school', None)
+                        if not school:
+                            school = School.objects.filter(is_active=True).first()
+                        
+                        if school:
+                            messages.success(request, f'Welcome back, {user.get_full_name()}!')
+                            redirect_target = reverse_lazy('core:apps_home', kwargs={'school_slug': school.slug})
+                        else:
+                            messages.warning(request, f'Welcome {user.get_full_name()}! No school associated with your account. Please contact administrator.')
+                            redirect_target = reverse_lazy('frontend:home')
+                    
+                    target_url = str(redirect_target)
+                    if is_ajax:
+                        return JsonResponse({'success': True, 'redirect_url': target_url})
+                    return redirect(target_url)
                 else:
+                    if is_ajax:
+                        return JsonResponse({'success': False, 'message': 'Your account is inactive. Please contact the administrator.'}, status=403)
+                    clear_messages(request)
                     messages.error(request, 'Your account is inactive. Please contact the administrator.')
                     return redirect('frontend:home')
             else:
+                if is_ajax:
+                    return JsonResponse({'success': False, 'message': 'Invalid email or password.'}, status=400)
+                clear_messages(request)
                 messages.error(request, 'Invalid email or password.')
                 return redirect('frontend:home')
         else:
-            # Form validation failed
+            first_err = 'Invalid email or password format.'
             for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f'{field}: {error}')
+                if errors:
+                    first_err = errors[0]
+                    break
+            if is_ajax:
+                return JsonResponse({'success': False, 'message': first_err}, status=400)
+            clear_messages(request)
+            messages.error(request, first_err)
             return redirect('frontend:home')
 
 
@@ -165,8 +179,7 @@ class LogoutView(LoginRequiredMixin, View):
         logout(request)
         
         # Clear any existing messages to prevent piling up (e.g. Welcome back)
-        storage = messages.get_messages(request)
-        storage.used = True
+        clear_messages(request)
         
         messages.success(request, 'You have been logged out successfully.')
         return redirect('frontend:home')
@@ -712,3 +725,40 @@ class LoginLogListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
             queryset = queryset.filter(user_id=user_id)
         
         return queryset
+
+
+class ToggleNavigationLayoutView(LoginRequiredMixin, View):
+    """Allow user to toggle or set their navigation layout preference."""
+
+    def get(self, request, *args, **kwargs):
+        return self._handle_layout_change(request)
+
+    def post(self, request, *args, **kwargs):
+        return self._handle_layout_change(request)
+
+    def _handle_layout_change(self, request):
+        user = request.user
+        target_layout = request.GET.get('layout') or request.POST.get('layout')
+
+        if target_layout in ['sidebar', 'horizontal', 'default']:
+            if target_layout == 'default':
+                user.navigation_layout = ''
+            else:
+                user.navigation_layout = target_layout
+        else:
+            # Toggle between sidebar and horizontal
+            current = user.get_navigation_layout()
+            user.navigation_layout = 'horizontal' if current == 'sidebar' else 'sidebar'
+
+        user.save(update_fields=['navigation_layout'])
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == 'true':
+            return JsonResponse({
+                'success': True,
+                'navigation_layout': user.get_navigation_layout(),
+                'user_preference': user.navigation_layout,
+            })
+
+        redirect_url = request.META.get('HTTP_REFERER') or '/'
+        return redirect(redirect_url)
+

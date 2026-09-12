@@ -26,30 +26,87 @@ function refreshCSRFTokens() {
     });
 }
 
-// Refresh CSRF token when login modal is opened and also periodically
+// Handle Login Modal and AJAX submission
 document.addEventListener('DOMContentLoaded', function() {
     const loginModal = document.getElementById('loginModal');
+    const loginForm = document.getElementById('loginForm');
+    const loginAlert = document.getElementById('loginModalAlert');
+    
     if (loginModal) {
         loginModal.addEventListener('show.bs.modal', function () {
             refreshCSRFTokens();
+            if (loginAlert) {
+                loginAlert.classList.add('d-none');
+                loginAlert.textContent = '';
+            }
+        });
+    }
+    
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            refreshCSRFTokens();
+            
+            const submitBtn = loginForm.querySelector('button[type="submit"]');
+            const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '<i class="fas fa-sign-in-alt me-2"></i>Sign In';
+            
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Signing In...';
+            }
+            
+            if (loginAlert) {
+                loginAlert.classList.add('d-none');
+                loginAlert.textContent = '';
+            }
+            
+            const formData = new FormData(loginForm);
+            
+            fetch(loginForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                return response.json().then(data => ({ status: response.status, ok: response.ok, data: data }))
+                    .catch(() => ({ status: response.status, ok: response.ok, data: {} }));
+            })
+            .then(res => {
+                if (res.data && res.data.success) {
+                    if (submitBtn) {
+                        submitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Success! Redirecting...';
+                    }
+                    window.location.href = res.data.redirect_url || '/';
+                } else {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnHtml;
+                    }
+                    if (loginAlert) {
+                        loginAlert.textContent = (res.data && res.data.message) ? res.data.message : 'Invalid email or password.';
+                        loginAlert.classList.remove('d-none');
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Login submit error:', err);
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnHtml;
+                }
+                if (loginAlert) {
+                    loginAlert.textContent = 'Unable to connect to server. Please try again.';
+                    loginAlert.classList.remove('d-none');
+                }
+            });
         });
     }
     
     // Also refresh tokens every 30 seconds as a fallback
     setInterval(refreshCSRFTokens, 30000);
-});
-
-// Refresh tokens immediately when page loads
-refreshCSRFTokens();
-
-// Add submit handler to login form to refresh CSRF token before submission
-document.addEventListener('DOMContentLoaded', function() {
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', function(e) {
-            refreshCSRFTokens();
-        });
-    }
 });
 </script>
 
@@ -65,6 +122,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <button type="button" class="btn-close btn-close-white position-absolute" style="top: 10px; right: 10px;" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
+                <div id="loginModalAlert" class="alert alert-danger d-none py-2 px-3 mb-3" style="font-size: 0.9rem;" role="alert"></div>
                 <form method="post" action="{% url 'accounts:login' %}" id="loginForm">
                     {% csrf_token %}
                     <div class="mb-3">

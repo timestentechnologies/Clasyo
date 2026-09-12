@@ -1873,6 +1873,21 @@ class GlobalSettingsView(SuperAdminRequiredMixin, TemplateView):
             settings_obj.save()
             messages.success(request, f'Maintenance mode {status_msg} successfully.')
         
+        elif action == 'update_theme_colors':
+            primary_color = request.POST.get('primary_color', '#1E3A5F').strip()
+            secondary_color = request.POST.get('secondary_color', '#2C5282').strip()
+            accent_color = request.POST.get('accent_color', '#4DD0E1').strip()
+            
+            if primary_color:
+                settings_obj.primary_color = primary_color
+            if secondary_color:
+                settings_obj.secondary_color = secondary_color
+            if accent_color:
+                settings_obj.accent_color = accent_color
+                
+            settings_obj.save()
+            messages.success(request, 'System theme and brand colors updated successfully.')
+        
         return redirect('superadmin:global_settings')
 
 

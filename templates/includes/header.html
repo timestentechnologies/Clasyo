@@ -6,12 +6,33 @@
         <i class="fas fa-bars"></i>
     </button>
 
+    {% if navigation_layout == 'horizontal' %}
+    <div class="horizontal-brand d-none d-lg-flex align-items-center me-3">
+        {% if user.role == 'superadmin' %}
+            <img src="{% static 'images/erpupdated.png' %}" alt="Logo" class="horizontal-logo me-2" style="height: 36px; width: auto; object-fit: contain;">
+            <span class="horizontal-brand-title fw-bold" style="font-size: 1.05rem; color: var(--text-primary);">Clasyo ERP</span>
+        {% else %}
+            {% if school and school.logo %}
+                <img src="{{ school.logo.url }}" alt="{{ school.name }}" class="horizontal-logo me-2" style="height: 36px; width: auto; object-fit: contain;">
+            {% else %}
+                <img src="{% static 'images/erpupdated.png' %}" alt="Logo" class="horizontal-logo me-2" style="height: 36px; width: auto; object-fit: contain;">
+            {% endif %}
+            <span class="horizontal-brand-title fw-bold" style="font-size: 1.05rem; color: var(--text-primary);">{{ school.name|default:"School ERP" }}</span>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <form action="{% if user.role == 'superadmin' or user.role == 'super_admin' %}#{% else %}/school/{{ school_slug }}/search/{% endif %}" method="get" class="search-bar">
         <i class="fas fa-search"></i>
         <input type="text" name="q" placeholder="Search for students, teachers, or anything..." id="globalSearch">
     </form>
     
     <div class="navbar-actions">
+        <!-- Layout Switcher Button -->
+        <a href="{% url 'accounts:toggle_navigation_layout' %}" class="nav-icon-btn layout-toggle-btn" title="Switch to {% if navigation_layout == 'horizontal' %}Sidebar Layout{% else %}Horizontal Tab Layout{% endif %}">
+            <i class="fas {% if navigation_layout == 'horizontal' %}fa-table-columns{% else %}fa-bars-staggered{% endif %}"></i>
+        </a>
+
         <!-- Theme Toggle Button -->
         <button id="theme-toggle" class="nav-icon-btn" title="Toggle Theme">
             <i class="fas fa-moon"></i>
@@ -45,6 +66,15 @@
                 <li>
                   <a class="dropdown-item" href="{% if user.role == 'superadmin' %}{% url 'superadmin:profile' %}{% elif school_slug %}{% url 'core:profile' school_slug=school_slug %}{% else %}{% url 'accounts:profile' %}{% endif %}">
                     <i class="fas fa-user"></i> Profile
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'accounts:toggle_navigation_layout' %}">
+                    <span>
+                        <i class="fas {% if navigation_layout == 'horizontal' %}fa-table-columns{% else %}fa-bars-staggered{% endif %} me-2"></i>
+                        Layout: {% if navigation_layout == 'horizontal' %}Tabs{% else %}Sidebar{% endif %}
+                    </span>
+                    <span class="badge bg-primary-subtle text-primary border" style="font-size: 10px;">Switch</span>
                   </a>
                 </li>
                 {% if user.role != 'superadmin' and user.role != 'super_admin' %}

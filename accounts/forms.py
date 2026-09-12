@@ -47,7 +47,8 @@ class ProfileEditForm(forms.ModelForm):
             'first_name', 'last_name', 'phone', 'mobile', 'avatar', 'gender',
             'date_of_birth', 'blood_group', 'address', 'city', 'state',
             'country', 'postal_code', 'emergency_contact_name',
-            'emergency_contact_phone', 'emergency_contact_relation'
+            'emergency_contact_phone', 'emergency_contact_relation',
+            'navigation_layout'
         ]
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -66,6 +67,7 @@ class ProfileEditForm(forms.ModelForm):
             'emergency_contact_name': forms.TextInput(attrs={'class': 'form-control'}),
             'emergency_contact_phone': forms.TextInput(attrs={'class': 'form-control'}),
             'emergency_contact_relation': forms.TextInput(attrs={'class': 'form-control'}),
+            'navigation_layout': forms.Select(attrs={'class': 'form-select'}),
         }
 
 

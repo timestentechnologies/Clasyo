@@ -24,9 +24,11 @@ function initializeTheme() {
         if (theme === 'dark') {
             // Set attributes on both html and body for maximum compatibility
             html.setAttribute('data-theme', 'dark');
+            html.setAttribute('data-bs-theme', 'dark');
             html.classList.add('theme-dark');
             body.classList.add('dark-theme');
             body.setAttribute('data-theme', 'dark');
+            body.setAttribute('data-bs-theme', 'dark');
             
             // Update the theme toggle if it exists
             if (themeToggle) themeToggle.checked = true;
@@ -35,13 +37,15 @@ function initializeTheme() {
             // Set the theme color meta tag for mobile browsers
             const themeColor = document.querySelector('meta[name="theme-color"]');
             if (themeColor) {
-                themeColor.setAttribute('content', '#1A202C');
+                themeColor.setAttribute('content', '#0F172A');
             }
         } else {
             // Light theme
             html.setAttribute('data-theme', 'light');
+            html.setAttribute('data-bs-theme', 'light');
             html.classList.add('theme-light');
             body.removeAttribute('data-theme');
+            body.removeAttribute('data-bs-theme');
             
             // Update the theme toggle if it exists
             if (themeToggle) themeToggle.checked = false;
@@ -50,9 +54,12 @@ function initializeTheme() {
             // Reset the theme color meta tag for mobile browsers
             const themeColor = document.querySelector('meta[name="theme-color"]');
             if (themeColor) {
-                themeColor.setAttribute('content', '#4f46e5');
+                themeColor.setAttribute('content', '#1E3A5F');
             }
         }
+        
+        // Dispatch global themeChanged event for dynamic plugins (Select2, TomSelect, Charts)
+        window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: theme } }));
         
         // Force a reflow to ensure styles are applied
         document.body.offsetHeight;
