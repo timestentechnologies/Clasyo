@@ -8,13 +8,58 @@
 {% block extra_css %}{% endblock %}
 
 {% block page_actions %}
-<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addYearModal">
-    <i class="fas fa-plus"></i> Add Academic Year
+<button class="btn btn-primary" onclick="toggleInPageFormView('yearListCard', 'yearFormPanel', 'create')">
+    <i class="fas fa-plus me-1"></i> Add Academic Year
 </button>
 {% endblock %}
 
 {% block content %}
-<div class="modern-card">
+<!-- Shared In-Page Single Form Panel -->
+<div class="form-panel-view d-none" id="yearFormPanel">
+    <div class="form-header-bar">
+        <div class="form-header-title-group">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('yearListCard', 'yearFormPanel', 'list')">
+                <i class="fas fa-arrow-left me-1"></i> Back to List
+            </button>
+            <h5 class="mb-0 fw-bold form-title-text" data-create-title="Add Academic Year" data-edit-title="Edit Academic Year">Add Academic Year</h5>
+            <span class="form-mode-badge mode-create">New</span>
+        </div>
+        <div class="form-header-actions">
+            <button type="button" class="btn btn-sm btn-light" onclick="toggleInPageFormView('yearListCard', 'yearFormPanel', 'list')">Cancel</button>
+            <button type="button" class="btn btn-sm btn-primary form-submit-btn" onclick="submitYearForm()">
+                <i class="fas fa-save me-1"></i> Save Year
+            </button>
+        </div>
+    </div>
+    <div class="form-card-body">
+        <form id="yearForm">
+            {% csrf_token %}
+            <input type="hidden" id="yearId" name="id">
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Year Name *</label>
+                <input type="text" id="yearNameInput" name="name" class="form-control" required placeholder="e.g. 2024-2025">
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Start Date *</label>
+                    <input type="date" id="yearStartDate" name="start_date" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">End Date *</label>
+                    <input type="date" id="yearEndDate" name="end_date" class="form-control" required>
+                </div>
+            </div>
+            <div class="mb-3">
+                <div class="form-check">
+                    <input type="checkbox" id="yearIsActive" name="is_active" class="form-check-input">
+                    <label class="form-check-label fw-semibold" for="yearIsActive">Set as Active Year</label>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modern-card" id="yearListCard">
     <div class="table-responsive">
         <table class="table">
             <thead>
@@ -79,82 +124,6 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-danger" id="confirmDeleteYearBtn">Delete Year</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="addYearModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
-                <h5 class="modal-title"><i class="fas fa-plus"></i> Add Academic Year</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="yearForm">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label>Year Name *</label>
-                        <input type="text" name="name" class="form-control" required placeholder="e.g., 2024-2025">
-                    </div>
-                    <div class="mb-3">
-                        <label>Start Date *</label>
-                        <input type="date" name="start_date" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>End Date *</label>
-                        <input type="date" name="end_date" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>
-                            <input type="checkbox" name="is_active"> Set as Active Year
-                        </label>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitYear()">Save Year</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Year Modal -->
-<div class="modal fade" id="editYearModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
-                <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Academic Year</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="editYearForm">
-                    {% csrf_token %}
-                    <input type="hidden" id="editYearId" name="id">
-                    <div class="mb-3">
-                        <label>Year Name *</label>
-                        <input type="text" id="editYearName" name="name" class="form-control" required placeholder="e.g., 2024-2025">
-                    </div>
-                    <div class="mb-3">
-                        <label>Start Date *</label>
-                        <input type="date" id="editYearStartDate" name="start_date" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>End Date *</label>
-                        <input type="date" id="editYearEndDate" name="end_date" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>
-                            <input type="checkbox" id="editYearIsActive" name="is_active"> Set as Active Year
-                        </label>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitEditYear()">Update Year</button>
             </div>
         </div>
     </div>
@@ -258,11 +227,15 @@ function showMessage(title, message, isSuccess = true) {
     modal.show();
 }
 
-function submitYear() {
+function submitYearForm() {
     const form = document.getElementById('yearForm');
     const formData = new FormData(form);
-    
-    fetch('/school/{{ school_slug }}/academic-years/add/', {
+    const yearId = document.getElementById('yearId').value;
+    const url = yearId 
+        ? '/school/{{ school_slug }}/academic-years/' + yearId + '/edit/'
+        : '/school/{{ school_slug }}/academic-years/add/';
+
+    fetch(url, {
         method: 'POST',
         body: formData,
         headers: {'X-CSRFToken': '{{ csrf_token }}'}
@@ -270,7 +243,7 @@ function submitYear() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showMessage('Success!', 'Academic year added successfully', true);
+            showMessage('Success!', yearId ? 'Academic year updated successfully' : 'Academic year added successfully', true);
             setTimeout(() => location.reload(), 1500);
         } else {
             showMessage('Error', data.error || 'Failed to save', false);
@@ -282,21 +255,17 @@ function submitYear() {
 }
 
 function editYear(id) {
-    // Fetch year data
     fetch('/school/{{ school_slug }}/academic-years/' + id + '/edit/')
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Populate form with existing data
-                document.getElementById('editYearId').value = data.data.id;
-                document.getElementById('editYearName').value = data.data.name;
-                document.getElementById('editYearStartDate').value = data.data.start_date;
-                document.getElementById('editYearEndDate').value = data.data.end_date;
-                document.getElementById('editYearIsActive').checked = data.data.is_active;
+                document.getElementById('yearId').value = data.data.id;
+                document.getElementById('yearNameInput').value = data.data.name;
+                document.getElementById('yearStartDate').value = data.data.start_date;
+                document.getElementById('yearEndDate').value = data.data.end_date;
+                document.getElementById('yearIsActive').checked = data.data.is_active;
                 
-                // Show edit modal
-                const modal = new bootstrap.Modal(document.getElementById('editYearModal'));
-                modal.show();
+                toggleInPageFormView('yearListCard', 'yearFormPanel', 'edit');
             } else {
                 showMessage('Error', data.error || 'Failed to load year data', false);
             }
@@ -305,24 +274,6 @@ function editYear(id) {
             showMessage('Error', 'Failed to load year data: ' + error.message, false);
         });
 }
-
-function submitEditYear() {
-    const form = document.getElementById('editYearForm');
-    const formData = new FormData(form);
-    const yearId = document.getElementById('editYearId').value;
-    
-    fetch('/school/{{ school_slug }}/academic-years/' + yearId + '/edit/', {
-        method: 'POST',
-        body: formData,
-        headers: {'X-CSRFToken': '{{ csrf_token }}'}
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage('Success!', 'Academic year updated successfully', true);
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            showMessage('Error', data.error || 'Failed to update', false);
         }
     })
     .catch(error => {

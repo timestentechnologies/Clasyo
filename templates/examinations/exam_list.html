@@ -21,13 +21,13 @@
         {% endif %}
     </div>
     {% if user.role in 'school_admin,teacher' %}
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addExamModal">
-        <i class="fas fa-plus"></i> Add Exam
+    <button class="btn btn-primary" onclick="openCreateExamForm()">
+        <i class="fas fa-plus me-1"></i> Add Exam
     </button>
     {% endif %}
 </div>
 
-<div class="modern-card">
+<div class="modern-card" id="examListCard">
     <div class="table-responsive">
         <table class="table">
             <thead>
@@ -116,108 +116,112 @@
     </div>
 </div>
 
-<div class="modal fade" id="addExamModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
-                <h5 class="modal-title" id="examModalTitle">Add Exam</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+<!-- In-Page Exam Form Panel -->
+<div id="examFormPanel" class="card modern-card mb-4 form-panel-view" style="display: none;">
+    <div class="card-body">
+        <div class="form-header-bar">
+            <div>
+                <h5 class="fw-bold mb-1" id="examFormTitle">Add Exam</h5>
+                <span class="form-mode-badge badge bg-primary" id="examFormBadge">Creation Mode</span>
             </div>
-            <div class="modal-body">
-                <form id="examForm" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <input type="hidden" id="editing_exam_id" value="">
-                    <div class="mb-3">
-                        <label>Exam Name *</label>
-                        <input type="text" name="name" class="form-control" required id="exam_name">
-                    </div>
-                    <div class="mb-3">
-                        <label>Exam Type</label>
-                        <select name="exam_type" id="exam_type" class="form-control" onchange="toggleOnlineExam()">
-                            <option value="midterm">Midterm</option>
-                            <option value="final">Final</option>
-                            <option value="quiz">Quiz</option>
-                            <option value="assignment">Assignment</option>
-                            <option value="online">Online Exam</option>
-                        </select>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label>Class <span class="text-danger">*</span></label>
-                            <select name="class_assigned" class="form-control" required id="exam_class_assigned">
-                                <option value="">Select Class</option>
-                                {% for class in classes %}
-                                <option value="{{ class.id }}">{{ class.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label>Subject</label>
-                            <select name="subject" class="form-control" id="exam_subject">
-                                <option value="">Select Subject (Optional)</option>
-                                {% for subject in subjects %}
-                                <option value="{{ subject.id }}">{{ subject.name }}</option>
-                                {% endfor %}
-                            </select>
-                            <small class="text-muted">Used for single-subject exams. For multi-subject exams, use the section below.</small>
-                        </div>
-                    </div>
-
-                    <!-- Multi-Subject Configuration -->
-                    <div class="mb-3" id="multiSubjectSection">
-                        <label class="form-label fw-bold">Subjects & Total Marks</label>
-                        <small class="text-muted d-block mb-2">Select subjects for this exam and set total marks per subject.</small>
-                        <div id="classSubjectsList" class="border rounded p-2 bg-light" style="max-height: 200px; overflow-y: auto;">
-                            <p class="text-muted">Select a class to load subjects.</p>
-                        </div>
-                        <div id="selectedSubjectsList" class="mt-2">
-                            <!-- Selected subjects with totals will be rendered here -->
-                        </div>
-                    </div>
-                    <div class="mb-3" id="onlineExamFields" style="display: none;">
-                        <label>Duration (Minutes)</label>
-                        <input type="number" name="duration_minutes" class="form-control" placeholder="e.g., 60" id="exam_duration_minutes">
-                        <small class="text-muted">How long students have to complete the exam</small>
-                    </div>
-                    <div class="mb-3">
-                        <label>Start Date</label>
-                        <input type="date" name="start_date" class="form-control" required id="exam_start_date">
-                    </div>
-                    <div class="mb-3">
-                        <label>End Date</label>
-                        <input type="date" name="end_date" class="form-control" required id="exam_end_date">
-                    </div>
-                    <div class="mb-3">
-                        <label>Note</label>
-                        <textarea name="note" class="form-control" rows="2" id="exam_note"></textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label>Attachment (Optional)</label>
-                        <input type="file" name="attachment" class="form-control" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
-                        <small class="text-muted">Upload a question paper or supporting document for students to view.</small>
-                    </div>
-
-                    <div class="mb-3" id="currentAttachmentWrap" style="display:none;">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <small class="text-muted">Current attachment:</small>
-                                <a href="#" id="currentAttachmentLink" target="_blank" rel="noopener"></a>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="clearAttachment">
-                                <label class="form-check-label" for="clearAttachment">Remove</label>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitExam()">Save</button>
-            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('examListCard', 'examFormPanel', 'hide')">
+                <i class="fas fa-times me-1"></i> Close
+            </button>
         </div>
+        <form id="examForm" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" id="editing_exam_id" value="">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Exam Name *</label>
+                    <input type="text" name="name" class="form-control" required id="exam_name" placeholder="Enter exam name">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Exam Type</label>
+                    <select name="exam_type" id="exam_type" class="form-select" onchange="toggleOnlineExam()">
+                        <option value="midterm">Midterm</option>
+                        <option value="final">Final</option>
+                        <option value="quiz">Quiz</option>
+                        <option value="assignment">Assignment</option>
+                        <option value="online">Online Exam</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Class <span class="text-danger">*</span></label>
+                    <select name="class_assigned" class="form-select" required id="exam_class_assigned">
+                        <option value="">Select Class</option>
+                        {% for class in classes %}
+                        <option value="{{ class.id }}">{{ class.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Subject</label>
+                    <select name="subject" class="form-select" id="exam_subject">
+                        <option value="">Select Subject (Optional)</option>
+                        {% for subject in subjects %}
+                        <option value="{{ subject.id }}">{{ subject.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Used for single-subject exams.</small>
+                </div>
+
+                <div class="col-md-12" id="multiSubjectSection">
+                    <label class="form-label fw-bold">Subjects & Total Marks</label>
+                    <small class="text-muted d-block mb-2">Select subjects for this exam and set total marks per subject.</small>
+                    <div id="classSubjectsList" class="border rounded p-2 bg-light" style="max-height: 200px; overflow-y: auto;">
+                        <p class="text-muted">Select a class to load subjects.</p>
+                    </div>
+                    <div id="selectedSubjectsList" class="mt-2"></div>
+                </div>
+
+                <div class="col-md-6" id="onlineExamFields" style="display: none;">
+                    <label class="form-label fw-semibold">Duration (Minutes)</label>
+                    <input type="number" name="duration_minutes" class="form-control" placeholder="e.g., 60" id="exam_duration_minutes">
+                    <small class="text-muted">How long students have to complete the exam</small>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Start Date *</label>
+                    <input type="date" name="start_date" class="form-control" required id="exam_start_date">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">End Date *</label>
+                    <input type="date" name="end_date" class="form-control" required id="exam_end_date">
+                </div>
+
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold">Note</label>
+                    <textarea name="note" class="form-control" rows="2" id="exam_note" placeholder="Enter notes..."></textarea>
+                </div>
+
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold">Attachment (Optional)</label>
+                    <input type="file" name="attachment" class="form-control" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
+                    <small class="text-muted">Upload a question paper or supporting document for students to view.</small>
+                </div>
+
+                <div class="col-md-12" id="currentAttachmentWrap" style="display:none;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted">Current attachment:</small>
+                            <a href="#" id="currentAttachmentLink" target="_blank" rel="noopener"></a>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="clearAttachment">
+                            <label class="form-check-label" for="clearAttachment">Remove</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <button type="button" class="btn btn-outline-secondary" onclick="toggleInPageFormView('examListCard', 'examFormPanel', 'hide')">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitExam()"><i class="fas fa-save me-1"></i> Save Exam</button>
+            </div>
+        </form>
     </div>
+</div>
 </div>
 
 <!-- Manage Questions Modal -->
@@ -428,9 +432,20 @@ function submitExam() {
     });
 }
 
+function openCreateExamForm() {
+    editingExamId = null;
+    document.getElementById('examForm').reset();
+    const currentWrap = document.getElementById('currentAttachmentWrap');
+    if (currentWrap) currentWrap.style.display = 'none';
+    const clearCb = document.getElementById('clearAttachment');
+    if (clearCb) clearCb.checked = false;
+    selectedSubjectsData = {};
+    renderSelectedSubjects();
+    toggleInPageFormView('examListCard', 'examFormPanel', 'create');
+}
+
 function editExam(id) {
     editingExamId = id;
-    document.getElementById('examModalTitle').textContent = 'Edit Exam';
     document.getElementById('examForm').reset();
     const currentWrap = document.getElementById('currentAttachmentWrap');
     if (currentWrap) currentWrap.style.display = 'none';
@@ -488,7 +503,7 @@ function editExam(id) {
                 if (currentWrap) currentWrap.style.display = 'block';
             }
 
-            new bootstrap.Modal(document.getElementById('addExamModal')).show();
+            toggleInPageFormView('examListCard', 'examFormPanel', 'edit');
         })
         .catch(err => showError('Error: ' + err.message));
 }

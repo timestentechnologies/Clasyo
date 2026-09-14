@@ -1,0 +1,103 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}System Maintenance - Clasyo{% endblock %}
+
+{% block extra_css %}{% endblock %}
+
+{% block page_header %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-1">System Maintenance Control</h1>
+            <p class="text-muted mb-0">Configure system online status, staff/strict maintenance modes, and scheduled maintenance windows</p>
+        </div>
+    </div>
+
+    <!-- Maintenance Mode Settings Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card modern-card">
+                <div class="card-header modern-card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 card-title-modern"><i class="fas fa-tools text-warning me-2"></i>System Status & Schedule</h5>
+                    {% if system_settings.maintenance_mode %}
+                        <span class="badge badge-soft-danger">MAINTENANCE ACTIVE</span>
+                    {% else %}
+                        <span class="badge badge-soft-success">SYSTEM ONLINE</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{% url 'superadmin:system_maintenance' %}">
+                        {% csrf_token %}
+                        
+                        <div class="row g-4">
+                            <!-- Maintenance Status Selector -->
+                            <div class="col-md-5 border-end">
+                                <label class="form-label h6 mb-3"><i class="fas fa-power-off me-2 text-primary"></i>System Status Mode</label>
+                                
+                                <div class="maintenance-status-selector">
+                                    <div class="form-check mb-3 p-3 border rounded-3 position-relative transition-all {% if not system_settings.maintenance_mode %}border-success{% endif %}">
+                                        <input class="form-check-input ms-0 me-3" type="radio" name="maintenance_status" id="status_online" value="off" {% if not system_settings.maintenance_mode %}checked{% endif %}>
+                                        <label class="form-check-label d-block cursor-pointer" for="status_online">
+                                            <span class="d-block fw-bold text-success">Online</span>
+                                            <span class="text-muted small">System is fully operational and accessible to all users.</span>
+                                        </label>
+                                    </div>
+
+                                    <div class="form-check mb-3 p-3 border rounded-3 position-relative transition-all {% if system_settings.maintenance_mode and not system_settings.superadmin_only_mode %}border-warning{% endif %}">
+                                        <input class="form-check-input ms-0 me-3" type="radio" name="maintenance_status" id="status_staff" value="school_admin" {% if system_settings.maintenance_mode and not system_settings.superadmin_only_mode %}checked{% endif %}>
+                                        <label class="form-check-label d-block cursor-pointer" for="status_staff">
+                                            <span class="d-block fw-bold text-warning">Staff Maintenance</span>
+                                            <span class="text-muted small">Access permitted only for <strong>Super Admins</strong> and <strong>School Admins</strong>.</span>
+                                        </label>
+                                    </div>
+
+                                    <div class="form-check mb-0 p-3 border rounded-3 position-relative transition-all {% if system_settings.maintenance_mode and system_settings.superadmin_only_mode %}border-danger{% endif %}">
+                                        <input class="form-check-input ms-0 me-3" type="radio" name="maintenance_status" id="status_superadmin" value="superadmin" {% if system_settings.maintenance_mode and system_settings.superadmin_only_mode %}checked{% endif %}>
+                                        <label class="form-check-label d-block cursor-pointer" for="status_superadmin">
+                                            <span class="d-block fw-bold text-danger">Strict Maintenance</span>
+                                            <span class="text-muted small">Access restricted <strong>ONLY to Super Admins</strong>.</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Maintenance Schedule -->
+                            <div class="col-md-7">
+                                <div class="d-flex align-items-center mb-3">
+                                    <h6 class="fw-bold mb-0">Global Maintenance Schedule</h6>
+                                    <span class="badge badge-soft-primary ms-2 small">Super Admin Control</span>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="superadmin_maintenance_start" class="form-label small fw-bold">Maintenance Start</label>
+                                        <input type="datetime-local" class="form-control" id="superadmin_maintenance_start" name="superadmin_maintenance_start" value="{{ system_settings.superadmin_maintenance_start|date:'Y-m-d\TH:i' }}" placeholder="Select maintenance start datetime">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="superadmin_maintenance_end" class="form-label small fw-bold">Maintenance End (Expected)</label>
+                                        <input type="datetime-local" class="form-control" id="superadmin_maintenance_end" name="superadmin_maintenance_end" value="{{ system_settings.superadmin_maintenance_end|date:'Y-m-d\TH:i' }}" placeholder="Select maintenance end datetime">
+                                    </div>
+                                </div>
+                                <div class="alert alert-info mt-3 py-2 border-0 shadow-sm">
+                                    <small><i class="fas fa-info-circle me-1"></i> Start and end times will be displayed on the maintenance notice page when offline.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-12 text-end">
+                                <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                                    <i class="fas fa-save me-2"></i>Apply Maintenance Settings
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,54 @@
+<section class="parallax-section {% if parallax.scroll_effect == 'fixed_bg' %}parallax-fixed-container{% endif %}" data-effect="{{ parallax.scroll_effect|default:'fixed_bg' }}">
+    {% if parallax.scroll_effect == 'fixed_bg' %}
+    <div class="parallax-fixed-bg" 
+         style="{% if parallax.bg_image %}background-image: url('{{ parallax.bg_image.url }}');{% else %}background-color: {{ parallax.bg_color|default:'#091528' }};{% endif %}">
+    </div>
+    {% else %}
+    <div class="parallax-bg" 
+         style="{% if parallax.bg_image %}background-image: url('{{ parallax.bg_image.url }}');{% else %}background-color: {{ parallax.bg_color|default:'#091528' }};{% endif %}">
+    </div>
+    {% endif %}
+
+    <div class="parallax-overlay" style="background-color: rgba(15, 23, 42, {{ parallax.overlay_opacity|default:'0.75' }});"></div>
+    
+    <!-- Background Floating Parallax Icons -->
+    <div class="bg-icons">
+        {% for elem in floating_elements %}
+        {% if elem.section_target == 'parallax' or elem.section_target == 'all' %}
+        {% with pos=elem.get_positions %}
+        <i class="{{ elem.icon }} bg-icon bg-icon-{{ elem.animation_type|default:'float' }}"
+           style="{% if pos.top != 'auto' %}top: {{ pos.top }};{% endif %} {% if pos.left != 'auto' %}left: {{ pos.left }};{% endif %} {% if pos.bottom != 'auto' %}bottom: {{ pos.bottom }};{% endif %} {% if pos.right != 'auto' %}right: {{ pos.right }};{% endif %} font-size: {{ elem.font_size|default:'3rem' }}; opacity: {{ elem.opacity|default:'0.15' }}; animation-duration: {{ elem.animation_duration|default:'18s' }}; animation-delay: {{ elem.animation_delay|default:'0s' }};"></i>
+        {% endwith %}
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    <div class="container text-center parallax-content-container">
+        <h2 class="parallax-title">{{ parallax.title }}</h2>
+        {% if parallax.subtitle %}
+        <p class="parallax-subtitle">{{ parallax.subtitle }}</p>
+        {% endif %}
+        {% if parallax.content %}
+        <p class="lead text-light mb-4 opacity-90 mx-auto">
+            {{ parallax.content }}
+        </p>
+        {% endif %}
+        
+        <div class="d-flex justify-content-center gap-3 flex-wrap mt-4">
+            {% if parallax.primary_btn_text %}
+            <a href="{{ parallax.primary_btn_url|default:'/pricing/' }}" 
+               class="btn btn-primary btn-lg rounded-pill px-4 py-2 fw-semibold"
+               {% if '#registerModal' in parallax.primary_btn_url %}data-bs-toggle="modal" data-bs-target="#registerModal"{% endif %}>
+                <i class="fas fa-star me-2"></i>{{ parallax.primary_btn_text }}
+                <i class="fas fa-arrow-right ms-2"></i>
+            </a>
+            {% endif %}
+            {% if parallax.secondary_btn_text %}
+            <a href="{{ parallax.secondary_btn_url|default:'/contact/' }}" 
+               class="btn btn-outline-light btn-lg rounded-pill px-4 py-2 fw-semibold">
+                {{ parallax.secondary_btn_text }}
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</section>

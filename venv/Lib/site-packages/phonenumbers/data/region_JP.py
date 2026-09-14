@@ -4,7 +4,7 @@ from ..phonemetadata import NumberFormat, PhoneNumberDesc, PhoneMetadata
 PHONE_METADATA_JP = PhoneMetadata(id='JP', country_code=81, international_prefix='010',
     general_desc=PhoneNumberDesc(national_number_pattern='00[1-9]\\d{6,14}|[25-9]\\d{9}|(?:00|[1-9]\\d\\d)\\d{6}', possible_length=(8, 9, 10, 11, 12, 13, 14, 15, 16, 17)),
     fixed_line=PhoneNumberDesc(national_number_pattern='(?:1(?:1[235-8]|2[3-6]|3[3-9]|4[2-6]|[58][2-8]|6[2-7]|7[2-9]|9[1-9])|(?:2[2-9]|[36][1-9])\\d|4(?:[2-578]\\d|6[02-8]|9[2-59])|5(?:[2-589]\\d|6[1-9]|7[2-8])|7(?:[25-9]\\d|3[4-9]|4[02-9])|8(?:[2679]\\d|3[2-9]|4[5-9]|5[1-9]|8[03-9])|9(?:[2-58]\\d|[679][1-9]))\\d{6}', example_number='312345678', possible_length=(9,)),
-    mobile=PhoneNumberDesc(national_number_pattern='(?:601[0-4]0|[7-9]0[1-9]\\d\\d)\\d{5}', example_number='9012345678', possible_length=(10,)),
+    mobile=PhoneNumberDesc(national_number_pattern='[6-9]0[1-9]\\d{7}', example_number='9012345678', possible_length=(10,)),
     toll_free=PhoneNumberDesc(national_number_pattern='00777(?:[01]|5\\d)\\d\\d|(?:00(?:7778|882[1245])|(?:120|800\\d)\\d\\d)\\d{4}|00(?:37|66|78)\\d{6,13}', example_number='120123456', possible_length=(8, 9, 10, 11, 12, 13, 14, 15, 16, 17)),
     premium_rate=PhoneNumberDesc(national_number_pattern='990\\d{6}', example_number='990123456', possible_length=(9,)),
     personal_number=PhoneNumberDesc(national_number_pattern='60\\d{7}', example_number='601234567', possible_length=(9,)),

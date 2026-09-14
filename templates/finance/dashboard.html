@@ -9,6 +9,24 @@
 <div class="finance-dashboard">
 {% include 'finance/includes/finance_tabs.html' with active_tab='dashboard' %}
 
+<!-- Smart Actions Bar -->
+<div class="smart-actions-bar mt-3">
+    <div class="smart-actions-group">
+        <a href="{% url 'fees:collect_fees' school_slug=school_slug %}" class="smart-btn smart-btn-primary">
+            <i class="fas fa-receipt"></i> Collect Fees
+        </a>
+        <a href="{% url 'finance:donations' school_slug=school_slug %}" class="smart-btn smart-btn-success">
+            <i class="fas fa-gift"></i> Receive Donation
+        </a>
+        <a href="{% url 'inventory:expense_list' school_slug=school_slug %}" class="smart-btn smart-btn-warning">
+            <i class="fas fa-money-bill"></i> Expenses
+        </a>
+        <a href="{% url 'inventory:staff_payment_list' school_slug=school_slug %}" class="smart-btn smart-btn-info">
+            <i class="fas fa-user-check"></i> Staff Payments
+        </a>
+    </div>
+</div>
+
 <div class="row g-3">
   {% for acc in cash_bank_accounts %}
   <div class="col-6 col-md-3">
@@ -32,19 +50,6 @@
     <div class="alert alert-info">No cash/bank accounts found. They will be auto-created when you open Finance pages. If not, please create from Chart of Accounts.</div>
   </div>
   {% endfor %}
-</div>
-
-<div class="card finance-quick-actions mt-4">
-  <div class="card-header">
-    <i class="fas fa-bolt"></i>
-    <span>Quick Actions</span>
-  </div>
-  <div class="card-body">
-    <a class="btn btn-primary" href="{% url 'fees:collect_fees' school_slug=school_slug %}"><i class="fas fa-receipt"></i> Collect Fees</a>
-    <a class="btn btn-success" href="{% url 'finance:donations' school_slug=school_slug %}"><i class="fas fa-gift"></i> Receive Donation</a>
-    <a class="btn btn-warning text-dark" href="{% url 'inventory:expense_list' school_slug=school_slug %}"><i class="fas fa-money-bill"></i> Expenses</a>
-    <a class="btn btn-outline-secondary" href="{% url 'inventory:staff_payment_list' school_slug=school_slug %}"><i class="fas fa-user-check"></i> Staff Payments</a>
-  </div>
 </div>
 </div>
 {% endblock %}

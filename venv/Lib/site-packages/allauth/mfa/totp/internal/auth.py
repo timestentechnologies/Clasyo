@@ -100,20 +100,17 @@ class TOTP:
     def validate_code(self, code: str) -> bool:
         if _is_insecure_bypass(code):
             return True
-        if self._is_code_used(code):
-            return False
 
         secret = decrypt(self.instance.data["secret"])
         valid = validate_totp_code(secret, code)
-        if valid:
-            self._mark_code_used(code)
-        return valid
+        if not valid:
+            return False
+        return self._mark_code_used(code)
 
     def _get_used_cache_key(self, code: str) -> str:
         return f"allauth.mfa.totp.used?user={self.instance.user_id}&code={code}"
 
-    def _is_code_used(self, code: str) -> bool:
-        return cache.get(self._get_used_cache_key(code)) == "y"
-
-    def _mark_code_used(self, code: str) -> None:
-        cache.set(self._get_used_cache_key(code), "y", timeout=app_settings.TOTP_PERIOD)
+    def _mark_code_used(self, code: str) -> bool:
+        return cache.add(
+            self._get_used_cache_key(code), "y", timeout=app_settings.TOTP_PERIOD
+        )

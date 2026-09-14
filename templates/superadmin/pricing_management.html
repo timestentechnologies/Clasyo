@@ -8,442 +8,253 @@
 {% block page_subtitle %}Manage website pricing tiers{% endblock %}
 
 {% block page_actions %}
-<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPlanModal">
-    <i class="fas fa-plus"></i> Add New Plan
+<button type="button" class="btn btn-primary"
+    onclick="toggleInPageFormView('pricingListCard', 'pricingFormPanel', 'create')">
+    <i class="fas fa-plus me-1"></i> Add New Plan
 </button>
 {% endblock %}
 
 {% block content %}
-
-            <div class="modern-card">
-                {% if pricing_plans %}
-                <div class="table-responsive">
-                    <table class="table modern-table">
-                        <thead>
-                            <tr>
-                                <th>Plan Name</th>
-                                <th>Price</th>
-                                <th>Duration</th>
-                                <th>Setup</th>
-                                <th>Data Migration</th>
-                                <th>License</th>
-                                <th>Training</th>
-                                <th>One-time Total</th>
-                                <th>Max Students</th>
-                                <th>Status</th>
-                                <th>Popular</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for plan in pricing_plans %}
-                            <tr>
-                                <td><strong>{{ plan.name }}</strong></td>
-                                <td>Ksh {{ plan.price|intcomma }}</td>
-                                <td>{{ plan.get_billing_cycle_display }}</td>
-                                <td>Ksh {{ plan.setup_fee|intcomma }}</td>
-                                <td>Ksh {{ plan.data_migration_fee|intcomma }}</td>
-                                <td>Ksh {{ plan.license_fee|intcomma }}</td>
-                                <td>Ksh {{ plan.training_fee|intcomma }}</td>
-                                <td><strong>Ksh {{ plan.one_time_total|intcomma }}</strong></td>
-                                <td>{{ plan.max_students|default:"Unlimited" }}</td>
-                                <td>
-                                    {% if plan.is_active %}
-                                        <span class="badge bg-success">Active</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">Inactive</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if plan.is_popular %}
-                                        <span class="badge bg-warning text-dark"><i class="fas fa-star"></i> Popular</span>
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <button type="button" class="btn btn-sm btn-outline-primary edit-plan-btn" data-bs-toggle="modal" data-bs-target="#editPlanModal"
-                                            data-id="{{ plan.id }}" 
-                                            data-name="{{ plan.name|escapejs }}" 
-                                            data-slug="{{ plan.slug|escapejs }}" 
-                                            data-plan-type="{{ plan.plan_type }}" 
-                                            data-price="{{ plan.price }}" 
-                                            data-billing-cycle="{{ plan.billing_cycle }}" 
-                                            data-trial-days="{{ plan.trial_days }}" 
-                                            data-max-students="{{ plan.max_students|default:''|escapejs }}" 
-                                            data-display-order="{{ plan.display_order }}" 
-                                            data-description="{{ plan.description|escapejs }}" 
-                                            data-setup-fee="{{ plan.setup_fee }}"
-                                            data-data-migration-fee="{{ plan.data_migration_fee }}"
-                                            data-license-fee="{{ plan.license_fee }}"
-                                            data-training-fee="{{ plan.training_fee }}"
-                                            data-is-active="{{ plan.is_active|yesno:'true,false' }}" 
-                                            data-is-popular="{{ plan.is_popular|yesno:'true,false' }}">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </button>
-                                    {% with subscription_count=plan.subscriptions.count %}
-                                    {% if subscription_count > 0 %}
-                                        <button type="button" class="btn btn-sm btn-outline-danger" disabled 
-                                                title="Cannot delete - {{ subscription_count }} subscription(s) associated">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </button>
-                                    {% else %}
-                                        <form method="post" action="{% url 'superadmin:pricing_management' %}" style="display: inline;">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="plan_id" value="{{ plan.id }}">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this plan?')">
-                                                <i class="fas fa-trash"></i> Delete
-                                            </button>
-                                        </form>
-                                    {% endif %}
-                                    {% endwith %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="text-center py-5">
-                    <i class="fas fa-tags fa-3x text-muted mb-3"></i>
-                    <p class="text-muted">No pricing plans found</p>
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPlanModal">
-                        <i class="fas fa-plus"></i> Create First Plan
-                    </button>
-                </div>
-                {% endif %}
+<div class="container-fluid">
+    <!-- Shared In-Page Single Form Panel -->
+    <div class="form-panel-view d-none" id="pricingFormPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <button type="button" class="btn btn-sm btn-outline-secondary"
+                    onclick="toggleInPageFormView('pricingListCard', 'pricingFormPanel', 'list')">
+                    <i class="fas fa-arrow-left me-1"></i> Back to List
+                </button>
+                <h5 class="mb-0 fw-bold form-title-text" data-create-title="Create New Pricing Plan"
+                    data-edit-title="Edit Pricing Plan">Create New Pricing Plan</h5>
+                <span class="form-mode-badge mode-create">New</span>
             </div>
-
-<!-- Add Plan Modal -->
-<div class="modal fade" id="addPlanModal" tabindex="-1" aria-labelledby="addPlanModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addPlanModalLabel">Add New Pricing Plan</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="form-header-actions">
+                <button type="button" class="btn btn-sm btn-light"
+                    onclick="toggleInPageFormView('pricingListCard', 'pricingFormPanel', 'list')">Cancel</button>
+                <button type="submit" form="pricingForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> Save Plan
+                </button>
             </div>
-            <form method="post" action="{% url 'superadmin:pricing_management' %}">
+        </div>
+        <div class="form-card-body">
+            <form id="pricingForm" method="post" action="{% url 'superadmin:pricing_management' %}">
                 {% csrf_token %}
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="id_name" class="form-label">Plan Name</label>
-                                <input type="text" class="form-control" id="id_name" name="name" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="id_slug" class="form-label">Slug</label>
-                                <input type="text" class="form-control" id="id_slug" name="slug" required>
-                            </div>
-                        </div>
+                <input type="hidden" name="plan_id" id="plan_id">
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="name" class="form-label fw-semibold">Plan Name</label>
+                        <input type="text" class="form-control" id="name" name="name"
+                            placeholder="e.g. Standard School Plan" required>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="id_plan_type" class="form-label">Plan Type</label>
-                                <select class="form-select" id="id_plan_type" name="plan_type" required>
-                                    <option value="basic">Basic</option>
-                                    <option value="standard">Standard</option>
-                                    <option value="premium">Premium</option>
-                                    <option value="enterprise">Enterprise</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="id_billing_cycle" class="form-label">Billing Cycle</label>
-                                <select class="form-select" id="id_billing_cycle" name="billing_cycle" required>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="termly">Termly</option>
-                                    <option value="quarterly">Quarterly</option>
-                                    <option value="half_yearly">Half Yearly</option>
-                                    <option value="yearly">Yearly</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="id_price" class="form-label">Price (KES)</label>
-                                <input type="number" class="form-control" id="id_price" name="price" step="0.01" min="0" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="id_trial_days" class="form-label">Trial Days</label>
-                                <input type="number" class="form-control" id="id_trial_days" name="trial_days" min="0" value="0">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="id_setup_fee" class="form-label">One-time Setup Fee (KES)</label>
-                                <input type="number" class="form-control" id="id_setup_fee" name="setup_fee" step="0.01" min="0" value="0">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="id_data_migration_fee" class="form-label">Data Migration Fee (KES)</label>
-                                <input type="number" class="form-control" id="id_data_migration_fee" name="data_migration_fee" step="0.01" min="0" value="0">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="id_license_fee" class="form-label">License Fee (KES)</label>
-                                <input type="number" class="form-control" id="id_license_fee" name="license_fee" step="0.01" min="0" value="0">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="id_training_fee" class="form-label">Training Fee (KES)</label>
-                                <input type="number" class="form-control" id="id_training_fee" name="training_fee" step="0.01" min="0" value="0">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="id_max_students" class="form-label">Max Students</label>
-                                <input type="number" class="form-control" id="id_max_students" name="max_students" min="0" placeholder="0 = Unlimited">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="id_display_order" class="form-label">Display Order</label>
-                                <input type="number" class="form-control" id="id_display_order" name="display_order" min="0" value="0">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="id_description" class="form-label">Description</label>
-                        <textarea class="form-control" id="id_description" name="description" rows="3"></textarea>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="id_is_active" name="is_active" checked>
-                                <label class="form-check-label" for="id_is_active">Active</label>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="id_is_popular" name="is_popular">
-                                <label class="form-check-label" for="id_is_popular">Popular</label>
-                            </div>
-                        </div>
+                    <div class="col-md-6">
+                        <label for="slug" class="form-label fw-semibold">Slug Identifier</label>
+                        <input type="text" class="form-control" id="slug" name="slug"
+                            placeholder="e.g. standard-school-plan" required>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Create Plan</button>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label for="plan_type" class="form-label fw-semibold">Plan Type</label>
+                        <select class="form-select" id="plan_type" name="plan_type" required>
+                            <option value="basic">Basic</option>
+                            <option value="standard">Standard</option>
+                            <option value="premium">Premium</option>
+                            <option value="enterprise">Enterprise</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="billing_cycle" class="form-label fw-semibold">Billing Cycle</label>
+                        <select class="form-select" id="billing_cycle" name="billing_cycle" required>
+                            <option value="monthly">Monthly</option>
+                            <option value="termly">Termly</option>
+                            <option value="annually">Annually</option>
+                            <option value="one_time">One Time</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="price" class="form-label fw-semibold">Subscription Price (Ksh)</label>
+                        <input type="number" step="0.01" class="form-control" id="price" name="price" placeholder="0.00"
+                            required>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold border-bottom pb-2 mt-4 mb-3"><i class="fas fa-coins text-warning me-2"></i>One-Time
+                    Onboarding & License Fees</h6>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <label for="setup_fee" class="form-label fw-semibold">System Setup Fee</label>
+                        <input type="number" step="0.01" class="form-control" id="setup_fee" name="setup_fee" value="0"
+                            placeholder="0.00">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="data_migration_fee" class="form-label fw-semibold">Data Migration Fee</label>
+                        <input type="number" step="0.01" class="form-control" id="data_migration_fee"
+                            name="data_migration_fee" value="0" placeholder="0.00">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="license_fee" class="form-label fw-semibold">Software License Fee</label>
+                        <input type="number" step="0.01" class="form-control" id="license_fee" name="license_fee"
+                            value="0" placeholder="0.00">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="training_fee" class="form-label fw-semibold">Staff Training Fee</label>
+                        <input type="number" step="0.01" class="form-control" id="training_fee" name="training_fee"
+                            value="0" placeholder="0.00">
+                    </div>
+                </div>
+
+                <h6 class="fw-bold border-bottom pb-2 mt-4 mb-3"><i class="fas fa-sliders-h text-info me-2"></i>Limits &
+                    Display Controls</h6>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label for="max_students" class="form-label fw-semibold">Max Students Capacity</label>
+                        <input type="number" class="form-control" id="max_students" name="max_students"
+                            placeholder="0 for unlimited">
+                        <small class="text-muted">Set to 0 for unlimited students.</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="trial_days" class="form-label fw-semibold">Free Trial Period (Days)</label>
+                        <input type="number" class="form-control" id="trial_days" name="trial_days" value="14"
+                            placeholder="14">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="display_order" class="form-label fw-semibold">Display Order Position</label>
+                        <input type="number" class="form-control" id="display_order" name="display_order" value="0"
+                            placeholder="0">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="description" class="form-label fw-semibold">Plan Description & Key Features</label>
+                    <textarea class="form-control" id="description" name="description" rows="3"
+                        placeholder="Enter plan summary and highlights..."></textarea>
+                </div>
+
+                <div class="row g-3 mb-2">
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                            <label class="form-check-label fw-semibold" for="is_active">Is Active (Visible for
+                                Subscription)</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_popular" name="is_popular">
+                            <label class="form-check-label fw-semibold" for="is_popular">Highlight as Popular
+                                Tier</label>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
-</div>
 
-<!-- Edit Plan Modal -->
-<div class="modal fade" id="editPlanModal" tabindex="-1" aria-labelledby="editPlanModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editPlanModalLabel">Edit Pricing Plan</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form method="post" action="{% url 'superadmin:pricing_management' %}">
-                {% csrf_token %}
-                <input type="hidden" id="edit_plan_id" name="plan_id">
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit_id_name" class="form-label">Plan Name</label>
-                                <input type="text" class="form-control" id="edit_id_name" name="name" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit_id_slug" class="form-label">Slug</label>
-                                <input type="text" class="form-control" id="edit_id_slug" name="slug" required>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit_id_plan_type" class="form-label">Plan Type</label>
-                                <select class="form-select" id="edit_id_plan_type" name="plan_type" required>
-                                    <option value="basic">Basic</option>
-                                    <option value="standard">Standard</option>
-                                    <option value="premium">Premium</option>
-                                    <option value="enterprise">Enterprise</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit_id_billing_cycle" class="form-label">Billing Cycle</label>
-                                <select class="form-select" id="edit_id_billing_cycle" name="billing_cycle" required>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="termly">Termly</option>
-                                    <option value="quarterly">Quarterly</option>
-                                    <option value="half_yearly">Half Yearly</option>
-                                    <option value="yearly">Yearly</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit_id_price" class="form-label">Price (KES)</label>
-                                <input type="number" class="form-control" id="edit_id_price" name="price" step="0.01" min="0" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit_id_trial_days" class="form-label">Trial Days</label>
-                                <input type="number" class="form-control" id="edit_id_trial_days" name="trial_days" min="0" value="0">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="edit_id_setup_fee" class="form-label">One-time Setup Fee (KES)</label>
-                                <input type="number" class="form-control" id="edit_id_setup_fee" name="setup_fee" step="0.01" min="0" value="0">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="edit_id_data_migration_fee" class="form-label">Data Migration Fee (KES)</label>
-                                <input type="number" class="form-control" id="edit_id_data_migration_fee" name="data_migration_fee" step="0.01" min="0" value="0">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="edit_id_license_fee" class="form-label">License Fee (KES)</label>
-                                <input type="number" class="form-control" id="edit_id_license_fee" name="license_fee" step="0.01" min="0" value="0">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="edit_id_training_fee" class="form-label">Training Fee (KES)</label>
-                                <input type="number" class="form-control" id="edit_id_training_fee" name="training_fee" step="0.01" min="0" value="0">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit_id_max_students" class="form-label">Max Students</label>
-                                <input type="number" class="form-control" id="edit_id_max_students" name="max_students" min="0" placeholder="0 = Unlimited">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit_id_display_order" class="form-label">Display Order</label>
-                                <input type="number" class="form-control" id="edit_id_display_order" name="display_order" min="0" value="0">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="edit_id_description" class="form-label">Description</label>
-                        <textarea class="form-control" id="edit_id_description" name="description" rows="3"></textarea>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="edit_id_is_active" name="is_active">
-                                <label class="form-check-label" for="edit_id_is_active">Active</label>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="edit_id_is_popular" name="is_popular">
-                                <label class="form-check-label" for="edit_id_is_popular">Popular</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Update Plan</button>
-                </div>
-            </form>
+    <!-- Pricing List View -->
+    <div class="modern-card" id="pricingListCard">
+        {% if pricing_plans %}
+        <div class="table-responsive">
+            <table class="table modern-table">
+                <thead>
+                    <tr>
+                        <th>Plan Name</th>
+                        <th>Price</th>
+                        <th>Duration</th>
+                        <th>Setup</th>
+                        <th>Data Migration</th>
+                        <th>License</th>
+                        <th>Training</th>
+                        <th>One-time Total</th>
+                        <th>Max Students</th>
+                        <th>Status</th>
+                        <th>Popular</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plan in pricing_plans %}
+                    <tr>
+                        <td><strong>{{ plan.name }}</strong></td>
+                        <td>Ksh {{ plan.price|intcomma }}</td>
+                        <td>{{ plan.get_billing_cycle_display }}</td>
+                        <td>Ksh {{ plan.setup_fee|intcomma }}</td>
+                        <td>Ksh {{ plan.data_migration_fee|intcomma }}</td>
+                        <td>Ksh {{ plan.license_fee|intcomma }}</td>
+                        <td>Ksh {{ plan.training_fee|intcomma }}</td>
+                        <td><strong>Ksh {{ plan.one_time_total|intcomma }}</strong></td>
+                        <td>{{ plan.max_students|default:"Unlimited" }}</td>
+                        <td>
+                            {% if plan.is_active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if plan.is_popular %}
+                            <span class="badge bg-warning text-dark"><i class="fas fa-star me-1"></i> Popular</span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleInPageFormView('pricingListCard', 'pricingFormPanel', 'edit', {
+                                        plan_id: '{{ plan.id }}',
+                                        name: '{{ plan.name|escapejs }}',
+                                        slug: '{{ plan.slug|escapejs }}',
+                                        plan_type: '{{ plan.plan_type }}',
+                                        price: '{{ plan.price }}',
+                                        billing_cycle: '{{ plan.billing_cycle }}',
+                                        trial_days: '{{ plan.trial_days }}',
+                                        max_students: '{{ plan.max_students|default:''|escapejs }}',
+                                        display_order: '{{ plan.display_order }}',
+                                        description: '{{ plan.description|escapejs }}',
+                                        setup_fee: '{{ plan.setup_fee }}',
+                                        data_migration_fee: '{{ plan.data_migration_fee }}',
+                                        license_fee: '{{ plan.license_fee }}',
+                                        training_fee: '{{ plan.training_fee }}',
+                                        is_active: {{ plan.is_active|yesno:'true,false' }},
+                                        is_popular: {{ plan.is_popular|yesno:'true,false' }}
+                                    })">
+                                <i class="fas fa-edit me-1"></i> Edit
+                            </button>
+                            {% with subscription_count=plan.subscriptions.count %}
+                            {% if subscription_count > 0 %}
+                            <button type="button" class="btn btn-sm btn-outline-danger" disabled
+                                title="Cannot delete - {{ subscription_count }} subscription(s) associated">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                            {% else %}
+                            <form method="post" action="{% url 'superadmin:pricing_management' %}"
+                                style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="plan_id" value="{{ plan.id }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                    onclick="return confirm('Are you sure you want to delete this plan?')">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </form>
+                            {% endif %}
+                            {% endwith %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+            <p class="text-muted">No pricing plans found</p>
+            <button type="button" class="btn btn-primary"
+                onclick="toggleInPageFormView('pricingListCard', 'pricingFormPanel', 'create')">
+                <i class="fas fa-plus me-1"></i> Create First Plan
+            </button>
+        </div>
+        {% endif %}
     </div>
 </div>
-
-<script>
-// Handle edit plan button clicks
-document.addEventListener('DOMContentLoaded', function() {
-    const editButtons = document.querySelectorAll('.edit-plan-btn');
-
-    function decodeEscapedText(value) {
-        if (!value) return value;
-        try {
-            const normalised = String(value)
-                .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-                .replace(/\\n/g, '\n')
-                .replace(/\\r/g, '\r')
-                .replace(/\\t/g, '\t')
-                .replace(/\\\\/g, '\\');
-            return normalised;
-        } catch (e) {
-            return value;
-        }
-    }
-    
-    editButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Get all data attributes
-            const id = this.getAttribute('data-id');
-            const name = this.getAttribute('data-name');
-            const slug = this.getAttribute('data-slug');
-            const planType = this.getAttribute('data-plan-type');
-            const price = this.getAttribute('data-price');
-            const billingCycle = this.getAttribute('data-billing-cycle');
-            const trialDays = this.getAttribute('data-trial-days');
-            const maxStudents = this.getAttribute('data-max-students');
-            const displayOrder = this.getAttribute('data-display-order');
-            const description = decodeEscapedText(this.getAttribute('data-description'));
-            const setupFee = this.getAttribute('data-setup-fee');
-            const dataMigrationFee = this.getAttribute('data-data-migration-fee');
-            const licenseFee = this.getAttribute('data-license-fee');
-            const trainingFee = this.getAttribute('data-training-fee');
-            const isActive = this.getAttribute('data-is-active');
-            const isPopular = this.getAttribute('data-is-popular');
-            
-            // Populate the edit form
-            document.getElementById('edit_plan_id').value = id;
-            document.getElementById('edit_id_name').value = name || '';
-            document.getElementById('edit_id_slug').value = slug || '';
-            document.getElementById('edit_id_plan_type').value = planType || 'basic';
-            document.getElementById('edit_id_price').value = price || '0';
-            document.getElementById('edit_id_billing_cycle').value = billingCycle || 'monthly';
-            document.getElementById('edit_id_trial_days').value = trialDays || '0';
-            document.getElementById('edit_id_max_students').value = maxStudents || '0';
-            document.getElementById('edit_id_display_order').value = displayOrder || '0';
-            document.getElementById('edit_id_description').value = description || '';
-            document.getElementById('edit_id_setup_fee').value = setupFee || '0';
-            document.getElementById('edit_id_data_migration_fee').value = dataMigrationFee || '0';
-            document.getElementById('edit_id_license_fee').value = licenseFee || '0';
-            document.getElementById('edit_id_training_fee').value = trainingFee || '0';
-            document.getElementById('edit_id_is_active').checked = isActive === 'true';
-            document.getElementById('edit_id_is_popular').checked = isPopular === 'true';
-        });
-    });
-});
-</script>
-
 {% endblock %}

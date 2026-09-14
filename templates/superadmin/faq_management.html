@@ -7,180 +7,107 @@
 {% block page_subtitle %}Manage frequently asked questions{% endblock %}
 
 {% block page_actions %}
-<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addFaqModal">
-    <i class="fas fa-plus"></i> Add FAQ
+<button type="button" class="btn btn-primary" onclick="toggleInPageFormView('faqListCard', 'faqFormPanel', 'create')">
+    <i class="fas fa-plus me-1"></i> Add FAQ
 </button>
 {% endblock %}
 
 {% block content %}
-
-            <div class="modern-card">
-                {% if faqs %}
-                <div class="accordion" id="faqAccordion">
-                    {% for faq in faqs %}
-                    <div class="accordion-item">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq{{ faq.id }}">
-                                <strong>{{ faq.question }}</strong>
-                                <span class="badge bg-info ms-2">{{ faq.category }}</span>
-                                {% if faq.is_active %}
-                                    <span class="badge bg-success ms-2">Active</span>
-                                {% else %}
-                                    <span class="badge bg-secondary ms-2">Inactive</span>
-                                {% endif %}
-                            </button>
-                        </h2>
-                        <div id="faq{{ faq.id }}" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body">
-                                <p>{{ faq.answer|linebreaks }}</p>
-                                <button type="button" class="btn btn-sm btn-outline-primary edit-faq-btn"
-                                        data-bs-toggle="modal" data-bs-target="#editFaqModal"
-                                        data-id="{{ faq.id }}"
-                                        data-question="{{ faq.question|escapejs }}"
-                                        data-answer="{{ faq.answer|escapejs }}"
-                                        data-category="{{ faq.category|escapejs }}"
-                                        data-order="{{ faq.order }}"
-                                        data-is-active="{{ faq.is_active|yesno:'true,false' }}">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </button>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="text-center py-5">
-                    <i class="fas fa-question-circle fa-3x text-muted mb-3"></i>
-                    <p class="text-muted">No FAQs found</p>
-                    <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addFaqModal">
-                        <i class="fas fa-plus"></i> Create First FAQ
-                    </a>
-                </div>
-                {% endif %}
+<div class="container-fluid">
+    <!-- Shared In-Page Single Form Panel -->
+    <div class="form-panel-view d-none" id="faqFormPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('faqListCard', 'faqFormPanel', 'list')">
+                    <i class="fas fa-arrow-left me-1"></i> Back to List
+                </button>
+                <h5 class="mb-0 fw-bold form-title-text" data-create-title="Create New FAQ" data-edit-title="Edit FAQ">Create New FAQ</h5>
+                <span class="form-mode-badge mode-create">New</span>
             </div>
-
-<!-- Add FAQ Modal -->
-<div class="modal fade" id="addFaqModal" tabindex="-1" aria-labelledby="addFaqModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addFaqModalLabel">Add FAQ</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="form-header-actions">
+                <button type="button" class="btn btn-sm btn-light" onclick="toggleInPageFormView('faqListCard', 'faqFormPanel', 'list')">Cancel</button>
+                <button type="submit" form="faqForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> Save FAQ
+                </button>
             </div>
-            <form method="post" action="#">
+        </div>
+        <div class="form-card-body">
+            <form id="faqForm" method="post" action="#">
                 {% csrf_token %}
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="add_question" class="form-label">Question</label>
-                        <input type="text" class="form-control" id="add_question" name="question" required>
+                <input type="hidden" name="faq_id" id="faq_id">
+                <div class="mb-3">
+                    <label for="question" class="form-label fw-semibold">Question</label>
+                    <input type="text" class="form-control" id="question" name="question" placeholder="Enter question..." required>
+                </div>
+                <div class="mb-3">
+                    <label for="answer" class="form-label fw-semibold">Answer</label>
+                    <textarea class="form-control" id="answer" name="answer" rows="4" placeholder="Enter answer details..." required></textarea>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="category" class="form-label fw-semibold">Category</label>
+                        <input type="text" class="form-control" id="category" name="category" value="General" placeholder="e.g. General, Billing, Technical">
                     </div>
-                    <div class="mb-3">
-                        <label for="add_answer" class="form-label">Answer</label>
-                        <textarea class="form-control" id="add_answer" name="answer" rows="4" required></textarea>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="add_category" class="form-label">Category</label>
-                                <input type="text" class="form-control" id="add_category" name="category" value="General">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="add_order" class="form-label">Order</label>
-                                <input type="number" class="form-control" id="add_order" name="order" value="0">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="add_is_active" name="is_active" checked>
-                            <label class="form-check-label" for="add_is_active">Is Active</label>
-                        </div>
+                    <div class="col-md-6">
+                        <label for="order" class="form-label fw-semibold">Order Position</label>
+                        <input type="number" class="form-control" id="order" name="order" value="0" placeholder="Display position index">
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Create FAQ</button>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                    <label class="form-check-label fw-semibold" for="is_active">Is Active</label>
                 </div>
             </form>
         </div>
     </div>
-</div>
 
-<!-- Edit FAQ Modal -->
-<div class="modal fade" id="editFaqModal" tabindex="-1" aria-labelledby="editFaqModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editFaqModalLabel">Edit FAQ</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <!-- FAQ List View -->
+    <div class="modern-card" id="faqListCard">
+        {% if faqs %}
+        <div class="accordion" id="faqAccordion">
+            {% for faq in faqs %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq{{ faq.id }}">
+                        <strong>{{ faq.question }}</strong>
+                        <span class="badge bg-info ms-2">{{ faq.category }}</span>
+                        {% if faq.is_active %}
+                            <span class="badge bg-success ms-2">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary ms-2">Inactive</span>
+                        {% endif %}
+                    </button>
+                </h2>
+                <div id="faq{{ faq.id }}" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="mb-0">{{ faq.answer|linebreaks }}</p>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary ms-3"
+                                onclick="toggleInPageFormView('faqListCard', 'faqFormPanel', 'edit', {
+                                    faq_id: '{{ faq.id }}',
+                                    question: '{{ faq.question|escapejs }}',
+                                    answer: '{{ faq.answer|escapejs }}',
+                                    category: '{{ faq.category|escapejs }}',
+                                    order: '{{ faq.order }}',
+                                    is_active: {{ faq.is_active|yesno:'true,false' }}
+                                })">
+                            <i class="fas fa-edit me-1"></i> Edit
+                        </button>
+                    </div>
+                </div>
             </div>
-            <form method="post" action="#">
-                {% csrf_token %}
-                <input type="hidden" id="edit_faq_id" name="faq_id">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="edit_question" class="form-label">Question</label>
-                        <input type="text" class="form-control" id="edit_question" name="question" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="edit_answer" class="form-label">Answer</label>
-                        <textarea class="form-control" id="edit_answer" name="answer" rows="4" required></textarea>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit_category" class="form-label">Category</label>
-                                <input type="text" class="form-control" id="edit_category" name="category">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit_order" class="form-label">Order</label>
-                                <input type="number" class="form-control" id="edit_order" name="order">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="edit_is_active" name="is_active">
-                            <label class="form-check-label" for="edit_is_active">Is Active</label>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Update FAQ</button>
-                </div>
-            </form>
+            {% endfor %}
         </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-question-circle fa-3x text-muted mb-3"></i>
+            <p class="text-muted">No FAQs found</p>
+            <button type="button" class="btn btn-primary" onclick="toggleInPageFormView('faqListCard', 'faqFormPanel', 'create')">
+                <i class="fas fa-plus me-1"></i> Create First FAQ
+            </button>
+        </div>
+        {% endif %}
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const editButtons = document.querySelectorAll('.edit-faq-btn');
-    
-    editButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const id = this.getAttribute('data-id');
-            const question = this.getAttribute('data-question');
-            const answer = this.getAttribute('data-answer');
-            const category = this.getAttribute('data-category');
-            const order = this.getAttribute('data-order');
-            const isActive = this.getAttribute('data-is-active');
-            
-            // Populate form
-            document.getElementById('edit_faq_id').value = id;
-            document.getElementById('edit_question').value = question;
-            document.getElementById('edit_answer').value = answer;
-            document.getElementById('edit_category').value = category;
-            document.getElementById('edit_order').value = order;
-            document.getElementById('edit_is_active').checked = isActive === 'true';
-        });
-    });
-});
-</script>
-
 {% endblock %}

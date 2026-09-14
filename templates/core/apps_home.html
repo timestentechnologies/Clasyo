@@ -88,79 +88,109 @@
             color: var(--light-text);
         }
 
-        [data-theme="light"] .apps-header {
-            background: rgba(255, 255, 255, 0.95) !important;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        }
-
-        [data-theme="light"] .user-info {
-            background: rgba(0, 0, 0, 0.05) !important;
-        }
-
-        [data-theme="light"] .app-card {
-            background: transparent !important;
-            color: var(--light-text);
-        }
-
-        [data-theme="light"] .app-name {
-            color: var(--light-text);
-        }
-
-        [data-theme="light"] .search-box input {
-            background: rgba(0, 0, 0, 0.05);
-            border: 2px solid #4DD0E1;
-            color: var(--light-text);
-            box-shadow: 0 0 0 2px rgba(77, 208, 225, 0.2);
-        }
-
-        [data-theme="light"] .search-box input:focus {
-            background: white;
-            border-color: #4DD0E1;
-            box-shadow: 0 0 0 4px rgba(77, 208, 225, 0.3);
-            outline: none;
-        }
-
-        [data-theme="light"] .search-box i {
-            color: #4DD0E1;
-        }
-
-        [data-theme="light"] .search-box input::placeholder {
-            color: #94a3b8;
-        }
-
-        [data-theme="light"] .school-name p {
-            color: var(--light-text-secondary);
-        }
-
-        [data-theme="light"] .user-info {
-            background: rgba(0, 0, 0, 0.05);
-        }
-
-        [data-theme="light"] .logout-btn {
-            border-color: rgba(0, 0, 0, 0.2) !important;
-            color: var(--light-text) !important;
-        }
-
-        [data-theme="light"] .logout-btn:hover {
-            background: rgba(0, 0, 0, 0.05) !important;
-            border-color: rgba(0, 0, 0, 0.3) !important;
-            color: var(--light-text) !important;
-        }
-
-        [data-theme="dark"] .logout-btn {
-            border-color: rgba(255, 255, 255, 0.3) !important;
-            color: #fff !important;
-        }
-
+        /* Seamless Header Styles */
         .apps-header {
-            background: rgba(42, 48, 66, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            background: transparent !important;
+            border-bottom: none !important;
+            box-shadow: none !important;
+            padding: 1.25rem 2rem 0.5rem;
             position: sticky;
             top: 0;
             z-index: 100;
-            transition: var(--transition);
+            transition: all 0.3s ease;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header-search,
+        .header-content .search-box {
+            flex: 1;
+            max-width: 420px;
+            margin: 0 1rem;
+        }
+
+        .user-header-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        .user-avatar-link {
+            text-decoration: none;
+            display: inline-block;
+            outline: none;
+        }
+
+        .user-avatar {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #4dd0e1 0%, #26c6da 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #FFFFFF;
+            box-shadow: 0 3px 10px rgba(77, 208, 225, 0.35);
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+
+        .user-avatar-link:hover .user-avatar,
+        .user-avatar:hover {
+            transform: scale(1.08);
+            box-shadow: 0 5px 15px rgba(77, 208, 225, 0.5);
+        }
+
+        .logout-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.45rem 1rem;
+            border-radius: 20px !important;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.25s ease !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+            color: rgba(255, 255, 255, 0.85) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            box-shadow: none !important;
+        }
+
+        .logout-btn:hover {
+            background: rgba(239, 68, 68, 0.2) !important;
+            color: #FF6B6B !important;
+            border-color: rgba(239, 68, 68, 0.4) !important;
+            transform: translateY(-1px);
+        }
+
+        [data-theme="light"] .logout-btn,
+        body.theme-light .logout-btn {
+            background: #F1F5F9 !important;
+            color: #475569 !important;
+            border: 1px solid #E2E8F0 !important;
+        }
+
+        [data-theme="light"] .logout-btn:hover,
+        body.theme-light .logout-btn:hover {
+            background: #FEE2E2 !important;
+            color: #EF4444 !important;
+            border-color: #FCA5A5 !important;
         }
 
         .header-content {
@@ -269,39 +299,28 @@
             transition: all 0.3s ease;
         }
 
-        .search-section {
-            padding: 2rem;
+        /* Filter Section & Buttons */
+        .filter-section {
             max-width: 1400px;
-            margin: 0 auto;
+            margin: 5.5rem auto 5rem !important;
+            padding: 0 2rem;
+            width: 100%;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            text-align: center;
         }
 
         .search-box {
             position: relative;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .search-box input {
+            display: flex;
+            align-items: center;
             width: 100%;
-            padding: 1rem 1rem 1rem 3.5rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            color: #fff;
-            font-size: 1rem;
-            transition: var(--transition);
         }
 
-        .search-box input:focus {
-            outline: none;
-            background: rgba(255, 255, 255, 0.15);
-            border-color: #4dd0e1;
-            box-shadow: 0 0 0 4px rgba(77, 208, 225, 0.3);
-        }
-
-        .search-box input::placeholder {
-            color: rgba(255, 255, 255, 0.7);
-            font-weight: 400;
+        .search-box::before {
+            display: none !important;
+            content: none !important;
         }
 
         .search-box i {
@@ -309,70 +328,118 @@
             left: 1.25rem;
             top: 50%;
             transform: translateY(-50%);
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 1.25rem;
+            color: #4DD0E1 !important;
+            font-size: 1.1rem;
+            z-index: 5;
+            pointer-events: none;
         }
 
-        /* Filter Buttons */
-        .filter-section {
-            padding: 1rem 2rem;
-            max-width: 1400px;
-            margin: 0 auto;
+        .search-box input {
+            width: 100%;
+            padding: 0.65rem 1.25rem 0.65rem 3.25rem !important;
+            font-size: 0.95rem;
+            border-radius: 12px !important;
+            transition: all 0.25s ease-in-out;
+            outline: none !important;
+            box-sizing: border-box;
+            background-color: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            color: #FFFFFF !important;
+        }
+
+        .search-box input:focus {
+            background-color: rgba(255, 255, 255, 0.12) !important;
+            border-color: #4DD0E1 !important;
+            box-shadow: 0 0 0 3px rgba(77, 208, 225, 0.25) !important;
+        }
+
+        .search-box input::placeholder {
+            color: rgba(255, 255, 255, 0.5) !important;
+        }
+
+        [data-theme="light"] .search-box input {
+            background-color: #FFFFFF !important;
+            border: 1px solid #E2E8F0 !important;
+            color: #1E293B !important;
+        }
+
+        [data-theme="light"] .search-box input:focus {
+            border-color: #4DD0E1 !important;
+            box-shadow: 0 0 0 3px rgba(77, 208, 225, 0.2) !important;
+        }
+
+        [data-theme="light"] .search-box input::placeholder {
+            color: #94A3B8 !important;
         }
 
         .filter-buttons {
             display: flex;
+            align-items: center;
+            justify-content: center;
             gap: 0.75rem;
             flex-wrap: wrap;
-            justify-content: center;
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 auto !important;
         }
 
         .filter-btn {
-            padding: 0.5rem 1.25rem;
-            border: none;
-            border-radius: 20px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            -webkit-appearance: none !important;
+            appearance: none !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 0.5rem 1.25rem !important;
+            font-size: 0.875rem !important;
+            font-weight: 500 !important;
+            border-radius: 25px !important;
+            cursor: pointer !important;
+            transition: all 0.25s ease-in-out !important;
+            outline: none !important;
+            text-decoration: none !important;
+            white-space: nowrap !important;
+            background-color: rgba(255, 255, 255, 0.08) !important;
+            color: rgba(255, 255, 255, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            box-shadow: none !important;
         }
 
         .filter-btn:hover {
-            background: rgba(255, 255, 255, 0.15);
-            color: #fff;
-            transform: translateY(-1px);
+            background-color: rgba(255, 255, 255, 0.16) !important;
+            color: #FFFFFF !important;
+            border-color: rgba(255, 255, 255, 0.25) !important;
+            transform: translateY(-1px) !important;
         }
 
         .filter-btn.active {
-            background: #4dd0e1;
-            color: #fff;
-            border-color: #4dd0e1;
-            box-shadow: 0 2px 8px rgba(77, 208, 225, 0.3);
+            background-color: #4DD0E1 !important;
+            color: #0F172A !important;
+            border-color: #4DD0E1 !important;
+            font-weight: 600 !important;
+            box-shadow: 0 4px 12px rgba(77, 208, 225, 0.35) !important;
         }
 
-        /* Light theme filter buttons */
         [data-theme="light"] .filter-btn {
-            background: #f1f5f9;
-            color: #64748b;
-            border-color: #e2e8f0;
+            background-color: #F1F5F9 !important;
+            color: #64748B !important;
+            border: 1px solid #E2E8F0 !important;
         }
 
         [data-theme="light"] .filter-btn:hover {
-            background: #e2e8f0;
-            color: #475569;
+            background-color: #E2E8F0 !important;
+            color: #334155 !important;
         }
 
         [data-theme="light"] .filter-btn.active {
-            background: #4dd0e1;
-            color: #fff;
-            border-color: #4dd0e1;
+            background-color: #4DD0E1 !important;
+            color: #FFFFFF !important;
+            border-color: #4DD0E1 !important;
         }
 
         .apps-container {
-            padding: 0 2rem 2rem;
+            padding: 1rem 2rem 4rem !important;
             max-width: 1400px;
             margin: 0 auto;
         }
@@ -458,6 +525,10 @@
         }
 
         @media (max-width: 768px) {
+            .filter-section {
+                margin: 2.5rem auto 2rem !important;
+            }
+
             .apps-grid {
                 grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
                 gap: 1rem;
@@ -493,20 +564,54 @@
                     <p>Management System</p>
                 </div>
             </div>
-            <!-- Theme toggle removed from here -->
-            <div class="user-info">
-                <div class="user-avatar">{{ user.first_name.0|upper }}{{ user.last_name.0|upper }}</div>
-                <a href="{% url 'accounts:logout' %}" class="btn btn-sm btn-outline-light logout-btn">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span class="d-none d-sm-inline">Logout</span>
-                </a>
+
+            <div class="search-box header-search">
+                <i class="fas fa-search"></i>
+                <input type="text" id="appSearch" placeholder="Search for apps...">
+            </div>
+
+            <div class="user-header-controls">
+                <div class="dropdown">
+                    <a href="{% if user.role == 'superadmin' %}{% url 'superadmin:profile' %}{% elif school_slug %}{% url 'core:profile' school_slug=school_slug %}{% else %}{% url 'accounts:profile' %}{% endif %}" 
+                       class="user-avatar-link" 
+                       id="userProfileDropdown" 
+                       data-bs-toggle="dropdown" 
+                       aria-expanded="false" 
+                       title="{{ user.get_full_name|default:user.email }}">
+                        <div class="user-avatar">{{ user.first_name.0|upper }}{{ user.last_name.0|upper }}</div>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg" aria-labelledby="userProfileDropdown">
+                        <li class="px-3 py-2 border-bottom">
+                            <div class="fw-semibold text-truncate" style="max-width: 180px;">{{ user.get_full_name|default:user.email }}</div>
+                            <div class="text-muted small">{{ user.role|title }}</div>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2 mt-1" href="{% if user.role == 'superadmin' %}{% url 'superadmin:profile' %}{% elif school_slug %}{% url 'core:profile' school_slug=school_slug %}{% else %}{% url 'accounts:profile' %}{% endif %}">
+                                <i class="fas fa-user me-2"></i> View Profile
+                            </a>
+                        </li>
+                        {% if user.role != 'superadmin' and user.role != 'parent' %}
+                        <li>
+                            <a class="dropdown-item py-2" href="{% if school_slug %}{% url 'core:settings' school_slug=school_slug %}{% else %}#{% endif %}">
+                                <i class="fas fa-cog me-2"></i> Settings
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item py-2" href="{% url 'accounts:logout' %}">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     </header>
-    <div class="search-section">
+    <div class="filter-section">
         {% if show_subscription_banner %}
         <div class="alert alert-warning d-flex align-items-center mb-3" role="alert"
-            style="max-width: 900px; margin: 0 auto 1rem;">
+            style="max-width: 1400px; margin: 0 auto 1rem;">
             <i class="fas fa-exclamation-triangle me-2"></i>
             <div>
                 Your subscription ends in <strong>{{ sub_days_remaining }}</strong> day{{
@@ -514,12 +619,6 @@
             </div>
         </div>
         {% endif %}
-        <div class="search-box">
-            <i class="fas fa-search"></i>
-            <input type="text" id="appSearch" placeholder="Search for apps...">
-        </div>
-    </div>
-    <div class="filter-section">
         <div class="filter-buttons">
             <button class="filter-btn active" data-filter="all">All</button>
             <button class="filter-btn" data-filter="academic">Academic</button>
@@ -887,16 +986,39 @@
     {% include 'includes/calculator_modal.html' %}
 
     <script>
-        // Initialize theme from localStorage or system preference
+        // Apply theme attributes to document and body
+        function applyTheme(theme) {
+            if (typeof window.applyTheme === 'function') {
+                window.applyTheme(theme);
+            } else {
+                document.documentElement.setAttribute('data-theme', theme);
+                document.documentElement.setAttribute('data-bs-theme', theme);
+                document.body.setAttribute('data-theme', theme);
+                document.body.setAttribute('data-bs-theme', theme);
+                if (theme === 'dark') {
+                    document.documentElement.classList.add('theme-dark');
+                    document.body.classList.add('dark-theme');
+                    document.documentElement.classList.remove('theme-light');
+                    document.body.classList.remove('theme-light');
+                } else {
+                    document.documentElement.classList.add('theme-light');
+                    document.body.classList.add('theme-light');
+                    document.documentElement.classList.remove('theme-dark');
+                    document.body.classList.remove('dark-theme');
+                }
+            }
+            updateThemeIcon(theme);
+        }
+
         function initTheme() {
             const currentTheme = localStorage.getItem('theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', currentTheme);
-            updateThemeIcon(currentTheme);
+            applyTheme(currentTheme);
         }
 
         // Update theme icon based on current theme
         function updateThemeIcon(theme) {
             const icon = document.getElementById('theme-icon');
+            if (!icon) return;
             if (theme === 'dark') {
                 icon.className = 'fas fa-moon';
                 icon.style.transform = 'rotate(0deg)';
@@ -908,12 +1030,11 @@
 
         // Toggle theme function
         function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
 
-            document.documentElement.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
-            updateThemeIcon(newTheme);
+            applyTheme(newTheme);
         }
 
         // Initialize theme on page load
@@ -921,7 +1042,10 @@
             initTheme();
 
             // Add click event to theme toggle button
-            document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
+            const btn = document.getElementById('theme-toggle-btn');
+            if (btn) {
+                btn.addEventListener('click', toggleTheme);
+            }
         });
 
         // Search functionality

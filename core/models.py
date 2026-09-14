@@ -141,10 +141,16 @@ class SystemSetting(models.Model):
     school_logo = models.ImageField(_("School Logo"), upload_to='settings/', blank=True, null=True)
     school_favicon = models.ImageField(_("School Favicon"), upload_to='settings/', blank=True, null=True)
     
-    # Theme & Branding Customization
-    primary_color = models.CharField(_("Primary Color"), max_length=20, default='#1E3A5F', blank=True)
-    secondary_color = models.CharField(_("Secondary Color"), max_length=20, default='#2C5282', blank=True)
-    accent_color = models.CharField(_("Accent Color"), max_length=20, default='#4DD0E1', blank=True)
+    # Theme & Branding Customization (Light & Dark Themes)
+    primary_color = models.CharField(_("Primary Color"), max_length=20, default='#0284C7', blank=True)
+    secondary_color = models.CharField(_("Secondary Color"), max_length=20, default='#475569', blank=True)
+    accent_color = models.CharField(_("Accent Color"), max_length=20, default='#38BDF8', blank=True)
+    
+    dark_primary_color = models.CharField(_("Dark Mode Primary Color"), max_length=20, default='#38BDF8', blank=True)
+    dark_secondary_color = models.CharField(_("Dark Mode Secondary Color"), max_length=20, default='#818CF8', blank=True)
+    dark_accent_color = models.CharField(_("Dark Mode Accent Color"), max_length=20, default='#4DD0E1', blank=True)
+    dark_bg_color = models.CharField(_("Dark Mode Background Color"), max_length=20, default='#0F172A', blank=True)
+
     default_navigation_layout = models.CharField(
         _("Default Navigation Layout"),
         max_length=20,

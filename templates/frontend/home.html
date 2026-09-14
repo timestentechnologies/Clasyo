@@ -5,801 +5,8 @@
 {% block meta_description %}Clasyo is a modern Kenyan school management system for CBC, primary, secondary and TVET institutions. Manage admissions, academics, exams, fees, AI assistant insights, finance & accounting (Chart of Accounts, General Ledger, Trial Balance), inventory, communication and reporting for schools across Kenya.{% endblock %}
 
 {% block extra_css %}
-<style>
-    /* ==========================================================================
-       Hero Section Styles (Clean Solid Palette - No Gradients)
-       ========================================================================== */
-    .hero-section {
-        color: #ffffff;
-        padding: 5.5rem 0 4.5rem;
-        position: relative;
-        overflow: hidden;
-        {% if hero_content and hero_content.bg_type == 'image' and hero_content.bg_image %}
-        background: url('{{ hero_content.bg_image.url }}') center/cover no-repeat;
-        {% elif hero_content and hero_content.bg_type == 'color' %}
-        background-color: {{ hero_content.bg_color }};
-        {% else %}
-        background-color: #0f172a;
-        {% endif %}
-    }
-    
-    .hero-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(15, 23, 42, {{ hero_content.overlay_opacity|default:"0.85" }});
-        z-index: 1;
-        pointer-events: none;
-    }
-    
-    /* Decorative background icons */
-    .bg-icons {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        overflow: hidden;
-        opacity: 0.04;
-        pointer-events: none;
-        z-index: 2;
-    }
-    
-    .bg-icon {
-        position: absolute;
-        color: #ffffff;
-        animation: float 20s ease-in-out infinite;
-    }
-    
-    .bg-icon:nth-child(1) { top: 10%; left: 10%; font-size: 3rem; animation-delay: 0s; }
-    .bg-icon:nth-child(2) { top: 20%; right: 15%; font-size: 2.5rem; animation-delay: 2s; }
-    .bg-icon:nth-child(3) { bottom: 15%; left: 15%; font-size: 2rem; animation-delay: 4s; }
-    .bg-icon:nth-child(4) { top: 50%; right: 10%; font-size: 3.5rem; animation-delay: 1s; }
-    .bg-icon:nth-child(5) { bottom: 25%; right: 25%; font-size: 2rem; animation-delay: 3s; }
-    .bg-icon:nth-child(6) { top: 30%; left: 20%; font-size: 2.5rem; animation-delay: 5s; }
-    
-    @keyframes float {
-        0%, 100% { transform: translateY(0px) rotate(0deg); }
-        25% { transform: translateY(-16px) rotate(4deg); }
-        50% { transform: translateY(-8px) rotate(-4deg); }
-        75% { transform: translateY(-12px) rotate(2deg); }
-    }
-    
-    .hero-section .container {
-        position: relative;
-        z-index: 3;
-    }
-    
-    .hero-title {
-        font-size: 3.2rem;
-        font-weight: 800;
-        margin-bottom: 1.25rem;
-        line-height: 1.2;
-        min-height: 90px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-wrap: wrap;
-        letter-spacing: -0.5px;
-        color: #ffffff;
-    }
-    
-    .typing-text {
-        margin-right: 6px;
-        color: #38bdf8;
-        font-weight: 800;
-    }
-    
-    .cursor {
-        display: inline-block;
-        animation: blink 1s infinite;
-        font-weight: 300;
-        color: #38bdf8;
-    }
-    
-    @keyframes blink {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0; }
-    }
-    
-    .hero-subtitle {
-        font-size: 1.15rem;
-        color: #cbd5e1;
-        margin-bottom: 2.25rem;
-        max-width: 620px;
-        margin-left: auto;
-        margin-right: auto;
-        line-height: 1.6;
-    }
-
-    .hero-buttons-container {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
-    
-    .btn-hero {
-        font-weight: 600;
-        border-radius: 50px;
-        transition: all 0.25s ease;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        letter-spacing: 0.2px;
-        cursor: pointer;
-        white-space: nowrap;
-    }
-
-    .btn-hero-action {
-        padding: 0.75rem 1.75rem;
-        font-size: 0.98rem;
-    }
-
-    .btn-cta {
-        padding: 0.75rem 2.2rem;
-        font-size: 1rem;
-        width: auto;
-        display: inline-flex;
-    }
-    
-    .btn-hero-primary {
-        background-color: #0284c7;
-        color: #ffffff;
-        border: 1px solid #0284c7;
-        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
-    }
-    
-    .btn-hero-primary:hover,
-    .btn-hero-primary:focus {
-        background-color: #0369a1;
-        border-color: #0369a1;
-        color: #ffffff;
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(2, 132, 199, 0.45);
-    }
-    
-    .btn-hero-outline {
-        background-color: rgba(255, 255, 255, 0.08);
-        color: #ffffff;
-        border: 1.5px solid rgba(255, 255, 255, 0.4);
-    }
-    
-    .btn-hero-outline:hover,
-    .btn-hero-outline:focus {
-        background-color: rgba(255, 255, 255, 0.18);
-        border-color: #ffffff;
-        color: #ffffff;
-        transform: translateY(-2px);
-    }
-    
-    /* ==========================================================================
-       Stats Section
-       ========================================================================== */
-    .stats-section {
-        padding: 3.5rem 0 2.5rem;
-        background-color: #f8fafc;
-        margin-top: 0;
-        position: relative;
-        z-index: 10;
-        border-bottom: 1px solid #e2e8f0;
-    }
-    
-    .stat-card {
-        background-color: #ffffff;
-        padding: 1.5rem 1rem;
-        border-radius: 16px;
-        text-align: center;
-        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
-        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-        border: 1px solid #e2e8f0;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .stat-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 10px 24px rgba(2, 132, 199, 0.12);
-        border-color: #bae6fd;
-    }
-    
-    .stat-icon {
-        width: 48px;
-        height: 48px;
-        background-color: #e0f2fe;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 0.75rem;
-        color: #0284c7;
-        font-size: 1.25rem;
-        border: 1px solid #bae6fd;
-    }
-    
-    .stat-number {
-        font-size: 1.9rem;
-        font-weight: 800;
-        color: #0f172a;
-        margin-bottom: 0.2rem;
-        line-height: 1.15;
-    }
-    
-    .stat-label {
-        color: #64748b;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.75px;
-        font-size: 0.75rem;
-    }
-
-    /* ==========================================================================
-       Interactive Process / How It Works Stepper (Matching Screenshot)
-       ========================================================================== */
-    .process-section {
-        padding: 6rem 0;
-        background-color: #ffffff;
-        position: relative;
-    }
-
-    .process-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.82rem;
-        font-weight: 700;
-        color: #d97706;
-        text-transform: uppercase;
-        letter-spacing: 1.2px;
-        margin-bottom: 0.75rem;
-    }
-
-    .process-badge::before {
-        content: '';
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background-color: #d97706;
-    }
-
-    .process-header-title {
-        font-size: 2.75rem;
-        font-weight: 800;
-        color: #0f172a;
-        letter-spacing: -0.75px;
-        line-height: 1.2;
-        margin-bottom: 1rem;
-    }
-
-    .process-header-desc {
-        font-size: 1.12rem;
-        color: #64748b;
-        max-width: 680px;
-        line-height: 1.6;
-        margin-bottom: 4rem;
-    }
-
-    /* Vertical Stepper Timeline (Left Column) */
-    .process-timeline {
-        position: relative;
-        padding-left: 2.5rem;
-    }
-
-    /* Continuous Background Track Line */
-    .process-timeline-rail {
-        position: absolute;
-        left: 12px;
-        top: 14px;
-        bottom: 24px;
-        width: 2px;
-        background-color: #e2e8f0;
-        z-index: 1;
-    }
-
-    /* Dynamic Highlight Progress Bar that moves on scroll */
-    .process-timeline-progress {
-        position: absolute;
-        left: 12px;
-        top: 14px;
-        width: 2px;
-        height: 0;
-        background-color: #d97706;
-        z-index: 2;
-        transition: height 0.2s cubic-bezier(0.2, 0.8, 0.4, 1);
-    }
-
-    .process-phase-block {
-        position: relative;
-        padding-bottom: 3.5rem;
-        transition: all 0.3s ease;
-    }
-
-    .process-phase-block:last-child {
-        padding-bottom: 1rem;
-    }
-
-    /* Phase Marker Indicator Dot */
-    .phase-marker {
-        position: absolute;
-        left: -2.5rem;
-        top: 2px;
-        width: 26px;
-        height: 26px;
-        border-radius: 50%;
-        background-color: #ffffff;
-        border: 2px solid #cbd5e1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 3;
-        transition: all 0.3s ease;
-    }
-
-    .phase-marker-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background-color: #cbd5e1;
-        transition: all 0.3s ease;
-    }
-
-    .process-phase-block.active .phase-marker {
-        border-color: #d97706;
-        box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.2);
-    }
-
-    .process-phase-block.active .phase-marker-dot {
-        background-color: #d97706;
-        transform: scale(1.2);
-    }
-
-    .process-phase-block.completed .phase-marker {
-        border-color: #d97706;
-        background-color: #ffffff;
-    }
-
-    .process-phase-block.completed .phase-marker-dot {
-        background-color: #d97706;
-    }
-
-    .phase-tag {
-        font-size: 0.8rem;
-        font-weight: 700;
-        color: #d97706;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 0.4rem;
-        display: block;
-    }
-
-    .phase-title {
-        font-size: 1.45rem;
-        font-weight: 700;
-        color: #0f172a;
-        margin-bottom: 0.75rem;
-        line-height: 1.3;
-    }
-
-    .phase-description {
-        font-size: 1rem;
-        color: #64748b;
-        line-height: 1.65;
-        max-width: 560px;
-    }
-
-    /* Sticky Navigation Card (Right Column) */
-    .process-sticky-container {
-        position: sticky;
-        top: 110px;
-        z-index: 10;
-    }
-
-    .process-sticky-card {
-        background-color: #0b132b;
-        border-radius: 24px;
-        padding: 2.25rem 2rem;
-        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.3);
-        border: 1px solid #1e293b;
-    }
-
-    .process-nav-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
-    .process-nav-item {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding: 0.9rem 1.25rem;
-        border-radius: 14px;
-        color: #94a3b8;
-        font-weight: 600;
-        font-size: 0.98rem;
-        text-decoration: none;
-        transition: all 0.25s ease;
-        border: 1px solid transparent;
-        cursor: pointer;
-    }
-
-    .process-nav-item:hover {
-        color: #ffffff;
-        background-color: #1e293b;
-    }
-
-    .process-nav-num {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        background-color: #1e293b;
-        color: #94a3b8;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.85rem;
-        font-weight: 700;
-        transition: all 0.25s ease;
-        flex-shrink: 0;
-    }
-
-    /* Active Glowing State in Sticky Card */
-    .process-nav-item.active {
-        background-color: rgba(217, 119, 6, 0.12);
-        border-color: #d97706;
-        color: #ffffff;
-    }
-
-    .process-nav-item.active .process-nav-num {
-        background-color: #d97706;
-        color: #ffffff;
-    }
-
-    /* ==========================================================================
-       Parallax Sections (Solid Palette - No Gradients)
-       ========================================================================== */
-    .parallax-section {
-        position: relative;
-        overflow: hidden;
-        color: #ffffff;
-        padding: 6.5rem 0;
-        background-color: #0f172a;
-    }
-
-    .parallax-bg {
-        position: absolute;
-        top: -10%;
-        left: 0;
-        right: 0;
-        bottom: -10%;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-size: cover;
-        z-index: 1;
-        transition: transform 0.1s cubic-bezier(0, 0, 0.2, 1);
-        will-change: transform;
-    }
-
-    .parallax-bg.fixed-bg {
-        background-attachment: fixed;
-        top: 0;
-        bottom: 0;
-    }
-
-    .parallax-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 2;
-    }
-
-    .parallax-content-container {
-        position: relative;
-        z-index: 3;
-    }
-
-    .parallax-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background-color: rgba(2, 132, 199, 0.2);
-        border: 1px solid #0284c7;
-        color: #38bdf8;
-        padding: 0.4rem 1.1rem;
-        border-radius: 50px;
-        font-size: 0.8rem;
-        font-weight: 700;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        margin-bottom: 1.5rem;
-    }
-
-    .parallax-title {
-        font-size: 2.85rem;
-        font-weight: 800;
-        color: #ffffff;
-        letter-spacing: -0.5px;
-        line-height: 1.25;
-        margin-bottom: 1.25rem;
-    }
-
-    .parallax-subtitle {
-        font-size: 1.2rem;
-        color: #cbd5e1;
-        max-width: 680px;
-        margin: 0 auto 2rem;
-        line-height: 1.6;
-    }
-
-    /* ==========================================================================
-       Features Section
-       ========================================================================== */
-    .features-section {
-        padding: 5.5rem 0;
-        background-color: #f8fafc;
-    }
-
-    .section-title {
-        font-size: 2.4rem;
-        font-weight: 800;
-        color: #0f172a;
-        margin-bottom: 0.5rem;
-        letter-spacing: -0.5px;
-    }
-
-    .section-subtitle {
-        font-size: 1.1rem;
-        color: #64748b;
-        max-width: 600px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-
-    .feature-card {
-        background-color: #ffffff;
-        padding: 1.75rem 1.35rem;
-        border-radius: 16px;
-        text-align: center;
-        height: 100%;
-        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
-        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-        border: 1px solid #e2e8f0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    .feature-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 28px rgba(2, 132, 199, 0.12);
-        border-color: #bae6fd;
-    }
-    
-    .feature-icon {
-        width: 52px;
-        height: 52px;
-        background-color: #e0f2fe;
-        border-radius: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 1.1rem;
-        color: #0284c7;
-        font-size: 1.3rem;
-        border: 1px solid #bae6fd;
-        transition: transform 0.25s ease;
-    }
-
-    .feature-card:hover .feature-icon {
-        transform: scale(1.08);
-        background-color: #0284c7;
-        color: #ffffff;
-    }
-    
-    .feature-title {
-        font-size: 1.08rem;
-        font-weight: 700;
-        color: #0f172a;
-        margin-bottom: 0.5rem;
-    }
-    
-    .feature-description {
-        color: #64748b;
-        font-size: 0.88rem;
-        line-height: 1.55;
-        margin-bottom: 0;
-    }
-    
-    /* ==========================================================================
-       CTA Section
-       ========================================================================== */
-    .cta-section {
-        background-color: #0f172a;
-        color: #ffffff;
-        padding: 4.5rem 0 4rem;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .cta-icon {
-        width: 68px;
-        height: 68px;
-        background-color: #0284c7;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 1.25rem;
-        font-size: 1.65rem;
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        color: #ffffff;
-        box-shadow: 0 6px 20px rgba(2, 132, 199, 0.35);
-    }
-    
-    /* ==========================================================================
-       Mobile Responsive Optimizations
-       ========================================================================== */
-    @media (max-width: 991px) {
-        .process-sticky-container,
-        .process-sticky-card {
-            display: none !important;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .hero-section {
-            padding: 3.25rem 0 2.5rem !important;
-        }
-
-        .hero-title {
-            font-size: 1.75rem !important;
-            min-height: 60px !important;
-            margin-bottom: 0.85rem !important;
-        }
-        
-        .hero-subtitle {
-            font-size: 0.92rem !important;
-            margin-bottom: 1.65rem !important;
-            line-height: 1.5 !important;
-            padding: 0 0.5rem;
-        }
-
-        .hero-buttons-container {
-            gap: 0.65rem !important;
-            width: 100%;
-        }
-        
-        .btn-hero-action {
-            padding: 0.6rem 1.15rem !important;
-            font-size: 0.88rem !important;
-            flex: 1 1 calc(50% - 0.5rem);
-            max-width: 165px;
-            white-space: nowrap !important;
-        }
-
-        .btn-cta {
-            padding: 0.65rem 1.4rem !important;
-            font-size: 0.9rem !important;
-            width: auto !important;
-            max-width: 100% !important;
-            white-space: nowrap !important;
-            flex: none !important;
-        }
-
-        .stats-section {
-            padding: 2.25rem 0 1.75rem !important;
-            margin-top: 0 !important;
-        }
-        
-        .stat-card {
-            padding: 1rem 0.65rem !important;
-            border-radius: 14px !important;
-        }
-        
-        .stat-icon {
-            width: 40px !important;
-            height: 40px !important;
-            font-size: 1.05rem !important;
-            border-radius: 10px !important;
-            margin-bottom: 0.5rem !important;
-        }
-
-        .stat-number {
-            font-size: 1.45rem !important;
-        }
-
-        .stat-label {
-            font-size: 0.68rem !important;
-            letter-spacing: 0.5px !important;
-        }
-
-        .process-section {
-            padding: 3.5rem 0 !important;
-        }
-
-        .process-header-title {
-            font-size: 1.85rem !important;
-        }
-
-        .process-header-desc {
-            font-size: 0.95rem !important;
-            margin-bottom: 2.5rem !important;
-        }
-
-        .phase-title {
-            font-size: 1.2rem !important;
-        }
-
-        .phase-description {
-            font-size: 0.88rem !important;
-        }
-
-        .parallax-section {
-            padding: 4rem 0 !important;
-        }
-
-        .parallax-title {
-            font-size: 1.75rem !important;
-        }
-
-        .parallax-subtitle {
-            font-size: 0.95rem !important;
-        }
-
-        .features-section {
-            padding: 3.5rem 0 !important;
-        }
-        
-        .section-title {
-            font-size: 1.85rem !important;
-        }
-
-        .feature-card {
-            padding: 1.25rem 1rem !important;
-            border-radius: 14px !important;
-        }
-
-        .feature-icon {
-            width: 46px !important;
-            height: 46px !important;
-            font-size: 1.15rem !important;
-            margin-bottom: 0.85rem !important;
-        }
-
-        .feature-title {
-            font-size: 1rem !important;
-        }
-
-        .feature-description {
-            font-size: 0.82rem !important;
-        }
-
-        .cta-section {
-            padding: 3.25rem 0 2.75rem !important;
-        }
-
-        .cta-icon {
-            width: 54px !important;
-            height: 54px !important;
-            font-size: 1.3rem !important;
-            margin-bottom: 1rem !important;
-        }
-    }
-</style>
 {% endblock %}
+
 
 {% block extra_js %}
 <script>
@@ -931,7 +138,7 @@
         }
 
         // =======================================================
-        // 3. Parallax Scroll Effects (Zoom-In, Zoom-Out, Translate)
+        // 3. Fixed & Multi-Effect Parallax Scroll Engine
         // =======================================================
         const parallaxSections = document.querySelectorAll('.parallax-section');
         
@@ -947,14 +154,20 @@
                     const progress = (viewportHeight - rect.top) / (viewportHeight + rect.height);
                     const effect = section.getAttribute('data-effect');
 
-                    if (effect === 'zoom_in') {
-                        const scale = 1.0 + (progress * 0.18);
-                        bg.style.transform = `scale(${scale.toFixed(3)}) translate3d(0, 0, 0)`;
+                    if (effect === 'fixed_bg' || !effect || effect === 'none') {
+                        // Classic fixed background translation calculation relative to viewport scroll
+                        const yPos = (rect.top - (viewportHeight * 0.4)) * -0.35;
+                        bg.style.transform = `translate3d(0, ${yPos.toFixed(1)}px, 0)`;
+                    } else if (effect === 'zoom_in') {
+                        const scale = 1.0 + (progress * 0.22);
+                        const yPos = (rect.top - (viewportHeight * 0.4)) * -0.15;
+                        bg.style.transform = `scale(${scale.toFixed(3)}) translate3d(0, ${yPos.toFixed(1)}px, 0)`;
                     } else if (effect === 'zoom_out') {
-                        const scale = 1.18 - (progress * 0.18);
-                        bg.style.transform = `scale(${scale.toFixed(3)}) translate3d(0, 0, 0)`;
+                        const scale = 1.20 - (progress * 0.20);
+                        const yPos = (rect.top - (viewportHeight * 0.4)) * -0.15;
+                        bg.style.transform = `scale(${scale.toFixed(3)}) translate3d(0, ${yPos.toFixed(1)}px, 0)`;
                     } else if (effect === 'standard') {
-                        const yPos = (progress - 0.5) * 80;
+                        const yPos = (progress - 0.5) * 120;
                         bg.style.transform = `translate3d(0, ${yPos.toFixed(1)}px, 0)`;
                     }
                 }
@@ -971,20 +184,27 @@
 
 {% block content %}
 
-    <!-- =========================================================================
-         1. Hero Section (Fully Dynamic via CMS)
-         ========================================================================= -->
-    <section class="hero-section">
-        <div class="hero-overlay"></div>
+    <section class="hero-section hero-height-{{ hero_content.min_height|default:'large' }}" style="min-height: {% if hero_content.min_height == 'compact' %}500px{% elif hero_content.min_height == 'medium' %}620px{% elif hero_content.min_height == 'xlarge' %}850px{% elif hero_content.min_height == 'full' %}90vh{% else %}750px{% endif %} !important;">
+        <div class="hero-overlay" style="{% if hero_content.bg_image %}background-image: url('{{ hero_content.bg_image.url }}'); background-size: cover; background-position: center;{% endif %}"></div>
         
-        <!-- Background Icons -->
+        <!-- Dynamic Floating Parallax Background Icons -->
         <div class="bg-icons">
-            <i class="fas fa-graduation-cap bg-icon"></i>
-            <i class="fas fa-book bg-icon"></i>
-            <i class="fas fa-user-graduate bg-icon"></i>
-            <i class="fas fa-chalkboard-teacher bg-icon"></i>
-            <i class="fas fa-school bg-icon"></i>
-            <i class="fas fa-pencil-alt bg-icon"></i>
+            {% for elem in floating_elements %}
+            {% if elem.section_target == 'hero' or elem.section_target == 'all' %}
+            {% with pos=elem.get_positions %}
+            <i class="{{ elem.icon }} bg-icon bg-icon-{{ elem.animation_type|default:'float' }}"
+               style="{% if pos.top != 'auto' %}top: {{ pos.top }};{% endif %} {% if pos.left != 'auto' %}left: {{ pos.left }};{% endif %} {% if pos.bottom != 'auto' %}bottom: {{ pos.bottom }};{% endif %} {% if pos.right != 'auto' %}right: {{ pos.right }};{% endif %} font-size: {{ elem.font_size|default:'3rem' }}; opacity: {{ elem.opacity|default:'0.15' }}; animation-duration: {{ elem.animation_duration|default:'18s' }}; animation-delay: {{ elem.animation_delay|default:'0s' }};"></i>
+            {% endwith %}
+            {% endif %}
+            {% empty %}
+            <!-- Default Fallback Floating Icons -->
+            <i class="fas fa-graduation-cap bg-icon bg-icon-float" style="top: 12%; left: 8%; font-size: 3.2rem; opacity: 0.18; animation-delay: 0s;"></i>
+            <i class="fas fa-book bg-icon bg-icon-pulse" style="top: 22%; right: 12%; font-size: 2.8rem; opacity: 0.15; animation-delay: 2s;"></i>
+            <i class="fas fa-user-graduate bg-icon bg-icon-float" style="bottom: 18%; left: 14%; font-size: 2.5rem; opacity: 0.14; animation-delay: 4s;"></i>
+            <i class="fas fa-chalkboard-teacher bg-icon bg-icon-rotate" style="top: 48%; right: 8%; font-size: 3.5rem; opacity: 0.16; animation-delay: 1s;"></i>
+            <i class="fas fa-school bg-icon bg-icon-float" style="bottom: 22%; right: 20%; font-size: 2.4rem; opacity: 0.14; animation-delay: 3s;"></i>
+            <i class="fas fa-pencil-alt bg-icon bg-icon-pulse" style="top: 32%; left: 18%; font-size: 2.6rem; opacity: 0.15; animation-delay: 5s;"></i>
+            {% endfor %}
         </div>
         
         <div class="container text-center">
@@ -996,18 +216,25 @@
             <p class="hero-subtitle">{{ hero_content.subtitle|default:"Complete cloud-based solution for modern education management. Streamline operations and enhance learning experiences." }}</p>
             <div class="hero-buttons-container">
                 <a href="{{ hero_content.primary_btn_url|default:'#registerModal' }}" 
-                   class="btn btn-hero btn-hero-action btn-hero-primary"
+                   class="btn btn-primary btn-lg rounded-pill px-4 py-2 fw-semibold"
                    {% if '#registerModal' in hero_content.primary_btn_url|default:'#registerModal' %}data-bs-toggle="modal" data-bs-target="#registerModal"{% endif %}>
                     <i class="fas fa-rocket me-2"></i>{{ hero_content.primary_btn_text|default:"Start Free Trial" }}
                 </a>
                 <a href="{{ hero_content.secondary_btn_url|default:'#loginModal' }}" 
-                   class="btn btn-hero btn-hero-action btn-hero-outline"
+                   class="btn btn-outline-light btn-lg rounded-pill px-4 py-2 fw-semibold"
                    {% if '#loginModal' in hero_content.secondary_btn_url|default:'#loginModal' %}data-bs-toggle="modal" data-bs-target="#loginModal"{% endif %}>
                     <i class="fas fa-sign-in-alt me-2"></i>{{ hero_content.secondary_btn_text|default:"Sign In" }}
                 </a>
             </div>
         </div>
     </section>
+
+    <!-- Parallax Banners (After Hero Section) -->
+    {% for parallax in parallax_sections %}
+    {% if parallax.target_position == 'after_hero' %}
+    {% include 'frontend/includes/parallax_card.html' with parallax=parallax %}
+    {% endif %}
+    {% endfor %}
 
     <!-- =========================================================================
          2. Stats Section (2x2 grid on mobile, 4 columns on desktop)
@@ -1054,6 +281,13 @@
             </div>
         </div>
     </section>
+
+    <!-- Parallax Banners (After Stats Section) -->
+    {% for parallax in parallax_sections %}
+    {% if parallax.target_position == 'after_stats' %}
+    {% include 'frontend/includes/parallax_card.html' with parallax=parallax %}
+    {% endif %}
+    {% endfor %}
 
     <!-- =========================================================================
          3. Interactive "How It Works / Process" Section (Scroll-Driven Stepper)
@@ -1174,50 +408,11 @@
         </div>
     </section>
 
-    <!-- =========================================================================
-         4. Parallax Showcase Sections (Solid Colors, No Gradients)
-         ========================================================================= -->
+    <!-- Parallax Banners (After How It Works Stepper) -->
     {% for parallax in parallax_sections %}
-    <section class="parallax-section" data-effect="{{ parallax.scroll_effect|default:'fixed_bg' }}">
-        <div class="parallax-bg {% if parallax.scroll_effect == 'fixed_bg' %}fixed-bg{% endif %}" 
-             style="{% if parallax.bg_image %}background-image: url('{{ parallax.bg_image.url }}');{% else %}background-color: {{ parallax.bg_color|default:'#091528' }};{% endif %}">
-        </div>
-        <div class="parallax-overlay" style="background-color: rgba(15, 23, 42, {{ parallax.overlay_opacity|default:'0.75' }});"></div>
-        
-        <div class="container text-center parallax-content-container">
-            {% if parallax.badge_text %}
-            <div class="parallax-badge">
-                <i class="fas fa-check-circle me-1 text-info"></i> {{ parallax.badge_text }}
-            </div>
-            {% endif %}
-            <h2 class="parallax-title">{{ parallax.title }}</h2>
-            {% if parallax.subtitle %}
-            <p class="parallax-subtitle">{{ parallax.subtitle }}</p>
-            {% endif %}
-            {% if parallax.content %}
-            <p class="lead text-light mb-4 opacity-90 mx-auto" style="max-width: 620px; font-size: 1rem;">
-                {{ parallax.content }}
-            </p>
-            {% endif %}
-            
-            <div class="d-flex justify-content-center gap-3 flex-wrap mt-4">
-                {% if parallax.primary_btn_text %}
-                <a href="{{ parallax.primary_btn_url|default:'/pricing/' }}" 
-                   class="btn btn-hero btn-cta btn-hero-primary"
-                   {% if '#registerModal' in parallax.primary_btn_url %}data-bs-toggle="modal" data-bs-target="#registerModal"{% endif %}>
-                    <i class="fas fa-star me-2"></i>{{ parallax.primary_btn_text }}
-                    <i class="fas fa-arrow-right ms-2"></i>
-                </a>
-                {% endif %}
-                {% if parallax.secondary_btn_text %}
-                <a href="{{ parallax.secondary_btn_url|default:'/contact/' }}" 
-                   class="btn btn-hero btn-cta btn-hero-outline">
-                    {{ parallax.secondary_btn_text }}
-                </a>
-                {% endif %}
-            </div>
-        </div>
-    </section>
+    {% if parallax.target_position == 'after_process' %}
+    {% include 'frontend/includes/parallax_card.html' with parallax=parallax %}
+    {% endif %}
     {% endfor %}
 
     <!-- =========================================================================
@@ -1359,6 +554,13 @@
         </div>
     </section>
 
+    <!-- Parallax Banners (After Features Section) -->
+    {% for parallax in parallax_sections %}
+    {% if parallax.target_position == 'after_features' %}
+    {% include 'frontend/includes/parallax_card.html' with parallax=parallax %}
+    {% endif %}
+    {% endfor %}
+
     <!-- =========================================================================
          6. Ready to Get Started (CTA) Section
          ========================================================================= -->
@@ -1372,12 +574,19 @@
                 <i class="fas fa-check-circle me-2 text-info"></i>
                 Join hundreds of schools already transforming education with Clasyo
             </p>
-            <a href="{% url 'frontend:pricing' %}" class="btn btn-hero btn-cta btn-hero-primary">
+            <a href="{% url 'frontend:pricing' %}" class="btn btn-primary btn-lg rounded-pill px-4 py-2 fw-semibold">
                 <i class="fas fa-star me-2"></i>View Pricing Plans
                 <i class="fas fa-arrow-right ms-2"></i>
             </a>
         </div>
     </section>
+
+    <!-- Parallax Banners (After CTA Section / Before Footer) -->
+    {% for parallax in parallax_sections %}
+    {% if parallax.target_position == 'after_cta' %}
+    {% include 'frontend/includes/parallax_card.html' with parallax=parallax %}
+    {% endif %}
+    {% endfor %}
 
 {% endblock %}
 

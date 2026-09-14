@@ -120,6 +120,14 @@ class HeroContent(models.Model):
         ('image', 'Background Image with Overlay'),
     ]
 
+    HEIGHT_CHOICES = [
+        ('compact', 'Compact (500px)'),
+        ('medium', 'Medium (620px)'),
+        ('large', 'Large (750px - Default)'),
+        ('xlarge', 'Extra Large (850px)'),
+        ('full', 'Full Screen (90vh)'),
+    ]
+
     title_prefix = models.CharField(max_length=150, default="Transform Your", help_text="First part of hero title")
     typing_texts = models.TextField(
         default="School Management\nAcademic Operations\nLearning Experiences\nCBC & TVET Institutions",
@@ -141,9 +149,20 @@ class HeroContent(models.Model):
         default="linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #164e63 100%)",
         help_text="Custom CSS gradient string"
     )
+    overlay_color = models.CharField(
+        max_length=30,
+        default="#0f172a",
+        help_text="Hex overlay color code e.g. #0f172a or #000000"
+    )
     overlay_opacity = models.FloatField(
         default=0.85, 
         help_text="Overlay darkness from 0.0 (transparent) to 1.0 (solid)"
+    )
+    min_height = models.CharField(
+        max_length=20,
+        choices=HEIGHT_CHOICES,
+        default='large',
+        help_text="Hero section height sizing"
     )
     is_active = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -157,6 +176,87 @@ class HeroContent(models.Model):
 
     def get_typing_list(self):
         return [t.strip() for t in self.typing_texts.split('\n') if t.strip()]
+
+
+class FloatingParallaxElement(models.Model):
+    """Customizable Floating Parallax Icons / Elements on Hero and Landing pages"""
+    ANIMATION_CHOICES = [
+        ('float', 'Float Up & Down (Smooth)'),
+        ('pulse', 'Pulse / Scale Glow'),
+        ('rotate', 'Slow Rotation'),
+        ('parallax', 'Scroll Parallax Shift'),
+    ]
+
+    SECTION_TARGET_CHOICES = [
+        ('hero', 'Hero Section (Top of Page)'),
+        ('parallax', 'Parallax Showcase Banners'),
+        ('all', 'All Hero & Parallax Sections'),
+    ]
+
+    PRESET_POSITION_CHOICES = [
+        ('custom', 'Custom Coordinates (Enter Top/Left/Right/Bottom below)'),
+        ('top_left', 'Top Left Corner (12% Top, 8% Left)'),
+        ('top_right', 'Top Right Corner (20% Top, 12% Right)'),
+        ('center_left', 'Center Left (48% Top, 10% Left)'),
+        ('center_right', 'Center Right (50% Top, 8% Right)'),
+        ('bottom_left', 'Bottom Left Corner (18% Bottom, 14% Left)'),
+        ('bottom_right', 'Bottom Right Corner (22% Bottom, 20% Right)'),
+    ]
+
+    title = models.CharField(max_length=100, blank=True, help_text="Optional reference title or label")
+    icon = models.CharField(max_length=100, default="fas fa-graduation-cap", help_text="FontAwesome icon class e.g. fas fa-book")
+    section_target = models.CharField(
+        max_length=30,
+        choices=SECTION_TARGET_CHOICES,
+        default='hero',
+        help_text="Select section where this icon appears on homepage"
+    )
+    preset_position = models.CharField(
+        max_length=30,
+        choices=PRESET_POSITION_CHOICES,
+        default='custom',
+        help_text="Quick preset position location or custom coordinates"
+    )
+    position_top = models.CharField(max_length=20, default="10%", help_text="Top CSS value (e.g. 10%, 50px, auto)")
+    position_left = models.CharField(max_length=20, default="10%", help_text="Left CSS value (e.g. 10%, 40px, auto)")
+    position_bottom = models.CharField(max_length=20, default="auto", help_text="Bottom CSS value (e.g. 15%, auto)")
+    position_right = models.CharField(max_length=20, default="auto", help_text="Right CSS value (e.g. 15%, auto)")
+    font_size = models.CharField(max_length=20, default="3rem", help_text="Icon font size (e.g. 2.5rem, 40px)")
+    opacity = models.FloatField(default=0.15, help_text="Opacity from 0.05 to 1.0")
+    animation_type = models.CharField(max_length=30, choices=ANIMATION_CHOICES, default='float')
+    animation_duration = models.CharField(max_length=20, default="18s", help_text="Speed duration e.g. 15s, 20s")
+    animation_delay = models.CharField(max_length=20, default="0s", help_text="Delay offset e.g. 0s, 2s")
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+        verbose_name = "Floating Parallax Element"
+        verbose_name_plural = "Floating Parallax Elements"
+
+    def __str__(self):
+        return f"{self.title or self.icon} ({self.get_section_target_display()})"
+
+    def get_positions(self):
+        if self.preset_position == 'top_left':
+            return {'top': '12%', 'left': '8%', 'bottom': 'auto', 'right': 'auto'}
+        elif self.preset_position == 'top_right':
+            return {'top': '20%', 'left': 'auto', 'bottom': 'auto', 'right': '12%'}
+        elif self.preset_position == 'center_left':
+            return {'top': '48%', 'left': '10%', 'bottom': 'auto', 'right': 'auto'}
+        elif self.preset_position == 'center_right':
+            return {'top': '50%', 'left': 'auto', 'bottom': 'auto', 'right': '8%'}
+        elif self.preset_position == 'bottom_left':
+            return {'top': 'auto', 'left': '14%', 'bottom': '18%', 'right': 'auto'}
+        elif self.preset_position == 'bottom_right':
+            return {'top': 'auto', 'left': 'auto', 'bottom': '22%', 'right': '20%'}
+        return {
+            'top': self.position_top,
+            'left': self.position_left,
+            'bottom': self.position_bottom,
+            'right': self.position_right
+        }
 
 
 class ProcessStep(models.Model):
@@ -213,10 +313,25 @@ class ParallaxSection(models.Model):
         ('none', 'None (Static Background)'),
     ]
 
-    badge_text = models.CharField(max_length=60, default="NEXT-GEN EDUCATION", blank=True)
+    TARGET_POSITION_CHOICES = [
+        ('after_hero', 'After Hero Section'),
+        ('after_stats', 'After Stats Section'),
+        ('after_process', 'After How It Works / Stepper'),
+        ('after_features', 'After Comprehensive Features'),
+        ('after_cta', 'After CTA Section (Before Footer)'),
+    ]
+
+    badge_text = models.CharField(max_length=60, default="", blank=True)
     title = models.CharField(max_length=200, default="Empowering Kenyan Schools with Cutting-Edge Cloud SaaS")
     subtitle = models.CharField(max_length=255, blank=True, default="Seamless CBC compliance, automated financial ledger, and AI-driven performance tracking.")
     content = models.TextField(blank=True)
+    
+    target_position = models.CharField(
+        max_length=30,
+        choices=TARGET_POSITION_CHOICES,
+        default='after_process',
+        help_text="Where on the home page this parallax section appears"
+    )
     
     primary_btn_text = models.CharField(max_length=60, default="Explore Pricing", blank=True)
     primary_btn_url = models.CharField(max_length=255, default="/pricing/", blank=True)
@@ -246,4 +361,5 @@ class ParallaxSection(models.Model):
         verbose_name_plural = "Parallax Sections"
 
     def __str__(self):
-        return self.title
+        return f"{self.title} ({self.get_target_position_display()})"
+

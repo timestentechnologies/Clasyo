@@ -8,44 +8,43 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#applyLeaveModal">
-        <i class="fas fa-plus"></i> Apply Leave
+    <button class="btn btn-primary" onclick="toggleInPageFormView('leaveListCard', 'leaveFormPanel', 'create')">
+        <i class="fas fa-plus me-1"></i> Apply Leave
     </button>
 </div>
 
-<!-- Dynamic Search and Filters -->
-<div class="row mb-3">
-    <div class="col-md-12">
-        <div class="row g-2">
-            <div class="col-md-4">
-                <input type="text" id="searchInput" class="form-control" placeholder="Search by employee name, reason...">
-            </div>
-            <div class="col-md-3">
-                <select name="leave_type_filter" id="leaveTypeFilter" class="form-select">
-                    <option value="">All Leave Types</option>
-                    <option value="sick">Sick Leave</option>
-                    <option value="casual">Casual Leave</option>
-                    <option value="annual">Annual Leave</option>
-                    <option value="emergency">Emergency Leave</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select name="status_filter" id="statusFilter" class="form-select">
-                    <option value="">All Status</option>
-                    <option value="pending">Pending</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="cancelled">Cancelled</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <a href="." class="btn btn-outline-secondary w-100">Reset</a>
+<!-- Leave List View Container -->
+<div id="leaveListCard">
+    <!-- Dynamic Search and Filters -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search by employee name, reason...">
+                </div>
+                <div class="col-md-4">
+                    <select name="leave_type_filter" id="leaveTypeFilter" class="form-select" placeholder="Filter by Leave Type" data-placeholder="Filter by Leave Type">
+                        <option value="">All Leave Types</option>
+                        <option value="sick">Sick Leave</option>
+                        <option value="casual">Casual Leave</option>
+                        <option value="annual">Annual Leave</option>
+                        <option value="emergency">Emergency Leave</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select name="status_filter" id="statusFilter" class="form-select" placeholder="Filter by Status" data-placeholder="Filter by Status">
+                        <option value="">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="modern-card">
+    <div class="modern-card">
     <div class="table-responsive">
         <table class="table" id="leaveTable">
             <thead>
@@ -109,65 +108,71 @@
         </table>
     </div>
 </div>
+</div>
 
-<!-- Apply Leave Modal -->
-<div class="modal fade" id="applyLeaveModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
-                <h5 class="modal-title"><i class="fas fa-calendar-plus"></i> Apply for Leave</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+<!-- In-Page Leave Form Panel -->
+<div id="leaveFormPanel" class="card modern-card mb-4 form-panel-view" style="display: none;">
+    <div class="card-body">
+        <div class="form-header-bar">
+            <div>
+                <h5 class="fw-bold mb-1" id="leaveFormTitle">Apply for Leave</h5>
+                <span class="form-mode-badge badge bg-primary" id="leaveFormBadge">Creation Mode</span>
             </div>
-            <div class="modal-body">
-                <form id="applyLeaveForm">
-                    {% csrf_token %}
-                    {% if user.role in 'super_admin,school_admin' %}
-                    <div class="mb-3">
-                        <label for="applicant_type" class="form-label">Applicant Type</label>
-                        <select class="form-select" id="applicant_type" name="applicant_type" onchange="loadApplicants()" required>
-                            <option value="">Select applicant type...</option>
-                            <option value="teacher">Teacher</option>
-                            <option value="student">Student</option>
-                            <option value="staff">Staff</option>
-                        </select>
-                    </div>
-                    <div class="mb-3" id="applicantSelectDiv" style="display: none;">
-                        <label for="applicant_id" class="form-label">Select Person</label>
-                        <select class="form-select" id="applicant_id" name="applicant_id" required>
-                            <option value="">Select person...</option>
-                        </select>
-                    </div>
-                    {% endif %}
-                    <div class="mb-3">
-                        <label for="leave_type" class="form-label">Leave Type</label>
-                        <select class="form-select" id="leave_type" name="leave_type" required>
-                            <option value="">Select leave type...</option>
-                            <option value="sick">Sick Leave</option>
-                            <option value="casual">Casual Leave</option>
-                            <option value="annual">Annual Leave</option>
-                            <option value="emergency">Emergency Leave</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="from_date" class="form-label">From Date</label>
-                        <input type="date" class="form-control" id="from_date" name="from_date" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="to_date" class="form-label">To Date</label>
-                        <input type="date" class="form-control" id="to_date" name="to_date" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="reason" class="form-label">Reason</label>
-                        <textarea class="form-control" id="reason" name="reason" rows="3" required></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitLeave()">Submit Application</button>
-            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('leaveListCard', 'leaveFormPanel', 'hide')">
+                <i class="fas fa-times me-1"></i> Close
+            </button>
         </div>
+        <form id="applyLeaveForm">
+            {% csrf_token %}
+            {% if user.role in 'super_admin,school_admin' %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="applicant_type" class="form-label fw-semibold">Applicant Type *</label>
+                    <select class="form-select" id="applicant_type" name="applicant_type" onchange="loadApplicants()" required>
+                        <option value="">Select applicant type...</option>
+                        <option value="teacher">Teacher</option>
+                        <option value="student">Student</option>
+                        <option value="staff">Staff</option>
+                    </select>
+                </div>
+                <div class="col-md-6" id="applicantSelectDiv" style="display: none;">
+                    <label for="applicant_id" class="form-label fw-semibold">Select Person *</label>
+                    <select class="form-select" id="applicant_id" name="applicant_id" required>
+                        <option value="">Select person...</option>
+                    </select>
+                </div>
+            </div>
+            {% endif %}
+            <div class="row g-3 mt-1">
+                <div class="col-md-4">
+                    <label for="leave_type" class="form-label fw-semibold">Leave Type *</label>
+                    <select class="form-select" id="leave_type" name="leave_type" required>
+                        <option value="">Select leave type...</option>
+                        <option value="sick">Sick Leave</option>
+                        <option value="casual">Casual Leave</option>
+                        <option value="annual">Annual Leave</option>
+                        <option value="emergency">Emergency Leave</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="from_date" class="form-label fw-semibold">From Date *</label>
+                    <input type="date" class="form-control" id="from_date" name="from_date" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="to_date" class="form-label fw-semibold">To Date *</label>
+                    <input type="date" class="form-control" id="to_date" name="to_date" required>
+                </div>
+                <div class="col-md-12">
+                    <label for="reason" class="form-label fw-semibold">Reason *</label>
+                    <textarea class="form-control" id="reason" name="reason" rows="3" placeholder="Enter reason for leave..." required></textarea>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <button type="button" class="btn btn-outline-secondary" onclick="toggleInPageFormView('leaveListCard', 'leaveFormPanel', 'hide')">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitLeave()"><i class="fas fa-paper-plane me-1"></i> Submit Application</button>
+            </div>
+        </form>
     </div>
 </div>
 

@@ -74,8 +74,9 @@ urlpatterns = [
     # AI Configuration
     path('ai/', include(ai_urls)),
     
-    # Global Settings
+    # Global Settings / Branding & Maintenance
     path('settings/', views.GlobalSettingsView.as_view(), name='global_settings'),
+    path('settings/maintenance/', views.SystemMaintenanceView.as_view(), name='system_maintenance'),
     
     # SMS Configurations
     path('settings/sms/', views.GlobalSMSConfigurationListView.as_view(), name='sms_config_list'),

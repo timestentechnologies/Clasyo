@@ -7,72 +7,50 @@
 {% block page_subtitle %}Manage books, resources and lending{% endblock %}
 
 {% block content %}
+<!-- Smart Actions Bar -->
+<div class="smart-actions-bar">
+    <div class="smart-actions-group">
+        <a href="{% url 'library:book_list' school_slug=school_slug %}" class="smart-btn smart-btn-primary">
+            <i class="fas fa-search"></i> Search Books
+        </a>
+        <a href="{% url 'library:issue_create' school_slug=school_slug %}" class="smart-btn smart-btn-success">
+            <i class="fas fa-share-square"></i> Issue Book
+        </a>
+        <a href="{% url 'library:issue_list' school_slug=school_slug %}" class="smart-btn smart-btn-info">
+            <i class="fas fa-undo"></i> Return/View Books
+        </a>
+        <a href="{% url 'library:book_create' school_slug=school_slug %}" class="smart-btn smart-btn-warning">
+            <i class="fas fa-plus-circle"></i> Add New Book
+        </a>
+    </div>
+</div>
+
 <!-- Stats Grid -->
 <div class="stats-grid">
     <div class="stat-card primary">
-        <div class="stat-icon">
-            <i class="fas fa-book"></i>
-        </div>
         <div class="stat-value">{{ total_books|default:"0" }}</div>
         <div class="stat-label">Total Books</div>
     </div>
     
     <div class="stat-card success">
-        <div class="stat-icon">
-            <i class="fas fa-book-reader"></i>
-        </div>
         <div class="stat-value">{{ books_issued|default:"0" }}</div>
         <div class="stat-label">Books Issued</div>
     </div>
     
     <div class="stat-card warning">
-        <div class="stat-icon">
-            <i class="fas fa-exclamation-triangle"></i>
-        </div>
         <div class="stat-value">{{ overdue_books|default:"0" }}</div>
         <div class="stat-label">Overdue Books</div>
     </div>
     
     <div class="stat-card danger">
-        <div class="stat-icon">
-            <i class="fas fa-user-clock"></i>
-        </div>
         <div class="stat-value">{{ pending_requests|default:"0" }}</div>
         <div class="stat-label">Book Requests</div>
     </div>
 </div>
 
-<!-- Quick Actions -->
+<!-- Library Statistics -->
 <div class="row mt-4">
-    <div class="col-lg-6">
-        <div class="modern-card">
-            <h4 class="mb-4"><i class="fas fa-bolt"></i> Quick Actions</h4>
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <a href="{% url 'library:book_list' school_slug=school_slug %}" class="btn btn-primary btn-lg w-100">
-                        <i class="fas fa-search"></i><br>Search Books
-                    </a>
-                </div>
-                <div class="col-md-6">
-                    <a href="{% url 'library:issue_create' school_slug=school_slug %}" class="btn btn-success btn-lg w-100">
-                        <i class="fas fa-share-square"></i><br>Issue Book
-                    </a>
-                </div>
-                <div class="col-md-6">
-                    <a href="{% url 'library:issue_list' school_slug=school_slug %}" class="btn btn-info btn-lg w-100">
-                        <i class="fas fa-undo"></i><br>Return/View Books
-                    </a>
-                </div>
-                <div class="col-md-6">
-                    <a href="{% url 'library:book_create' school_slug=school_slug %}" class="btn btn-warning btn-lg w-100">
-                        <i class="fas fa-plus-circle"></i><br>Add New Book
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-6">
+    <div class="col-12">
         <div class="modern-card">
             <h4 class="mb-4"><i class="fas fa-chart-pie"></i> Library Statistics</h4>
             <div class="chart-container">

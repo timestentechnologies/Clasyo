@@ -7,147 +7,143 @@
 {% block page_subtitle %}Manage your tasks{% endblock %}
 
 {% block page_actions %}
-<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTodoModal">
-    <i class="fas fa-plus me-2"></i>Add Task
+<button type="button" class="btn btn-primary" onclick="toggleInPageFormView('todoListCard', 'todoFormPanel', 'create')">
+    <i class="fas fa-plus me-1"></i> Add Task
 </button>
 {% endblock %}
 
 {% block content %}
-<div data-tunes-tasks='[
-    {% for todo in todos %}
-    {
-        "id": {{ todo.id }},
-        "title": "{{ todo.title|escapejs }}",
-        "description": "{{ todo.description|escapejs }}",
-        "priority": "{{ todo.priority }}",
-        "due_date": "{{ todo.due_date|date:'M d, Y'|escapejs }}",
-        "is_completed": {{ todo.is_completed|yesno:"true,false" }}
-    }{% if not forloop.last %},{% endif %}
-    {% endfor %}
-]'>
-<div class="row">
-    <div class="col-12">
-        <div class="modern-card">
-            <div class="card-body">
-                {% if todos %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th width="40">Status</th>
-                                <th>Title</th>
-                                <th>Priority</th>
-                                <th>Due Date</th>
-                                <th width="180">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for todo in todos %}
-                            <tr {% if todo.is_completed %}class="table-success"{% endif %}>
-                                <td>
-                                    <form method="post" action="{% url 'core:todo_toggle' school_slug=school_slug pk=todo.id %}" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-link p-0">
-                                            {% if todo.is_completed %}
-                                                <i class="fas fa-check-circle text-success fa-lg"></i>
-                                            {% else %}
-                                                <i class="far fa-circle text-muted fa-lg"></i>
-                                            {% endif %}
-                                        </button>
-                                    </form>
-                                </td>
-                                <td>
-                                    <strong {% if todo.is_completed %}style="text-decoration: line-through;"{% endif %}>
-                                        {{ todo.title }}
-                                    </strong>
-                                    {% if todo.description %}
-                                    <br><small class="text-muted">{{ todo.description|truncatewords:15 }}</small>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if todo.priority == 'high' %}
-                                        <span class="badge bg-danger">High</span>
-                                    {% elif todo.priority == 'medium' %}
-                                        <span class="badge bg-warning">Medium</span>
-                                    {% else %}
-                                        <span class="badge bg-info">Low</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if todo.due_date %}
-                                        {{ todo.due_date|date:"M d, Y" }}
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-info btn-view-task" data-bs-toggle="modal" data-bs-target="#viewTaskModal" data-task-id="{{ todo.id }}">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-danger btn-delete-task" data-bs-toggle="modal" data-bs-target="#deleteTaskModal" data-task-id="{{ todo.id }}" data-task-title="{{ todo.title|default:'Untitled' }}">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="text-center py-5">
-                    <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">No tasks yet</h5>
-                    <p class="text-muted">Click the "Add Task" button to create your first task</p>
-                </div>
-                {% endif %}
+<div class="container-fluid">
+    <!-- Shared In-Page Single Form Panel -->
+    <div class="form-panel-view d-none" id="todoFormPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('todoListCard', 'todoFormPanel', 'list')">
+                    <i class="fas fa-arrow-left me-1"></i> Back to List
+                </button>
+                <h5 class="mb-0 fw-bold form-title-text" data-create-title="Add New Task" data-edit-title="Edit Task">Add New Task</h5>
+            </div>
+            <div class="form-header-actions">
+                <button type="button" class="btn btn-sm btn-light" onclick="toggleInPageFormView('todoListCard', 'todoFormPanel', 'list')">Cancel</button>
+                <button type="submit" form="todoForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> Save Task
+                </button>
             </div>
         </div>
-    </div>
-</div>
-</div>
-
-<!-- Add Todo Modal -->
-<div class="modal fade" id="addTodoModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="post" action="{% url 'core:todo_create' school_slug=school_slug %}">
+        <div class="form-card-body">
+            <form id="todoForm" method="post" action="{% url 'core:todo_create' school_slug=school_slug %}">
                 {% csrf_token %}
-                <div class="modal-header">
-                    <h5 class="modal-title">Add New Task</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="mb-3">
+                    <label for="title" class="form-label fw-semibold">Task Title *</label>
+                    <input type="text" id="title" name="title" class="form-control" placeholder="e.g. Prepare end of term exam papers" required>
                 </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Title</label>
-                        <input type="text" name="title" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea name="description" class="form-control" rows="3"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Priority</label>
-                        <select name="priority" class="form-select">
+                <div class="mb-3">
+                    <label for="description" class="form-label fw-semibold">Description</label>
+                    <textarea id="description" name="description" class="form-control" rows="3" placeholder="Task details and sub-tasks..."></textarea>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="priority" class="form-label fw-semibold">Priority Level</label>
+                        <select id="priority" name="priority" class="form-select">
                             <option value="low">Low</option>
                             <option value="medium" selected>Medium</option>
                             <option value="high">High</option>
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Due Date</label>
-                        <input type="date" name="due_date" class="form-control">
+                    <div class="col-md-6">
+                        <label for="due_date" class="form-label fw-semibold">Due Date</label>
+                        <input type="date" id="due_date" name="due_date" class="form-control">
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Task</button>
                 </div>
             </form>
         </div>
     </div>
+
+    <!-- Task List View -->
+    <div id="todoListCard">
+        <div class="row">
+            <div class="col-12">
+                <div class="modern-card">
+                    <div class="card-body">
+                        {% if todos %}
+                        <div class="table-responsive">
+                            <table class="table modern-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th width="40">Status</th>
+                                        <th>Title</th>
+                                        <th>Priority</th>
+                                        <th>Due Date</th>
+                                        <th width="180">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for todo in todos %}
+                                    <tr {% if todo.is_completed %}class="table-success"{% endif %}>
+                                        <td>
+                                            <form method="post" action="{% url 'core:todo_toggle' school_slug=school_slug pk=todo.id %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-link p-0">
+                                                    {% if todo.is_completed %}
+                                                        <i class="fas fa-check-circle text-success fa-lg"></i>
+                                                    {% else %}
+                                                        <i class="far fa-circle text-muted fa-lg"></i>
+                                                    {% endif %}
+                                                </button>
+                                            </form>
+                                        </td>
+                                        <td>
+                                            <strong {% if todo.is_completed %}style="text-decoration: line-through;"{% endif %}>
+                                                {{ todo.title }}
+                                            </strong>
+                                            {% if todo.description %}
+                                            <br><small class="text-muted">{{ todo.description|truncatewords:15 }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if todo.priority == 'high' %}
+                                                <span class="badge bg-danger">High</span>
+                                            {% elif todo.priority == 'medium' %}
+                                                <span class="badge bg-warning">Medium</span>
+                                            {% else %}
+                                                <span class="badge bg-info">Low</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if todo.due_date %}
+                                                {{ todo.due_date|date:"M d, Y" }}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-info btn-view-task" data-bs-toggle="modal" data-bs-target="#viewTaskModal" data-task-id="{{ todo.id }}">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger btn-delete-task" data-bs-toggle="modal" data-bs-target="#deleteTaskModal" data-task-id="{{ todo.id }}" data-task-title="{{ todo.title|default:'Untitled' }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No tasks yet</h5>
+                            <p class="text-muted">Click the "Add Task" button to create your first task</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- View Task Modal -->
+<!-- View Task Details Modal -->
 <div class="modal fade" id="viewTaskModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -157,7 +153,7 @@
             </div>
             <div class="modal-body">
                 <div id="view-task-content">
-                    <!-- Task details will be loaded here -->
+                    <p class="text-muted">Loading task details...</p>
                 </div>
             </div>
             <div class="modal-footer">
@@ -171,73 +167,48 @@
 <div class="modal fade" id="deleteTaskModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post" id="delete-task-form">
-                {% csrf_token %}
-                <div class="modal-header">
-                    <h5 class="modal-title">Delete Task</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to delete the task: <strong id="delete-task-title"></strong>?</p>
-                    <p class="text-muted">This action cannot be undone.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger">Delete Task</button>
-                </div>
-            </form>
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-trash me-2"></i>Delete Task</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete task <strong id="delete-task-title-span"></strong>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="delete-task-form" method="post" action="">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
         </div>
     </div>
 </div>
 
-
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Read task data from the data attribute (JSON string)
-    const tasksData = document.querySelector('[data-tunes-tasks]');
-    let tasks = [];
-    try {
-        tasks = tasksData ? JSON.parse(tasksData.getAttribute('data-tunes-tasks')) : [];
-        console.log('Loaded tasks:', tasks);
-    } catch (e) {
-        console.error('Failed to parse tasks data:', e);
-    }
-
-    // View Task modal: load task details when opened
-    const viewTaskModal = document.getElementById('viewTaskModal');
-    if (viewTaskModal) {
-        viewTaskModal.addEventListener('show.bs.modal', function(e) {
-            const button = e.relatedTarget;
-            const taskId = parseInt(button.getAttribute('data-task-id'), 10);
-            console.log('View task ID:', taskId);
-            const selected = tasks.find(t => t.id === taskId);
-            console.log('Found task:', selected);
-            if (selected) {
-                document.getElementById('view-task-content').innerHTML = `
-                    <p><strong>Title:</strong> ${selected.title}</p>
-                    <p><strong>Description:</strong> ${selected.description || 'No description'}</p>
-                    <p><strong>Priority:</strong> ${selected.priority.charAt(0).toUpperCase() + selected.priority.slice(1)}</p>
-                    <p><strong>Due Date:</strong> ${selected.due_date || 'Not set'}</p>
-                    <p><strong>Status:</strong> ${selected.is_completed ? 'Completed' : 'Pending'}</p>
-                `;
-            } else {
-                document.getElementById('view-task-content').innerHTML = '<p class="text-muted">Task not found.</p>';
-            }
+    const viewButtons = document.querySelectorAll('.btn-view-task');
+    viewButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const taskId = this.dataset.taskId;
+            document.getElementById('view-task-content').innerHTML = '<p class="text-muted">Loading...</p>';
+            fetch(`/school/{{ school_slug }}/todos/${taskId}/`)
+                .then(r => r.text())
+                .then(html => {
+                    document.getElementById('view-task-content').innerHTML = html;
+                });
         });
-    }
+    });
 
-    // Delete Task modal: set form action and title when opened
-    const deleteTaskModal = document.getElementById('deleteTaskModal');
-    if (deleteTaskModal) {
-        deleteTaskModal.addEventListener('show.bs.modal', function(e) {
-            const button = e.relatedTarget;
-            const taskId = button.getAttribute('data-task-id');
-            const taskTitle = button.getAttribute('data-task-title');
-            document.getElementById('delete-task-title').textContent = taskTitle;
-            document.getElementById('delete-task-form').action = "{% url 'core:todo_delete' school_slug=school_slug pk=0 %}".replace('0', taskId);
+    const deleteButtons = document.querySelectorAll('.btn-delete-task');
+    deleteButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const taskId = this.dataset.taskId;
+            const taskTitle = this.dataset.taskTitle;
+            document.getElementById('delete-task-title-span').textContent = taskTitle;
+            document.getElementById('delete-task-form').action = `/school/{{ school_slug }}/todos/${taskId}/delete/`;
         });
-    }
+    });
 });
 </script>
 {% endblock %}

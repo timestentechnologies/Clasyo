@@ -7,6 +7,24 @@
 {% block page_subtitle %}Welcome back, {{ user.get_full_name }}!{% endblock %}
 
 {% block content %}
+<!-- Smart Actions Bar -->
+<div class="smart-actions-bar">
+    <div class="smart-actions-group">
+        <a href="{% url 'core:my_children' school_slug=school_slug %}" class="smart-btn smart-btn-primary">
+            <i class="fas fa-user-graduate"></i> View Children
+        </a>
+        <a href="/school/{{ school_slug }}/children-results/" class="smart-btn smart-btn-success">
+            <i class="fas fa-clipboard-list"></i> View Grades
+        </a>
+        <a href="/school/{{ school_slug }}/children-attendance/" class="smart-btn smart-btn-info">
+            <i class="fas fa-calendar-alt"></i> Attendance Records
+        </a>
+        <a href="/school/{{ school_slug }}/fees/my-fees/" class="smart-btn smart-btn-warning">
+            <i class="fas fa-dollar-sign"></i> Fee Payments
+        </a>
+    </div>
+</div>
+
 <!-- Parent Welcome Section -->
 <div class="row mb-4">
     <div class="col-12">
@@ -52,36 +70,6 @@
     </div>
 </div>
 
-<!-- Quick Actions -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="modern-card">
-            <h4 class="mb-3"><i class="fas fa-bolt"></i> Quick Actions</h4>
-            <div class="row">
-                <div class="col-md-3">
-                    <a href="{% url 'core:my_children' school_slug=school_slug %}" class="btn btn-primary w-100 mb-2">
-                        <i class="fas fa-user-graduate"></i> View Children
-                    </a>
-                </div>
-                <div class="col-md-3">
-                    <a href="/school/{{ school_slug }}/children-results/" class="btn btn-success w-100 mb-2">
-                        <i class="fas fa-clipboard-list"></i> View Grades
-                    </a>
-                </div>
-                <div class="col-md-3">
-                    <a href="/school/{{ school_slug }}/children-attendance/" class="btn btn-info w-100 mb-2">
-                        <i class="fas fa-calendar-alt"></i> Attendance Records
-                    </a>
-                </div>
-                <div class="col-md-3">
-                    <a href="/school/{{ school_slug }}/fees/my-fees/" class="btn btn-warning w-100 mb-2">
-                        <i class="fas fa-dollar-sign"></i> Fee Payments
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Children Overview -->
 <div class="row mb-4">

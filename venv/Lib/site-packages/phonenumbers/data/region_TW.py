@@ -14,8 +14,11 @@ PHONE_METADATA_TW = PhoneMetadata(id='TW', country_code=886, international_prefi
     preferred_extn_prefix='#',
     national_prefix_for_parsing='0',
     number_format=[NumberFormat(pattern='(\\d{2})(\\d)(\\d{4})', format='\\1 \\2 \\3', leading_digits_pattern=['202'], national_prefix_formatting_rule='0\\1'),
-        NumberFormat(pattern='(\\d{2})(\\d{3})(\\d{3,4})', format='\\1 \\2 \\3', leading_digits_pattern=['[258]0'], national_prefix_formatting_rule='0\\1'),
-        NumberFormat(pattern='(\\d)(\\d{3,4})(\\d{4})', format='\\1 \\2 \\3', leading_digits_pattern=['[23568]|4(?:0[02-48]|[1-47-9])|7[1-9]', '[23568]|4(?:0[2-48]|[1-47-9])|(?:400|7)[1-9]'], national_prefix_formatting_rule='0\\1'),
+        NumberFormat(pattern='(\\d{3})(\\d{5})', format='\\1 \\2', leading_digits_pattern=['826'], national_prefix_formatting_rule='0\\1'),
+        NumberFormat(pattern='(\\d{3})(\\d{2})(\\d{3})', format='\\1 \\2 \\3', leading_digits_pattern=['83'], national_prefix_formatting_rule='0\\1'),
+        NumberFormat(pattern='(\\d{2})(\\d{2})(\\d{4})', format='\\1 \\2 \\3', leading_digits_pattern=['82'], national_prefix_formatting_rule='0\\1'),
+        NumberFormat(pattern='(\\d{2})(\\d{3})(\\d{3,4})', format='\\1 \\2 \\3', leading_digits_pattern=['[25]0|37|49|8[09]'], national_prefix_formatting_rule='0\\1'),
+        NumberFormat(pattern='(\\d)(\\d{3,4})(\\d{4})', format='\\1 \\2 \\3', leading_digits_pattern=['[23568]|4(?:0[02-48]|[1-478])|7[1-9]', '[23568]|4(?:0[2-48]|[1-478])|(?:400|7)[1-9]'], national_prefix_formatting_rule='0\\1'),
         NumberFormat(pattern='(\\d{3})(\\d{3})(\\d{3})', format='\\1 \\2 \\3', leading_digits_pattern=['[49]'], national_prefix_formatting_rule='0\\1'),
         NumberFormat(pattern='(\\d{2})(\\d{4})(\\d{4,5})', format='\\1 \\2 \\3', leading_digits_pattern=['7'], national_prefix_formatting_rule='0\\1')],
     mobile_number_portable_region=True)

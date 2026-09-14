@@ -67,8 +67,9 @@ class TeacherCreateView(LoginRequiredMixin, CreateView):
                 teacher.school = school
                 teacher.save(update_fields=["school"])
 
-            # Auto-generate employee id on User for consistency
-            employee_id = f"TCHR-{teacher.id}"
+            # Auto-generate or use custom employee id on User for consistency
+            custom_emp_id = request.POST.get('employee_id', '').strip()
+            employee_id = custom_emp_id or f"TCHR-{teacher.id}"
             teacher.employee_id = employee_id
             teacher.save(update_fields=["employee_id"]) 
 
@@ -265,12 +266,10 @@ class TeacherUpdateView(LoginRequiredMixin, UpdateView):
                 teacher.department_id = dept_val or None
             if desig_val is not None:
                 teacher.designation_id = desig_val or None
-            
-            # Handle password update if provided
-            password = request.POST.get('password', '').strip()
-            if password and password != 'teacher123':
-                teacher.set_password(password)
-            
+            emp_id_val = request.POST.get('employee_id', '').strip()
+            if emp_id_val:
+                teacher.employee_id = emp_id_val
+
             teacher.save()
 
             # Sync HR Teacher profile including HR fields
@@ -289,6 +288,8 @@ class TeacherUpdateView(LoginRequiredMixin, UpdateView):
             profile.phone = str(teacher.phone or '')
             profile.department_id = teacher.department_id
             profile.designation_id = teacher.designation_id
+            if emp_id_val:
+                profile.employee_id = emp_id_val
             # HR specific fields
             basic_salary = request.POST.get('basic_salary')
             allowances = request.POST.get('allowances')
@@ -395,8 +396,9 @@ class StaffCreateView(LoginRequiredMixin, View):
                 staff.school = school
                 staff.save(update_fields=["school"])
 
-            # Auto-generate employee id on User for consistency
-            employee_id = f"STF-{staff.id}"
+            # Auto-generate or use custom employee id on User for consistency
+            custom_emp_id = request.POST.get('employee_id', '').strip()
+            employee_id = custom_emp_id or f"STF-{staff.id}"
             staff.employee_id = employee_id
             staff.save(update_fields=["employee_id"]) 
 
@@ -495,11 +497,10 @@ class StaffUpdateView(LoginRequiredMixin, UpdateView):
             if desig_val is not None:
                 staff.designation_id = desig_val or None
             
-            # Handle password update
-            password = request.POST.get('password', '').strip()
-            if password and password != 'staff123':
-                staff.set_password(password)
-            
+            emp_id_val = request.POST.get('employee_id', '').strip()
+            if emp_id_val:
+                staff.employee_id = emp_id_val
+
             staff.save()
 
             # Sync HR Staff profile including HR fields
@@ -518,6 +519,8 @@ class StaffUpdateView(LoginRequiredMixin, UpdateView):
             profile.phone = str(staff.phone or '')
             profile.department_id = staff.department_id
             profile.designation_id = staff.designation_id
+            if emp_id_val:
+                profile.employee_id = emp_id_val
             # HR specific fields
             basic_salary = request.POST.get('basic_salary')
             allowances = request.POST.get('allowances')

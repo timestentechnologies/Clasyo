@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, DeleteView, View, TemplateView
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from django.http import JsonResponse, HttpResponse
@@ -999,15 +999,19 @@ class PageContentManagementView(SuperAdminRequiredMixin, View):
 
 
 class HomepageCMSView(SuperAdminRequiredMixin, View):
-    """SuperAdmin Homepage CMS (Hero, How It Works, Features, Parallax)"""
+    """SuperAdmin Homepage CMS (Hero, Floating Icons, How It Works, Features, Parallax)"""
     template_name = 'superadmin/homepage_cms.html'
 
     def get(self, request):
+        from frontend.models import HeroContent, FloatingParallaxElement, ProcessStep, FeatureItem, ParallaxSection
+        from .forms import HeroContentForm, FloatingParallaxElementForm, ProcessStepForm, FeatureItemForm, ParallaxSectionForm
+
         hero = HeroContent.objects.first()
         if not hero:
             hero = HeroContent.objects.create(id=1)
         hero_form = HeroContentForm(instance=hero)
 
+        floating_elements = FloatingParallaxElement.objects.all().order_by('order', 'id')
         process_steps = ProcessStep.objects.all().order_by('order', 'step_number')
         features = FeatureItem.objects.all().order_by('order', 'id')
         parallax_sections = ParallaxSection.objects.all().order_by('order', 'id')
@@ -1015,6 +1019,10 @@ class HomepageCMSView(SuperAdminRequiredMixin, View):
         active_tab = request.GET.get('tab', 'hero')
         
         # Check if editing a specific entity
+        edit_floating_id = request.GET.get('edit_floating')
+        edit_floating = get_object_or_404(FloatingParallaxElement, id=edit_floating_id) if edit_floating_id else None
+        floating_form = FloatingParallaxElementForm(instance=edit_floating) if edit_floating else FloatingParallaxElementForm()
+
         edit_step_id = request.GET.get('edit_step')
         edit_step = get_object_or_404(ProcessStep, id=edit_step_id) if edit_step_id else None
         step_form = ProcessStepForm(instance=edit_step) if edit_step else ProcessStepForm()
@@ -1030,6 +1038,9 @@ class HomepageCMSView(SuperAdminRequiredMixin, View):
         return render(request, self.template_name, {
             'hero': hero,
             'hero_form': hero_form,
+            'floating_elements': floating_elements,
+            'floating_form': floating_form,
+            'edit_floating': edit_floating,
             'process_steps': process_steps,
             'step_form': step_form,
             'edit_step': edit_step,
@@ -1043,6 +1054,9 @@ class HomepageCMSView(SuperAdminRequiredMixin, View):
         })
 
     def post(self, request):
+        from frontend.models import HeroContent, FloatingParallaxElement, ProcessStep, FeatureItem, ParallaxSection
+        from .forms import HeroContentForm, FloatingParallaxElementForm, ProcessStepForm, FeatureItemForm, ParallaxSectionForm
+
         action = request.POST.get('action')
         tab = request.POST.get('tab', 'hero')
 
@@ -1059,7 +1073,26 @@ class HomepageCMSView(SuperAdminRequiredMixin, View):
                 messages.error(request, 'Error updating Hero Section. Please check form values.')
             return redirect(f"{reverse_lazy('superadmin:homepage_cms')}?tab=hero")
 
-        # 2. Process Step Actions
+        # 2. Floating Parallax Element Actions
+        elif action == 'save_floating_element':
+            f_id = request.POST.get('floating_id')
+            floating_elem = get_object_or_404(FloatingParallaxElement, id=f_id) if f_id else None
+            floating_form = FloatingParallaxElementForm(request.POST, instance=floating_elem)
+            if floating_form.is_valid():
+                floating_form.save()
+                messages.success(request, 'Floating parallax icon/element saved successfully!')
+            else:
+                messages.error(request, 'Error saving floating element. Please check form values.')
+            return redirect(f"{reverse_lazy('superadmin:homepage_cms')}?tab=floating")
+
+        elif action == 'delete_floating_element':
+            f_id = request.POST.get('floating_id')
+            floating_elem = get_object_or_404(FloatingParallaxElement, id=f_id)
+            floating_elem.delete()
+            messages.success(request, 'Floating parallax element deleted successfully!')
+            return redirect(f"{reverse_lazy('superadmin:homepage_cms')}?tab=floating")
+
+        # 3. Process Step Actions
         elif action == 'save_step':
             step_id = request.POST.get('step_id')
             step = get_object_or_404(ProcessStep, id=step_id) if step_id else None
@@ -1078,7 +1111,7 @@ class HomepageCMSView(SuperAdminRequiredMixin, View):
             messages.success(request, 'Process step deleted successfully!')
             return redirect(f"{reverse_lazy('superadmin:homepage_cms')}?tab=process")
 
-        # 3. Feature Actions
+        # 4. Feature Actions
         elif action == 'save_feature':
             feat_id = request.POST.get('feature_id')
             feature = get_object_or_404(FeatureItem, id=feat_id) if feat_id else None
@@ -1097,7 +1130,7 @@ class HomepageCMSView(SuperAdminRequiredMixin, View):
             messages.success(request, 'Feature deleted successfully!')
             return redirect(f"{reverse_lazy('superadmin:homepage_cms')}?tab=features")
 
-        # 4. Parallax Section Actions
+        # 5. Parallax Section Actions
         elif action == 'save_parallax':
             p_id = request.POST.get('parallax_id')
             parallax = get_object_or_404(ParallaxSection, id=p_id) if p_id else None
@@ -1776,58 +1809,57 @@ class SchoolPaymentConfigurationDeleteView(SchoolAdminRequiredMixin, DeleteView)
 # ============== GLOBAL SETTINGS VIEWS ==============
 
 class GlobalSettingsView(SuperAdminRequiredMixin, TemplateView):
-    """Global settings dashboard"""
+    """Global settings / System Branding view"""
     template_name = 'superadmin/global_settings.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        from .models import GlobalSMSConfiguration, GlobalEmailConfiguration, GlobalDatabaseConfiguration
-        from django.conf import settings
-        
-        context['sms_configs'] = GlobalSMSConfiguration.objects.all()
-        context['email_configs'] = GlobalEmailConfiguration.objects.all()
-        context['db_configs'] = GlobalDatabaseConfiguration.objects.all()
-        
-        # Add current database configuration from settings
-        current_db = {
-            'name': 'Current Database',
-            'is_active': True,
-            'db_host': getattr(settings, 'DB_HOST', None) or settings.DATABASES['default'].get('HOST', 'localhost'),
-            'db_port': getattr(settings, 'DB_PORT', None) or settings.DATABASES['default'].get('PORT', '5432'),
-            'db_name': settings.DATABASES['default'].get('NAME', 'N/A'),
-            'db_user': getattr(settings, 'DB_USER', None) or settings.DATABASES['default'].get('USER', 'N/A'),
-            'db_password': '***' if settings.DATABASES['default'].get('PASSWORD') else None,
-            'engine': settings.DATABASES['default']['ENGINE'].split('.')[-1],
-            'is_current': True
-        }
-        
-        # Add current email configuration from settings
-        current_email = {
-            'name': 'Current Email Configuration',
-            'is_active': True,
-            'smtp_host': getattr(settings, 'EMAIL_HOST', 'Not configured'),
-            'smtp_port': getattr(settings, 'EMAIL_PORT', 587),
-            'smtp_use_tls': getattr(settings, 'EMAIL_USE_TLS', True),
-            'smtp_use_ssl': getattr(settings, 'EMAIL_USE_SSL', False),
-            'default_from_email': getattr(settings, 'DEFAULT_FROM_EMAIL', 'Not configured'),
-            'default_from_name': getattr(settings, 'DEFAULT_FROM_NAME', 'Clasyo'),
-            'backend': getattr(settings, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend').split('.')[-1],
-            'is_current': True
-        }
-        
-        # Create simple objects that can be used in templates
-        from collections import namedtuple
-        
-        CurrentDB = namedtuple('CurrentDB', current_db.keys())
-        CurrentEmail = namedtuple('CurrentEmail', current_email.keys())
-        
-        context['current_db'] = CurrentDB(**current_db)
-        context['current_email'] = CurrentEmail(**current_email)
-        
         from core.models import SystemSetting
         context['system_settings'] = SystemSetting.get_settings()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        from core.models import SystemSetting
+        settings_obj = SystemSetting.get_settings()
         
+        primary_color = request.POST.get('primary_color', '#0284C7').strip()
+        secondary_color = request.POST.get('secondary_color', '#475569').strip()
+        accent_color = request.POST.get('accent_color', '#38BDF8').strip()
+        
+        dark_primary_color = request.POST.get('dark_primary_color', '#38BDF8').strip()
+        dark_secondary_color = request.POST.get('dark_secondary_color', '#818CF8').strip()
+        dark_accent_color = request.POST.get('dark_accent_color', '#4DD0E1').strip()
+        dark_bg_color = request.POST.get('dark_bg_color', '#0F172A').strip()
+        
+        if primary_color:
+            settings_obj.primary_color = primary_color
+        if secondary_color:
+            settings_obj.secondary_color = secondary_color
+        if accent_color:
+            settings_obj.accent_color = accent_color
+
+        if dark_primary_color:
+            settings_obj.dark_primary_color = dark_primary_color
+        if dark_secondary_color:
+            settings_obj.dark_secondary_color = dark_secondary_color
+        if dark_accent_color:
+            settings_obj.dark_accent_color = dark_accent_color
+        if dark_bg_color:
+            settings_obj.dark_bg_color = dark_bg_color
+            
+        settings_obj.save()
+        messages.success(request, 'System theme & brand colors for Light & Dark modes updated successfully.')
+        return redirect('superadmin:global_settings')
+
+
+class SystemMaintenanceView(SuperAdminRequiredMixin, TemplateView):
+    """System Maintenance Control View"""
+    template_name = 'superadmin/system_maintenance.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from core.models import SystemSetting
+        context['system_settings'] = SystemSetting.get_settings()
         return context
 
     def post(self, request, *args, **kwargs):
@@ -1835,60 +1867,31 @@ class GlobalSettingsView(SuperAdminRequiredMixin, TemplateView):
         from django.utils.dateparse import parse_datetime
         
         settings_obj = SystemSetting.get_settings()
-        action = request.POST.get('action')
+        maintenance_status = request.POST.get('maintenance_status', 'off')
         
-        if action == 'update_maintenance':
-            # Checkboxes: if present in POST, they are checked. If missing, they are unchecked.
-            maintenance_status = request.POST.get('maintenance_status', 'off')
-            
-            if maintenance_status == 'off':
-                settings_obj.maintenance_mode = False
-                settings_obj.superadmin_only_mode = False
-                status_msg = "deactivated"
-            elif maintenance_status == 'school_admin':
-                settings_obj.maintenance_mode = True
-                settings_obj.superadmin_only_mode = False
-                status_msg = "activated (Staff Access)"
-            elif maintenance_status == 'superadmin':
-                settings_obj.maintenance_mode = True
-                settings_obj.superadmin_only_mode = True
-                status_msg = "activated (Super Admin Only)"
-            
-            # Standard maintenance dates
-            if 'maintenance_start' in request.POST:
-                start_val = request.POST.get('maintenance_start')
-                settings_obj.maintenance_start = parse_datetime(start_val) if start_val else None
-            if 'maintenance_end' in request.POST:
-                end_val = request.POST.get('maintenance_end')
-                settings_obj.maintenance_end = parse_datetime(end_val) if end_val else None
-            
-            # Superadmin exclusive dates
-            if 'superadmin_maintenance_start' in request.POST:
-                sa_start_val = request.POST.get('superadmin_maintenance_start')
-                settings_obj.superadmin_maintenance_start = parse_datetime(sa_start_val) if sa_start_val else None
-            if 'superadmin_maintenance_end' in request.POST:
-                sa_end_val = request.POST.get('superadmin_maintenance_end')
-                settings_obj.superadmin_maintenance_end = parse_datetime(sa_end_val) if sa_end_val else None
-            
-            settings_obj.save()
-            messages.success(request, f'Maintenance mode {status_msg} successfully.')
+        if maintenance_status == 'off':
+            settings_obj.maintenance_mode = False
+            settings_obj.superadmin_only_mode = False
+            status_msg = "deactivated"
+        elif maintenance_status == 'school_admin':
+            settings_obj.maintenance_mode = True
+            settings_obj.superadmin_only_mode = False
+            status_msg = "activated (Staff Access)"
+        elif maintenance_status == 'superadmin':
+            settings_obj.maintenance_mode = True
+            settings_obj.superadmin_only_mode = True
+            status_msg = "activated (Super Admin Only)"
         
-        elif action == 'update_theme_colors':
-            primary_color = request.POST.get('primary_color', '#1E3A5F').strip()
-            secondary_color = request.POST.get('secondary_color', '#2C5282').strip()
-            accent_color = request.POST.get('accent_color', '#4DD0E1').strip()
-            
-            if primary_color:
-                settings_obj.primary_color = primary_color
-            if secondary_color:
-                settings_obj.secondary_color = secondary_color
-            if accent_color:
-                settings_obj.accent_color = accent_color
-                
-            settings_obj.save()
-            messages.success(request, 'System theme and brand colors updated successfully.')
+        if 'superadmin_maintenance_start' in request.POST:
+            sa_start_val = request.POST.get('superadmin_maintenance_start')
+            settings_obj.superadmin_maintenance_start = parse_datetime(sa_start_val) if sa_start_val else None
+        if 'superadmin_maintenance_end' in request.POST:
+            sa_end_val = request.POST.get('superadmin_maintenance_end')
+            settings_obj.superadmin_maintenance_end = parse_datetime(sa_end_val) if sa_end_val else None
         
-        return redirect('superadmin:global_settings')
+        settings_obj.save()
+        messages.success(request, f'Maintenance mode {status_msg} successfully.')
+        return redirect('superadmin:system_maintenance')
 
 
 class GlobalSMSConfigurationListView(SuperAdminRequiredMixin, ListView):

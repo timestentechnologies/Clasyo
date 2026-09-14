@@ -240,7 +240,7 @@ class HeroContentForm(forms.ModelForm):
             'primary_btn_text', 'primary_btn_url',
             'secondary_btn_text', 'secondary_btn_url',
             'bg_type', 'bg_image', 'bg_color', 'bg_gradient',
-            'overlay_opacity', 'is_active'
+            'overlay_color', 'overlay_opacity', 'min_height', 'is_active'
         ]
         widgets = {
             'title_prefix': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Transform Your'}),
@@ -254,7 +254,39 @@ class HeroContentForm(forms.ModelForm):
             'bg_image': forms.FileInput(attrs={'class': 'form-control'}),
             'bg_color': forms.TextInput(attrs={'class': 'form-control', 'type': 'color'}),
             'bg_gradient': forms.TextInput(attrs={'class': 'form-control'}),
+            'overlay_color': forms.TextInput(attrs={'class': 'form-control', 'type': 'color'}),
             'overlay_opacity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.05', 'min': '0', 'max': '1'}),
+            'min_height': forms.Select(attrs={'class': 'form-select'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class FloatingParallaxElementForm(forms.ModelForm):
+    """Form for Floating Parallax Icons CMS"""
+    class Meta:
+        from frontend.models import FloatingParallaxElement
+        model = FloatingParallaxElement
+        fields = [
+            'title', 'icon', 'section_target', 'preset_position',
+            'position_top', 'position_left', 'position_bottom', 'position_right',
+            'font_size', 'opacity', 'animation_type', 'animation_duration',
+            'animation_delay', 'order', 'is_active'
+        ]
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Graduation Cap Icon'}),
+            'icon': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. fas fa-graduation-cap'}),
+            'section_target': forms.Select(attrs={'class': 'form-select'}),
+            'preset_position': forms.Select(attrs={'class': 'form-select'}),
+            'position_top': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 10% or 50px or auto'}),
+            'position_left': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 10% or 40px or auto'}),
+            'position_bottom': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 15% or auto'}),
+            'position_right': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 15% or auto'}),
+            'font_size': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 3rem or 45px'}),
+            'opacity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.05', 'min': '0.01', 'max': '1'}),
+            'animation_type': forms.Select(attrs={'class': 'form-select'}),
+            'animation_duration': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 18s'}),
+            'animation_delay': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 0s'}),
+            'order': forms.NumberInput(attrs={'class': 'form-control'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
@@ -302,15 +334,15 @@ class ParallaxSectionForm(forms.ModelForm):
         from frontend.models import ParallaxSection
         model = ParallaxSection
         fields = [
-            'badge_text', 'title', 'subtitle', 'content',
+            'title', 'target_position', 'subtitle', 'content',
             'primary_btn_text', 'primary_btn_url',
             'secondary_btn_text', 'secondary_btn_url',
             'bg_image', 'bg_color', 'overlay_opacity', 'scroll_effect',
             'order', 'is_active'
         ]
         widgets = {
-            'badge_text': forms.TextInput(attrs={'class': 'form-control'}),
             'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'target_position': forms.Select(attrs={'class': 'form-select'}),
             'subtitle': forms.TextInput(attrs={'class': 'form-control'}),
             'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'primary_btn_text': forms.TextInput(attrs={'class': 'form-control'}),
@@ -324,4 +356,5 @@ class ParallaxSectionForm(forms.ModelForm):
             'order': forms.NumberInput(attrs={'class': 'form-control'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
 

@@ -3,60 +3,113 @@
 
 {% block title %}Designations - HR{% endblock %}
 {% block page_icon %}id-badge{% endblock %}
-{% block page_title %}Designations{% endblock %}
+{% block page_title %}Designations Management{% endblock %}
 {% block page_subtitle %}Manage all job designations in your institution{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-end mb-3">
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDesignationModal">
-        <i class="fas fa-plus"></i> Add Designation
-    </button>
-</div>
+<div class="container-fluid">
+    <div class="d-flex justify-content-end mb-3">
+        <button class="btn btn-primary" onclick="openDesignationForm('create')">
+            <i class="fas fa-plus me-1"></i> Add Designation
+        </button>
+    </div>
 
-<div class="modern-card">
-    <div class="table-responsive">
-        <table class="table">
-            <thead>
+    <!-- Shared In-Page Single Form Panel -->
+    <div class="form-panel-view d-none" id="designationFormPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('designationListCard', 'designationFormPanel', 'list')">
+                    <i class="fas fa-arrow-left me-1"></i> Back to List
+                </button>
+                <h5 class="mb-0 fw-bold form-title-text" data-create-title="Create New Designation" data-edit-title="Edit Designation">Create New Designation</h5>
+                <span class="form-mode-badge mode-create">New</span>
+            </div>
+            <div class="form-header-actions">
+                <button type="button" class="btn btn-sm btn-light" onclick="toggleInPageFormView('designationListCard', 'designationFormPanel', 'list')">Cancel</button>
+                <button type="button" class="btn btn-sm btn-primary form-submit-btn" onclick="submitDesignationForm()">
+                    <i class="fas fa-save me-1"></i> Save Designation
+                </button>
+            </div>
+        </div>
+        <div class="form-card-body">
+            <form id="designationForm">
+                {% csrf_token %}
+                <input type="hidden" id="designation_id" name="designation_id">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="designation_name" class="form-label fw-semibold">Designation Name *</label>
+                        <input type="text" name="name" id="designation_name" class="form-control" placeholder="e.g. Principal, Head of Department" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="designation_code" class="form-label fw-semibold">Short Code *</label>
+                        <input type="text" name="code" id="designation_code" class="form-control" placeholder="e.g. PRIN, HOD, TCH" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="designation_description" class="form-label fw-semibold">Description</label>
+                    <textarea name="description" id="designation_description" class="form-control" rows="3" placeholder="Job responsibility summary..."></textarea>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="designation_is_active" name="is_active" checked>
+                    <label class="form-check-label fw-semibold" for="designation_is_active">Is Active</label>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Designation List View -->
+    <div class="modern-card" id="designationListCard">
+        <div class="table-responsive">
+            <table class="table modern-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Designation Name</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for designation in designations %}
                 <tr>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                    <td><strong>{{ designation.name }}</strong></td>
+                    <td>{{ designation.description|default:"No description"|truncatewords:15 }}</td>
+                    <td>
+                        <span class="badge {% if designation.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                            {% if designation.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-1"
+                                onclick="openDesignationForm('edit', {
+                                    designation_id: '{{ designation.pk }}',
+                                    name: '{{ designation.name|escapejs }}',
+                                    code: '{{ designation.code|default:''|escapejs }}',
+                                    description: '{{ designation.description|default:''|escapejs }}',
+                                    is_active: {{ designation.is_active|yesno:'true,false' }}
+                                })">
+                            <i class="fas fa-edit me-1"></i> Edit
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteDesignation({{ designation.pk }}, '{{ designation.name|escapejs }}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
                 </tr>
-            </thead>
-            <tbody>
-            {% for designation in designations %}
-            <tr>
-                <td><strong>{{ designation.name }}</strong></td>
-                <td>{{ designation.description|default:"No description"|truncatewords:15 }}</td>
-                <td>
-                    <span class="badge {% if designation.is_active %}bg-success{% else %}bg-danger{% endif %}">
-                        {% if designation.is_active %}Active{% else %}Inactive{% endif %}
-                    </span>
-                </td>
-                <td>
-                    <button class="btn btn-sm btn-primary" onclick="editDesignation({{ designation.pk }})">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteDesignation({{ designation.pk }}, '{{ designation.name }}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="4" class="text-center py-5">
-                    <i class="fas fa-id-badge fa-3x text-muted mb-3 d-block"></i>
-                    <p class="text-muted mb-0">No designations found.</p>
-                </td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center py-5">
+                        <i class="fas fa-id-badge fa-3x text-muted mb-3 d-block"></i>
+                        <p class="text-muted mb-0">No designations found.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-<!-- Delete Designation Confirmation Modal -->
+<!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteDesignationModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -66,7 +119,7 @@
             </div>
             <div class="modal-body">
                 <p>Are you sure you want to delete designation <strong id="deleteDesignationName"></strong>?</p>
-                <p class="text-danger">This action cannot be undone.</p>
+                <p class="text-danger mb-0">This action cannot be undone.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -76,85 +129,21 @@
     </div>
 </div>
 
-<!-- Edit Designation Modal -->
-<div class="modal fade" id="editDesignationModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
-                <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Designation</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="designationEditForm">
-                    {% csrf_token %}
-                    <input type="hidden" id="edit_designation_id">
-                    <div class="mb-3">
-                        <label>Designation Name *</label>
-                        <input type="text" name="name" id="edit_designation_name" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>Code *</label>
-                        <input type="text" name="code" id="edit_designation_code" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>Description</label>
-                        <textarea name="description" id="edit_designation_description" class="form-control" rows="3"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label>
-                            <input type="checkbox" name="is_active" id="edit_designation_active"> Active
-                        </label>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitEditDesignation()">Update Designation</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Add Designation Modal -->
-<div class="modal fade" id="addDesignationModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
-                <h5 class="modal-title"><i class="fas fa-plus"></i> Add Designation</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="designationForm">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label>Designation Name *</label>
-                        <input type="text" name="name" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>Code *</label>
-                        <input type="text" name="code" class="form-control" placeholder="e.g., PRIN, HOD, TCH" required>
-                        <small class="text-muted">Short code for the designation</small>
-                    </div>
-                    <div class="mb-3">
-                        <label>Description</label>
-                        <textarea name="description" class="form-control" rows="3"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitDesignation()">Add Designation</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
-function submitDesignation() {
+function openDesignationForm(mode, data) {
+    toggleInPageFormView('designationListCard', 'designationFormPanel', mode, data);
+}
+
+function submitDesignationForm() {
+    const id = document.getElementById('designation_id').value;
     const form = document.getElementById('designationForm');
     const formData = new FormData(form);
     
-    fetch(window.location.pathname + 'add/', {
+    const url = id 
+        ? window.location.pathname + id + '/update/'
+        : window.location.pathname + 'add/';
+
+    fetch(url, {
         method: 'POST',
         body: formData,
         headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
@@ -162,51 +151,13 @@ function submitDesignation() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showSuccessAndReload('Designation added successfully!');
+            window.location.reload();
         } else {
-            showError(data.error || 'Failed to add designation');
+            alert(data.error || 'Failed to save designation');
         }
     })
     .catch(error => {
-        showError('Error: ' + error.message);
-    });
-}
-
-function editDesignation(id) {
-    const row = event.target.closest('tr');
-    const name = row.querySelector('td:nth-child(1)').textContent.trim();
-    const description = row.querySelector('td:nth-child(2)').textContent.trim();
-    const isActive = row.querySelector('.badge').textContent.includes('Active');
-    
-    document.getElementById('edit_designation_id').value = id;
-    document.getElementById('edit_designation_name').value = name;
-    document.getElementById('edit_designation_code').value = '';
-    document.getElementById('edit_designation_description').value = description === 'No description' ? '' : description;
-    document.getElementById('edit_designation_active').checked = isActive;
-    
-    new bootstrap.Modal(document.getElementById('editDesignationModal')).show();
-}
-
-function submitEditDesignation() {
-    const form = document.getElementById('designationEditForm');
-    const formData = new FormData(form);
-    const id = document.getElementById('edit_designation_id').value;
-    
-    fetch(window.location.pathname + id + '/edit/', {
-        method: 'POST',
-        body: formData,
-        headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showSuccessAndReload('Designation updated successfully!');
-        } else {
-            showError(data.error || 'Failed to update designation');
-        }
-    })
-    .catch(error => {
-        showError('Error: ' + error.message);
+        alert('Error saving designation: ' + error.message);
     });
 }
 
@@ -228,13 +179,13 @@ function deleteDesignation(id, name) {
             if (deleteModal) deleteModal.hide();
             
             if (data.success) {
-                showSuccessAndReload('Designation deleted successfully!');
+                window.location.reload();
             } else {
-                showError('Failed to delete designation: ' + (data.error || ''));
+                alert('Failed to delete designation: ' + (data.error || ''));
             }
         })
         .catch(error => {
-            showError('Error deleting designation: ' + error.message);
+            alert('Error: ' + error.message);
         });
     };
 }

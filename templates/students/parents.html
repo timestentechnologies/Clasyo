@@ -8,40 +8,39 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addParentModal">
+    <button class="btn btn-primary" onclick="openCreateParentForm()">
         <i class="fas fa-user-plus"></i> Add Parent
     </button>
 </div>
 
-<!-- Dynamic Search and Filters -->
-<div class="row mb-3">
-    <div class="col-md-12">
-        <div class="row g-2">
-            <div class="col-md-4">
-                <input type="text" id="searchInput" class="form-control" placeholder="Search parents by name, email, phone...">
-            </div>
-            <div class="col-md-3">
-                <select name="children_filter" id="childrenFilter" class="form-select">
-                    <option value="">All Parents</option>
-                    <option value="has_children">Has Children</option>
-                    <option value="no_children">No Children</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select name="status_filter" id="statusFilter" class="form-select">
-                    <option value="">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <a href="." class="btn btn-outline-secondary w-100">Reset</a>
+<!-- Parent List View Container -->
+<div id="parentListCard">
+    <!-- Dynamic Search and Filters -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search parents by name, email, phone...">
+                </div>
+                <div class="col-md-4">
+                    <select name="children_filter" id="childrenFilter" class="form-select" placeholder="Filter by Children" data-placeholder="Filter by Children">
+                        <option value="">All Parents</option>
+                        <option value="has_children">Has Children</option>
+                        <option value="no_children">No Children</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select name="status_filter" id="statusFilter" class="form-select" placeholder="Filter by Status" data-placeholder="Filter by Status">
+                        <option value="">All Statuses</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="modern-card">
+    <div class="modern-card">
     <div class="table-responsive">
         <table class="table" id="parentsTable">
             <thead>
@@ -98,110 +97,61 @@
         </table>
     </div>
 </div>
-
-<!-- Add Parent Modal -->
-<div class="modal fade" id="addParentModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-user-plus"></i> Add Parent</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="addParentForm">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="first_name" class="form-label">First Name</label>
-                        <input type="text" class="form-control" id="first_name" name="first_name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="last_name" class="form-label">Last Name</label>
-                        <input type="text" class="form-control" id="last_name" name="last_name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="email" name="email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="phone" class="form-label">Phone</label>
-                        <input type="text" class="form-control" id="phone" name="phone">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitParent()">Add Parent</button>
-            </div>
-        </div>
-    </div>
 </div>
 
-<!-- Edit Parent Modal -->
-<div class="modal fade" id="editParentModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Parent</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+<!-- In-Page Form Panel -->
+<div id="parentFormPanel" class="card modern-card mb-4 form-panel-view" style="display: none;">
+    <div class="card-body">
+        <div class="form-header-bar">
+            <div>
+                <h5 class="fw-bold mb-1" id="parentFormTitle">Add New Parent</h5>
+                <span class="form-mode-badge badge bg-primary" id="parentFormBadge">Creation Mode</span>
             </div>
-            <div class="modal-body">
-                <form id="editParentForm">
-                    <input type="hidden" id="editParentId" name="parent_id">
-                    <div class="mb-3">
-                        <label for="edit_first_name" class="form-label">First Name</label>
-                        <input type="text" class="form-control" id="edit_first_name" name="first_name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="edit_last_name" class="form-label">Last Name</label>
-                        <input type="text" class="form-control" id="edit_last_name" name="last_name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="edit_email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="edit_email" name="email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Password</label>
-                        <input type="text" name="password" class="form-control" value="parent123">
-                        <small class="text-muted">Default: parent123 - You can edit to change</small>
-                    </div>
-                    <div class="mb-3">
-                        <label for="edit_phone" class="form-label">Phone</label>
-                        <input type="text" class="form-control" id="edit_phone" name="phone">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitEditParent()">Update Parent</button>
-            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('parentListCard', 'parentFormPanel', 'hide')">
+                <i class="fas fa-times me-1"></i> Close
+            </button>
         </div>
+        <form id="parentForm">
+            {% csrf_token %}
+            <input type="hidden" id="editParentId" name="parent_id">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="first_name" class="form-label fw-semibold">First Name *</label>
+                    <input type="text" class="form-control" id="first_name" name="first_name" placeholder="Enter first name" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="last_name" class="form-label fw-semibold">Last Name *</label>
+                    <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Enter last name" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="email" class="form-label fw-semibold">Email Address *</label>
+                    <input type="email" class="form-control" id="email" name="email" placeholder="e.g. parent@example.com" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="phone" class="form-label fw-semibold">Phone Number</label>
+                    <input type="text" class="form-control" id="phone" name="phone" placeholder="Enter phone number">
+                </div>
+                <div class="col-md-12" id="passwordFieldContainer" style="display: none;">
+                    <label class="form-label fw-semibold">Password</label>
+                    <input type="text" name="password" class="form-control" value="parent123" placeholder="Set password">
+                    <small class="text-muted">Default: parent123 - You can edit to change</small>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <button type="button" class="btn btn-outline-secondary" onclick="toggleInPageFormView('parentListCard', 'parentFormPanel', 'hide')">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitParentForm()"><i class="fas fa-save me-1"></i> Save Parent</button>
+            </div>
+        </form>
     </div>
 </div>
 
 <script>
-function submitParent() {
-    const form = document.getElementById('addParentForm');
-    const formData = new FormData(form);
-    
-    fetch(window.location.pathname + 'add/', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showSuccessAndReload('Parent account created successfully!');
-        } else {
-            showError(data.error || 'Failed to create parent account');
-        }
-    })
-    .catch(error => {
-        showError('Error creating parent: ' + error.message);
-    });
+function openCreateParentForm() {
+    document.getElementById('passwordFieldContainer').style.display = 'none';
+    toggleInPageFormView('parentListCard', 'parentFormPanel', 'create');
 }
 
 function editParent(id) {
-    // Get parent details for editing
     fetch(window.location.pathname + id + '/', {
         headers: {
             'X-Requested-With': 'XMLHttpRequest'
@@ -211,15 +161,14 @@ function editParent(id) {
     .then(data => {
         if (data.success) {
             const parent = data.parent;
-            // Populate edit form
             document.getElementById('editParentId').value = id;
-            document.getElementById('edit_first_name').value = parent.first_name || '';
-            document.getElementById('edit_last_name').value = parent.last_name || '';
-            document.getElementById('edit_email').value = parent.email;
-            document.getElementById('edit_phone').value = parent.phone || '';
+            document.getElementById('first_name').value = parent.first_name || '';
+            document.getElementById('last_name').value = parent.last_name || '';
+            document.getElementById('email').value = parent.email || '';
+            document.getElementById('phone').value = parent.phone || '';
+            document.getElementById('passwordFieldContainer').style.display = 'block';
             
-            // Show modal
-            new bootstrap.Modal(document.getElementById('editParentModal')).show();
+            toggleInPageFormView('parentListCard', 'parentFormPanel', 'edit');
         } else {
             alert('Failed to load parent details');
         }
@@ -229,25 +178,26 @@ function editParent(id) {
     });
 }
 
-function submitEditParent() {
-    const form = document.getElementById('editParentForm');
+function submitParentForm() {
+    const form = document.getElementById('parentForm');
     const formData = new FormData(form);
     const id = document.getElementById('editParentId').value;
+    const url = id ? (window.location.pathname + id + '/update/') : (window.location.pathname + 'add/');
     
-    fetch(window.location.pathname + id + '/update/', {
+    fetch(url, {
         method: 'POST',
         body: formData
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showSuccessAndReload('Parent account updated successfully!');
+            showSuccessAndReload(id ? 'Parent account updated successfully!' : 'Parent account created successfully!');
         } else {
-            alert(data.error || 'Failed to update parent');
+            showError(data.error || 'Failed to save parent account');
         }
     })
     .catch(error => {
-        alert('Error: ' + error.message);
+        showError('Error saving parent: ' + error.message);
     });
 }
 

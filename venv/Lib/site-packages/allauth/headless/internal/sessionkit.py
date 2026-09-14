@@ -50,6 +50,17 @@ def authenticate_by_x_session_token(token: str) -> tuple | None:
 
 
 def lookup_session(session_key: str) -> SessionBase | None:
-    if session_store().exists(session_key):
-        return session_store(session_key)
-    return None
+    """
+    The following results in 2 queries:
+
+    >>> if session_store().exists(session_key):
+    >>>     return session_store(session_key)
+    >>> return None
+
+    The code below avoids that.
+    """
+    session = session_store(session_key)
+    # Trigger Django's lazy session load. Missing and expired sessions clear the
+    # session key.
+    session.get(SESSION_KEY)
+    return session if session.session_key else None

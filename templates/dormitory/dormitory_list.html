@@ -111,6 +111,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 {% block content %}
+<!-- Smart Actions Bar -->
+<div class="smart-actions-bar">
+    <div class="smart-actions-group">
+        <a href="{% url 'dormitory:rooms' school_slug=school_slug %}" class="smart-btn smart-btn-primary">
+            <i class="fas fa-door-open"></i> Manage Rooms
+        </a>
+        <a href="{% url 'dormitory:allocations' school_slug=school_slug %}" class="smart-btn smart-btn-success">
+            <i class="fas fa-user-friends"></i> Room Allocations
+        </a>
+        <a href="{% url 'dormitory:occupancy_report' school_slug=school_slug %}" class="smart-btn smart-btn-info">
+            <i class="fas fa-chart-bar"></i> Occupancy Report
+        </a>
+    </div>
+</div>
+
 <!-- Status Modal -->
 <div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -129,14 +144,60 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<div class="row">
+<!-- Shared In-Page Single Form Panel -->
+<div class="form-panel-view d-none" id="dormitoryFormPanel">
+    <div class="form-header-bar">
+        <div class="form-header-title-group">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('dormitoryListCard', 'dormitoryFormPanel', 'list')">
+                <i class="fas fa-arrow-left me-1"></i> Back to List
+            </button>
+            <h5 class="mb-0 fw-bold form-title-text">Add New Dormitory</h5>
+            <span class="form-mode-badge mode-create">New</span>
+        </div>
+        <div class="form-header-actions">
+            <button type="button" class="btn btn-sm btn-light" onclick="toggleInPageFormView('dormitoryListCard', 'dormitoryFormPanel', 'list')">Cancel</button>
+            <button type="submit" form="addDormitoryForm" class="btn btn-sm btn-primary form-submit-btn">
+                <i class="fas fa-save me-1"></i> Save Dormitory
+            </button>
+        </div>
+    </div>
+    <div class="form-card-body">
+        <form id="addDormitoryForm" method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Dormitory Name *</label>
+                <input type="text" name="name" class="form-control" placeholder="e.g. Blue Ridge Residence" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Type *</label>
+                <select name="dormitory_type" class="form-select" required>
+                    <option value="">Select Type</option>
+                    <option value="Boys">Boys Dormitory</option>
+                    <option value="Girls">Girls Dormitory</option>
+                    <option value="Mixed">Mixed</option>
+                    <option value="Staff">Staff Quarters</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Address *</label>
+                <textarea name="address" class="form-control" rows="2" placeholder="Physical location / building block address..." required></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Description</label>
+                <textarea name="description" class="form-control" rows="2" placeholder="Additional notes or specifications..."></textarea>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row" id="dormitoryListCard">
     <div class="col-lg-12">
         <div class="modern-card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="mb-0 fw-bold"><i class="fas fa-building"style="color:aqua;"></i> Dormitories</h5>
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDormitoryModal">
-                        <i class="fas fa-plus-circle"></i> Add Dormitory
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-building" style="color:aqua;"></i> Dormitories</h5>
+                    <button class="btn btn-primary" onclick="toggleInPageFormView('dormitoryListCard', 'dormitoryFormPanel', 'create')">
+                        <i class="fas fa-plus-circle me-1"></i> Add Dormitory
                     </button>
                 </div>
 
@@ -168,68 +229,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 {% endif %}
             </div>
-        </div>
-
-        <div class="modern-card mt-4">
-            <div class="card-body p-0">
-                <div class="p-4 border-bottom" style="border-color: var(--border-color) !important;">
-                    <h5 class="mb-0 fw-bold"><i class="fas fa-door-open text-success me-2"></i>Quick Links</h5>
-                </div>
-                <div class="list-group list-group-flush quick-links">
-                    <a href="{% url 'dormitory:rooms' school_slug=school_slug %}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-door-open me-2"></i> Manage Rooms
-                    </a>
-                    <a href="{% url 'dormitory:allocations' school_slug=school_slug %}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-user-friends me-2"></i> Room Allocations
-                    </a>
-                    <a href="{% url 'dormitory:occupancy_report' school_slug=school_slug %}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-chart-bar me-2"></i> Occupancy Report
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Add Dormitory Modal -->
-<div class="modal fade" id="addDormitoryModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add New Dormitory</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="addDormitoryForm" method="post">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Dormitory Name</label>
-                        <input type="text" name="name" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Type</label>
-                        <select name="dormitory_type" class="form-select" required>
-                            <option value="">Select Type</option>
-                            <option value="Boys">Boys Dormitory</option>
-                            <option value="Girls">Girls Dormitory</option>
-                            <option value="Mixed">Mixed</option>
-                            <option value="Staff">Staff Quarters</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Address</label>
-                        <textarea name="address" class="form-control" rows="2" required></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea name="description" class="form-control" rows="2"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Dormitory</button>
-                </div>
-            </form>
         </div>
     </div>
 </div>

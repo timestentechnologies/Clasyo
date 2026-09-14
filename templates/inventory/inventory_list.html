@@ -9,8 +9,8 @@
 
 {% block content %}
 <div class="d-flex justify-content-end mb-3">
-    <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addItemModal">
-        <i class="fas fa-plus"></i> Add Item
+    <button class="btn btn-primary me-2" onclick="openCreateInventoryForm()">
+        <i class="fas fa-plus me-1"></i> Add Item
     </button>
     <a href="{% url 'inventory:supplier_list' school_slug %}" class="btn btn-secondary me-2">
         <i class="fas fa-truck"></i> Suppliers
@@ -20,78 +20,87 @@
     </a>
 </div>
 
-<!-- Edit Item Modal -->
-<div class="modal fade" id="editItemModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Edit Item</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- In-Page Inventory Form Panel -->
+<div id="inventoryFormPanel" class="card modern-card mb-4 form-panel-view" style="display: none;">
+    <div class="card-body">
+        <div class="form-header-bar">
+            <div>
+                <h5 class="fw-bold mb-1" id="inventoryFormTitle">Add New Item</h5>
+                <span class="form-mode-badge badge bg-primary" id="inventoryFormBadge">Creation Mode</span>
             </div>
-            <form id="editItemForm">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <input type="hidden" name="action" value="edit_item">
-                    <input type="hidden" name="item_id" id="edit_item_id">
-
-                    <div class="mb-3">
-                        <label class="form-label">Item Code *</label>
-                        <input type="text" name="code" id="edit_code" class="form-control" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Item Name *</label>
-                        <input type="text" name="name" id="edit_name" class="form-control" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Category *</label>
-                        <select name="category" id="edit_category" class="form-control">
-                            <option value="">Select Category</option>
-                            {% for category in categories %}
-                            <option value="{{ category.id }}">{{ category.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Unit *</label>
-                            <select name="unit" id="edit_unit" class="form-control" required>
-                                <option value="piece">Piece</option>
-                                <option value="box">Box</option>
-                                <option value="kg">Kilogram</option>
-                                <option value="liter">Liter</option>
-                                <option value="dozen">Dozen</option>
-                                <option value="pack">Pack</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Unit Price *</label>
-                            <input type="number" name="unit_price" id="edit_unit_price" class="form-control" step="0.01" required>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Reorder Level *</label>
-                        <input type="number" name="reorder_level" id="edit_reorder_level" class="form-control" step="0.01" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea name="description" id="edit_description" class="form-control" rows="3"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                </div>
-            </form>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('inventoryListCard', 'inventoryFormPanel', 'hide')">
+                <i class="fas fa-times me-1"></i> Close
+            </button>
         </div>
+        <form id="inventoryForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" id="inventory_action" value="add_item">
+            <input type="hidden" name="item_id" id="inventory_item_id">
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Item Code *</label>
+                    <input type="text" name="code" id="inventory_code" class="form-control" placeholder="e.g. ITM-001" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Item Name *</label>
+                    <input type="text" name="name" id="inventory_name" class="form-control" placeholder="Enter item name" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Category *</label>
+                    <select name="category" id="inventory_category" class="form-select">
+                        <option value="">Select Category</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Unit *</label>
+                    <select name="unit" id="inventory_unit" class="form-select" required>
+                        <option value="piece">Piece</option>
+                        <option value="box">Box</option>
+                        <option value="kg">Kilogram</option>
+                        <option value="liter">Liter</option>
+                        <option value="dozen">Dozen</option>
+                        <option value="pack">Pack</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Unit Price (Ksh) *</label>
+                    <input type="number" name="unit_price" id="inventory_unit_price" class="form-control" step="0.01" placeholder="0.00" required>
+                </div>
+
+                <div class="col-md-6" id="initialStockCol">
+                    <label class="form-label fw-semibold">Initial Stock</label>
+                    <input type="number" name="quantity_in_stock" id="inventory_quantity_in_stock" class="form-control" value="0" step="0.01" placeholder="0">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Reorder Level *</label>
+                    <input type="number" name="reorder_level" id="inventory_reorder_level" class="form-control" value="10" step="0.01" placeholder="10" required>
+                </div>
+
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold">Description</label>
+                    <textarea name="description" id="inventory_description" class="form-control" rows="3" placeholder="Enter description..."></textarea>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <button type="button" class="btn btn-outline-secondary" onclick="toggleInPageFormView('inventoryListCard', 'inventoryFormPanel', 'hide')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Save Item</button>
+            </div>
+        </form>
     </div>
 </div>
 
+<!-- Inventory List View Container -->
+<div id="inventoryListCard">
     {% if low_stock_items %}
     <div class="alert alert-warning">
         <i class="fas fa-exclamation-triangle"></i>
@@ -99,7 +108,7 @@
     </div>
     {% endif %}
 
-<div class="modern-card">
+    <div class="modern-card">
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead>
@@ -160,6 +169,7 @@
         </div>
     </div>
 </div>
+</div>
 
 <!-- Success Modal -->
 <div class="modal fade" id="successModal" tabindex="-1">
@@ -175,84 +185,6 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Add Item Modal -->
-<div class="modal fade" id="addItemModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add New Item</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="addItemForm">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <input type="hidden" name="action" value="add_item">
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Item Code *</label>
-                        <input type="text" name="code" class="form-control" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Item Name *</label>
-                        <input type="text" name="name" class="form-control" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Category *</label>
-                        <select name="category" class="form-control" >
-                            <option value="">Select Category</option>
-                            {% for category in categories %}
-                            <option value="{{ category.id }}">{{ category.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Unit *</label>
-                            <select name="unit" class="form-control" required>
-                                <option value="piece">Piece</option>
-                                <option value="box">Box</option>
-                                <option value="kg">Kilogram</option>
-                                <option value="liter">Liter</option>
-                                <option value="dozen">Dozen</option>
-                                <option value="pack">Pack</option>
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Unit Price *</label>
-                            <input type="number" name="unit_price" class="form-control" step="0.01" required>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Initial Stock</label>
-                            <input type="number" name="quantity_in_stock" class="form-control" value="0" step="0.01">
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Reorder Level *</label>
-                            <input type="number" name="reorder_level" class="form-control" value="10" step="0.01" required>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea name="description" class="form-control" rows="3"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Item</button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
@@ -276,7 +208,7 @@
                     
                     <div class="mb-3">
                         <label class="form-label">New Quantity *</label>
-                        <input type="number" name="quantity" class="form-control" step="0.01" required>
+                        <input type="number" name="quantity" class="form-control" step="0.01" placeholder="Enter new quantity" required>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -289,7 +221,14 @@
 </div>
 
 <script>
-document.getElementById('addItemForm').addEventListener('submit', function(e) {
+function openCreateInventoryForm() {
+    document.getElementById('inventory_action').value = 'add_item';
+    document.getElementById('inventory_item_id').value = '';
+    document.getElementById('initialStockCol').style.display = 'block';
+    toggleInPageFormView('inventoryListCard', 'inventoryFormPanel', 'create');
+}
+
+document.getElementById('inventoryForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const formData = new FormData(this);
     
@@ -300,28 +239,8 @@ document.getElementById('addItemForm').addEventListener('submit', function(e) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showSuccessAndReload('Item added successfully!');
-        } else {
-            alert('Error: ' + data.error);
-        }
-    })
-    .catch(error => {
-        alert('Error: ' + error.message);
-    });
-});
-
-document.getElementById('editItemForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-
-    fetch(window.location.pathname, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showSuccessAndReload('Item updated successfully!');
+            const isEdit = document.getElementById('inventory_action').value === 'edit_item';
+            showSuccessAndReload(isEdit ? 'Item updated successfully!' : 'Item added successfully!');
         } else {
             alert('Error: ' + data.error);
         }
@@ -368,15 +287,18 @@ document.addEventListener('click', function(e) {
     const btn = e.target.closest('.edit-item-btn');
     if (!btn) return;
 
-    document.getElementById('edit_item_id').value = btn.dataset.itemId || '';
-    document.getElementById('edit_code').value = btn.dataset.code || '';
-    document.getElementById('edit_name').value = btn.dataset.name || '';
-    document.getElementById('edit_category').value = btn.dataset.categoryId || '';
-    document.getElementById('edit_unit').value = btn.dataset.unit || 'piece';
-    document.getElementById('edit_unit_price').value = btn.dataset.unitPrice || '';
-    document.getElementById('edit_reorder_level').value = btn.dataset.reorderLevel || '';
-    document.getElementById('edit_description').value = btn.dataset.description || '';
-    new bootstrap.Modal(document.getElementById('editItemModal')).show();
+    document.getElementById('inventory_action').value = 'edit_item';
+    document.getElementById('inventory_item_id').value = btn.dataset.itemId || '';
+    document.getElementById('inventory_code').value = btn.dataset.code || '';
+    document.getElementById('inventory_name').value = btn.dataset.name || '';
+    document.getElementById('inventory_category').value = btn.dataset.categoryId || '';
+    document.getElementById('inventory_unit').value = btn.dataset.unit || 'piece';
+    document.getElementById('inventory_unit_price').value = btn.dataset.unitPrice || '';
+    document.getElementById('inventory_reorder_level').value = btn.dataset.reorderLevel || '';
+    document.getElementById('inventory_description').value = btn.dataset.description || '';
+    document.getElementById('initialStockCol').style.display = 'none';
+
+    toggleInPageFormView('inventoryListCard', 'inventoryFormPanel', 'edit');
 });
 </script>
 {% endblock %}

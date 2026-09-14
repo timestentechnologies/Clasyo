@@ -4,23 +4,26 @@ from django.db.models import Count
 
 
 def forwards(apps, schema_editor):
+    db_alias = schema_editor.connection.alias
     EmailAddress = apps.get_model("account.EmailAddress")
     User = apps.get_model(settings.AUTH_USER_MODEL)
+    email_addresses = EmailAddress.objects.using(db_alias)
+    users = User.objects.using(db_alias)
     user_email_field = getattr(settings, "ACCOUNT_USER_MODEL_EMAIL_FIELD", "email")
 
     def get_users_with_multiple_primary_email():
         user_pks = []
         for email_address_dict in (
-            EmailAddress.objects.filter(primary=True)
+            email_addresses.filter(primary=True)
             .values("user")
             .annotate(Count("user"))
             .filter(user__count__gt=1)
         ):
             user_pks.append(email_address_dict["user"])
-        return User.objects.filter(pk__in=user_pks)
+        return users.filter(pk__in=user_pks)
 
     def unset_extra_primary_emails(user):
-        qs = EmailAddress.objects.filter(user=user, primary=True)
+        qs = email_addresses.filter(user=user, primary=True)
         primary_email_addresses = list(qs)
         if not primary_email_addresses:
             return

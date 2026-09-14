@@ -21,31 +21,26 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=4.1">
-    <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}?v=4.1">
-    <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=4.1">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=7.0">
+    <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}?v=17.0">
+    <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=7.0">
     <style id="custom-theme-variables">
         :root {
-            {% if system_settings.primary_color %}
-            --brand-primary: {{ system_settings.primary_color }};
-            --primary-navy: {{ system_settings.primary_color }};
-            {% endif %}
-            {% if system_settings.secondary_color %}
-            --brand-secondary: {{ system_settings.secondary_color }};
-            --secondary-navy: {{ system_settings.secondary_color }};
-            {% endif %}
-            {% if system_settings.accent_color %}
-            --brand-accent: {{ system_settings.accent_color }};
-            --accent-cyan: {{ system_settings.accent_color }};
-            {% endif %}
+            --brand-primary: {{ system_settings.primary_color|default:'#0284C7' }};
+            --primary-navy: {{ system_settings.primary_color|default:'#0284C7' }};
+            --brand-secondary: {{ system_settings.secondary_color|default:'#475569' }};
+            --secondary-navy: {{ system_settings.secondary_color|default:'#475569' }};
+            --brand-accent: {{ system_settings.accent_color|default:'#38BDF8' }};
+            --accent-cyan: {{ system_settings.accent_color|default:'#38BDF8' }};
             --bg-body: #F8FAFC;
             --bg-surface: #F8FAFC;
             --bg-card: #F8FAFC;
             --card-bg: #F8FAFC;
             --bg-light: #F8FAFC;
             --bg-white: #F8FAFC;
-            --dark-unified-bg: #0F172A;
-            --modal-header-bg: var(--brand-primary, #1E3A5F);
+            --dark-unified-bg: {{ system_settings.dark_bg_color|default:'#0F172A' }};
+            --modal-header-bg: var(--brand-primary);
             --modal-header-text: #FFFFFF;
         }
 
@@ -55,11 +50,13 @@
         body.dark-theme,
         html.theme-dark,
         html.dark-theme {
-            {% if system_settings.primary_color and system_settings.primary_color != '#1E3A5F' %}
-            --dark-unified-bg: {{ system_settings.primary_color }};
-            {% else %}
-            --dark-unified-bg: #0F172A;
-            {% endif %}
+            --brand-primary: {{ system_settings.dark_primary_color|default:system_settings.accent_color|default:'#38BDF8' }};
+            --primary-navy: {{ system_settings.dark_primary_color|default:system_settings.accent_color|default:'#38BDF8' }};
+            --brand-secondary: {{ system_settings.dark_secondary_color|default:system_settings.secondary_color|default:'#818CF8' }};
+            --secondary-navy: {{ system_settings.dark_secondary_color|default:system_settings.secondary_color|default:'#818CF8' }};
+            --brand-accent: {{ system_settings.dark_accent_color|default:system_settings.accent_color|default:'#4DD0E1' }};
+            --accent-cyan: {{ system_settings.dark_accent_color|default:system_settings.accent_color|default:'#4DD0E1' }};
+            --dark-unified-bg: {{ system_settings.dark_bg_color|default:'#0F172A' }};
             --bg-body: var(--dark-unified-bg);
             --bg-card: var(--dark-unified-bg);
             --bg-surface: var(--dark-unified-bg);
@@ -67,10 +64,6 @@
             --modal-bg: var(--dark-unified-bg);
             --modal-header-bg: var(--dark-unified-bg);
             --modal-header-text: #F8FAFC;
-            {% if system_settings.accent_color %}
-            --brand-accent: {{ system_settings.accent_color }};
-            --accent-cyan: {{ system_settings.accent_color }};
-            {% endif %}
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -159,7 +152,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{% static 'js/global-messages.js' %}"></script>
     <!-- PWA Installation -->
-    <script src="{% static 'js/pwa-install.js' %}" defer></script>
+    <script src="{% static 'js/pwa-install.js' %}?v=10.0" defer></script>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
@@ -193,6 +186,166 @@
                 // Ignore storage errors (private mode, etc.)
             }
         });
+    </script>
+
+    <!-- System-wide password show/hide toggle -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('input[type="password"]').forEach(function(input) {
+            // Skip if already has a toggle
+            if (input.dataset.pwToggle) return;
+            input.dataset.pwToggle = '1';
+
+            var parent = input.parentElement;
+            var wrapper;
+
+            if (parent.classList.contains('input-group')) {
+                // Already in an input-group, just append toggle
+                wrapper = parent;
+            } else {
+                // Wrap in input-group
+                wrapper = document.createElement('div');
+                wrapper.className = 'input-group';
+                parent.insertBefore(wrapper, input);
+                wrapper.appendChild(input);
+            }
+
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'password-toggle-btn';
+            btn.tabIndex = -1;
+            btn.title = 'Show/Hide Password';
+            btn.innerHTML = '<i class="fas fa-eye"></i>';
+            wrapper.appendChild(btn);
+
+            btn.addEventListener('click', function() {
+                var icon = btn.querySelector('i');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            });
+        });
+    });
+
+    // Globally shared in-page form view toggle helper
+    window.toggleInPageFormView = function(listContainerId, formPanelId, mode, data) {
+        const listEl = document.getElementById(listContainerId);
+        const formEl = document.getElementById(formPanelId);
+        if (!listEl || !formEl) return;
+
+        // Target all create/edit action buttons and parent action wrappers globally
+        const actionElements = document.querySelectorAll(
+            '[onclick*="toggleInPageFormView"][onclick*="create"], ' +
+            '[onclick*="toggleInPageFormView"][onclick*="edit"], ' +
+            '[onclick*="toggleInPageFormView"][onclick*="show"], ' +
+            '.page-actions-container, .page-header-actions, .page-actions'
+        );
+
+        if (mode === 'list' || mode === 'hide' || !mode) {
+            formEl.classList.add('d-none');
+            listEl.classList.remove('d-none');
+            actionElements.forEach(el => {
+                el.classList.remove('d-none');
+                if (el.parentElement && (el.parentElement.classList.contains('d-flex') || el.parentElement.classList.contains('mb-3')) && !el.parentElement.classList.contains('container-fluid')) {
+                    el.parentElement.classList.remove('d-none');
+                }
+            });
+            window.scrollTo({ top: listEl.offsetTop - 80, behavior: 'smooth' });
+            return;
+        }
+
+        // Hide list and all page action buttons/wrappers, show form
+        listEl.classList.add('d-none');
+        formEl.classList.remove('d-none');
+        actionElements.forEach(el => {
+            el.classList.add('d-none');
+            if (el.parentElement && (el.parentElement.classList.contains('d-flex') || el.parentElement.classList.contains('mb-3')) && !el.parentElement.classList.contains('container-fluid')) {
+                el.parentElement.classList.add('d-none');
+            }
+        });
+
+        // Hide mode badge if present
+        const badgeEl = formEl.querySelector('.form-mode-badge');
+        if (badgeEl) badgeEl.style.display = 'none';
+
+        // Update form title
+        const titleEl = formEl.querySelector('.form-title-text');
+        const submitBtn = formEl.querySelector('.form-submit-btn');
+
+        if (mode === 'create') {
+            if (titleEl) titleEl.textContent = titleEl.dataset.createTitle || 'Create New Record';
+            if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Record';
+
+            // Reset form fields
+            const form = formEl.querySelector('form');
+            if (form) form.reset();
+            const idInput = formEl.querySelector('input[name="id"], input[name="pk"], input[name="object_id"], input[name="staff_id"], input[name="student_id"], input[name="teacher_id"]');
+            if (idInput) idInput.value = '';
+        } else if (mode === 'edit') {
+            if (titleEl) titleEl.textContent = titleEl.dataset.editTitle || 'Edit Record';
+            if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Update Record';
+
+            // Pre-fill data if provided
+            if (data && typeof data === 'object') {
+                Object.keys(data).forEach(key => {
+                    const field = formEl.querySelector(`[name="${key}"], #${key}`);
+                    if (field) {
+                        if (field.type === 'checkbox') {
+                            field.checked = Boolean(data[key]);
+                        } else {
+                            field.value = data[key];
+                        }
+                    }
+                });
+            }
+        }
+        window.scrollTo({ top: formEl.offsetTop - 80, behavior: 'smooth' });
+    };
+    </script>
+
+    <!-- TomSelect Library & Global Auto Initializer -->
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    <script>
+    window.initAllTomSelects = function(container) {
+        if (typeof TomSelect === 'undefined') return;
+        const root = container || document;
+        root.querySelectorAll('select').forEach(function(el) {
+            if (el.tomselect || el.classList.contains('no-tomselect') || el.dataset.noTomselect !== undefined || el.classList.contains('swal2-select') || el.classList.contains('select2-hidden-accessible')) {
+                return;
+            }
+            try {
+                const firstOpt = el.options[0];
+                const firstOptText = (firstOpt && (firstOpt.value === '' || firstOpt.disabled)) ? firstOpt.text : '';
+                const placeholderText = el.getAttribute('placeholder') || el.dataset.placeholder || firstOptText || 'Select option...';
+
+                new TomSelect(el, {
+                    create: false,
+                    placeholder: placeholderText,
+                    allowEmptyOption: true,
+                    controlInput: el.options.length > 8 ? '<input>' : null,
+                    dropdownParent: 'body',
+                    copyClassesToDropdown: false,
+                    plugins: el.multiple ? ['remove_button'] : []
+                });
+            } catch(e) {
+                console.warn('TomSelect init skipped:', e);
+            }
+        });
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        window.initAllTomSelects();
+    });
+
+    document.addEventListener('shown.bs.modal', function(e) {
+        window.initAllTomSelects(e.target);
+    });
     </script>
 
     {% block extra_js %}{% endblock %}

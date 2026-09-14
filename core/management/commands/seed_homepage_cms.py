@@ -155,4 +155,22 @@ class Command(BaseCommand):
             )
             self.stdout.write(self.style.SUCCESS(f"Saved Parallax Section: {parallax.title}"))
 
+        # 5. Floating Parallax Elements
+        from frontend.models import FloatingParallaxElement
+        floating_data = [
+            {'title': 'Graduation Cap', 'icon': 'fas fa-graduation-cap', 'position_top': '12%', 'position_left': '8%', 'position_bottom': 'auto', 'position_right': 'auto', 'font_size': '3.2rem', 'opacity': 0.18, 'animation_type': 'float', 'animation_duration': '18s', 'animation_delay': '0s', 'order': 1},
+            {'title': 'Book Stack', 'icon': 'fas fa-book', 'position_top': '22%', 'position_left': 'auto', 'position_bottom': 'auto', 'position_right': '12%', 'font_size': '2.8rem', 'opacity': 0.15, 'animation_type': 'pulse', 'animation_duration': '15s', 'animation_delay': '2s', 'order': 2},
+            {'title': 'Student Icon', 'icon': 'fas fa-user-graduate', 'position_top': 'auto', 'position_left': '14%', 'position_bottom': '18%', 'position_right': 'auto', 'font_size': '2.5rem', 'opacity': 0.14, 'animation_type': 'float', 'animation_duration': '20s', 'animation_delay': '4s', 'order': 3},
+            {'title': 'Teacher Chalkboard', 'icon': 'fas fa-chalkboard-teacher', 'position_top': '48%', 'position_left': 'auto', 'position_bottom': 'auto', 'position_right': '8%', 'font_size': '3.5rem', 'opacity': 0.16, 'animation_type': 'rotate', 'animation_duration': '25s', 'animation_delay': '1s', 'order': 4},
+            {'title': 'School Building', 'icon': 'fas fa-school', 'position_top': 'auto', 'position_left': 'auto', 'position_bottom': '22%', 'position_right': '20%', 'font_size': '2.4rem', 'opacity': 0.14, 'animation_type': 'float', 'animation_duration': '16s', 'animation_delay': '3s', 'order': 5},
+            {'title': 'Pencil & Notes', 'icon': 'fas fa-pencil-alt', 'position_top': '32%', 'position_left': '18%', 'position_bottom': 'auto', 'position_right': 'auto', 'font_size': '2.6rem', 'opacity': 0.15, 'animation_type': 'pulse', 'animation_duration': '17s', 'animation_delay': '5s', 'order': 6},
+        ]
+
+        for elem in floating_data:
+            el, el_created = FloatingParallaxElement.objects.update_or_create(
+                title=elem['title'],
+                defaults=elem
+            )
+            self.stdout.write(self.style.SUCCESS(f"Saved Floating Parallax Element: {el.title}"))
+
         self.stdout.write(self.style.SUCCESS("All CMS content successfully seeded!"))

@@ -1099,12 +1099,16 @@ def format_number(numobj, num_format):
     Returns the formatted phone number.
     """
     if numobj.national_number == 0:
-        # Unparseable numbers that kept their raw input just use that.  This
-        # is the only case where a number can be formatted as E164 without a
-        # leading '+' symbol (but the original number wasn't parseable
-        # anyway).
+        # Unparseable numbers that kept their raw input just use that, unless default country was
+        # specified and the format is E164. In that case, we prepend the raw input with the country
+        # code
         raw_input = numobj.raw_input or ""
-        if len(raw_input) > 0 or numobj.country_code is None:
+        if (len(raw_input) > 0 and
+            numobj.country_code is not None and
+            numobj.country_code_source == CountryCodeSource.FROM_DEFAULT_COUNTRY and
+            num_format == PhoneNumberFormat.E164):
+            return _prefix_number_with_country_calling_code(numobj.country_code, num_format, raw_input)
+        elif len(raw_input) > 0 or numobj.country_code is None:
             return numobj.raw_input
     country_calling_code = numobj.country_code
     nsn = national_significant_number(numobj)

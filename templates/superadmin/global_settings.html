@@ -1,8 +1,7 @@
 {% extends 'dashboards/base.html' %}
 {% load static %}
-{% load payment_filters %}
 
-{% block title %}Global Settings - Clasyo{% endblock %}
+{% block title %}System Branding - Clasyo{% endblock %}
 
 {% block extra_css %}{% endblock %}
 
@@ -10,19 +9,11 @@
 
 {% block content %}
 <div class="container-fluid">
-    <div class="row">
+    <!-- Header -->
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h1 class="h3 mb-0">Global Settings</h1>
-                    <p class="text-muted mb-0">Configure global SMS, email, theme colors, and database settings for all schools</p>
-                </div>
-                <div>
-                    <a href="{% url 'superadmin:dashboard' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
-                    </a>
-                </div>
-            </div>
+            <h1 class="h3 mb-1">System Branding & Visual Theme</h1>
+            <p class="text-muted mb-0">Configure primary, secondary, and accent colors for light and dark themes dynamically across the system</p>
         </div>
     </div>
 
@@ -31,347 +22,102 @@
         <div class="col-12">
             <div class="card modern-card">
                 <div class="card-header modern-card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 card-title-modern"><i class="fas fa-palette me-2 text-primary"></i>System Theme & Brand Colors</h5>
-                    <span class="badge badge-soft-primary">Global Visual Branding</span>
+                    <h5 class="mb-0 card-title-modern"><i class="fas fa-palette text-primary me-2"></i>System Theme & Brand Colors</h5>
+                    <span class="badge badge-soft-primary">Global Dynamic Colors</span>
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{% url 'superadmin:global_settings' %}">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="update_theme_colors">
-                        <div class="row g-3">
+                        
+                        <h6 class="fw-bold border-bottom pb-2 mb-3">
+                            <i class="fas fa-sun text-warning me-2"></i>Light Theme Brand Colors
+                        </h6>
+                        <div class="row g-3 mb-4">
                             <div class="col-md-4">
-                                <label class="form-label fw-bold"><i class="fas fa-circle me-1" style="color: {{ system_settings.primary_color|default:'#1E3A5F' }};"></i> Primary Color</label>
-                                <div class="input-group">
-                                    <input type="color" class="form-control form-control-color" id="primary_color_picker" value="{{ system_settings.primary_color|default:'#1E3A5F' }}" onchange="document.getElementById('primary_color_text').value = this.value">
-                                    <input type="text" name="primary_color" id="primary_color_text" class="form-control" value="{{ system_settings.primary_color|default:'#1E3A5F' }}" onchange="document.getElementById('primary_color_picker').value = this.value">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-circle me-1" id="dot_primary" style="color: {{ system_settings.primary_color|default:'#0284C7' }};"></i> Primary Color
+                                </label>
+                                <div class="color-picker-group">
+                                    <input type="color" class="form-control form-control-color" id="primary_color_picker" value="{{ system_settings.primary_color|default:'#0284C7' }}" onchange="document.getElementById('primary_color_text').value = this.value; document.getElementById('dot_primary').style.color = this.value;">
+                                    <input type="text" name="primary_color" id="primary_color_text" class="form-control" value="{{ system_settings.primary_color|default:'#0284C7' }}" onchange="document.getElementById('primary_color_picker').value = this.value; document.getElementById('dot_primary').style.color = this.value;">
                                 </div>
-                                <small class="text-muted">Main brand color for navbar, headers, and primary buttons.</small>
+                                <small class="text-muted">Main brand color for navbar, headers, and primary buttons in light mode.</small>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold"><i class="fas fa-circle me-1" style="color: {{ system_settings.secondary_color|default:'#2C5282' }};"></i> Secondary Color</label>
-                                <div class="input-group">
-                                    <input type="color" class="form-control form-control-color" id="secondary_color_picker" value="{{ system_settings.secondary_color|default:'#2C5282' }}" onchange="document.getElementById('secondary_color_text').value = this.value">
-                                    <input type="text" name="secondary_color" id="secondary_color_text" class="form-control" value="{{ system_settings.secondary_color|default:'#2C5282' }}" onchange="document.getElementById('secondary_color_picker').value = this.value">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-circle me-1" id="dot_secondary" style="color: {{ system_settings.secondary_color|default:'#475569' }};"></i> Secondary Color
+                                </label>
+                                <div class="color-picker-group">
+                                    <input type="color" class="form-control form-control-color" id="secondary_color_picker" value="{{ system_settings.secondary_color|default:'#475569' }}" onchange="document.getElementById('secondary_color_text').value = this.value; document.getElementById('dot_secondary').style.color = this.value;">
+                                    <input type="text" name="secondary_color" id="secondary_color_text" class="form-control" value="{{ system_settings.secondary_color|default:'#475569' }}" onchange="document.getElementById('secondary_color_picker').value = this.value; document.getElementById('dot_secondary').style.color = this.value;">
                                 </div>
-                                <small class="text-muted">Secondary brand color for supporting elements & cards.</small>
+                                <small class="text-muted">Secondary color for supporting buttons & elements.</small>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold"><i class="fas fa-circle me-1" style="color: {{ system_settings.accent_color|default:'#4DD0E1' }};"></i> Accent Color</label>
-                                <div class="input-group">
-                                    <input type="color" class="form-control form-control-color" id="accent_color_picker" value="{{ system_settings.accent_color|default:'#4DD0E1' }}" onchange="document.getElementById('accent_color_text').value = this.value">
-                                    <input type="text" name="accent_color" id="accent_color_text" class="form-control" value="{{ system_settings.accent_color|default:'#4DD0E1' }}" onchange="document.getElementById('accent_color_picker').value = this.value">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-circle me-1" id="dot_accent" style="color: {{ system_settings.accent_color|default:'#38BDF8' }};"></i> Accent Color
+                                </label>
+                                <div class="color-picker-group">
+                                    <input type="color" class="form-control form-control-color" id="accent_color_picker" value="{{ system_settings.accent_color|default:'#38BDF8' }}" onchange="document.getElementById('accent_color_text').value = this.value; document.getElementById('dot_accent').style.color = this.value;">
+                                    <input type="text" name="accent_color" id="accent_color_text" class="form-control" value="{{ system_settings.accent_color|default:'#38BDF8' }}" onchange="document.getElementById('accent_color_picker').value = this.value; document.getElementById('dot_accent').style.color = this.value;">
                                 </div>
-                                <small class="text-muted">Highlight color for icons, links, and active states.</small>
+                                <small class="text-muted">Highlight color for icons, links, and active badges.</small>
                             </div>
                         </div>
+
+                        <h6 class="fw-bold border-bottom pb-2 mb-3">
+                            <i class="fas fa-moon text-info me-2"></i>Dark Theme & Dark Container Colors (Hero, Parallax, CTA, Footer)
+                        </h6>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-circle me-1" id="dot_dark_primary" style="color: {{ system_settings.dark_primary_color|default:'#38BDF8' }};"></i> Dark Primary Color
+                                </label>
+                                <div class="color-picker-group">
+                                    <input type="color" class="form-control form-control-color" id="dark_primary_picker" value="{{ system_settings.dark_primary_color|default:'#38BDF8' }}" onchange="document.getElementById('dark_primary_text').value = this.value; document.getElementById('dot_dark_primary').style.color = this.value;">
+                                    <input type="text" name="dark_primary_color" id="dark_primary_text" class="form-control" value="{{ system_settings.dark_primary_color|default:'#38BDF8' }}" onchange="document.getElementById('dark_primary_picker').value = this.value; document.getElementById('dot_dark_primary').style.color = this.value;">
+                                </div>
+                                <small class="text-muted">Primary button & highlight color in dark sections.</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-circle me-1" id="dot_dark_secondary" style="color: {{ system_settings.dark_secondary_color|default:'#818CF8' }};"></i> Dark Secondary Color
+                                </label>
+                                <div class="color-picker-group">
+                                    <input type="color" class="form-control form-control-color" id="dark_secondary_picker" value="{{ system_settings.dark_secondary_color|default:'#818CF8' }}" onchange="document.getElementById('dark_secondary_text').value = this.value; document.getElementById('dot_dark_secondary').style.color = this.value;">
+                                    <input type="text" name="dark_secondary_color" id="dark_secondary_text" class="form-control" value="{{ system_settings.dark_secondary_color|default:'#818CF8' }}" onchange="document.getElementById('dark_secondary_picker').value = this.value; document.getElementById('dot_dark_secondary').style.color = this.value;">
+                                </div>
+                                <small class="text-muted">Secondary element color in dark mode.</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-circle me-1" id="dot_dark_accent" style="color: {{ system_settings.dark_accent_color|default:'#4DD0E1' }};"></i> Dark Accent Color
+                                </label>
+                                <div class="color-picker-group">
+                                    <input type="color" class="form-control form-control-color" id="dark_accent_picker" value="{{ system_settings.dark_accent_color|default:'#4DD0E1' }}" onchange="document.getElementById('dark_accent_text').value = this.value; document.getElementById('dot_dark_accent').style.color = this.value;">
+                                    <input type="text" name="dark_accent_color" id="dark_accent_text" class="form-control" value="{{ system_settings.dark_accent_color|default:'#4DD0E1' }}" onchange="document.getElementById('dark_accent_picker').value = this.value; document.getElementById('dot_dark_accent').style.color = this.value;">
+                                </div>
+                                <small class="text-muted">Outline button & subtle icon highlight color.</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-circle me-1" id="dot_dark_bg" style="color: {{ system_settings.dark_bg_color|default:'#0F172A' }};"></i> Dark Section BG
+                                </label>
+                                <div class="color-picker-group">
+                                    <input type="color" class="form-control form-control-color" id="dark_bg_picker" value="{{ system_settings.dark_bg_color|default:'#0F172A' }}" onchange="document.getElementById('dark_bg_text').value = this.value; document.getElementById('dot_dark_bg').style.color = this.value;">
+                                    <input type="text" name="dark_bg_color" id="dark_bg_text" class="form-control" value="{{ system_settings.dark_bg_color|default:'#0F172A' }}" onchange="document.getElementById('dark_bg_picker').value = this.value; document.getElementById('dot_dark_bg').style.color = this.value;">
+                                </div>
+                                <small class="text-muted">Background color for dark sections & footer.</small>
+                            </div>
+                        </div>
+
                         <div class="mt-4 d-flex justify-content-end">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">
                                 <i class="fas fa-save me-2"></i>Save Theme Colors
                             </button>
                         </div>
                     </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Settings Overview Cards -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card text-white" style="background: linear-gradient(135deg, #04e95c 0%, #06ee67 100%);">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="card-title mb-0">SMS Configurations</h5>
-                            <p class="card-text mb-0">{{ sms_configs|length }} configurations</p>
-                        </div>
-                        <div class="fs-2">
-                            <i class="fas fa-sms"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer bg-transparent border-0">
-                    <a href="{% url 'superadmin:sms_config_list' %}" class="btn btn-light btn-sm">
-                        Manage SMS <i class="fas fa-arrow-right ms-2"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4">
-            <div class="card text-white" style="background: linear-gradient(135deg, #F97316 0%, #FB923C 100%);">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="card-title mb-0">Email Configurations</h5>
-                            <p class="card-text mb-0">{{ email_configs|length }}{% if current_email %} + 1 (current){% endif %} configurations</p>
-                        </div>
-                        <div class="fs-2">
-                            <i class="fas fa-envelope"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer bg-transparent border-0">
-                    <a href="{% url 'superadmin:email_config_list' %}" class="btn btn-light btn-sm">
-                        Manage Email <i class="fas fa-arrow-right ms-2"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4">
-            <div class="card text-white" style="background: linear-gradient(135deg, #06B6D4 0%, #22D3EE 100%);">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="card-title mb-0">Database Configurations</h5>
-                            <p class="card-text mb-0">{{ db_configs|length }}{% if current_db %} + 1 (current){% endif %} configurations</p>
-                        </div>
-                        <div class="fs-2">
-                            <i class="fas fa-database"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer bg-transparent border-0">
-                    <a href="{% url 'superadmin:db_config_list' %}" class="btn btn-light btn-sm">
-                        Manage Database <i class="fas fa-arrow-right ms-2"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Maintenance Mode Settings -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-warning">
-                <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-tools me-2"></i>System Maintenance Control</h5>
-                    {% if system_settings.maintenance_mode %}
-                        <span class="badge bg-danger">MAINTENANCE ACTIVE</span>
-                    {% else %}
-                        <span class="badge bg-success">SYSTEM ONLINE</span>
-                    {% endif %}
-                </div>
-                <div class="card-body">
-                    <form method="POST" action="{% url 'superadmin:global_settings' %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="update_maintenance">
-                        <div class="row">
-                            <!-- Modern Maintenance Control -->
-                            <div class="col-md-5 border-end">
-                                <label class="form-label h5 mb-3 text-primary"><i class="fas fa-power-off me-2"></i>System Status</label>
-                                
-                                <div class="maintenance-status-selector">
-                                    <div class="form-check mb-3 p-3 border rounded-3 position-relative transition-all hover-shadow {% if not system_settings.maintenance_mode %}bg-light-success border-success{% endif %}">
-                                        <input class="form-check-input ms-0 me-3" type="radio" name="maintenance_status" id="status_online" value="off" {% if not system_settings.maintenance_mode %}checked{% endif %}>
-                                        <label class="form-check-label d-block cursor-pointer" for="status_online">
-                                            <span class="d-block fw-bold text-success">Online</span>
-                                            <span class="text-muted small">System is fully accessible to all users.</span>
-                                        </label>
-                                    </div>
-
-                                    <div class="form-check mb-3 p-3 border rounded-3 position-relative transition-all hover-shadow {% if system_settings.maintenance_mode and not system_settings.superadmin_only_mode %}bg-light-warning border-warning{% endif %}">
-                                        <input class="form-check-input ms-0 me-3" type="radio" name="maintenance_status" id="status_staff" value="school_admin" {% if system_settings.maintenance_mode and not system_settings.superadmin_only_mode %}checked{% endif %}>
-                                        <label class="form-check-label d-block cursor-pointer" for="status_staff">
-                                            <span class="d-block fw-bold text-warning">Staff Maintenance</span>
-                                            <span class="text-muted small">Access allowed only for <strong>Super Admins</strong> and <strong>School Admins</strong>.</span>
-                                        </label>
-                                    </div>
-
-                                    <div class="form-check mb-0 p-3 border rounded-3 position-relative transition-all hover-shadow {% if system_settings.maintenance_mode and system_settings.superadmin_only_mode %}bg-light-danger border-danger{% endif %}">
-                                        <input class="form-check-input ms-0 me-3" type="radio" name="maintenance_status" id="status_superadmin" value="superadmin" {% if system_settings.maintenance_mode and system_settings.superadmin_only_mode %}checked{% endif %}>
-                                        <label class="form-check-label d-block cursor-pointer" for="status_superadmin">
-                                            <span class="d-block fw-bold text-danger">Strict Maintenance</span>
-                                            <span class="text-muted small">Access restricted <strong>ONLY to Super Admins</strong>.</span>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Global Exclusive Dates -->
-                            <div class="col-md-7">
-                                <div class="d-flex align-items-center mb-3">
-                                    <h6 class="text-danger mb-0"><i class="fas fa-user-secret me-2"></i>Global Exclusive Schedule</h6>
-                                    <span class="badge bg-light text-dark ms-2 border small">Super Admin Only</span>
-                                </div>
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label for="superadmin_maintenance_start" class="form-label small fw-bold">Maintenance Start</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
-                                            <input type="datetime-local" class="form-control" id="superadmin_maintenance_start" name="superadmin_maintenance_start" value="{{ system_settings.superadmin_maintenance_start|date:'Y-m-d\TH:i' }}">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="superadmin_maintenance_end" class="form-label small fw-bold">Maintenance End (Expected)</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text"><i class="fas fa-hourglass-end"></i></span>
-                                            <input type="datetime-local" class="form-control" id="superadmin_maintenance_end" name="superadmin_maintenance_end" value="{{ system_settings.superadmin_maintenance_end|date:'Y-m-d\TH:i' }}">
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="alert alert-info mt-3 py-2 border-0 shadow-sm" style="background: rgba(13, 110, 253, 0.05);">
-                                    <small><i class="fas fa-info-circle me-1"></i> These dates determine the "Maintenance Time" displayed to users when the system is offline.</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row mt-3">
-                            <div class="col-12 text-end">
-                                <button type="submit" class="btn btn-warning px-4">
-                                    <i class="fas fa-save me-2"></i>Apply Global Settings
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Active Configurations -->
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Active SMS Configurations</h5>
-                </div>
-                <div class="card-body">
-                    {% if sms_configs %}
-                        {% for config in sms_configs %}
-                            {% if config.is_active %}
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <div>
-                                        <strong>{{ config.get_provider_display }}</strong>
-                                        <br>
-                                        <small class="text-muted">
-                                            {% if config.default_sender_id %}
-                                                Sender: {{ config.default_sender_id }}
-                                            {% else %}
-                                                No custom sender ID
-                                            {% endif %}
-                                        </small>
-                                    </div>
-                                    <span class="badge bg-success">Active</span>
-                                </div>
-                            {% endif %}
-                        {% endfor %}
-                        {% if not sms_configs|has_active_items %}
-                            <p class="text-muted mb-0">No active SMS configurations found.</p>
-                        {% endif %}
-                    {% else %}
-                        <p class="text-muted mb-0">No SMS configurations found.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Active Email Configurations</h5>
-                </div>
-                <div class="card-body">
-                    {% if email_configs or current_email %}
-                        {% if current_email %}
-                            <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded bg-light">
-                                <div>
-                                    <h6 class="mb-1">{{ current_email.name }}</h6>
-                                    <small class="text-muted">
-                                        Host: {{ current_email.smtp_host }}:{{ current_email.smtp_port }}<br>
-                                        From: {{ current_email.default_from_email }}<br>
-                                        TLS: {% if current_email.smtp_use_tls %}Enabled{% else %}Disabled{% endif %}<br>
-                                        Backend: {{ current_email.backend|title }}
-                                    </small>
-                                </div>
-                                <span class="badge bg-success">
-                                    Active
-                                </span>
-                            </div>
-                        {% endif %}
-                        {% for config in email_configs %}
-                            <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded">
-                                <div>
-                                    <h6 class="mb-1">{{ config.name }}</h6>
-                                    <small class="text-muted">
-                                        {% if config.smtp_host %}
-                                            Host: {{ config.smtp_host }}:{{ config.smtp_port }}<br>
-                                            From: {{ config.default_from_email }}
-                                        {% else %}
-                                            No SMTP configuration
-                                        {% endif %}
-                                    </small>
-                                </div>
-                                {% if config.is_active %}
-                                    <span class="badge bg-success">Active</span>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                        {% if not email_configs|has_active_items and not current_email %}
-                            <p class="text-muted mb-0">No active email configurations found.</p>
-                        {% endif %}
-                    {% else %}
-                        <p class="text-muted mb-0">No email configurations found.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        
-        <!-- Database Configurations -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Database Configurations</h5>
-                        <a href="{% url 'superadmin:db_config_list' %}" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-cog me-1"></i>Manage
-                        </a>
-                    </div>
-                    <div class="card-body">
-                        {% if db_configs or current_db %}
-                            {% if current_db %}
-                                <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded bg-light">
-                                    <div>
-                                        <h6 class="mb-1">{{ current_db.name }}</h6>
-                                        <small class="text-muted">
-                                            Engine: {{ current_db.engine|upper }}<br>
-                                            Host: {{ current_db.db_host }}:{{ current_db.db_port }}<br>
-                                            Database: {{ current_db.db_name }}<br>
-                                            User: {{ current_db.db_user }}
-                                        </small>
-                                    </div>
-                                    <span class="badge bg-success">
-                                        Active
-                                    </span>
-                                </div>
-                            {% endif %}
-                            {% for config in db_configs %}
-                                <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded">
-                                    <div>
-                                        <h6 class="mb-1">{{ config.name }}</h6>
-                                        <small class="text-muted">
-                                            {% if config.db_host %}
-                                                Host: {{ config.db_host }}:{{ config.db_port|default:"5432" }}<br>
-                                                Database: {{ config.db_name }}<br>
-                                                User: {{ config.db_user }}
-                                            {% else %}
-                                                No database connection configured
-                                            {% endif %}
-                                        </small>
-                                    </div>
-                                    <span class="badge bg-{% if config.is_active %}success{% else %}secondary{% endif %}">
-                                        {% if config.is_active %}Active{% else %}Inactive{% endif %}
-                                    </span>
-                                </div>
-                            {% endfor %}
-                            {% if not db_configs|has_active_items and not current_db %}
-                                <p class="text-muted mb-0">No active database configurations found.</p>
-                            {% endif %}
-                        {% else %}
-                            <p class="text-muted mb-0">No database configurations found.</p>
-                        {% endif %}
-                    </div>
                 </div>
             </div>
         </div>

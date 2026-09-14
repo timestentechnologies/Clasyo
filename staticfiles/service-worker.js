@@ -1,4 +1,4 @@
-const CACHE_NAME = 'schoolsaas-v6';
+const CACHE_NAME = 'schoolsaas-v10';
 const urlsToCache = [
   '/',
   '/static/css/modern-dashboard.css',

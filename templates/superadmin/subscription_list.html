@@ -2,193 +2,59 @@
 {% load static %}
 
 {% block title %}Subscriptions - Super Admin{% endblock %}
-{% block page_title %}All Subscriptions{% endblock %}
+{% block page_title %}Subscriptions Management{% endblock %}
 {% block page_icon %}credit-card{% endblock %}
-{% block page_subtitle %}Manage school subscriptions and plans{% endblock %}
+{% block page_subtitle %}Manage school subscriptions and billing terms{% endblock %}
 
 {% block content %}
-
-            <!-- Filter Bar -->
-            <div class="modern-card mb-4">
-                <div class="row align-items-center">
-                    <div class="col-md-8">
-                        <div class="btn-group" role="group">
-                            <a href="?status=all" class="btn btn-sm {% if not request.GET.status or request.GET.status == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                                All Subscriptions
-                            </a>
-                            <a href="?status=active" class="btn btn-sm {% if request.GET.status == 'active' %}btn-success{% else %}btn-outline-success{% endif %}">
-                                Active
-                            </a>
-                            <a href="?status=trial" class="btn btn-sm {% if request.GET.status == 'trial' %}btn-warning{% else %}btn-outline-warning{% endif %}">
-                                Trial
-                            </a>
-                            <a href="?status=expired" class="btn btn-sm {% if request.GET.status == 'expired' %}btn-danger{% else %}btn-outline-danger{% endif %}">
-                                Expired
-                            </a>
-                            <a href="?status=pending" class="btn btn-sm {% if request.GET.status == 'pending' %}btn-info{% else %}btn-outline-info{% endif %}">
-                                Pending
-                            </a>
-                        </div>
-                    </div>
-                    <div class="col-md-4 text-end">
-                        <span class="text-muted">Total: <strong>{{ subscriptions.count }}</strong> subscriptions</span>
-                    </div>
-                </div>
+<div class="container-fluid">
+    <!-- Shared In-Page Single Form Panel -->
+    <div class="form-panel-view d-none" id="subscriptionFormPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('subscriptionListCard', 'subscriptionFormPanel', 'list')">
+                    <i class="fas fa-arrow-left me-1"></i> Back to List
+                </button>
+                <h5 class="mb-0 fw-bold form-title-text" data-create-title="Edit Subscription" data-edit-title="Edit Subscription">Edit Subscription</h5>
+                <span class="form-mode-badge mode-edit">Editing</span>
             </div>
-
-            <div class="modern-card">
-                <div class="table-responsive">
-                    <table class="table modern-table">
-                        <thead>
-                            <tr>
-                                <th>School</th>
-                                <th>Plan</th>
-                                <th>Duration</th>
-                                <th>Status</th>
-                                <th>Payment Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for subscription in subscriptions %}
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar-circle bg-primary text-white me-2">
-                                            {{ subscription.school.name.0 }}
-                                        </div>
-                                        <div>
-                                            <strong>{{ subscription.school.name }}</strong><br>
-                                            <small class="text-muted">{{ subscription.school.email }}</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <strong>{{ subscription.plan.name }}</strong><br>
-                                    {% if subscription.is_trial %}
-                                        <span class="badge bg-warning">Trial</span>
-                                    {% else %}
-                                        <small class="text-muted">{{ subscription.plan.price|default:"0" }} {{ subscription.plan.currency|default:"USD" }}/{{ subscription.plan.get_billing_cycle_display }}</small>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <small class="d-block"><i class="fas fa-calendar-check text-success me-1"></i> {{ subscription.start_date|date:"M d, Y" }}</small>
-                                    <small class="d-block"><i class="fas fa-calendar-times text-danger me-1"></i> {{ subscription.end_date|date:"M d, Y" }}</small>
-                                    {% if subscription.is_trial %}
-                                    <small class="d-block"><i class="fas fa-hourglass-half text-warning me-1"></i> {{ subscription.plan.trial_days }} days trial</small>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if subscription.status == 'active' %}
-                                        <span class="badge bg-success">Active</span>
-                                    {% elif subscription.status == 'trial' %}
-                                        <span class="badge bg-warning">Trial</span>
-                                    {% elif subscription.status == 'expired' %}
-                                        <span class="badge bg-danger">Expired</span>
-                                    {% elif subscription.status == 'pending' %}
-                                        <span class="badge bg-info">Pending</span>
-                                    {% elif subscription.status == 'cancelled' %}
-                                        <span class="badge bg-secondary">Cancelled</span>
-                                    {% elif subscription.status == 'suspended' %}
-                                        <span class="badge bg-dark">Suspended</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">{{ subscription.get_status_display }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% with latest_payment=subscription.payments.last %}
-                                        {% if latest_payment %}
-                                            {% if latest_payment.status == 'approved' %}
-                                                <span class="badge bg-success">Paid</span>
-                                            {% elif latest_payment.status == 'pending_verification' %}
-                                                <span class="badge bg-warning">Pending Verification</span>
-                                            {% elif latest_payment.status == 'verified' %}
-                                                <span class="badge bg-info">Verified</span>
-                                            {% elif latest_payment.status == 'rejected' %}
-                                                <span class="badge bg-danger">Rejected</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary">{{ latest_payment.get_status_display }}</span>
-                                            {% endif %}
-                                            <br><small class="text-muted">{{ latest_payment.amount }} {{ latest_payment.currency }}</small>
-                                        {% else %}
-                                            <span class="badge bg-secondary">No Payment</span>
-                                        {% endif %}
-                                    {% endwith %}
-                                </td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-sm btn-outline-primary edit-subscription-btn"
-                                                data-bs-toggle="modal" data-bs-target="#editSubscriptionModal"
-                                                data-id="{{ subscription.id }}"
-                                                data-school="{{ subscription.school.name|escapejs }}"
-                                                data-plan="{{ subscription.plan.name }}"
-                                                data-status="{{ subscription.status }}"
-                                                data-start-date="{{ subscription.start_date|date:'Y-m-d' }}"
-                                                data-end-date="{{ subscription.end_date|date:'Y-m-d' }}"
-                                                data-is-trial="{{ subscription.is_trial|yesno:'true,false' }}"
-                                                title="Edit Subscription">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        {% with latest_payment=subscription.payments.last %}
-                                            {% if latest_payment %}
-                                                <a href="{% url 'superadmin:payment_detail' latest_payment.payment_id %}" 
-                                                   class="btn btn-sm btn-outline-info" title="View Payment">
-                                                    <i class="fas fa-credit-card"></i>
-                                                </a>
-                                            {% endif %}
-                                        {% endwith %}
-                                    </div>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="6" class="text-center py-5">
-                                    <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
-                                    <p class="text-muted">No subscriptions found</p>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+            <div class="form-header-actions">
+                <button type="button" class="btn btn-sm btn-light" onclick="toggleInPageFormView('subscriptionListCard', 'subscriptionFormPanel', 'list')">Cancel</button>
+                <button type="submit" form="subscriptionForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> Save Changes
+                </button>
             </div>
-
-<!-- Edit Subscription Modal -->
-<div class="modal fade" id="editSubscriptionModal" tabindex="-1" aria-labelledby="editSubscriptionModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editSubscriptionModalLabel">Edit Subscription</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form method="post" action="{% url 'superadmin:subscription_edit' %}">
+        </div>
+        <div class="form-card-body">
+            <form id="subscriptionForm" method="post" action="{% url 'superadmin:subscription_edit' %}">
                 {% csrf_token %}
                 <input type="hidden" id="edit_subscription_id" name="subscription_id">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">School</label>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">School Name</label>
                         <input type="text" class="form-control" id="edit_school_name" readonly>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Current Plan</label>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Current Plan</label>
                         <input type="text" class="form-control" id="edit_plan_name" readonly>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit_start_date" class="form-label">Start Date</label>
-                                <input type="date" class="form-control" id="edit_start_date" name="start_date" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit_end_date" class="form-label">End Date</label>
-                                <input type="date" class="form-control" id="edit_end_date" name="end_date" required>
-                            </div>
-                        </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="edit_start_date" class="form-label fw-semibold">Start Date</label>
+                        <input type="date" class="form-control" id="edit_start_date" name="start_date" required>
                     </div>
-                    <div class="mb-3">
-                        <label for="edit_status" class="form-label">Status</label>
+                    <div class="col-md-6">
+                        <label for="edit_end_date" class="form-label fw-semibold">End Date</label>
+                        <input type="date" class="form-control" id="edit_end_date" name="end_date" required>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="edit_status" class="form-label fw-semibold">Subscription Status</label>
                         <select class="form-select" id="edit_status" name="status" required>
                             <option value="active">Active</option>
                             <option value="trial">Trial</option>
@@ -198,83 +64,148 @@
                             <option value="suspended">Suspended</option>
                         </select>
                     </div>
-                    <div class="mb-3">
+                    <div class="col-md-6 d-flex align-items-center pt-4">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="edit_is_trial" name="is_trial">
-                            <label class="form-check-label" for="edit_is_trial">Is Trial</label>
-                        </div>
-                    </div>
-                    
-                    <hr>
-                    <h6>Quick Actions</h6>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <button type="button" class="btn btn-warning btn-sm w-100" onclick="extendSubscription(30)">
-                                <i class="fas fa-calendar-plus"></i> Extend 30 Days
-                            </button>
-                        </div>
-                        <div class="col-md-6">
-                            <button type="button" class="btn btn-warning btn-sm w-100" onclick="extendSubscription(90)">
-                                <i class="fas fa-calendar-plus"></i> Extend 90 Days
-                            </button>
-                        </div>
-                    </div>
-                    <div class="row mt-2">
-                        <div class="col-md-6">
-                            <button type="button" class="btn btn-danger btn-sm w-100" onclick="cancelSubscription()">
-                                <i class="fas fa-times-circle"></i> Cancel Subscription
-                            </button>
-                        </div>
-                        <div class="col-md-6">
-                            <button type="button" class="btn btn-success btn-sm w-100" onclick="reactivateSubscription()">
-                                <i class="fas fa-check-circle"></i> Reactivate
-                            </button>
+                            <label class="form-check-label fw-semibold" for="edit_is_trial">Is Free Trial Period</label>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
+
+                <h6 class="fw-bold border-bottom pb-2 mt-4 mb-3"><i class="fas fa-bolt text-warning me-2"></i>Quick Duration Adjustments</h6>
+                <div class="row g-2 mb-3">
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-warning btn-sm w-100 fw-semibold" onclick="extendSubscription(30)">
+                            <i class="fas fa-calendar-plus me-1"></i> Extend 30 Days
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-warning btn-sm w-100 fw-semibold" onclick="extendSubscription(90)">
+                            <i class="fas fa-calendar-plus me-1"></i> Extend 90 Days
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100 fw-semibold" onclick="cancelSubscription()">
+                            <i class="fas fa-times-circle me-1"></i> Cancel Subscription
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-success btn-sm w-100 fw-semibold" onclick="reactivateSubscription()">
+                            <i class="fas fa-check-circle me-1"></i> Reactivate
+                        </button>
+                    </div>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Subscription List View -->
+    <div class="modern-card" id="subscriptionListCard">
+        <div class="card-header modern-card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 card-title-modern"><i class="fas fa-credit-card me-2"></i>All School Subscriptions</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table modern-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>School</th>
+                            <th>Plan</th>
+                            <th>Status</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Payment Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for subscription in subscriptions %}
+                        <tr>
+                            <td>
+                                <strong>{{ subscription.school.name }}</strong>
+                                <br><small class="text-muted">{{ subscription.school.code }}</small>
+                            </td>
+                            <td>{{ subscription.plan.name }}</td>
+                            <td>
+                                {% if subscription.status == 'active' %}
+                                    <span class="badge bg-success">Active</span>
+                                {% elif subscription.status == 'trial' %}
+                                    <span class="badge bg-info">Trial</span>
+                                {% elif subscription.status == 'expired' %}
+                                    <span class="badge bg-danger">Expired</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ subscription.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ subscription.start_date|date:"M d, Y" }}</td>
+                            <td>{{ subscription.end_date|date:"M d, Y" }}</td>
+                            <td>
+                                {% with latest_payment=subscription.payments.last %}
+                                    {% if latest_payment %}
+                                        {% if latest_payment.status == 'completed' %}
+                                            <span class="badge bg-success">Paid</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ latest_payment.get_status_display }}</span>
+                                        {% endif %}
+                                        <br><small class="text-muted">{{ latest_payment.amount }} {{ latest_payment.currency }}</small>
+                                    {% else %}
+                                        <span class="badge bg-secondary">No Payment</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                            onclick="openSubscriptionEdit('{{ subscription.id }}', '{{ subscription.school.name|escapejs }}', '{{ subscription.plan.name|escapejs }}', '{{ subscription.status }}', '{{ subscription.start_date|date:'Y-m-d' }}', '{{ subscription.end_date|date:'Y-m-d' }}', {{ subscription.is_trial|yesno:'true,false' }})"
+                                            title="Edit Subscription">
+                                        <i class="fas fa-edit me-1"></i> Edit
+                                    </button>
+                                    {% with latest_payment=subscription.payments.last %}
+                                        {% if latest_payment %}
+                                            <a href="{% url 'superadmin:payment_detail' latest_payment.payment_id %}" 
+                                               class="btn btn-sm btn-outline-info" title="View Payment">
+                                                <i class="fas fa-credit-card"></i>
+                                            </a>
+                                        {% endif %}
+                                    {% endwith %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
+                                <p class="text-muted mb-0">No subscriptions found</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const editButtons = document.querySelectorAll('.edit-subscription-btn');
-    
-    editButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const id = this.getAttribute('data-id');
-            const school = this.getAttribute('data-school');
-            const plan = this.getAttribute('data-plan');
-            const status = this.getAttribute('data-status');
-            const startDate = this.getAttribute('data-start-date');
-            const endDate = this.getAttribute('data-end-date');
-            const isTrial = this.getAttribute('data-is-trial');
-            
-            // Populate form
-            document.getElementById('edit_subscription_id').value = id;
-            document.getElementById('edit_school_name').value = school;
-            document.getElementById('edit_plan_name').value = plan;
-            document.getElementById('edit_start_date').value = startDate;
-            document.getElementById('edit_end_date').value = endDate;
-            document.getElementById('edit_status').value = status;
-            document.getElementById('edit_is_trial').checked = isTrial === 'true';
-        });
-    });
-});
+function openSubscriptionEdit(id, school, plan, status, startDate, endDate, isTrial) {
+    toggleInPageFormView('subscriptionListCard', 'subscriptionFormPanel', 'edit');
+    document.getElementById('edit_subscription_id').value = id;
+    document.getElementById('edit_school_name').value = school;
+    document.getElementById('edit_plan_name').value = plan;
+    document.getElementById('edit_start_date').value = startDate;
+    document.getElementById('edit_end_date').value = endDate;
+    document.getElementById('edit_status').value = status;
+    document.getElementById('edit_is_trial').checked = isTrial;
+}
 
 function extendSubscription(days) {
     const endDateField = document.getElementById('edit_end_date');
+    if (!endDateField.value) return;
     const currentEndDate = new Date(endDateField.value);
     const newEndDate = new Date(currentEndDate);
     newEndDate.setDate(newEndDate.getDate() + days);
     endDateField.value = newEndDate.toISOString().split('T')[0];
     
-    // Update status to active if it's expired
     const statusField = document.getElementById('edit_status');
     if (statusField.value === 'expired') {
         statusField.value = 'active';
@@ -293,14 +224,10 @@ function reactivateSubscription() {
     const endDateField = document.getElementById('edit_end_date');
     statusField.value = 'active';
     
-    // Extend by 30 days from today
     const today = new Date();
     const newEndDate = new Date(today);
     newEndDate.setDate(newEndDate.getDate() + 30);
     endDateField.value = newEndDate.toISOString().split('T')[0];
 }
 </script>
-
 {% endblock %}
-
-{% block extra_css %}{% endblock %}

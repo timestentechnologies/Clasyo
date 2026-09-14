@@ -9,12 +9,129 @@
 
 
 {% block page_actions %}
-<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#collectFeeModal">
-    <i class="fas fa-plus"></i> Collect Fee
+<button class="btn btn-primary" onclick="toggleInPageFormView('collectFeeListCard', 'collectFeeFormPanel', 'create')">
+    <i class="fas fa-plus me-1"></i> Collect Fee
 </button>
 {% endblock %}
 
 {% block content %}
+<!-- In-Page Fee Collection Form Panel -->
+<div id="collectFeeFormPanel" class="card modern-card mb-4 form-panel-view" style="display: none;">
+    <div class="card-body">
+        <div class="form-header-bar">
+            <div>
+                <h5 class="fw-bold mb-1" id="collectFeeFormTitle">Collect Fee</h5>
+                <span class="form-mode-badge badge bg-primary" id="collectFeeFormBadge">Creation Mode</span>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('collectFeeListCard', 'collectFeeFormPanel', 'hide')">
+                <i class="fas fa-times me-1"></i> Close
+            </button>
+        </div>
+        <form id="feePaymentForm">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Student *</label>
+                    <select name="student_id" class="form-select" required id="studentSelect">
+                        <option value="">Select Student</option>
+                        {% for student in students %}
+                        <option value="{{ student.id }}">{{ student.get_full_name }} - {{ student.admission_number }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Fee Type *</label>
+                    <select name="fee_structure_id" class="form-select" required id="feeStructureSelect">
+                        <option value="">Select Fee Type</option>
+                        {% for fee in fee_structures %}
+                        <option value="{{ fee.id }}" data-amount="{{ fee.amount }}" data-fee-type="{{ fee.fee_type }}">{{ fee.name }} - Ksh {{ fee.amount|floatformat:0|intcomma }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-12" id="balanceDisplay" style="display: none;">
+                    <div class="alert alert-info mb-0 py-2">
+                        <strong>Student Balance Information:</strong><br>
+                        <span id="balanceText"></span>
+                    </div>
+                </div>
+
+                <div class="col-md-12" id="paymentHistoryDisplay" style="display: none;">
+                    <h6>Payment History</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm" id="paymentHistoryTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Amount Paid</th>
+                                    <th>Balance After</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paymentHistoryBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Amount (Ksh) *</label>
+                    <input type="number" name="amount_paid" class="form-control" required step="0.01" id="amountInput" placeholder="0.00">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Payment Date *</label>
+                    <input type="date" name="payment_date" class="form-control" required value="{% now 'Y-m-d' %}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Due Date *</label>
+                    <input type="date" name="due_date" class="form-control" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Payment Method *</label>
+                    <select name="payment_method" class="form-select" required>
+                        <option value="cash">Cash</option>
+                        <option value="card">Card</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="online">Online Payment</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Deposit Account *</label>
+                    <select name="deposit_account_id" id="depositAccountSelect" class="form-select" required>
+                        <option value="">Select Cash/Bank Account</option>
+                        {% for acc in deposit_accounts %}
+                        <option value="{{ acc.id }}" data-code="{{ acc.code }}" data-subtype="{{ acc.sub_type }}">{{ acc.code }} - {{ acc.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Collected By *</label>
+                    <select name="collected_by_id" class="form-select" required>
+                        <option value="">Select Staff Member</option>
+                        {% for staff in fee_collectors %}
+                        <option value="{{ staff.id }}" {% if staff.id == request.user.id %}selected{% endif %}>
+                            {{ staff.get_full_name }} - {{ staff.get_role_display }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Transaction ID / Ref</label>
+                    <input type="text" name="transaction_id" class="form-control" placeholder="e.g. MPESA Ref Code">
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold">Note</label>
+                    <textarea name="note" class="form-control" rows="2" placeholder="Additional notes..."></textarea>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <button type="button" class="btn btn-outline-secondary" onclick="toggleInPageFormView('collectFeeListCard', 'collectFeeFormPanel', 'hide')">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitFeePayment()"><i class="fas fa-save me-1"></i> Save Payment</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="row mb-4">
     <div class="col-md-4">
         <div class="card border-0 shadow-sm border-start border-4" style="border-left-color: #00bcd4 !important;">
@@ -45,11 +162,11 @@
 <div class="row mb-3">
     <div class="col-md-12">
         <div class="row g-2">
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <input type="text" id="searchInput" class="form-control" placeholder="Search students...">
             </div>
-            <div class="col-md-3">
-                <select name="class_id" id="classFilter" class="form-select">
+            <div class="col-md-4">
+                <select name="class_id" id="classFilter" class="form-select" placeholder="Filter by Class" data-placeholder="Filter by Class">
                     <option value="">All Classes</option>
                     {% for class_obj in classes %}
                     <option value="{{ class_obj.id }}" {% if class_obj.id|stringformat:"s" == selected_class_id %}selected{% endif %}>
@@ -58,192 +175,18 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-3">
-                <select name="balance_status" id="balanceFilter" class="form-select">
+            <div class="col-md-4">
+                <select name="balance_status" id="balanceFilter" class="form-select" placeholder="Filter by Balance Status" data-placeholder="Filter by Balance Status">
                     <option value="">All Students</option>
                     <option value="with_balance" {% if selected_balance_status == 'with_balance' %}selected{% endif %}>Students with Balances</option>
                     <option value="fully_paid" {% if selected_balance_status == 'fully_paid' %}selected{% endif %}>Fully Paid Students</option>
                 </select>
             </div>
-            <div class="col-md-3">
-                <a href="." class="btn btn-outline-secondary w-100">Reset</a>
-            </div>
         </div>
     </div>
 </div>
 
-<div class="modern-card">
-    <div class="table-responsive">
-        <table class="table" id="paymentsTable">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Student</th>
-                    <th>Class</th>
-                    <th>Fee Type</th>
-                    <th>Amount (Ksh)</th>
-                    <th>Balance (Ksh)</th>
-                    <th>Method</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for payment in payments %}
-            <tr data-student-name="{{ payment.student.get_full_name|lower }}" data-admission="{{ payment.student.admission_number|lower }}" data-class="{{ payment.student.current_class.name|default:'-'|lower }}" data-class-id="{{ payment.student.current_class.id|default:'-' }}" data-balance-status="{% if payment.running_balance > 0 %}with_balance{% else %}fully_paid{% endif %}">
-                <td>{{ payment.payment_date|date:"M d, Y" }}</td>
-                <td>{{ payment.student.get_full_name }}</td>
-                <td>{{ payment.student.current_class.name|default:"-" }}</td>
-                <td>{{ payment.fee_structure.name }}</td>
-                <td>Ksh {{ payment.paid_amount|floatformat:0|intcomma }}</td>
-                <td>
-                    Ksh {{ payment.running_balance|floatformat:0|intcomma|default:"0" }}
-                    {% if payment.is_current_balance %}<span class="badge bg-success ms-1">Current</span>{% endif %}
-                </td>
-                <td><span class="badge bg-info">{{ payment.payment_method }}</span></td>
-                <td>
-                    {% if payment.payment_status == 'paid' %}
-                        <span class="badge bg-success">Paid</span>
-                    {% elif payment.payment_status == 'partial' %}
-                        <span class="badge bg-warning">Partial</span>
-                    {% elif payment.payment_status == 'overdue' %}
-                        <span class="badge bg-danger">Overdue</span>
-                    {% else %}
-                        <span class="badge bg-secondary">Pending</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="8" class="text-center py-4">
-                    <i class="fas fa-money-bill-wave fa-3x text-muted mb-3"></i>
-                    <p class="text-muted">No fee payments recorded</p>
-                </td>
-            </tr>
-            {% endfor %}
-            
-            <!-- Totals Row -->
-            {% if payments %}
-            <tr class="table-primary fw-bold">
-                <td colspan="4">TOTALS</td>
-                <td>Ksh {{ table_total_collected|floatformat:0|intcomma }}</td>
-                <td>-</td>
-                <td colspan="2">-</td>
-            </tr>
-            {% endif %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<div class="modal fade" id="collectFeeModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
-                <h5 class="modal-title"><i class="fas fa-plus"></i> Collect Fee</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="feePaymentForm">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label>Student *</label>
-                        <select name="student_id" class="form-control" required id="studentSelect">
-                            <option value="">Select Student</option>
-                            {% for student in students %}
-                            <option value="{{ student.id }}">{{ student.get_full_name }} - {{ student.admission_number }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label>Fee Type *</label>
-                        <select name="fee_structure_id" class="form-control" required id="feeStructureSelect">
-                            <option value="">Select Fee Type</option>
-                            {% for fee in fee_structures %}
-                            <option value="{{ fee.id }}" data-amount="{{ fee.amount }}" data-fee-type="{{ fee.fee_type }}">{{ fee.name }} - Ksh {{ fee.amount|floatformat:0|intcomma }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3" id="balanceDisplay" style="display: none;">
-                        <div class="alert alert-info mb-2">
-                            <strong>Student Balance Information:</strong><br>
-                            <span id="balanceText"></span>
-                        </div>
-                    </div>
-                    <div class="mb-3" id="paymentHistoryDisplay" style="display: none;">
-                        <h6>Payment History</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm" id="paymentHistoryTable">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Amount Paid</th>
-                                        <th>Balance After</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="paymentHistoryBody">
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label>Amount (Ksh) *</label>
-                        <input type="number" name="amount_paid" class="form-control" required step="0.01" id="amountInput">
-                    </div>
-                    <div class="mb-3">
-                        <label>Payment Date *</label>
-                        <input type="date" name="payment_date" class="form-control" required value="{% now 'Y-m-d' %}">
-                    </div>
-                    <div class="mb-3">
-                        <label>Due Date *</label>
-                        <input type="date" name="due_date" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>Payment Method *</label>
-                        <select name="payment_method" class="form-control" required>
-                            <option value="cash">Cash</option>
-                            <option value="card">Card</option>
-                            <option value="bank_transfer">Bank Transfer</option>
-                            <option value="online">Online Payment</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label>Deposit Account *</label>
-                        <select name="deposit_account_id" id="depositAccountSelect" class="form-control" required>
-                            <option value="">Select Cash/Bank Account</option>
-                            {% for acc in deposit_accounts %}
-                            <option value="{{ acc.id }}" data-code="{{ acc.code }}" data-subtype="{{ acc.sub_type }}">{{ acc.code }} - {{ acc.name }}</option>
-                            {% endfor %}
-                        </select>
-                        <small class="text-muted">Choose where to deposit this fee (Cash or a specific Bank account).</small>
-                    </div>
-                    <div class="mb-3">
-                        <label>Collected By *</label>
-                        <select name="collected_by_id" class="form-control" required>
-                            <option value="">Select Staff Member</option>
-                            {% for staff in fee_collectors %}
-                            <option value="{{ staff.id }}" {% if staff.id == request.user.id %}selected{% endif %}>
-                                {{ staff.get_full_name }} - {{ staff.get_role_display }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label>Transaction ID</label>
-                        <input type="text" name="transaction_id" class="form-control">
-                    </div>
-                    <div class="mb-3">
-                        <label>Note</label>
-                        <textarea name="note" class="form-control" rows="2"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitPayment()">Record Payment</button>
-            </div>
-        </div>
-    </div>
-</div>
+<div class="modern-card" id="collectFeeListCard">
 
 <script>
 // Ultra-simple test to see if JavaScript is working

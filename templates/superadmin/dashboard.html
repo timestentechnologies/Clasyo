@@ -16,57 +16,51 @@
 {% endblock %}
 
 {% block content %}
+<!-- Smart Actions Bar -->
+<div class="smart-actions-bar">
+    <div class="smart-actions-group">
+        <a href="{% url 'superadmin:schools' %}" class="smart-btn smart-btn-primary">
+            <i class="fas fa-school"></i> Manage Schools
+        </a>
+        <a href="{% url 'superadmin:subscriptions' %}" class="smart-btn smart-btn-success">
+            <i class="fas fa-credit-card"></i> Subscriptions
+        </a>
+        <a href="{% url 'superadmin:pricing_management' %}" class="smart-btn smart-btn-info">
+            <i class="fas fa-tags"></i> Pricing Plans
+        </a>
+        <a href="{% url 'superadmin:contact_messages' %}" class="smart-btn smart-btn-warning">
+            <i class="fas fa-envelope"></i> Messages
+        </a>
+    </div>
+</div>
+
 <!-- Stats Grid -->
 <div class="stats-grid fade-in-up">
     <div class="stat-card primary">
-        <div class="stat-icon">
-            <i class="fas fa-school"></i>
-        </div>
         <div class="stat-value">{{ stats.total_schools|default:0 }}</div>
         <div class="stat-label">Total Schools</div>
         <div class="stat-sublabel">{{ stats.active_schools|default:0 }} active</div>
     </div>
     
     <div class="stat-card success">
-        <div class="stat-icon">
-            <i class="fas fa-user-graduate"></i>
-        </div>
         <div class="stat-value">{{ stats.total_students|default:0 }}</div>
         <div class="stat-label">Total Students</div>
         <div class="stat-sublabel">Across all schools</div>
     </div>
     
     <div class="stat-card warning">
-        <div class="stat-icon">
-            <i class="fas fa-chalkboard-teacher"></i>
-        </div>
         <div class="stat-value">{{ stats.total_teachers|default:0 }}</div>
         <div class="stat-label">Total Teachers</div>
         <div class="stat-sublabel">Active staff members</div>
     </div>
     
     <div class="stat-card danger">
-        <div class="stat-icon">
-            <i class="fas fa-dollar-sign"></i>
-        </div>
         <div class="stat-value">Ksh {{ stats.total_revenue|default:0|floatformat:0 }}</div>
         <div class="stat-label">Total Revenue</div>
         <div class="stat-sublabel">All-time earnings</div>
     </div>
 
-    <!-- <div class="stat-card info">
-        <div class="stat-icon">
-            <i class="fas fa-user-shield"></i>
-        </div>
-        <div class="stat-value">{{ stats.total_admins|default:0 }}</div>
-        <div class="stat-label">School Admins</div>
-        <div class="stat-sublabel">Active administrators</div>
-    </div> -->
-
     <div class="stat-card secondary">
-        <div class="stat-icon">
-            <i class="fas fa-clock"></i>
-        </div>
         <div class="stat-value">{{ stats.trial_schools|default:0 }}</div>
         <div class="stat-label">Trial Schools</div>
         <div class="stat-sublabel">On trial period</div>
@@ -143,24 +137,6 @@
                     <span><i class="fas fa-envelope text-info me-2"></i>New Messages</span>
                     <strong>{{ stats.new_messages|default:0 }}</strong>
                 </div>
-            </div>
-        </div>
-        
-        <div class="modern-card mt-4">
-            <h4 class="mb-3"><i class="fas fa-tasks"></i> Quick Actions</h4>
-            <div class="d-grid gap-2">
-                <a href="{% url 'superadmin:schools' %}" class="btn btn-outline-primary">
-                    <i class="fas fa-school me-2"></i> Manage Schools
-                </a>
-                <a href="{% url 'superadmin:subscriptions' %}" class="btn btn-outline-success">
-                    <i class="fas fa-credit-card me-2"></i> Subscriptions
-                </a>
-                <a href="{% url 'superadmin:pricing_management' %}" class="btn btn-outline-info">
-                    <i class="fas fa-tags me-2"></i> Pricing Plans
-                </a>
-                <a href="{% url 'superadmin:contact_messages' %}" class="btn btn-outline-warning">
-                    <i class="fas fa-envelope me-2"></i> Messages
-                </a>
             </div>
         </div>
     </div>

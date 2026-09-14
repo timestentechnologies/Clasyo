@@ -6,6 +6,7 @@ import time
 from hashlib import sha1
 
 from django.contrib.auth.base_user import AbstractBaseUser
+from django.db import transaction
 
 from allauth.mfa import app_settings
 from allauth.mfa.models import Authenticator
@@ -102,7 +103,12 @@ class RecoveryCodes:
             self.instance.save()
             return True
 
+    @transaction.atomic
     def validate_code(self, code: str) -> bool:
+        if self.instance.pk is not None:
+            self.instance = Authenticator.objects.select_for_update().get(
+                pk=self.instance.pk
+            )
         ret = self._validate_migrated_code(code)
         if ret is not None:
             return ret

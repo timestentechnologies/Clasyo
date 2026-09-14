@@ -21,7 +21,7 @@ from io import BytesIO
 from subscriptions.models import SubscriptionPlan
 from .models import (
     FAQ, PageContent, ContactMessage, ForumThread, ForumPost,
-    HeroContent, ProcessStep, FeatureItem, ParallaxSection
+    HeroContent, FloatingParallaxElement, ProcessStep, FeatureItem, ParallaxSection
 )
 
 
@@ -32,6 +32,7 @@ class HomeView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['hero_content'] = HeroContent.objects.filter(is_active=True).first()
+        context['floating_elements'] = FloatingParallaxElement.objects.filter(is_active=True).order_by('order', 'id')
         context['process_steps'] = ProcessStep.objects.filter(is_active=True).order_by('order', 'step_number')
         context['features'] = FeatureItem.objects.filter(is_active=True).order_by('order', 'id')
         context['parallax_sections'] = ParallaxSection.objects.filter(is_active=True).order_by('order', 'id')

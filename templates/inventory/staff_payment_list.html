@@ -9,8 +9,8 @@
 
 {% block content %}
 <div class="d-flex justify-content-end mb-3 button-stack-mobile">
-    <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addPaymentModal">
-        <i class="fas fa-plus"></i> Process Payment
+    <button class="btn btn-primary me-2" onclick="openCreatePaymentForm()">
+        <i class="fas fa-plus me-1"></i> Process Payment
     </button>
     <a href="{% url 'inventory:expense_list' school_slug %}" class="btn btn-info me-2">
         <i class="fas fa-chart-line"></i> View Expenses
@@ -20,110 +20,147 @@
     </a>
 </div>
 
-<!-- Edit Payment Modal -->
-<div class="modal fade" id="editPaymentModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Edit Payment</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- In-Page Staff Payment Form Panel -->
+<div id="paymentFormPanel" class="card modern-card mb-4 form-panel-view" style="display: none;">
+    <div class="card-body">
+        <div class="form-header-bar">
+            <div>
+                <h5 class="fw-bold mb-1" id="paymentFormTitle">Process Staff/Teacher Payment</h5>
+                <span class="form-mode-badge badge bg-primary" id="paymentFormBadge">Creation Mode</span>
             </div>
-            <form id="editPaymentForm">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <input type="hidden" name="action" value="edit_payment">
-                    <input type="hidden" name="payment_id" id="edit_payment_id">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('paymentListCard', 'paymentFormPanel', 'hide')">
+                <i class="fas fa-times me-1"></i> Close
+            </button>
+        </div>
+        <form id="paymentForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" id="payment_action" value="add_payment">
+            <input type="hidden" name="payment_id" id="edit_payment_id">
 
-                    <div class="mb-3">
-                        <label class="form-label">Status *</label>
-                        <select name="status" id="edit_status" class="form-control" required>
-                            <option value="pending">Pending</option>
-                            <option value="paid">Paid</option>
-                            <option value="cancelled">Cancelled</option>
+            <!-- Creation Fields -->
+            <div id="createPaymentFields">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Staff Type *</label>
+                        <select name="staff_type" id="staff_type" class="form-select">
+                            <option value="">Select Type</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="staff">Staff</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Select Person *</label>
+                        <select name="staff_id" id="staff_select" class="form-select">
+                            <option value="">Select Staff/Teacher</option>
                         </select>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Payment Method *</label>
-                        <select name="payment_method" id="edit_payment_method" class="form-control" required>
-                            <option value="bank_transfer">Bank Transfer</option>
-                            <option value="cash">Cash</option>
-                            <option value="cheque">Cheque</option>
-                            <option value="online">Online Payment</option>
-                        </select>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Payment Month *</label>
+                        <input type="month" name="payment_month" id="payment_month" class="form-control">
                     </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Payment Date *</label>
-                        <input type="date" name="payment_date" id="edit_payment_date" class="form-control" required>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Basic Salary *</label>
-                            <input type="number" step="0.01" min="0" name="basic_salary" id="edit_basic_salary" class="form-control" required>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Allowances</label>
-                            <input type="number" step="0.01" min="0" name="allowances" id="edit_allowances" class="form-control">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Deductions</label>
-                            <input type="number" step="0.01" min="0" name="deductions" id="edit_deductions" class="form-control">
-                        </div>
-                    </div>
-
-                    <div class="alert alert-info">
-                        <strong>Net Salary:</strong> Ksh<span id="edit_net_salary_display">0.00</span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Reference Number</label>
-                        <input type="text" name="reference_number" id="edit_reference_number" class="form-control">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Notes</label>
-                        <textarea name="notes" id="edit_notes" rows="2" class="form-control"></textarea>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Payment Date *</label>
+                        <input type="date" name="payment_date" id="payment_date" class="form-control" value="{% now 'Y-m-d' %}">
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    </div>
+            </div>
 
-<!-- Dynamic Search and Filters -->
-<div class="row mb-3">
-    <div class="col-md-12">
-        <div class="row g-2">
-            <div class="col-md-4">
-                <input type="text" id="searchInput" class="form-control" placeholder="Search staff/teacher...">
+            <!-- Edit Mode Status & Method -->
+            <div id="editPaymentFields" style="display: none;" class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Status *</label>
+                    <select name="status" id="edit_status" class="form-select">
+                        <option value="pending">Pending</option>
+                        <option value="paid">Paid</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Payment Method *</label>
+                    <select name="payment_method" id="edit_payment_method" class="form-select">
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="cash">Cash</option>
+                        <option value="cheque">Cheque</option>
+                        <option value="online">Online Payment</option>
+                    </select>
+                </div>
             </div>
-            <div class="col-md-3">
-                <select name="staff_type" id="staffTypeFilter" class="form-select">
-                    <option value="">All Types</option>
-                    <option value="teacher">Teachers</option>
-                    <option value="staff">Staff</option>
-                </select>
+
+            <!-- Common Salary Breakdown -->
+            <div class="row g-3 mt-1">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Basic Salary *</label>
+                    <input type="number" step="0.01" min="0" name="basic_salary" id="basic_salary" class="form-control" placeholder="0.00" required>
+                </div>
+                
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Allowances</label>
+                    <input type="number" step="0.01" min="0" name="allowances" id="allowances" class="form-control" placeholder="0.00" value="0">
+                </div>
+                
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Deductions</label>
+                    <input type="number" step="0.01" min="0" name="deductions" id="deductions" class="form-control" placeholder="0.00" value="0">
+                </div>
+
+                <div class="col-md-12">
+                    <div class="alert alert-info py-2 mb-0">
+                        <strong>Net Salary:</strong> Ksh<span id="net_salary_display">0.00</span>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Reference Number</label>
+                    <input type="text" name="reference_number" id="reference_number" class="form-control" placeholder="e.g. MPESA Ref, Cheque No.">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Notes</label>
+                    <textarea name="notes" id="notes" rows="2" class="form-control" placeholder="Payment notes..."></textarea>
+                </div>
             </div>
-            <div class="col-md-3">
-                <select name="status" id="statusFilter" class="form-select">
-                    <option value="">All Status</option>
-                    <option value="paid">Paid</option>
-                    <option value="pending">Pending</option>
-                    <option value="cancelled">Cancelled</option>
-                </select>
+
+            <input type="hidden" name="staff_name" id="staff_name_hidden">
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <button type="button" class="btn btn-outline-secondary" onclick="toggleInPageFormView('paymentListCard', 'paymentFormPanel', 'hide')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Save Payment</button>
             </div>
-            <div class="col-md-2">
-                <a href="." class="btn btn-outline-secondary w-100">Reset</a>
-            </div>
-        </div>
+        </form>
     </div>
 </div>
+
+<!-- Payment List View Container -->
+<div id="paymentListCard">
+    <!-- Dynamic Search and Filters -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search staff/teacher...">
+                </div>
+                <div class="col-md-4">
+                    <select name="staff_type" id="staffTypeFilter" class="form-select" placeholder="Filter by Staff Type" data-placeholder="Filter by Staff Type">
+                        <option value="">All Staff Types</option>
+                        <option value="teacher">Teachers</option>
+                        <option value="staff">Staff</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select name="status" id="statusFilter" class="form-select" placeholder="Filter by Status" data-placeholder="Filter by Status">
+                        <option value="">All Statuses</option>
+                        <option value="paid">Paid</option>
+                        <option value="pending">Pending</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="modern-card mb-4">
         <div class="p-3">
@@ -141,7 +178,7 @@
         </div>
     </div>
 
-<div class="modern-card">
+    <div class="modern-card">
     <div class="table-responsive">
             <table class="table table-hover" id="paymentsTable">
                 <thead>
@@ -188,7 +225,7 @@
                         </td>
                         <td>
                             <div class="btn-group" role="group">
-                                <button type="button" class="btn btn-sm btn-primary edit-payment-btn" data-bs-toggle="modal" data-bs-target="#editPaymentModal">
+                                <button type="button" class="btn btn-sm btn-primary edit-payment-btn">
                                     <i class="fas fa-edit"></i> Edit
                                 </button>
                                 <a href="{% url 'inventory:print_payment_receipt' school_slug payment.id %}" class="btn btn-sm btn-secondary" target="_blank">
@@ -206,108 +243,6 @@
             </table>
     </div>
 </div>
-
-<!-- Add Payment Modal -->
-<div class="modal fade" id="addPaymentModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Process Staff/Teacher Payment</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="addPaymentForm">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Staff Type *</label>
-                            <select name="staff_type" id="staff_type" class="form-control" required>
-                                <option value="">Select Type</option>
-                                <option value="teacher">Teacher</option>
-                                <option value="staff">Staff</option>
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Select Person *</label>
-                            <select name="staff_id" id="staff_select" class="form-control" required>
-                                <option value="">Select Staff/Teacher</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Payment Month *</label>
-                            <input type="month" name="payment_month" class="form-control" required>
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Payment Date *</label>
-                            <input type="date" name="payment_date" class="form-control" value="{% now 'Y-m-d' %}" required>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Basic Salary *</label>
-                            <input type="number" name="basic_salary" id="basic_salary" class="form-control" step="0.01" required>
-                        </div>
-                        
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Allowances</label>
-                            <input type="number" name="allowances" id="allowances" class="form-control" step="0.01" value="0">
-                        </div>
-                        
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Deductions</label>
-                            <input type="number" name="deductions" id="deductions" class="form-control" step="0.01" value="0">
-                        </div>
-                    </div>
-                    
-                    <div class="alert alert-info">
-                        <strong>Net Salary:</strong> Ksh<span id="net_salary_display">0.00</span>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Payment Method *</label>
-                            <select name="payment_method" class="form-control" required>
-                                <option value="bank_transfer">Bank Transfer</option>
-                                <option value="cash">Cash</option>
-                                <option value="cheque">Cheque</option>
-                                <option value="online">Online Payment</option>
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Reference Number</label>
-                            <input type="text" name="reference_number" class="form-control">
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Status *</label>
-                        <select name="status" class="form-control" required>
-                            <option value="pending">Pending</option>
-                            <option value="paid">Paid</option>
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Notes</label>
-                        <textarea name="notes" class="form-control" rows="2"></textarea>
-                    </div>
-                    
-                    <input type="hidden" name="staff_name" id="staff_name_hidden">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Process Payment</button>
-                </div>
-            </form>
-        </div>
-    </div>
 </div>
 
 <!-- Status Modal -->
@@ -624,8 +559,12 @@ basicSalaryInput.addEventListener('input', calculateNetSalary);
 allowancesInput.addEventListener('input', calculateNetSalary);
 deductionsInput.addEventListener('input', calculateNetSalary);
 
-const addPaymentModal = document.getElementById('addPaymentModal');
-addPaymentModal.addEventListener('shown.bs.modal', function () {
+function openCreatePaymentForm() {
+    document.getElementById('payment_action').value = 'add_payment';
+    document.getElementById('edit_payment_id').value = '';
+    document.getElementById('createPaymentFields').style.display = 'block';
+    document.getElementById('editPaymentFields').style.display = 'none';
+
     if (!staffTypeSelect.value) {
         if (Array.isArray(teachers) && teachers.length) {
             staffTypeSelect.value = 'teacher';
@@ -636,35 +575,39 @@ addPaymentModal.addEventListener('shown.bs.modal', function () {
     if (staffTypeSelect.value) {
         staffTypeSelect.dispatchEvent(new Event('change'));
     }
-});
 
-document.getElementById('addPaymentForm').addEventListener('submit', function(e) {
+    toggleInPageFormView('paymentListCard', 'paymentFormPanel', 'create');
+}
+
+document.getElementById('paymentForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const form = this;
     const submitButton = form.querySelector('button[type="submit"]');
     const originalButtonText = submitButton.innerHTML;
-    // Client-side duplicate guard
-    const selectedType = staffTypeSelect.value;
-    const selectedId = staffSelect.value;
-    const monthInput = form.querySelector('input[name="payment_month"]').value; // YYYY-MM
-    if (!selectedType || !selectedId || !monthInput) {
-        showStatusModal('Error', 'Please select staff type, person and payment month.', true);
-        return;
-    }
-    const existingRows = document.querySelectorAll('#paymentsTable tbody tr');
-    for (const row of existingRows) {
-        const rowStaffId = row.dataset.staffId;
-        const rowStaffType = row.dataset.staffType;
-        const rowMonth = row.dataset.paymentMonth;
-        if (rowStaffId === selectedId && rowStaffType === selectedType && rowMonth === monthInput) {
-            const selectedOption = staffSelect.options[staffSelect.selectedIndex];
-            const name = selectedOption ? (selectedOption.dataset.name || selectedOption.textContent) : 'Selected person';
-            showStatusModal('Duplicate Payment', `A payment for ${name} (${monthInput}) already exists.`, true);
+    const isEdit = document.getElementById('payment_action').value === 'edit_payment';
+
+    if (!isEdit) {
+        const selectedType = staffTypeSelect.value;
+        const selectedId = staffSelect.value;
+        const monthInput = form.querySelector('input[name="payment_month"]').value;
+        if (!selectedType || !selectedId || !monthInput) {
+            showStatusModal('Error', 'Please select staff type, person and payment month.', true);
             return;
+        }
+        const existingRows = document.querySelectorAll('#paymentsTable tbody tr');
+        for (const row of existingRows) {
+            const rowStaffId = row.dataset.staffId;
+            const rowStaffType = row.dataset.staffType;
+            const rowMonth = row.dataset.paymentMonth;
+            if (rowStaffId === selectedId && rowStaffType === selectedType && rowMonth === monthInput) {
+                const selectedOption = staffSelect.options[staffSelect.selectedIndex];
+                const name = selectedOption ? (selectedOption.dataset.name || selectedOption.textContent) : 'Selected person';
+                showStatusModal('Duplicate Payment', `A payment for ${name} (${monthInput}) already exists.`, true);
+                return;
+            }
         }
     }
     
-    // Show loading state
     submitButton.disabled = true;
     submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
     
@@ -677,17 +620,10 @@ document.getElementById('addPaymentForm').addEventListener('submit', function(e)
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Show success message in modal
-            showStatusModal('Success', 'Payment processed successfully!', false);
-            // Close the add payment modal
-            const addPaymentModal = bootstrap.Modal.getInstance(document.getElementById('addPaymentModal'));
-            if (addPaymentModal) {
-                addPaymentModal.hide();
-            }
-            // Reload the page after a short delay
+            showStatusModal('Success', isEdit ? 'Payment updated successfully.' : 'Payment processed successfully!', false);
             setTimeout(() => {
                 location.reload();
-            }, 2000);
+            }, 1200);
         } else {
             showStatusModal('Error', data.error || 'An error occurred while processing the payment.', true);
         }
@@ -696,82 +632,38 @@ document.getElementById('addPaymentForm').addEventListener('submit', function(e)
         showStatusModal('Error', error.message || 'An unexpected error occurred.', true);
     })
     .finally(() => {
-        // Reset button state
         submitButton.disabled = false;
         submitButton.innerHTML = originalButtonText;
     });
 });
 
-// Handle Edit buttons: populate modal fields
-document.querySelectorAll('.edit-payment-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const row = this.closest('tr');
-        if (!row) return;
-        document.getElementById('edit_payment_id').value = row.dataset.paymentId || '';
-        document.getElementById('edit_status').value = (row.dataset.status || 'pending');
-        document.getElementById('edit_payment_method').value = (row.dataset.paymentMethod || 'bank_transfer');
-        // payment_date is in dataset as raw date
-        const pd = row.dataset.paymentDate || '';
-        document.getElementById('edit_payment_date').value = pd;
-        document.getElementById('edit_reference_number').value = row.dataset.referenceNumber || '';
-        document.getElementById('edit_notes').value = row.dataset.notes || '';
-        // amounts
-        const bs = parseFloat(row.dataset.basicSalary || '0') || 0;
-        const al = parseFloat(row.dataset.allowances || '0') || 0;
-        const dd = parseFloat(row.dataset.deductions || '0') || 0;
-        document.getElementById('edit_basic_salary').value = bs.toFixed(2);
-        document.getElementById('edit_allowances').value = al.toFixed(2);
-        document.getElementById('edit_deductions').value = dd.toFixed(2);
-        calculateEditNetSalary();
-    });
-});
+// Handle Edit buttons: populate panel fields
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.edit-payment-btn');
+    if (!btn) return;
 
-// Submit Edit Payment form
-document.getElementById('editPaymentForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const form = this;
-    const submitButton = form.querySelector('button[type="submit"]');
-    const originalButtonText = submitButton.innerHTML;
-    submitButton.disabled = true;
-    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+    const row = btn.closest('tr');
+    if (!row) return;
 
-    const formData = new FormData(form);
+    document.getElementById('payment_action').value = 'edit_payment';
+    document.getElementById('edit_payment_id').value = row.dataset.paymentId || '';
+    document.getElementById('createPaymentFields').style.display = 'none';
+    document.getElementById('editPaymentFields').style.display = 'flex';
 
-    fetch(window.location.pathname, {
-        method: 'POST',
-        body: formData
-    })
-    .then(resp => resp.json())
-    .then(data => {
-        if (data.success) {
-            showStatusModal('Updated', 'Payment updated successfully.', false);
-            const modalObj = bootstrap.Modal.getInstance(document.getElementById('editPaymentModal'));
-            if (modalObj) modalObj.hide();
-            setTimeout(() => location.reload(), 1200);
-        } else {
-            showStatusModal('Error', data.error || 'Failed to update payment.', true);
-        }
-    })
-    .catch(err => {
-        showStatusModal('Error', err.message || 'Unexpected error occurred.', true);
-    })
-    .finally(() => {
-        submitButton.disabled = false;
-        submitButton.innerHTML = originalButtonText;
-    });
-});
+    document.getElementById('edit_status').value = (row.dataset.status || 'pending');
+    document.getElementById('edit_payment_method').value = (row.dataset.paymentMethod || 'bank_transfer');
+    document.getElementById('reference_number').value = row.dataset.referenceNumber || '';
+    document.getElementById('notes').value = row.dataset.notes || '';
+    
+    const bs = parseFloat(row.dataset.basicSalary || '0') || 0;
+    const al = parseFloat(row.dataset.allowances || '0') || 0;
+    const dd = parseFloat(row.dataset.deductions || '0') || 0;
+    document.getElementById('basic_salary').value = bs.toFixed(2);
+    document.getElementById('allowances').value = al.toFixed(2);
+    document.getElementById('deductions').value = dd.toFixed(2);
+    calculateNetSalary();
 
-function calculateEditNetSalary() {
-    const bs = parseFloat(document.getElementById('edit_basic_salary').value) || 0;
-    const al = parseFloat(document.getElementById('edit_allowances').value) || 0;
-    const dd = parseFloat(document.getElementById('edit_deductions').value) || 0;
-    const net = bs + al - dd;
-    document.getElementById('edit_net_salary_display').textContent = net.toFixed(2);
-}
-
-['edit_basic_salary','edit_allowances','edit_deductions'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('input', calculateEditNetSalary);
+    toggleInPageFormView('paymentListCard', 'paymentFormPanel', 'edit');
 });
 </script>
 {% endblock %}

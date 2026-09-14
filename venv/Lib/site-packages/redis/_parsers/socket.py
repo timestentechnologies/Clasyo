@@ -5,7 +5,7 @@ from io import SEEK_END
 from typing import Optional, Union
 
 from ..exceptions import ConnectionError, TimeoutError
-from ..utils import SSL_AVAILABLE
+from ..utils import SENTINEL, SSL_AVAILABLE
 
 NONBLOCKING_EXCEPTION_ERROR_NUMBERS = {BlockingIOError: errno.EWOULDBLOCK}
 
@@ -21,7 +21,6 @@ if SSL_AVAILABLE:
 NONBLOCKING_EXCEPTIONS = tuple(NONBLOCKING_EXCEPTION_ERROR_NUMBERS.keys())
 
 SERVER_CLOSED_CONNECTION_ERROR = "Connection closed by server."
-SENTINEL = object()
 
 SYM_CRLF = b"\r\n"
 
@@ -83,36 +82,39 @@ class SocketBuffer:
             # there's no data to be read. otherwise raise the
             # original exception.
             allowed = NONBLOCKING_EXCEPTION_ERROR_NUMBERS.get(ex.__class__, -1)
-            if not raise_on_timeout and ex.errno == allowed:
-                return False
+            if ex.errno == allowed:
+                if not raise_on_timeout:
+                    return False
+                if timeout == 0:
+                    raise TimeoutError("Timeout reading from socket")
             raise ConnectionError(f"Error while reading from socket: {ex.args}")
         finally:
             buf.seek(current_pos)
             if custom_timeout:
                 sock.settimeout(self.socket_timeout)
 
-    def can_read(self, timeout: float) -> bool:
+    def can_read(self, timeout: float = 0) -> bool:
         return bool(self.unread_bytes()) or self._read_from_socket(
             timeout=timeout, raise_on_timeout=False
         )
 
-    def read(self, length: int) -> bytes:
+    def read(self, length: int, timeout: Union[float, object] = SENTINEL) -> bytes:
         length = length + 2  # make sure to read the \r\n terminator
         # BufferIO will return less than requested if buffer is short
         data = self._buffer.read(length)
         missing = length - len(data)
         if missing:
             # fill up the buffer and read the remainder
-            self._read_from_socket(missing)
+            self._read_from_socket(length=missing, timeout=timeout)
             data += self._buffer.read(missing)
         return data[:-2]
 
-    def readline(self) -> bytes:
+    def readline(self, timeout: Union[float, object] = SENTINEL) -> bytes:
         buf = self._buffer
         data = buf.readline()
         while not data.endswith(SYM_CRLF):
             # there's more data in the socket that we need
-            self._read_from_socket()
+            self._read_from_socket(timeout=timeout)
             data += buf.readline()
 
         return data[:-2]
