@@ -5,3 +5,6 @@ class TenantsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'tenants'
     verbose_name = 'Tenants Management'
+
+    def ready(self):
+        import tenants.signals

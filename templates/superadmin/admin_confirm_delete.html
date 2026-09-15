@@ -9,9 +9,12 @@
 {% block content %}
 <div class="modern-card">
   <div class="alert alert-danger">
-    <strong>Danger:</strong> You are about to delete the admin account <strong>{{ admin_user.get_full_name }}</strong>
-    ({{ admin_user.email }}){% if admin_user.school %} for school <strong>{{ admin_user.school.name }}</strong>{% endif %}.
-    <br/>This will also permanently delete the associated school and all its related data (students, classes, fees, exams, books, attendance, etc.).
+    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+    <h4 class="alert-heading">Irrevocable Permanent Action</h4>
+    <p>You are about to permanently delete the admin account <strong>{{ admin_user.get_full_name }}</strong>
+    ({{ admin_user.email }}){% if admin_user.school %} for school <strong>{{ admin_user.school.name }}</strong>{% endif %}.</p>
+    <hr>
+    <p class="mb-0"><strong>Zero Remnants Warning:</strong> This will permanently destroy the dedicated tenant database, erase all database backup files from disk, remove uploaded media files, and delete all associated students, teachers, parents, and administrative records.</p>
   </div>
 
   <form method="post">

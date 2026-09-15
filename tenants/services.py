@@ -199,3 +199,184 @@ def ensure_school_database(school) -> bool:
         return True
 
     return True
+
+
+def purge_school_and_tenant_data(school, notify_admins: bool = True) -> dict:
+    """
+    Completely and permanently purges a school tenant and all associated data with zero remnants:
+    1. Sends notification emails to school admins (optional)
+    2. Deletes physical database backup files from disk and metadata
+    3. Closes database connections and unregisters from Django
+    4. Physically destroys the tenant database file/schema (SQLite, Postgres, or MySQL)
+    5. Cleans up school media files (logos, documents)
+    6. Deletes all associated users (admins, teachers, students, parents, staff)
+    7. Cascades deletion through all school-related models across all apps in the master database
+    8. Deletes the School and Domain records
+    """
+    import os
+    from django.contrib.auth import get_user_model
+    from django.core.mail import send_mail
+
+    User = get_user_model()
+    school_name = school.name
+    school_slug = school.slug
+    db_alias = school_slug
+
+    logger.info(f"[Tenants] Initiating complete purge for school '{school_name}' ({school_slug})...")
+    summary = {
+        'school_name': school_name,
+        'school_slug': school_slug,
+        'db_deleted': False,
+        'backups_deleted': 0,
+        'users_deleted': 0,
+        'media_deleted': False,
+    }
+
+    # 1. Notify school admins
+    admins = list(User.objects.filter(role='admin', school=school))
+    if notify_admins:
+        for admin in admins:
+            try:
+                send_mail(
+                    subject=f'Administrator account for {school_name} deleted',
+                    message=(
+                        f'Hello {admin.get_full_name()},\n\n'
+                        f'The school "{school_name}" and its dedicated database have been permanently deleted from Clasyo. '
+                        f'Your administrator account and all associated school records have been removed.\n\n'
+                        f'If you believe this was an error, please contact system support.\n\n'
+                        f'Best regards,\n'
+                        f'Clasyo Team'
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[admin.email],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                logger.warning(f"[Tenants] Failed notifying admin {admin.email}: {e}")
+
+    # 2. Delete physical backup files from disk and metadata records
+    try:
+        from superadmin.models import DatabaseBackup
+        backups = DatabaseBackup.objects.filter(school=school)
+        for b in backups:
+            if b.file_path and os.path.exists(b.file_path):
+                try:
+                    os.remove(b.file_path)
+                    summary['backups_deleted'] += 1
+                except Exception as err:
+                    logger.warning(f"[Tenants] Could not remove backup file {b.file_path}: {err}")
+        backups.delete()
+    except Exception as e:
+        logger.warning(f"[Tenants] Error purging backups for {school_slug}: {e}")
+
+    # 3. Close open connections and unregister dynamic DB alias
+    if db_alias in connections:
+        try:
+            connections[db_alias].close()
+        except Exception:
+            pass
+        try:
+            del connections[db_alias]
+        except Exception:
+            pass
+
+    if db_alias in settings.DATABASES:
+        try:
+            del settings.DATABASES[db_alias]
+        except Exception:
+            pass
+
+    conn_databases = getattr(connections, 'databases', None)
+    if isinstance(conn_databases, dict) and db_alias in conn_databases:
+        try:
+            del conn_databases[db_alias]
+        except Exception:
+            pass
+
+    # 4. Physically destroy the dedicated tenant database via driver
+    try:
+        driver = get_tenant_database_driver()
+        summary['db_deleted'] = driver.delete_database(db_alias)
+        logger.info(f"[Tenants] Physical database deletion for '{db_alias}': {summary['db_deleted']}")
+    except Exception as e:
+        logger.error(f"[Tenants] Error deleting physical database for '{db_alias}': {e}")
+
+    # 5. Delete uploaded media files (e.g. school logo)
+    try:
+        if school.logo and hasattr(school.logo, 'path') and os.path.exists(school.logo.path):
+            os.remove(school.logo.path)
+            summary['media_deleted'] = True
+    except Exception as err:
+        logger.warning(f"[Tenants] Error deleting school logo: {err}")
+
+    # 6. Delete all master database records referencing this school
+    # (Import models dynamically to avoid circular dependencies)
+    from django.db.models import Q
+    try:
+        from students.models import Student, StudentSubject
+        StudentSubject.objects.filter(student__school=school).delete()
+        Student.objects.filter(school=school).delete()
+        Student.objects.filter(current_class__school=school).delete()
+    except Exception as e:
+        logger.warning(f"[Tenants] Error deleting students for {school_slug}: {e}")
+
+    # Delete parents whose only children were in this school
+    try:
+        User.objects.filter(role='parent', children__current_class__school=school).distinct().delete()
+    except Exception as e:
+        logger.warning(f"[Tenants] Error deleting parents for {school_slug}: {e}")
+
+    # Delete all users linked to this school (admins, teachers, staff, etc.)
+    try:
+        user_qs = User.objects.filter(school=school)
+        summary['users_deleted'] = user_qs.count()
+        user_qs.delete()
+    except Exception as e:
+        logger.warning(f"[Tenants] Error deleting users for {school_slug}: {e}")
+
+    # Delete academic, finance, library, transport, attendance records
+    app_models_to_purge = [
+        ('academics', ['Class', 'Subject', 'Classroom', 'Timetable', 'Attendance']),
+        ('fees', ['FeeStructure', 'FeeCollection', 'FeeDiscount']),
+        ('examinations', ['Exam', 'Grade', 'ExamSchedule', 'Mark']),
+        ('library', ['Book', 'BookIssue', 'BookCategory', 'Author', 'Publisher']),
+        ('attendance', ['StudentAttendance', 'StaffAttendance']),
+        ('subscriptions', ['Subscription', 'Invoice', 'PaymentTransaction']),
+        ('transport', ['TransportRoute', 'Vehicle', 'Driver']),
+        ('inventory', ['Item', 'ItemCategory', 'Supplier', 'PurchaseOrder', 'Expense', 'ItemDistribution', 'StaffPayment', 'CanteenProduct', 'CanteenSale']),
+        ('dormitory', ['Dormitory', 'Room', 'BedAllocation']),
+        ('homework', ['HomeworkAssignment', 'HomeworkSubmission']),
+        ('lesson_plan', ['LessonPlan', 'LessonPlanTemplate']),
+        ('reports', ['ReportType', 'SavedReport']),
+        ('communication', ['Notice', 'Event']),
+        ('certificates', ['CertificateTemplate', 'GeneratedCertificate']),
+        ('finance', ['Account', 'FinanceTransaction', 'JournalEntry']),
+        ('clubs', ['Club', 'ClubMembership']),
+        ('core', ['AcademicYear', 'AuditLog']),
+        ('human_resource', ['Staff', 'Department', 'Designation']),
+        ('leave_management', ['LeaveApplication', 'LeaveType']),
+        ('online_exam', ['OnlineExam', 'Question', 'ExamSubmission']),
+    ]
+
+    for app_label, model_names in app_models_to_purge:
+        for model_name in model_names:
+            try:
+                model_cls = apps.get_model(app_label, model_name)
+                if hasattr(model_cls, 'school'):
+                    model_cls.objects.filter(school=school).delete()
+            except LookupError:
+                pass
+            except Exception as e:
+                logger.warning(f"[Tenants] Error purging {app_label}.{model_name}: {e}")
+
+    # 7. Delete domains and finally the School record itself
+    try:
+        school.domains.all().delete()
+        school.delete()
+        logger.info(f"[Tenants] School '{school_name}' record successfully deleted.")
+    except Exception as e:
+        logger.error(f"[Tenants] Error deleting School record: {e}")
+        raise e
+
+    return summary
+

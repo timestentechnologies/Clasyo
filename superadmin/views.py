@@ -399,68 +399,15 @@ class SchoolDeleteView(SuperAdminRequiredMixin, DeleteView):
     def delete(self, request, *args, **kwargs):
         school = self.get_object()
         school_name = school.name
-        
-        # Django will handle cascading deletes for ForeignKey with on_delete=CASCADE
-        # But we'll explicitly delete to ensure cleanup
-        from students.models import Student
-        from academics.models import Class, Subject
-        from library.models import Book, BookIssue
-        from fees.models import FeeStructure, FeeCollection
-        from examinations.models import Exam
-        from attendance.models import StudentAttendance, StaffAttendance
-        
-        
         try:
-            # Delete related data
-            Student.objects.filter(current_class__school=school).delete()
-            User.objects.filter(role='parent', children__current_class__school=school).distinct().delete()
-            Class.objects.filter(school=school).delete()
-            Subject.objects.filter(school=school).delete()
-            Book.objects.filter(school=school).delete()
-            BookIssue.objects.filter(book__school=school).delete()
-            FeeStructure.objects.filter(class_name__school=school).delete()
-            FeeCollection.objects.filter(fee_structure__class_name__school=school).delete()
-            Exam.objects.filter(Q(class_assigned__school=school) | Q(subject__school=school)).delete()
-            StudentAttendance.objects.filter(school=school).delete()
-            StaffAttendance.objects.filter(school=school).delete()
-            
-            # Delete school admins (users with admin role) and notify them by email
-            # Only admins linked to this school are affected
-            admin_users = list(User.objects.filter(role='admin', school=school))
-            for admin in admin_users:
-                try:
-                    subject = f'Your administrator account for {school_name} has been deleted'
-                    message = (
-                        f'Hello {admin.get_full_name()},\n\n'
-                        f'This is to inform you that the school "{school_name}" has been deleted from our system. '
-                        f'As a result, your administrator account associated with this school has been deleted.\n\n'
-                        f'If you believe this was a mistake or need assistance, please contact support.\n\n'
-                        f'Best regards,\n'
-                        f'Clasyo Team'
-                    )
-                    send_mail(
-                        subject,
-                        message,
-                        settings.DEFAULT_FROM_EMAIL,
-                        [admin.email],
-                        fail_silently=True,
-                    )
-                except Exception:
-                    # Continue even if email fails
-                    pass
-            if admin_users:
-                User.objects.filter(id__in=[u.id for u in admin_users]).delete()
-            
-            # Delete subscriptions related to the school
-            Subscription.objects.filter(school=school).delete()
-            
-            # Finally delete the school
-            response = super().delete(request, *args, **kwargs)
-            messages.success(request, f'School "{school_name}" and all related data deleted successfully!')
-            return response
+            from tenants.services import purge_school_and_tenant_data
+            purge_school_and_tenant_data(school, notify_admins=True)
+            messages.success(request, f'School "{school_name}", its dedicated database, and all associated data have been permanently deleted.')
+            return redirect(self.success_url)
         except Exception as e:
             messages.error(request, f'Error deleting school: {str(e)}')
             return redirect('superadmin:schools')
+
 
 
 class AdminUserListView(SuperAdminRequiredMixin, ListView):
@@ -617,70 +564,25 @@ class AdminUserDeleteView(SuperAdminRequiredMixin, DeleteView):
                 school = get_object_or_404(School, id=school_id)
         school_name = school.name if school else None
 
-        # If school exists, perform full school cleanup similar to SchoolDeleteView
+        from tenants.services import purge_school_and_tenant_data
+
         if school:
-            from students.models import Student
-            from academics.models import Class, Subject
-            from library.models import Book, BookIssue
-            from fees.models import FeeStructure, FeeCollection
-            from examinations.models import Exam
-            from attendance.models import StudentAttendance, StaffAttendance
-
             try:
-                # Delete related data
-                Student.objects.filter(current_class__school=school).delete()
-                User.objects.filter(role='parent', children__current_class__school=school).distinct().delete()
-                Class.objects.filter(school=school).delete()
-                Subject.objects.filter(school=school).delete()
-                Book.objects.filter(school=school).delete()
-                BookIssue.objects.filter(book__school=school).delete()
-                FeeStructure.objects.filter(class_name__school=school).delete()
-                FeeCollection.objects.filter(fee_structure__class_name__school=school).delete()
-                Exam.objects.filter(Q(class_assigned__school=school) | Q(subject__school=school)).delete()
-                StudentAttendance.objects.filter(school=school).delete()
-                StaffAttendance.objects.filter(school=school).delete()
-
-                # Notify and delete all admins for this school (including selected admin)
-                admins = list(User.objects.filter(role='admin', school=school))
-                for adm in admins:
-                    try:
-                        subject = f'Your administrator account for {school_name} has been deleted'
-                        message = (
-                            f'Hello {adm.get_full_name()},\n\n'
-                            f'The school "{school_name}" has been deleted from our system. '
-                            f'As a result, your administrator account associated with this school has been deleted.\n\n'
-                            f'If you need assistance, please contact support.\n\n'
-                            f'Best regards,\n'
-                            f'Clasyo Team'
-                        )
-                        send_mail(
-                            subject,
-                            message,
-                            settings.DEFAULT_FROM_EMAIL,
-                            [adm.email],
-                            fail_silently=True,
-                        )
-                    except Exception:
-                        pass
-
-                if admins:
-                    User.objects.filter(id__in=[u.id for u in admins]).delete()
-
-                # Delete school subscriptions
-                Subscription.objects.filter(school=school).delete()
-
-                # Finally delete the school itself
-                school.delete()
-
-                messages.success(request, f'School "{school_name}" and all related data deleted. Admin account removed.')
+                admin_id = admin_user.id
+                admin_email = admin_user.email
+                purge_school_and_tenant_data(school, notify_admins=True)
+                # In case admin_user was not linked via school ForeignKey but was selected via school_id:
+                User.objects.filter(id=admin_id).delete()
+                messages.success(request, f'Admin account "{admin_email}", school "{school_name}", and its dedicated database were permanently deleted with zero remnants.')
             except Exception as e:
                 messages.error(request, f'Error deleting admin and school: {str(e)}')
                 return redirect('superadmin:admins')
         else:
-            # No school linked or selected; just delete the admin
+            # No school linked or selected; delete standalone admin user
             try:
+                admin_name = admin_user.get_full_name() or admin_user.email
                 admin_user.delete()
-                messages.success(request, 'Admin account deleted successfully. No school was linked or selected to delete.')
+                messages.success(request, f'Admin account "{admin_name}" deleted successfully. No school was linked or selected.')
             except Exception as e:
                 messages.error(request, f'Error deleting admin: {str(e)}')
                 return redirect('superadmin:admins')

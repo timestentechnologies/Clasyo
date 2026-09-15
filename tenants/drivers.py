@@ -12,6 +12,9 @@ class BaseTenantDatabaseDriver:
     def database_exists(self, db_name: str) -> bool:
         raise NotImplementedError
         
+    def delete_database(self, db_name: str) -> bool:
+        raise NotImplementedError
+        
     def get_connection_config(self, db_name: str) -> dict:
         raise NotImplementedError
 
@@ -38,6 +41,30 @@ class SQLiteTenantDriver(BaseTenantDatabaseDriver):
     def database_exists(self, db_name: str) -> bool:
         return self._get_db_path(db_name).exists()
         
+    def delete_database(self, db_name: str) -> bool:
+        """
+        Closes active connections and physically deletes the .sqlite3 file and any journal/WAL files.
+        """
+        from django.db import connections
+        clean_name = db_name.replace('.sqlite3', '')
+        if clean_name in connections:
+            try:
+                connections[clean_name].close()
+            except Exception:
+                pass
+                
+        db_path = self._get_db_path(db_name)
+        deleted = False
+        for ext in ['', '-journal', '-wal', '-shm']:
+            target = Path(f"{db_path}{ext}")
+            if target.exists():
+                try:
+                    os.remove(target)
+                    deleted = True
+                except Exception as e:
+                    print(f"[SQLiteTenantDriver] Warning removing {target}: {e}")
+        return deleted
+
     def get_connection_config(self, db_name: str) -> dict:
         cfg = dict(settings.DATABASES.get('default', {}))
         cfg['ENGINE'] = 'django.db.backends.sqlite3'
@@ -128,6 +155,48 @@ class PostgresTenantDriver(BaseTenantDatabaseDriver):
         except Exception:
             return False
 
+    def delete_database(self, db_name: str) -> bool:
+        """
+        Terminates active connections and drops the PostgreSQL database or schema.
+        """
+        from django.db import connections
+        clean_name = "".join(c for c in db_name if c.isalnum() or c in ('_', '-'))
+        if clean_name in connections:
+            try:
+                connections[clean_name].close()
+            except Exception:
+                pass
+                
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        try:
+            conn = psycopg2.connect(
+                dbname=self.default_db.get('NAME', 'postgres'),
+                user=self.default_db.get('USER', 'postgres'),
+                password=self.default_db.get('PASSWORD', ''),
+                host=self.default_db.get('HOST', 'localhost'),
+                port=self.default_db.get('PORT', 5432)
+            )
+            conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+            cursor = conn.cursor()
+            
+            # Terminate active connections to this database if it exists
+            cursor.execute(
+                "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = %s AND pid <> pg_backend_pid();",
+                (clean_name,)
+            )
+            cursor.execute(f'DROP DATABASE IF EXISTS "{clean_name}"')
+            
+            # Also drop schema fallback in case schema isolation was used
+            cursor.execute(f'DROP SCHEMA IF EXISTS "{clean_name}" CASCADE')
+            
+            cursor.close()
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"[PostgresTenantDriver] Error dropping database/schema '{clean_name}': {e}")
+            return False
+
     def get_connection_config(self, db_name: str) -> dict:
         clean_name = "".join(c for c in db_name if c.isalnum() or c in ('_', '-'))
         cfg = dict(self.default_db)
@@ -192,6 +261,36 @@ class MySQLTenantDriver(BaseTenantDatabaseDriver):
             conn.close()
             return exists
         except Exception:
+            return False
+
+    def delete_database(self, db_name: str) -> bool:
+        """
+        Closes active connections and drops the MySQL database.
+        """
+        from django.db import connections
+        full_name = self._format_db_name(db_name)
+        clean_name = db_name.replace('.sqlite3', '')
+        if clean_name in connections:
+            try:
+                connections[clean_name].close()
+            except Exception:
+                pass
+                
+        import MySQLdb
+        try:
+            conn = MySQLdb.connect(
+                host=self.default_db.get('HOST', 'localhost'),
+                user=self.default_db.get('USER', 'root'),
+                passwd=self.default_db.get('PASSWORD', ''),
+                port=int(self.default_db.get('PORT', 3306))
+            )
+            cursor = conn.cursor()
+            cursor.execute(f"DROP DATABASE IF EXISTS `{full_name}`")
+            cursor.close()
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"[MySQLTenantDriver] Error dropping database `{full_name}`: {e}")
             return False
 
     def get_connection_config(self, db_name: str) -> dict:
