@@ -1966,6 +1966,185 @@ label {
     display: block;
 }
 
+/* ==========================================================================
+   Global Seamless Blended Input Icons (No Inner Dividers, Unified 44px Field)
+   ========================================================================== */
+.input-icon-group,
+.search-input-group,
+.field-icon-group {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
+.input-icon-group .input-icon,
+.input-icon-group > i,
+.input-icon-group > svg,
+.search-input-group .input-icon,
+.search-input-group > i,
+.field-icon-group .input-icon,
+.field-icon-group > i {
+    position: absolute !important;
+    left: 14px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    color: var(--text-muted, #94A3B8) !important;
+    font-size: 14px !important;
+    pointer-events: none !important;
+    z-index: 5 !important;
+    transition: color 0.2s ease !important;
+}
+
+.input-icon-group .form-control,
+.search-input-group .form-control,
+.field-icon-group .form-control {
+    width: 100% !important;
+    padding-left: 40px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--border-light, #CBD5E1) !important;
+    background: var(--input-bg, #FFFFFF) !important;
+    color: var(--input-text, #0F172A) !important;
+    transition: all 0.3s ease !important;
+}
+
+.input-icon-group:focus-within .input-icon,
+.input-icon-group:focus-within > i,
+.input-icon-group:focus-within > svg,
+.search-input-group:focus-within .input-icon,
+.search-input-group:focus-within > i,
+.field-icon-group:focus-within .input-icon,
+.field-icon-group:focus-within > i {
+    color: var(--accent-cyan, #4DD0E1) !important;
+}
+
+.input-icon-group .form-control:focus,
+.search-input-group .form-control:focus,
+.field-icon-group .form-control:focus {
+    outline: none !important;
+    border-color: var(--accent-cyan, #4DD0E1) !important;
+    box-shadow: none !important;
+}
+
+/* Also auto-blend any Bootstrap .input-group where the first child is an icon */
+.input-group:has(> .input-group-text:first-child:has(i, svg)),
+.input-group:has(> .input-group-text:first-child > i),
+.input-group:has(> i:first-child) {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+
+.input-group:has(> .input-group-text:first-child:has(i, svg)) > .input-group-text:first-child,
+.input-group:has(> .input-group-text:first-child > i) > .input-group-text:first-child,
+.input-group > i:first-child {
+    position: absolute !important;
+    left: 14px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    z-index: 5 !important;
+    pointer-events: none !important;
+    color: var(--text-muted, #94A3B8) !important;
+    font-size: 14px !important;
+    line-height: 1 !important;
+    transition: color 0.2s ease !important;
+}
+
+.input-group:has(> .input-group-text:first-child:has(i, svg)) > .form-control,
+.input-group:has(> .input-group-text:first-child > i) > .form-control {
+    width: 100% !important;
+    padding-left: 40px !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--border-light, #CBD5E1) !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    box-shadow: none !important;
+}
+
+.input-group:has(> .input-group-text:first-child:has(i, svg)):focus-within > .input-group-text:first-child,
+.input-group:has(> .input-group-text:first-child:has(i, svg)):focus-within > .input-group-text:first-child i,
+.input-group:has(> .input-group-text:first-child > i):focus-within > .input-group-text:first-child,
+.input-group:has(> .input-group-text:first-child > i):focus-within > .input-group-text:first-child i {
+    color: var(--accent-cyan, #4DD0E1) !important;
+}
+
+.input-group:has(> .input-group-text:first-child:has(i, svg)) > .form-control:focus,
+.input-group:has(> .input-group-text:first-child > i) > .form-control:focus {
+    border-color: var(--accent-cyan, #4DD0E1) !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Dynamic Filter Form Standard Across System */
+.dynamic-filter-form {
+    align-items: flex-end;
+}
+
+.dynamic-filter-form .form-label,
+.dynamic-filter-form label {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.6px !important;
+    text-transform: uppercase !important;
+    color: var(--text-muted, #64748B) !important;
+    margin-bottom: 6px !important;
+}
+
+/* ==========================================================================
+   Zero-Border & Infield Input Suppression for Dropdowns (TomSelect, Select2)
+   ========================================================================== */
+.ts-control input,
+.ts-wrapper .ts-control input,
+.ts-wrapper.single .ts-control input,
+.ts-wrapper .ts-control > input,
+.select2-container .select2-selection input,
+.form-select input {
+    border: none !important;
+    border-width: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+}
+
+.ts-control input:focus,
+.ts-wrapper .ts-control input:focus,
+.ts-wrapper.single .ts-control input:focus,
+.ts-wrapper .ts-control > input:focus,
+[data-theme="dark"] .ts-control input,
+[data-theme="dark"] .ts-control input:focus,
+[data-theme="dark"] .ts-wrapper .ts-control input,
+[data-theme="dark"] .ts-wrapper .ts-control input:focus,
+.theme-dark .ts-control input,
+.theme-dark .ts-control input:focus,
+body.dark-theme .ts-control input,
+body.dark-theme .ts-control input:focus {
+    border: none !important;
+    border-width: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
 /* Dark Mode Form Inputs Across System (Modals & All Pages) */
 [data-theme="dark"] .form-control,
 [data-theme="dark"] .form-select,

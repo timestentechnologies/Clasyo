@@ -16,64 +16,47 @@
 
             <!-- Modern Dynamic Filter Bar -->
             <div class="modern-card mb-4 p-3 p-md-4">
-                <form method="get" id="schoolsFilterForm" class="dynamic-filter-form">
-                    <input type="hidden" name="status" id="schoolStatusInput" value="{{ request.GET.status|default:'all' }}">
-                    
-                    <!-- Row 1: Status Pills & Total Count -->
-                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 pb-3 mb-3 border-bottom">
-                        <div class="d-flex flex-wrap align-items-center gap-2">
-                            <span class="text-muted small fw-semibold me-1 text-uppercase" style="letter-spacing: 0.5px;">Status:</span>
-                            <div class="btn-group filter-pills-group" role="group">
-                                <button type="button" class="btn btn-sm {% if not request.GET.status or request.GET.status == 'all' %}btn-primary text-white shadow-sm{% else %}btn-light text-secondary border{% endif %}" onclick="setSchoolStatus('all')">
-                                    All Schools
-                                </button>
-                                <button type="button" class="btn btn-sm {% if request.GET.status == 'active' %}btn-success text-white shadow-sm{% else %}btn-light text-secondary border{% endif %}" onclick="setSchoolStatus('active')">
-                                    <i class="fas fa-check-circle me-1"></i> Active
-                                </button>
-                                <button type="button" class="btn btn-sm {% if request.GET.status == 'inactive' %}btn-danger text-white shadow-sm{% else %}btn-light text-secondary border{% endif %}" onclick="setSchoolStatus('inactive')">
-                                    <i class="fas fa-ban me-1"></i> Inactive
-                                </button>
-                                <button type="button" class="btn btn-sm {% if request.GET.status == 'trial' %}btn-warning text-dark shadow-sm{% else %}btn-light text-secondary border{% endif %}" onclick="setSchoolStatus('trial')">
-                                    <i class="fas fa-clock me-1"></i> Trial
-                                </button>
-                            </div>
-                        </div>
-                        <div>
-                            <span class="badge bg-light text-dark border px-3 py-2 fs-6 fw-normal d-inline-flex align-items-center gap-2">
-                                <i class="fas fa-school text-primary"></i>
-                                <span>Total: <strong class="text-primary">{{ page_obj.paginator.count|default:schools.count }}</strong> schools</span>
-                            </span>
-                        </div>
+                <form method="get" id="schoolsFilterForm" class="row g-3 dynamic-filter-form">
+                    <div class="col-12 col-md-4">
+                        <label for="status" class="form-label fw-semibold text-muted small text-uppercase">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="" {% if not request.GET.status or request.GET.status == 'all' %}selected{% endif %}>All Statuses</option>
+                            <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+                            <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                            <option value="trial" {% if request.GET.status == 'trial' %}selected{% endif %}>Trial</option>
+                        </select>
                     </div>
-
-                    <!-- Row 2: Search & Type Dropdown (Fully Dynamic, No Apply button) -->
-                    <div class="row g-3 align-items-center">
-                        <div class="col-12 col-md-7 col-lg-8">
-                            <div class="input-group">
-                                <span class="input-group-text bg-transparent border-end-0 text-muted">
-                                    <i class="fas fa-search"></i>
-                                </span>
-                                <input type="text" name="search" class="form-control border-start-0 ps-0" 
-                                       placeholder="Type to search school name, slug, email..." 
-                                       value="{{ request.GET.search|default:'' }}" 
-                                       autocomplete="off">
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-5 col-lg-4">
-                            <div class="input-group">
-                                <span class="input-group-text bg-transparent border-end-0 text-muted" style="white-space: nowrap;">
-                                    <i class="fas fa-layer-group text-primary me-1"></i> Type
-                                </span>
-                                <select name="institution_type" class="form-select border-start-0 ps-2">
-                                    <option value="">All Types</option>
-                                    {% for value,label in institution_type_choices %}
-                                    <option value="{{ value }}" {% if selected_institution_type == value %}selected{% endif %}>{{ label }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
+                    <div class="col-12 col-md-4">
+                        <label for="institution_type" class="form-label fw-semibold text-muted small text-uppercase">Type</label>
+                        <select class="form-select" id="institution_type" name="institution_type">
+                            <option value="">All Types</option>
+                            {% for value,label in institution_type_choices %}
+                            <option value="{{ value }}" {% if selected_institution_type == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label for="search" class="form-label fw-semibold text-muted small text-uppercase">School</label>
+                        <div class="input-icon-group">
+                            <i class="fas fa-search input-icon"></i>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   placeholder="Type to search school..." 
+                                   value="{{ request.GET.search|default:'' }}" 
+                                   autocomplete="off">
                         </div>
                     </div>
                 </form>
+            </div>
+
+            <!-- Table Header Counter & Info -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0 text-muted fw-semibold">
+                    <i class="fas fa-school me-2 text-primary"></i>School Directory
+                </h6>
+                <span class="badge bg-light text-dark border px-3 py-2 fs-6 fw-normal d-inline-flex align-items-center gap-2">
+                    <i class="fas fa-school text-primary"></i>
+                    <span>Total: <strong class="text-primary">{{ page_obj.paginator.count|default:schools.count }}</strong> schools</span>
+                </span>
             </div>
 
             <div class="modern-card">
@@ -183,19 +166,4 @@
                 {% endif %}
             </div>
 
-{% endblock %}
-
-{% block extra_js %}
-<script>
-function setSchoolStatus(val) {
-    var input = document.getElementById('schoolStatusInput');
-    if (input) {
-        input.value = val;
-        var form = document.getElementById('schoolsFilterForm');
-        if (form) {
-            form.requestSubmit ? form.requestSubmit() : form.submit();
-        }
-    }
-}
-</script>
 {% endblock %}

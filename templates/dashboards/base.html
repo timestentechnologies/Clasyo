@@ -23,9 +23,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=7.7">
-    <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}?v=25.0">
-    <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=7.7">
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=8.1">
+    <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}?v=26.1">
+    <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=8.1">
     <style id="custom-theme-variables">
         :root {
             --brand-primary: {{ system_settings.primary_color|default:'#0284C7' }};
@@ -347,7 +347,7 @@
                     create: false,
                     placeholder: placeholderText,
                     allowEmptyOption: true,
-                    controlInput: el.options.length > 8 ? '<input>' : null,
+                    controlInput: (el.dataset.searchable === 'true' && !el.closest('.dynamic-filter-form')) ? '<input>' : null,
                     dropdownParent: 'body',
                     copyClassesToDropdown: false,
                     plugins: el.multiple ? ['remove_button'] : []
