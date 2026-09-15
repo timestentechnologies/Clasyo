@@ -18,13 +18,14 @@
 
 {% block content %}
 <div class="container-fluid">
+    <!-- Dynamic Filters (Auto-filters on selection or typing) -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
-                <div class="card-body">
-                    <form method="get" class="row g-3">
-                        <div class="col-md-3">
-                            <label for="status" class="form-label">Status</label>
+                <div class="card-body p-3 p-md-4">
+                    <form method="get" class="row g-3 dynamic-filter-form">
+                        <div class="col-md-4">
+                            <label for="status" class="form-label fw-semibold text-muted small text-uppercase">Status</label>
                             <select class="form-select" id="status" name="status">
                                 <option value="">All Statuses</option>
                                 {% for status_value, status_label in status_choices %}
@@ -34,8 +35,8 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-3">
-                            <label for="type" class="form-label">Invoice Type</label>
+                        <div class="col-md-4">
+                            <label for="type" class="form-label fw-semibold text-muted small text-uppercase">Invoice Type</label>
                             <select class="form-select" id="type" name="type">
                                 <option value="">All Types</option>
                                 {% for type_value, type_label in invoice_type_choices %}
@@ -45,17 +46,14 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-3">
-                            <label for="school" class="form-label">School</label>
-                            <input type="text" class="form-control" id="school" name="school" 
-                                   value="{{ request.GET.school }}" placeholder="Search school...">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">&nbsp;</label>
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-search me-2"></i>Filter
-                                </button>
+                        <div class="col-md-4">
+                            <label for="school" class="form-label fw-semibold text-muted small text-uppercase">School</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-end-0 text-muted">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control border-start-0 ps-0" id="school" name="school" 
+                                       value="{{ request.GET.school|default:'' }}" placeholder="Type to search school..." autocomplete="off">
                             </div>
                         </div>
                     </form>

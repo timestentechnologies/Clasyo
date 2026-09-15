@@ -14,50 +14,66 @@
 
 {% block content %}
 
-            <!-- Filter Bar -->
-            <div class="modern-card mb-4">
-                <div class="row align-items-center">
-                    <div class="col-md-8">
-                        <div class="btn-group" role="group">
-                            <a href="?status=all" class="btn btn-sm {% if not request.GET.status or request.GET.status == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                                All Schools
-                            </a>
-                            <a href="?status=active" class="btn btn-sm {% if request.GET.status == 'active' %}btn-success{% else %}btn-outline-success{% endif %}">
-                                Active
-                            </a>
-                            <a href="?status=inactive" class="btn btn-sm {% if request.GET.status == 'inactive' %}btn-danger{% else %}btn-outline-danger{% endif %}">
-                                Inactive
-                            </a>
-                            <a href="?status=trial" class="btn btn-sm {% if request.GET.status == 'trial' %}btn-warning{% else %}btn-outline-warning{% endif %}">
-                                Trial
-                            </a>
+            <!-- Modern Dynamic Filter Bar -->
+            <div class="modern-card mb-4 p-3 p-md-4">
+                <form method="get" id="schoolsFilterForm" class="dynamic-filter-form">
+                    <input type="hidden" name="status" id="schoolStatusInput" value="{{ request.GET.status|default:'all' }}">
+                    
+                    <!-- Row 1: Status Pills & Total Count -->
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 pb-3 mb-3 border-bottom">
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <span class="text-muted small fw-semibold me-1 text-uppercase" style="letter-spacing: 0.5px;">Status:</span>
+                            <div class="btn-group filter-pills-group" role="group">
+                                <button type="button" class="btn btn-sm {% if not request.GET.status or request.GET.status == 'all' %}btn-primary text-white shadow-sm{% else %}btn-light text-secondary border{% endif %}" onclick="setSchoolStatus('all')">
+                                    All Schools
+                                </button>
+                                <button type="button" class="btn btn-sm {% if request.GET.status == 'active' %}btn-success text-white shadow-sm{% else %}btn-light text-secondary border{% endif %}" onclick="setSchoolStatus('active')">
+                                    <i class="fas fa-check-circle me-1"></i> Active
+                                </button>
+                                <button type="button" class="btn btn-sm {% if request.GET.status == 'inactive' %}btn-danger text-white shadow-sm{% else %}btn-light text-secondary border{% endif %}" onclick="setSchoolStatus('inactive')">
+                                    <i class="fas fa-ban me-1"></i> Inactive
+                                </button>
+                                <button type="button" class="btn btn-sm {% if request.GET.status == 'trial' %}btn-warning text-dark shadow-sm{% else %}btn-light text-secondary border{% endif %}" onclick="setSchoolStatus('trial')">
+                                    <i class="fas fa-clock me-1"></i> Trial
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="badge bg-light text-dark border px-3 py-2 fs-6 fw-normal d-inline-flex align-items-center gap-2">
+                                <i class="fas fa-school text-primary"></i>
+                                <span>Total: <strong class="text-primary">{{ page_obj.paginator.count|default:schools.count }}</strong> schools</span>
+                            </span>
                         </div>
                     </div>
-                    <div class="col-md-4 text-end">
-                        <span class="text-muted">Total: <strong>{{ page_obj.paginator.count|default:schools.count }}</strong> schools</span>
-                    </div>
-                </div>
 
-                <div class="row mt-3">
-                    <div class="col-md-8">
-                        <form method="get" class="d-flex align-items-center gap-2">
-                            <input type="hidden" name="status" value="{{ request.GET.status|default:'all' }}">
-                            {% if request.GET.search %}
-                                <input type="hidden" name="search" value="{{ request.GET.search }}">
-                            {% endif %}
-                            <label class="form-label mb-0 me-2"><i class="fas fa-layer-group text-primary"></i> Type</label>
-                            <select name="institution_type" class="form-select">
-                                <option value="">All Types</option>
-                                {% for value,label in institution_type_choices %}
-                                <option value="{{ value }}" {% if selected_institution_type == value %}selected{% endif %}>{{ label }}</option>
-                                {% endfor %}
-                            </select>
-                            <button type="submit" class="btn btn-outline-secondary ms-2">
-                                <i class="fas fa-filter"></i> Apply
-                            </button>
-                        </form>
+                    <!-- Row 2: Search & Type Dropdown (Fully Dynamic, No Apply button) -->
+                    <div class="row g-3 align-items-center">
+                        <div class="col-12 col-md-7 col-lg-8">
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-end-0 text-muted">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" name="search" class="form-control border-start-0 ps-0" 
+                                       placeholder="Type to search school name, slug, email..." 
+                                       value="{{ request.GET.search|default:'' }}" 
+                                       autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-5 col-lg-4">
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-end-0 text-muted" style="white-space: nowrap;">
+                                    <i class="fas fa-layer-group text-primary me-1"></i> Type
+                                </span>
+                                <select name="institution_type" class="form-select border-start-0 ps-2">
+                                    <option value="">All Types</option>
+                                    {% for value,label in institution_type_choices %}
+                                    <option value="{{ value }}" {% if selected_institution_type == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </form>
             </div>
 
             <div class="modern-card">
@@ -151,15 +167,15 @@
                     <nav>
                         <ul class="pagination">
                             {% if page_obj.has_previous %}
-                                <li class="page-item"><a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">First</a></li>
-                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Previous</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.institution_type %}&institution_type={{ request.GET.institution_type }}{% endif %}">First</a></li>
+                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.institution_type %}&institution_type={{ request.GET.institution_type }}{% endif %}">Previous</a></li>
                             {% endif %}
 
                             <li class="page-item active"><span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
 
                             {% if page_obj.has_next %}
-                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Next</a></li>
-                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Last</a></li>
+                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.institution_type %}&institution_type={{ request.GET.institution_type }}{% endif %}">Next</a></li>
+                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.institution_type %}&institution_type={{ request.GET.institution_type }}{% endif %}">Last</a></li>
                             {% endif %}
                         </ul>
                     </nav>
@@ -169,4 +185,17 @@
 
 {% endblock %}
 
-{% block extra_css %}{% endblock %}
+{% block extra_js %}
+<script>
+function setSchoolStatus(val) {
+    var input = document.getElementById('schoolStatusInput');
+    if (input) {
+        input.value = val;
+        var form = document.getElementById('schoolsFilterForm');
+        if (form) {
+            form.requestSubmit ? form.requestSubmit() : form.submit();
+        }
+    }
+}
+</script>
+{% endblock %}

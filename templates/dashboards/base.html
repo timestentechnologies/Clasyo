@@ -367,6 +367,125 @@
     });
     </script>
 
+    <!-- =========================================================================
+         Global Dynamic Auto-Filter Engine (System-Wide)
+         Automatically filters upon dropdown selection or typing without manual filter/reset buttons
+         ========================================================================= -->
+    <script>
+    (function() {
+        function initSystemWideDynamicFilters(root) {
+            const container = root || document;
+            // Target GET forms used for filtering records (exclude modals, auth, or forms with data-no-dynamic-filter)
+            const filterForms = container.querySelectorAll('form[method="get"]:not([data-no-dynamic-filter]), form.dynamic-filter-form');
+
+            filterForms.forEach(function(form) {
+                // If form is explicitly marked not to auto-filter, skip
+                if (form.dataset.dynamicFilter === 'false') return;
+
+                // 1. Hide/remove manual Filter, Apply, and Search buttons inside filter forms
+                const submitElements = form.querySelectorAll('button[type="submit"]:not(.keep-btn), input[type="submit"]:not(.keep-btn), .btn-filter');
+                submitElements.forEach(function(btn) {
+                    const txt = (btn.textContent || btn.value || '').trim().toLowerCase();
+                    if (txt.includes('filter') || txt.includes('apply') || txt.includes('search') || btn.querySelector('.fa-filter, .fa-search')) {
+                        const parentCol = btn.closest('.col-md-3, .col-md-2, .col-md-4, .col-12, .col-auto');
+                        // If the column contains only this button (and no input/select), hide the whole column
+                        if (parentCol && parentCol.querySelectorAll('input:not([type="hidden"]), select, textarea').length === 0) {
+                            parentCol.style.display = 'none';
+                        } else {
+                            btn.style.display = 'none';
+                        }
+                    }
+                });
+
+                // Also hide standalone Reset/Clear buttons in filter forms (user can simply clear the input/select)
+                const resetElements = form.querySelectorAll('a.btn-reset, button.btn-reset, a[href*="clear"], button[type="reset"]');
+                resetElements.forEach(function(btn) {
+                    const txt = (btn.textContent || '').trim().toLowerCase();
+                    if (txt.includes('clear') || txt.includes('reset') || btn.querySelector('.fa-times, .fa-undo')) {
+                        const parentCol = btn.closest('.col-md-3, .col-md-2, .col-md-4, .col-12, .col-auto');
+                        if (parentCol && parentCol.querySelectorAll('input:not([type="hidden"]), select, textarea').length === 0) {
+                            parentCol.style.display = 'none';
+                        } else {
+                            btn.style.display = 'none';
+                        }
+                    }
+                });
+
+                let debounceTimeout = null;
+
+                function triggerFilterSubmit(activeInputName) {
+                    if (activeInputName) {
+                        try {
+                            sessionStorage.setItem('last_active_filter_input', activeInputName);
+                        } catch(e) {}
+                    }
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit();
+                    } else {
+                        form.submit();
+                    }
+                }
+
+                // 2. Dropdown / Select / Date change -> Instant submit
+                form.addEventListener('change', function(e) {
+                    const target = e.target;
+                    if (!target) return;
+                    if (target.matches('select, input[type="radio"], input[type="checkbox"], input[type="date"], input[type="month"]')) {
+                        triggerFilterSubmit(target.name);
+                    }
+                });
+
+                // 3. Typing in text/search/number inputs -> Debounced (450ms) submit
+                form.addEventListener('input', function(e) {
+                    const target = e.target;
+                    if (!target) return;
+                    if (target.matches('input[type="text"], input[type="search"], input[type="number"], input:not([type])')) {
+                        clearTimeout(debounceTimeout);
+                        debounceTimeout = setTimeout(function() {
+                            triggerFilterSubmit(target.name);
+                        }, 450);
+                    }
+                });
+
+                // 4. Enter key in text input -> Submit immediately without waiting for debounce
+                form.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && e.target.matches('input[type="text"], input[type="search"], input[type="number"], input:not([type])')) {
+                        e.preventDefault();
+                        clearTimeout(debounceTimeout);
+                        triggerFilterSubmit(e.target.name);
+                    }
+                });
+            });
+
+            // 5. Restore cursor focus to last typed input after page reload
+            try {
+                const lastActiveName = sessionStorage.getItem('last_active_filter_input');
+                if (lastActiveName) {
+                    sessionStorage.removeItem('last_active_filter_input');
+                    const activeInput = container.querySelector(`form[method="get"] input[name="${lastActiveName}"]`);
+                    if (activeInput && typeof activeInput.focus === 'function') {
+                        activeInput.focus();
+                        if (activeInput.type === 'text' || activeInput.type === 'search' || !activeInput.type) {
+                            const valLen = activeInput.value.length;
+                            activeInput.setSelectionRange(valLen, valLen);
+                        }
+                    }
+                }
+            } catch(e) {}
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initSystemWideDynamicFilters();
+        });
+
+        document.addEventListener('shown.bs.modal', function(e) {
+            initSystemWideDynamicFilters(e.target);
+        });
+
+        window.initSystemWideDynamicFilters = initSystemWideDynamicFilters;
+    })();
+    </script>
+
     {% block extra_js %}{% endblock %}
     {% block custom_js %}{% endblock %}
 </body>
