@@ -1,117 +1,212 @@
 {% extends 'core/admin_dashboard.html' %}
 {% load static %}
 
-{% block page_title %}Search{% endblock %}
+{% block page_title %}Search Results{% endblock %}
+{% block page_subtitle %}Search students, staff, classes, and school modules{% endblock %}
+
+{% block extra_css %}
+<style>
+.search-result-card {
+    background: var(--bg-card, #FFFFFF);
+    border: 1px solid var(--border-color, #E2E8F0);
+    border-radius: 12px;
+    padding: 1rem;
+    transition: all 0.2s ease;
+    height: 100%;
+}
+.search-result-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    border-color: var(--brand-accent, #38BDF8);
+}
+[data-theme="dark"] .search-result-card,
+body.dark-theme .search-result-card {
+    background: var(--dark-unified-bg, #0F172A) !important;
+    border-color: #1E293B !important;
+}
+.search-badge-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="mb-4">
-    <h2><i class="fas fa-search"></i> Search</h2>
-    <div class="modern-card mb-4">
-        <div class="search-box">
-            <input type="text" 
-                   class="form-control form-control-lg" 
-                   id="liveSearch" 
-                   placeholder="Search for students, teachers, staff..." 
-                   value="{{ query }}"
-                   autofocus>
+    <div class="card border-0 shadow-sm rounded-4 mb-4 p-4" style="background: var(--bg-card, #FFFFFF);">
+        <form method="GET" action="/school/{{ school_slug }}/search/" class="d-flex gap-2">
+            <div class="input-group input-group-lg flex-grow-1">
+                <span class="input-group-text bg-transparent border-end-0 text-muted">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" name="q" class="form-control border-start-0" 
+                       id="liveSearch"
+                       placeholder="Search for students, teachers, classes, or school modules..." 
+                       value="{{ query }}" autofocus>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg px-4">
+                <i class="fas fa-search me-1"></i> Search
+            </button>
+        </form>
+
+        {% if query %}
+        <div class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
+            <p class="text-muted mb-0">
+                Found <strong>{{ total_results }}</strong> result{{ total_results|pluralize }} for "<strong>{{ query }}</strong>"
+            </p>
+            {% if total_results > 0 %}
+            <div class="d-flex gap-2 flex-wrap">
+                {% if matched_pages %}<span class="badge bg-primary-subtle text-primary">{{ matched_pages|length }} Module{{ matched_pages|length|pluralize }}</span>{% endif %}
+                {% if students %}<span class="badge bg-info-subtle text-info">{{ students|length }} Student{{ students|length|pluralize }}</span>{% endif %}
+                {% if staff %}<span class="badge bg-success-subtle text-success">{{ staff|length }} Staff</span>{% endif %}
+                {% if classes %}<span class="badge bg-warning-subtle text-warning">{{ classes|length }} Class{{ classes|length|pluralize }}</span>{% endif %}
+            </div>
+            {% endif %}
         </div>
+        {% endif %}
     </div>
-    {% if query %}
-    <p class="text-muted">Showing results for "<strong>{{ query }}</strong>"</p>
-    {% endif %}
 </div>
 
 {% if query %}
-<div class="row" id="searchResults">
-    <div class="col-md-6">
-        <div class="modern-card">
-            <h4 class="mb-3"><i class="fas fa-user-graduate"></i> Students</h4>
-            {% if students %}
-            <div class="list-group">
-                {% for student in students %}
-                <a href="/school/{{ school_slug }}/students/{{ student.pk }}/" class="list-group-item list-group-item-action">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>{{ student.first_name }} {{ student.last_name }}</strong><br>
-                            <small class="text-muted">{{ student.admission_number }} - Roll: {{ student.roll_number|default:"N/A" }}</small>
-                        </div>
-                        <i class="fas fa-chevron-right"></i>
-                    </div>
-                </a>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="text-muted">No students found.</p>
-            {% endif %}
+    {% if total_results == 0 %}
+    <div class="card border-0 shadow-sm rounded-4 text-center py-5 px-3 mb-4" style="background: var(--bg-card, #FFFFFF);">
+        <div class="avatar-lg rounded-circle bg-secondary-subtle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 72px; height: 72px;">
+            <i class="fas fa-search-minus fa-2x text-muted"></i>
+        </div>
+        <h4 class="fw-bold">No results found for "{{ query }}"</h4>
+        <p class="text-muted max-w-md mx-auto">Try searching for a student's name, admission number, teacher name, or a school module like "Attendance", "Fees", or "Timetable".</p>
+        <div class="d-flex justify-content-center gap-2 mt-2">
+            <a href="/school/{{ school_slug }}/students/" class="btn btn-outline-primary btn-sm"><i class="fas fa-user-graduate me-1"></i> Students</a>
+            <a href="/school/{{ school_slug }}/hr/staff/" class="btn btn-outline-info btn-sm"><i class="fas fa-chalkboard-teacher me-1"></i> Teachers</a>
+            <a href="/school/{{ school_slug }}/fees/" class="btn btn-outline-success btn-sm"><i class="fas fa-money-bill-wave me-1"></i> Fees</a>
         </div>
     </div>
-    
-    <div class="col-md-6">
-        <div class="modern-card">
-            <h4 class="mb-3"><i class="fas fa-users"></i> Staff</h4>
-            {% if staff %}
-            <div class="list-group">
-                {% for member in staff %}
-                <a href="#" class="list-group-item list-group-item-action">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>{{ member.get_full_name }}</strong><br>
-                            <small class="text-muted">{{ member.role|title }}</small>
+    {% endif %}
+
+    <!-- Modules / Apps Match -->
+    {% if matched_pages %}
+    <div class="mb-4">
+        <h5 class="fw-bold mb-3"><i class="fas fa-compass text-primary me-2"></i>School Modules & Apps</h5>
+        <div class="row g-3">
+            {% for page in matched_pages %}
+            <div class="col-md-6 col-lg-4">
+                <a href="{{ page.url }}" class="text-decoration-none text-reset">
+                    <div class="search-result-card d-flex align-items-center gap-3">
+                        <div class="search-badge-icon bg-primary-subtle text-primary">
+                            <i class="{{ page.icon }}"></i>
                         </div>
-                        <i class="fas fa-chevron-right"></i>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <span class="fw-bold text-truncate">{{ page.title }}</span>
+                                <span class="badge bg-secondary-subtle text-secondary" style="font-size: 10px;">{{ page.category }}</span>
+                            </div>
+                            <small class="text-muted d-block text-truncate">{{ page.desc }}</small>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted opacity-50"></i>
                     </div>
                 </a>
-                {% endfor %}
             </div>
-            {% else %}
-            <p class="text-muted">No staff found.</p>
-            {% endif %}
+            {% endfor %}
         </div>
     </div>
-</div>
+    {% endif %}
+
+    <!-- Students & Staff Row -->
+    <div class="row g-4 mb-4">
+        {% if students %}
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3" style="background: var(--bg-card, #FFFFFF);">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-user-graduate text-info me-2"></i>Students ({{ students|length }})</h5>
+                    <a href="/school/{{ school_slug }}/students/" class="btn btn-sm btn-link text-decoration-none">View All</a>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for student in students %}
+                    <a href="/school/{{ school_slug }}/students/{{ student.pk }}/" class="list-group-item list-group-item-action border-0 rounded-3 mb-2 p-3" style="background: var(--bg-light, #F8FAFC);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="avatar-sm rounded-circle bg-info-subtle text-info d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                                    <i class="fas fa-user-graduate"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold">{{ student.first_name }} {{ student.last_name }}</div>
+                                    <small class="text-muted">Adm: {{ student.admission_number }} {% if student.roll_number %}&bull; Roll: {{ student.roll_number }}{% endif %}</small>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right text-muted opacity-50"></i>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if staff %}
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3" style="background: var(--bg-card, #FFFFFF);">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-chalkboard-teacher text-success me-2"></i>Teachers & Staff ({{ staff|length }})</h5>
+                    <a href="/school/{{ school_slug }}/hr/staff/" class="btn btn-sm btn-link text-decoration-none">View All</a>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for member in staff %}
+                    <a href="/school/{{ school_slug }}/hr/staff/" class="list-group-item list-group-item-action border-0 rounded-3 mb-2 p-3" style="background: var(--bg-light, #F8FAFC);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="avatar-sm rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                                    <i class="fas fa-user-tie"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold">{{ member.get_full_name|default:member.email }}</div>
+                                    <small class="text-muted">{{ member.email }} &bull; {{ member.role|title }}</small>
+                                </div>
+                            </div>
+                            <span class="badge bg-success-subtle text-success">{{ member.role|title }}</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Classes Match -->
+    {% if classes %}
+    <div class="mb-4">
+        <h5 class="fw-bold mb-3"><i class="fas fa-chalkboard text-warning me-2"></i>Classes & Sections</h5>
+        <div class="row g-3">
+            {% for class_obj in classes %}
+            <div class="col-md-4">
+                <a href="/school/{{ school_slug }}/academics/classes/" class="text-decoration-none text-reset">
+                    <div class="search-result-card d-flex align-items-center gap-3">
+                        <div class="search-badge-icon bg-warning-subtle text-warning">
+                            <i class="fas fa-chalkboard"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold">{{ class_obj }}</div>
+                            <small class="text-muted">Academic Class</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
 {% else %}
-<div class="modern-card text-center py-5">
+<div class="card border-0 shadow-sm rounded-4 text-center py-5 px-3" style="background: var(--bg-card, #FFFFFF);">
     <i class="fas fa-search fa-3x text-muted mb-3"></i>
-    <p class="text-muted">Enter a search term to find students, teachers, or staff.</p>
+    <h5 class="fw-bold">Global School Search</h5>
+    <p class="text-muted">Enter a search keyword to instantly find students, teachers, staff, or modules.</p>
 </div>
 {% endif %}
-
-
-
-<script>
-// Real-time search functionality
-let searchTimeout;
-const searchInput = document.getElementById('liveSearch');
-const searchResults = document.getElementById('searchResults');
-
-if (searchInput) {
-    searchInput.addEventListener('input', function(e) {
-        clearTimeout(searchTimeout);
-        const query = e.target.value.trim();
-        
-        if (query.length < 2) {
-            if (query.length === 0) {
-                window.location.href = '/school/{{ school_slug }}/search/';
-            }
-            return;
-        }
-        
-        // Debounce search
-        searchTimeout = setTimeout(() => {
-            window.location.href = `/school/{{ school_slug }}/search/?q=${encodeURIComponent(query)}`;
-        }, 500); // Wait 500ms after user stops typing
-    });
-    
-    // Handle Enter key
-    searchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            clearTimeout(searchTimeout);
-            const query = e.target.value.trim();
-            if (query) {
-                window.location.href = `/school/{{ school_slug }}/search/?q=${encodeURIComponent(query)}`;
-            }
-        }
-    });
-}
-</script>
 {% endblock %}

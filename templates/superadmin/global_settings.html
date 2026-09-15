@@ -35,32 +35,41 @@
                         </h6>
                         <div class="row g-3 mb-4">
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-circle me-1" id="dot_primary" style="color: {{ system_settings.primary_color|default:'#0284C7' }};"></i> Primary Color
+                                <label class="form-label fw-bold color-label-clickable" onclick="openColorPicker('primary_color_picker')" title="Click to pick color">
+                                    <i class="fas fa-circle me-1 color-label-dot" id="dot_primary" style="color: {{ system_settings.primary_color|default:'#0284C7' }};"></i> Primary Color
                                 </label>
-                                <div class="color-picker-group">
-                                    <input type="color" class="form-control form-control-color" id="primary_color_picker" value="{{ system_settings.primary_color|default:'#0284C7' }}" onchange="document.getElementById('primary_color_text').value = this.value; document.getElementById('dot_primary').style.color = this.value;">
-                                    <input type="text" name="primary_color" id="primary_color_text" class="form-control" value="{{ system_settings.primary_color|default:'#0284C7' }}" onchange="document.getElementById('primary_color_picker').value = this.value; document.getElementById('dot_primary').style.color = this.value;">
+                                <div class="color-field-container">
+                                    <input type="text" name="primary_color" id="primary_color_text" class="form-control color-code-input" value="{{ system_settings.primary_color|default:'#0284C7' }}" oninput="syncColorFromText(this, 'primary_color_picker', 'dot_primary')" spellcheck="false" maxlength="7">
+                                    <button type="button" class="color-picker-trigger" onclick="openColorPicker('primary_color_picker')" title="Pick color">
+                                        <i class="fas fa-eye-dropper"></i>
+                                    </button>
+                                    <input type="color" id="primary_color_picker" class="color-picker-native-hidden" value="{{ system_settings.primary_color|default:'#0284C7' }}" oninput="syncColorFromPicker(this, 'primary_color_text', 'dot_primary')">
                                 </div>
                                 <small class="text-muted">Main brand color for navbar, headers, and primary buttons in light mode.</small>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-circle me-1" id="dot_secondary" style="color: {{ system_settings.secondary_color|default:'#475569' }};"></i> Secondary Color
+                                <label class="form-label fw-bold color-label-clickable" onclick="openColorPicker('secondary_color_picker')" title="Click to pick color">
+                                    <i class="fas fa-circle me-1 color-label-dot" id="dot_secondary" style="color: {{ system_settings.secondary_color|default:'#475569' }};"></i> Secondary Color
                                 </label>
-                                <div class="color-picker-group">
-                                    <input type="color" class="form-control form-control-color" id="secondary_color_picker" value="{{ system_settings.secondary_color|default:'#475569' }}" onchange="document.getElementById('secondary_color_text').value = this.value; document.getElementById('dot_secondary').style.color = this.value;">
-                                    <input type="text" name="secondary_color" id="secondary_color_text" class="form-control" value="{{ system_settings.secondary_color|default:'#475569' }}" onchange="document.getElementById('secondary_color_picker').value = this.value; document.getElementById('dot_secondary').style.color = this.value;">
+                                <div class="color-field-container">
+                                    <input type="text" name="secondary_color" id="secondary_color_text" class="form-control color-code-input" value="{{ system_settings.secondary_color|default:'#475569' }}" oninput="syncColorFromText(this, 'secondary_color_picker', 'dot_secondary')" spellcheck="false" maxlength="7">
+                                    <button type="button" class="color-picker-trigger" onclick="openColorPicker('secondary_color_picker')" title="Pick color">
+                                        <i class="fas fa-eye-dropper"></i>
+                                    </button>
+                                    <input type="color" id="secondary_color_picker" class="color-picker-native-hidden" value="{{ system_settings.secondary_color|default:'#475569' }}" oninput="syncColorFromPicker(this, 'secondary_color_text', 'dot_secondary')">
                                 </div>
                                 <small class="text-muted">Secondary color for supporting buttons & elements.</small>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-circle me-1" id="dot_accent" style="color: {{ system_settings.accent_color|default:'#38BDF8' }};"></i> Accent Color
+                                <label class="form-label fw-bold color-label-clickable" onclick="openColorPicker('accent_color_picker')" title="Click to pick color">
+                                    <i class="fas fa-circle me-1 color-label-dot" id="dot_accent" style="color: {{ system_settings.accent_color|default:'#38BDF8' }};"></i> Accent Color
                                 </label>
-                                <div class="color-picker-group">
-                                    <input type="color" class="form-control form-control-color" id="accent_color_picker" value="{{ system_settings.accent_color|default:'#38BDF8' }}" onchange="document.getElementById('accent_color_text').value = this.value; document.getElementById('dot_accent').style.color = this.value;">
-                                    <input type="text" name="accent_color" id="accent_color_text" class="form-control" value="{{ system_settings.accent_color|default:'#38BDF8' }}" onchange="document.getElementById('accent_color_picker').value = this.value; document.getElementById('dot_accent').style.color = this.value;">
+                                <div class="color-field-container">
+                                    <input type="text" name="accent_color" id="accent_color_text" class="form-control color-code-input" value="{{ system_settings.accent_color|default:'#38BDF8' }}" oninput="syncColorFromText(this, 'accent_color_picker', 'dot_accent')" spellcheck="false" maxlength="7">
+                                    <button type="button" class="color-picker-trigger" onclick="openColorPicker('accent_color_picker')" title="Pick color">
+                                        <i class="fas fa-eye-dropper"></i>
+                                    </button>
+                                    <input type="color" id="accent_color_picker" class="color-picker-native-hidden" value="{{ system_settings.accent_color|default:'#38BDF8' }}" oninput="syncColorFromPicker(this, 'accent_color_text', 'dot_accent')">
                                 </div>
                                 <small class="text-muted">Highlight color for icons, links, and active badges.</small>
                             </div>
@@ -71,42 +80,54 @@
                         </h6>
                         <div class="row g-3 mb-3">
                             <div class="col-md-3">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-circle me-1" id="dot_dark_primary" style="color: {{ system_settings.dark_primary_color|default:'#38BDF8' }};"></i> Dark Primary Color
+                                <label class="form-label fw-bold color-label-clickable" onclick="openColorPicker('dark_primary_picker')" title="Click to pick color">
+                                    <i class="fas fa-circle me-1 color-label-dot" id="dot_dark_primary" style="color: {{ system_settings.dark_primary_color|default:'#38BDF8' }};"></i> Dark Primary Color
                                 </label>
-                                <div class="color-picker-group">
-                                    <input type="color" class="form-control form-control-color" id="dark_primary_picker" value="{{ system_settings.dark_primary_color|default:'#38BDF8' }}" onchange="document.getElementById('dark_primary_text').value = this.value; document.getElementById('dot_dark_primary').style.color = this.value;">
-                                    <input type="text" name="dark_primary_color" id="dark_primary_text" class="form-control" value="{{ system_settings.dark_primary_color|default:'#38BDF8' }}" onchange="document.getElementById('dark_primary_picker').value = this.value; document.getElementById('dot_dark_primary').style.color = this.value;">
+                                <div class="color-field-container">
+                                    <input type="text" name="dark_primary_color" id="dark_primary_text" class="form-control color-code-input" value="{{ system_settings.dark_primary_color|default:'#38BDF8' }}" oninput="syncColorFromText(this, 'dark_primary_picker', 'dot_dark_primary')" spellcheck="false" maxlength="7">
+                                    <button type="button" class="color-picker-trigger" onclick="openColorPicker('dark_primary_picker')" title="Pick color">
+                                        <i class="fas fa-eye-dropper"></i>
+                                    </button>
+                                    <input type="color" id="dark_primary_picker" class="color-picker-native-hidden" value="{{ system_settings.dark_primary_color|default:'#38BDF8' }}" oninput="syncColorFromPicker(this, 'dark_primary_text', 'dot_dark_primary')">
                                 </div>
                                 <small class="text-muted">Primary button & highlight color in dark sections.</small>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-circle me-1" id="dot_dark_secondary" style="color: {{ system_settings.dark_secondary_color|default:'#818CF8' }};"></i> Dark Secondary Color
+                                <label class="form-label fw-bold color-label-clickable" onclick="openColorPicker('dark_secondary_picker')" title="Click to pick color">
+                                    <i class="fas fa-circle me-1 color-label-dot" id="dot_dark_secondary" style="color: {{ system_settings.dark_secondary_color|default:'#818CF8' }};"></i> Dark Secondary Color
                                 </label>
-                                <div class="color-picker-group">
-                                    <input type="color" class="form-control form-control-color" id="dark_secondary_picker" value="{{ system_settings.dark_secondary_color|default:'#818CF8' }}" onchange="document.getElementById('dark_secondary_text').value = this.value; document.getElementById('dot_dark_secondary').style.color = this.value;">
-                                    <input type="text" name="dark_secondary_color" id="dark_secondary_text" class="form-control" value="{{ system_settings.dark_secondary_color|default:'#818CF8' }}" onchange="document.getElementById('dark_secondary_picker').value = this.value; document.getElementById('dot_dark_secondary').style.color = this.value;">
+                                <div class="color-field-container">
+                                    <input type="text" name="dark_secondary_color" id="dark_secondary_text" class="form-control color-code-input" value="{{ system_settings.dark_secondary_color|default:'#818CF8' }}" oninput="syncColorFromText(this, 'dark_secondary_picker', 'dot_dark_secondary')" spellcheck="false" maxlength="7">
+                                    <button type="button" class="color-picker-trigger" onclick="openColorPicker('dark_secondary_picker')" title="Pick color">
+                                        <i class="fas fa-eye-dropper"></i>
+                                    </button>
+                                    <input type="color" id="dark_secondary_picker" class="color-picker-native-hidden" value="{{ system_settings.dark_secondary_color|default:'#818CF8' }}" oninput="syncColorFromPicker(this, 'dark_secondary_text', 'dot_dark_secondary')">
                                 </div>
                                 <small class="text-muted">Secondary element color in dark mode.</small>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-circle me-1" id="dot_dark_accent" style="color: {{ system_settings.dark_accent_color|default:'#4DD0E1' }};"></i> Dark Accent Color
+                                <label class="form-label fw-bold color-label-clickable" onclick="openColorPicker('dark_accent_picker')" title="Click to pick color">
+                                    <i class="fas fa-circle me-1 color-label-dot" id="dot_dark_accent" style="color: {{ system_settings.dark_accent_color|default:'#4DD0E1' }};"></i> Dark Accent Color
                                 </label>
-                                <div class="color-picker-group">
-                                    <input type="color" class="form-control form-control-color" id="dark_accent_picker" value="{{ system_settings.dark_accent_color|default:'#4DD0E1' }}" onchange="document.getElementById('dark_accent_text').value = this.value; document.getElementById('dot_dark_accent').style.color = this.value;">
-                                    <input type="text" name="dark_accent_color" id="dark_accent_text" class="form-control" value="{{ system_settings.dark_accent_color|default:'#4DD0E1' }}" onchange="document.getElementById('dark_accent_picker').value = this.value; document.getElementById('dot_dark_accent').style.color = this.value;">
+                                <div class="color-field-container">
+                                    <input type="text" name="dark_accent_color" id="dark_accent_text" class="form-control color-code-input" value="{{ system_settings.dark_accent_color|default:'#4DD0E1' }}" oninput="syncColorFromText(this, 'dark_accent_picker', 'dot_dark_accent')" spellcheck="false" maxlength="7">
+                                    <button type="button" class="color-picker-trigger" onclick="openColorPicker('dark_accent_picker')" title="Pick color">
+                                        <i class="fas fa-eye-dropper"></i>
+                                    </button>
+                                    <input type="color" id="dark_accent_picker" class="color-picker-native-hidden" value="{{ system_settings.dark_accent_color|default:'#4DD0E1' }}" oninput="syncColorFromPicker(this, 'dark_accent_text', 'dot_dark_accent')">
                                 </div>
                                 <small class="text-muted">Outline button & subtle icon highlight color.</small>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-circle me-1" id="dot_dark_bg" style="color: {{ system_settings.dark_bg_color|default:'#0F172A' }};"></i> Dark Section BG
+                                <label class="form-label fw-bold color-label-clickable" onclick="openColorPicker('dark_bg_picker')" title="Click to pick color">
+                                    <i class="fas fa-circle me-1 color-label-dot" id="dot_dark_bg" style="color: {{ system_settings.dark_bg_color|default:'#0F172A' }};"></i> Dark Section BG
                                 </label>
-                                <div class="color-picker-group">
-                                    <input type="color" class="form-control form-control-color" id="dark_bg_picker" value="{{ system_settings.dark_bg_color|default:'#0F172A' }}" onchange="document.getElementById('dark_bg_text').value = this.value; document.getElementById('dot_dark_bg').style.color = this.value;">
-                                    <input type="text" name="dark_bg_color" id="dark_bg_text" class="form-control" value="{{ system_settings.dark_bg_color|default:'#0F172A' }}" onchange="document.getElementById('dark_bg_picker').value = this.value; document.getElementById('dot_dark_bg').style.color = this.value;">
+                                <div class="color-field-container">
+                                    <input type="text" name="dark_bg_color" id="dark_bg_text" class="form-control color-code-input" value="{{ system_settings.dark_bg_color|default:'#0F172A' }}" oninput="syncColorFromText(this, 'dark_bg_picker', 'dot_dark_bg')" spellcheck="false" maxlength="7">
+                                    <button type="button" class="color-picker-trigger" onclick="openColorPicker('dark_bg_picker')" title="Pick color">
+                                        <i class="fas fa-eye-dropper"></i>
+                                    </button>
+                                    <input type="color" id="dark_bg_picker" class="color-picker-native-hidden" value="{{ system_settings.dark_bg_color|default:'#0F172A' }}" oninput="syncColorFromPicker(this, 'dark_bg_text', 'dot_dark_bg')">
                                 </div>
                                 <small class="text-muted">Background color for dark sections & footer.</small>
                             </div>
@@ -123,4 +144,40 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openColorPicker(pickerId) {
+    const picker = document.getElementById(pickerId);
+    if (!picker) return;
+    if (typeof picker.showPicker === 'function') {
+        try {
+            picker.showPicker();
+            return;
+        } catch (e) {}
+    }
+    picker.click();
+}
+
+function syncColorFromPicker(pickerInput, textId, dotId) {
+    const textInput = document.getElementById(textId);
+    const dot = document.getElementById(dotId);
+    if (textInput) textInput.value = pickerInput.value.toUpperCase();
+    if (dot) dot.style.color = pickerInput.value;
+}
+
+function syncColorFromText(textInput, pickerId, dotId) {
+    let val = textInput.value.trim();
+    if (!val.startsWith('#') && /^[0-9A-Fa-f]{6}$/.test(val)) {
+        val = '#' + val;
+    }
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+        const picker = document.getElementById(pickerId);
+        const dot = document.getElementById(dotId);
+        if (picker) picker.value = val;
+        if (dot) dot.style.color = val;
+    }
+}
+</script>
 {% endblock %}

@@ -2606,3 +2606,287 @@ class SchoolEmailConfigurationDeleteView(LoginRequiredMixin, DeleteView):
         config = self.get_object()
         messages.success(request, f'Email configuration for {config.get_provider_display()} deleted successfully.')
         return super().delete(request, *args, **kwargs)
+
+
+from django.http import FileResponse
+from superadmin.models import DatabaseBackup
+from tenants.backup_service import (
+    create_database_backup,
+    get_database_info,
+    get_all_tenant_databases_summary,
+    delete_database_backup,
+    format_bytes,
+)
+
+
+class SuperAdminBackupListView(SuperAdminRequiredMixin, TemplateView):
+    """
+    Super Admin Database Backups Management.
+    Provides global visibility over the Master Database ('default')
+    and all School Tenant Databases.
+    """
+    template_name = 'superadmin/backups.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # 1. Master Database info
+        master_db_info = get_database_info('default')
+        context['master_db'] = master_db_info
+
+        # 2. All School Tenant Databases summary
+        tenant_databases = get_all_tenant_databases_summary()
+        context['tenant_databases'] = tenant_databases
+
+        # 3. Filter parameter
+        selected_db = self.request.GET.get('db', 'all')
+        context['selected_filter'] = selected_db
+
+        # 4. Backups QuerySet
+        backups_qs = DatabaseBackup.objects.using('default').all().select_related('school', 'created_by')
+        if selected_db == 'master':
+            backups_qs = backups_qs.filter(backup_type='master')
+        elif selected_db != 'all':
+            backups_qs = backups_qs.filter(school__slug=selected_db)
+
+        context['backups'] = backups_qs
+        context['all_schools'] = School.objects.using('default').all().order_by('name')
+
+        # 5. Global Backup Statistics
+        total_backups = DatabaseBackup.objects.using('default').filter(status='completed')
+        total_bytes = sum(b.file_size_bytes for b in total_backups)
+        context['stats'] = {
+            'total_backups_count': total_backups.count(),
+            'total_size_display': format_bytes(total_bytes),
+            'total_tenants_count': len(tenant_databases),
+            'master_backups_count': total_backups.filter(backup_type='master').count(),
+        }
+
+        return context
+
+
+class SuperAdminCreateBackupView(SuperAdminRequiredMixin, View):
+    """Trigger backup creation for Master database or specific tenant database"""
+
+    def post(self, request, *args, **kwargs):
+        target = request.POST.get('target', 'master')
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', '')
+
+        try:
+            if target == 'master':
+                backup = create_database_backup('default', user=request.user)
+                msg = f"Master Database backup '{backup.file_name}' ({backup.file_size_display}) created successfully."
+            elif target == 'all_tenants':
+                schools = School.objects.using('default').all()
+                count = 0
+                for sch in schools:
+                    try:
+                        create_database_backup(sch.slug, school=sch, user=request.user)
+                        count += 1
+                    except Exception as err:
+                        logger.warning(f"Could not backup {sch.slug}: {err}")
+                msg = f"Created backups for {count} tenant school database(s)."
+            else:
+                school = get_object_or_404(School.objects.using('default'), slug=target)
+                backup = create_database_backup(school.slug, school=school, user=request.user)
+                msg = f"Tenant database backup for '{school.name}' ({backup.file_name}, {backup.file_size_display}) created successfully."
+
+            messages.success(request, msg)
+            if is_ajax:
+                return JsonResponse({'success': True, 'message': msg})
+        except Exception as e:
+            err_msg = f"Backup creation failed: {e}"
+            messages.error(request, err_msg)
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+        return redirect('superadmin:backups')
+
+
+class SuperAdminBackupDownloadView(SuperAdminRequiredMixin, View):
+    """Download a database backup file"""
+
+    def get(self, request, pk, *args, **kwargs):
+        backup = get_object_or_404(DatabaseBackup.objects.using('default'), pk=pk)
+        if not backup.file_path or not os.path.exists(backup.file_path):
+            messages.error(request, f"Backup file '{backup.file_name}' was not found on disk.")
+            return redirect('superadmin:backups')
+
+        try:
+            response = FileResponse(open(backup.file_path, 'rb'), as_attachment=True, filename=backup.file_name)
+            return response
+        except Exception as e:
+            messages.error(request, f"Error streaming file: {e}")
+            return redirect('superadmin:backups')
+
+
+class SuperAdminBackupDeleteView(SuperAdminRequiredMixin, View):
+    """Delete a database backup file and database record"""
+
+    def post(self, request, pk, *args, **kwargs):
+        success = delete_database_backup(pk)
+        if success:
+            messages.success(request, "Backup deleted successfully.")
+        else:
+            messages.error(request, "Could not delete backup or backup does not exist.")
+        return redirect('superadmin:backups')
+
+
+class SuperAdminSearchView(SuperAdminRequiredMixin, TemplateView):
+    """Full search results view for Superadmin"""
+    template_name = 'superadmin/search.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        query = self.request.GET.get('q', '').strip()
+        context['query'] = query
+
+        SUPERADMIN_PAGES = [
+            {'title': 'Dashboard Overview', 'desc': 'Platform statistics, active schools, revenue KPIs', 'url': reverse('superadmin:dashboard'), 'icon': 'fas fa-tachometer-alt', 'category': 'Overview'},
+            {'title': 'School Tenants', 'desc': 'View and manage registered schools and institutions', 'url': reverse('superadmin:schools'), 'icon': 'fas fa-school', 'category': 'Tenants'},
+            {'title': 'Register New School', 'desc': 'Provision a new school tenant workspace', 'url': reverse('superadmin:school_create'), 'icon': 'fas fa-plus-circle', 'category': 'Tenants'},
+            {'title': 'School Administrators', 'desc': 'Manage school admin user accounts and access', 'url': reverse('superadmin:admins'), 'icon': 'fas fa-user-shield', 'category': 'Users'},
+            {'title': 'Subscriptions & Plans', 'desc': 'Tenant billing packages, pricing, and limits', 'url': reverse('superadmin:subscriptions'), 'icon': 'fas fa-credit-card', 'category': 'Billing'},
+            {'title': 'Database Backups', 'desc': 'Master and tenant SQLite/Postgres backups & downloads', 'url': reverse('superadmin:backups'), 'icon': 'fas fa-database', 'category': 'System'},
+            {'title': 'Global Settings & Branding', 'desc': 'Platform logo, system colors, school defaults', 'url': reverse('superadmin:global_settings'), 'icon': 'fas fa-sliders-h', 'category': 'Settings'},
+            {'title': 'System Maintenance', 'desc': 'Maintenance mode toggle and system diagnostics', 'url': reverse('superadmin:system_maintenance'), 'icon': 'fas fa-tools', 'category': 'Settings'},
+            {'title': 'Global SMS Gateways', 'desc': 'Configure SMS providers and credentials', 'url': reverse('superadmin:sms_config_list'), 'icon': 'fas fa-sms', 'category': 'Integrations'},
+            {'title': 'Global Email (SMTP) Config', 'desc': 'Email servers and outgoing notification setup', 'url': reverse('superadmin:email_config_list'), 'icon': 'fas fa-envelope', 'category': 'Integrations'},
+            {'title': 'Database Configurations', 'desc': 'Global DB connection parameters and hosts', 'url': reverse('superadmin:db_config_list'), 'icon': 'fas fa-server', 'category': 'Settings'},
+            {'title': 'Payment Gateways', 'desc': 'Superadmin payment gateway accounts (Stripe, PayPal, etc.)', 'url': reverse('superadmin:payment_config_list'), 'icon': 'fas fa-wallet', 'category': 'Billing'},
+            {'title': 'Payment Approvals', 'desc': 'Verify and approve offline bank payments and proofs', 'url': reverse('superadmin:payment_approval_list'), 'icon': 'fas fa-check-double', 'category': 'Billing'},
+            {'title': 'Platform Invoices', 'desc': 'View and download tenant subscription invoices', 'url': reverse('superadmin:invoices'), 'icon': 'fas fa-file-invoice-dollar', 'category': 'Billing'},
+            {'title': 'System Audit Logs', 'desc': 'Track all platform administrative actions and events', 'url': reverse('superadmin:audit_logs'), 'icon': 'fas fa-shield-alt', 'category': 'Security'},
+            {'title': 'Homepage CMS', 'desc': 'Manage marketing landing page text, banners, and links', 'url': reverse('superadmin:homepage_cms'), 'icon': 'fas fa-globe', 'category': 'Content'},
+            {'title': 'Superadmin Profile', 'desc': 'Update superadmin password, profile details, and avatar', 'url': reverse('superadmin:profile'), 'icon': 'fas fa-user-circle', 'category': 'Account'},
+        ]
+
+        if query:
+            q_lower = query.lower()
+            context['matched_pages'] = [
+                p for p in SUPERADMIN_PAGES
+                if q_lower in p['title'].lower() or q_lower in p['desc'].lower() or q_lower in p['category'].lower()
+            ]
+
+            context['schools'] = School.objects.using('default').filter(
+                Q(name__icontains=query) |
+                Q(slug__icontains=query) |
+                Q(email__icontains=query) |
+                Q(phone__icontains=query) |
+                Q(city__icontains=query)
+            ).order_by('-created_on')[:20]
+
+            context['users'] = User.objects.using('default').filter(
+                Q(first_name__icontains=query) |
+                Q(last_name__icontains=query) |
+                Q(email__icontains=query) |
+                Q(phone__icontains=query) |
+                Q(role__icontains=query)
+            ).order_by('-date_joined')[:20]
+
+            try:
+                from tenants.models import DatabaseBackup
+                context['backups'] = DatabaseBackup.objects.using('default').filter(
+                    Q(file_name__icontains=query) |
+                    Q(database_alias__icontains=query) |
+                    Q(school_name__icontains=query)
+                ).order_by('-created_at')[:15]
+            except Exception:
+                context['backups'] = []
+        else:
+            context['matched_pages'] = SUPERADMIN_PAGES[:8]
+            context['schools'] = []
+            context['users'] = []
+            context['backups'] = []
+
+        total_results = (
+            len(context.get('matched_pages', [])) +
+            len(context.get('schools', [])) +
+            len(context.get('users', [])) +
+            len(context.get('backups', []))
+        )
+        context['total_results'] = total_results
+        return context
+
+
+class SuperAdminSearchApiView(SuperAdminRequiredMixin, View):
+    """Live AJAX search endpoint for superadmin top header dropdown"""
+
+    def get(self, request, *args, **kwargs):
+        query = request.GET.get('q', '').strip()
+        if not query or len(query) < 1:
+            return JsonResponse({'query': '', 'pages': [], 'schools': [], 'users': [], 'backups': []})
+
+        q_lower = query.lower()
+        SUPERADMIN_PAGES = [
+            {'title': 'Dashboard Overview', 'desc': 'Platform statistics, KPIs', 'url': reverse('superadmin:dashboard'), 'icon': 'fas fa-tachometer-alt', 'category': 'Overview'},
+            {'title': 'School Tenants', 'desc': 'Manage registered schools', 'url': reverse('superadmin:schools'), 'icon': 'fas fa-school', 'category': 'Tenants'},
+            {'title': 'Register New School', 'desc': 'Provision tenant workspace', 'url': reverse('superadmin:school_create'), 'icon': 'fas fa-plus-circle', 'category': 'Tenants'},
+            {'title': 'School Administrators', 'desc': 'School admin user accounts', 'url': reverse('superadmin:admins'), 'icon': 'fas fa-user-shield', 'category': 'Users'},
+            {'title': 'Subscriptions & Plans', 'desc': 'Tenant billing packages & limits', 'url': reverse('superadmin:subscriptions'), 'icon': 'fas fa-credit-card', 'category': 'Billing'},
+            {'title': 'Database Backups', 'desc': 'Master and tenant DB backups', 'url': reverse('superadmin:backups'), 'icon': 'fas fa-database', 'category': 'System'},
+            {'title': 'Global Settings', 'desc': 'Platform branding and defaults', 'url': reverse('superadmin:global_settings'), 'icon': 'fas fa-sliders-h', 'category': 'Settings'},
+            {'title': 'System Maintenance', 'desc': 'Maintenance mode toggle & status', 'url': reverse('superadmin:system_maintenance'), 'icon': 'fas fa-tools', 'category': 'Settings'},
+            {'title': 'Global SMS Gateways', 'desc': 'SMS provider setup', 'url': reverse('superadmin:sms_config_list'), 'icon': 'fas fa-sms', 'category': 'Integrations'},
+            {'title': 'Global Email (SMTP)', 'desc': 'Email servers setup', 'url': reverse('superadmin:email_config_list'), 'icon': 'fas fa-envelope', 'category': 'Integrations'},
+            {'title': 'Payment Gateways', 'desc': 'Platform payment configs', 'url': reverse('superadmin:payment_config_list'), 'icon': 'fas fa-wallet', 'category': 'Billing'},
+            {'title': 'Payment Approvals', 'desc': 'Approve bank transfer payments', 'url': reverse('superadmin:payment_approval_list'), 'icon': 'fas fa-check-double', 'category': 'Billing'},
+            {'title': 'Platform Invoices', 'desc': 'Tenant subscription invoices', 'url': reverse('superadmin:invoices'), 'icon': 'fas fa-file-invoice-dollar', 'category': 'Billing'},
+            {'title': 'Audit Logs', 'desc': 'Platform audit log trails', 'url': reverse('superadmin:audit_logs'), 'icon': 'fas fa-shield-alt', 'category': 'Security'},
+            {'title': 'Homepage CMS', 'desc': 'Landing page CMS content', 'url': reverse('superadmin:homepage_cms'), 'icon': 'fas fa-globe', 'category': 'Content'},
+        ]
+
+        matched_pages = [
+            p for p in SUPERADMIN_PAGES
+            if q_lower in p['title'].lower() or q_lower in p['desc'].lower() or q_lower in p['category'].lower()
+        ][:5]
+
+        schools_data = []
+        for s in School.objects.using('default').filter(
+            Q(name__icontains=query) | Q(slug__icontains=query) | Q(email__icontains=query)
+        )[:5]:
+            schools_data.append({
+                'title': s.name,
+                'subtitle': f"{s.email} • {s.slug}",
+                'url': reverse('superadmin:school_detail', kwargs={'pk': s.pk}),
+                'icon': 'fas fa-school',
+                'badge': 'School'
+            })
+
+        users_data = []
+        for u in User.objects.using('default').filter(
+            Q(first_name__icontains=query) | Q(last_name__icontains=query) | Q(email__icontains=query)
+        )[:5]:
+            users_data.append({
+                'title': u.get_full_name() or u.email,
+                'subtitle': f"{u.email} • {u.role.title() if u.role else 'User'}",
+                'url': reverse('superadmin:admins'),
+                'icon': 'fas fa-user',
+                'badge': u.role.title() if u.role else 'User'
+            })
+
+        backups_data = []
+        try:
+            from tenants.models import DatabaseBackup
+            for b in DatabaseBackup.objects.using('default').filter(
+                Q(file_name__icontains=query) | Q(database_alias__icontains=query) | Q(school_name__icontains=query)
+            )[:5]:
+                backups_data.append({
+                    'title': b.file_name,
+                    'subtitle': f"{b.database_alias} • {b.file_size_display}",
+                    'url': reverse('superadmin:backups'),
+                    'icon': 'fas fa-database',
+                    'badge': 'Backup'
+                })
+        except Exception:
+            pass
+
+        return JsonResponse({
+            'query': query,
+            'pages': matched_pages,
+            'schools': schools_data,
+            'users': users_data,
+            'backups': backups_data,
+            'view_all_url': f"{reverse('superadmin:search')}?q={query}"
+        })
+

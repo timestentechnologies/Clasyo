@@ -1,0 +1,245 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Search Platform - Super Admin{% endblock %}
+{% block page_title %}Platform Search{% endblock %}
+{% block page_icon %}search{% endblock %}
+{% block page_subtitle %}Search across all school tenants, users, backups, and platform settings{% endblock %}
+
+{% block extra_css %}
+<style>
+.search-result-card {
+    background: var(--bg-card, #FFFFFF);
+    border: 1px solid var(--border-color, #E2E8F0);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: all 0.2s ease;
+    height: 100%;
+}
+.search-result-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+    border-color: var(--brand-accent, #38BDF8);
+}
+[data-theme="dark"] .search-result-card,
+body.dark-theme .search-result-card {
+    background: var(--dark-unified-bg, #0F172A) !important;
+    border-color: #1E293B !important;
+}
+.search-badge-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+.search-section-header {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-primary, #0F172A);
+}
+[data-theme="dark"] .search-section-header,
+body.dark-theme .search-section-header {
+    color: #F8FAFC !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Big Search Input Box -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 p-4" style="background: var(--bg-card, #FFFFFF);">
+        <form method="GET" action="{% url 'superadmin:search' %}" class="d-flex gap-2">
+            <div class="input-group input-group-lg flex-grow-1">
+                <span class="input-group-text bg-transparent border-end-0 text-muted">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" name="q" class="form-control border-start-0" 
+                       placeholder="Search schools, admins, backups, settings, or pages..." 
+                       value="{{ query }}" autofocus>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg px-4">
+                <i class="fas fa-search me-1"></i> Search
+            </button>
+        </form>
+
+        {% if query %}
+        <div class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
+            <p class="text-muted mb-0">
+                Found <strong>{{ total_results }}</strong> result{{ total_results|pluralize }} for "<strong>{{ query }}</strong>"
+            </p>
+            {% if total_results > 0 %}
+            <div class="d-flex gap-2 flex-wrap">
+                {% if matched_pages %}<span class="badge bg-primary-subtle text-primary">{{ matched_pages|length }} Page{{ matched_pages|length|pluralize }}</span>{% endif %}
+                {% if schools %}<span class="badge bg-info-subtle text-info">{{ schools|length }} School{{ schools|length|pluralize }}</span>{% endif %}
+                {% if users %}<span class="badge bg-success-subtle text-success">{{ users|length }} User{{ users|length|pluralize }}</span>{% endif %}
+                {% if backups %}<span class="badge bg-warning-subtle text-warning">{{ backups|length }} Backup{{ backups|length|pluralize }}</span>{% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% if query and total_results == 0 %}
+    <!-- Empty State -->
+    <div class="card border-0 shadow-sm rounded-4 text-center py-5 px-3 mb-4" style="background: var(--bg-card, #FFFFFF);">
+        <div class="avatar-lg rounded-circle bg-secondary-subtle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 72px; height: 72px;">
+            <i class="fas fa-search-minus fa-2x text-muted"></i>
+        </div>
+        <h4 class="fw-bold">No results found for "{{ query }}"</h4>
+        <p class="text-muted max-w-md mx-auto">Check for spelling errors or try searching for a school name, email address, backup alias, or system module like "Backups", "Subscriptions", or "SMS".</p>
+        <div class="d-flex justify-content-center gap-2 mt-2">
+            <a href="{% url 'superadmin:schools' %}" class="btn btn-outline-primary btn-sm"><i class="fas fa-school me-1"></i> All Schools</a>
+            <a href="{% url 'superadmin:backups' %}" class="btn btn-outline-info btn-sm"><i class="fas fa-database me-1"></i> Backups</a>
+            <a href="{% url 'superadmin:global_settings' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-sliders-h me-1"></i> Settings</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 1. System Pages & Settings Matches -->
+    {% if matched_pages %}
+    <div class="mb-4">
+        <div class="search-section-header">
+            <i class="fas fa-compass text-primary"></i>
+            <span>System Modules & Pages</span>
+            <span class="badge bg-primary-subtle text-primary ms-2">{{ matched_pages|length }}</span>
+        </div>
+        <div class="row g-3">
+            {% for page in matched_pages %}
+            <div class="col-md-6 col-lg-4">
+                <a href="{{ page.url }}" class="text-decoration-none text-reset">
+                    <div class="search-result-card d-flex align-items-center gap-3">
+                        <div class="search-badge-icon bg-primary-subtle text-primary">
+                            <i class="{{ page.icon }}"></i>
+                        </div>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <span class="fw-bold text-truncate">{{ page.title }}</span>
+                                <span class="badge bg-secondary-subtle text-secondary" style="font-size: 10px;">{{ page.category }}</span>
+                            </div>
+                            <small class="text-muted d-block text-truncate">{{ page.desc }}</small>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted opacity-50"></i>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 2. Schools / Tenants Matches -->
+    {% if schools %}
+    <div class="mb-4">
+        <div class="search-section-header">
+            <i class="fas fa-school text-info"></i>
+            <span>School Tenants</span>
+            <span class="badge bg-info-subtle text-info ms-2">{{ schools|length }}</span>
+        </div>
+        <div class="row g-3">
+            {% for school in schools %}
+            <div class="col-md-6 col-lg-4">
+                <a href="{% url 'superadmin:school_detail' pk=school.pk %}" class="text-decoration-none text-reset">
+                    <div class="search-result-card d-flex align-items-center gap-3">
+                        <div class="search-badge-icon bg-info-subtle text-info">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <span class="fw-bold text-truncate">{{ school.name }}</span>
+                                {% if school.is_active %}
+                                <span class="badge bg-success-subtle text-success" style="font-size: 10px;">Active</span>
+                                {% else %}
+                                <span class="badge bg-danger-subtle text-danger" style="font-size: 10px;">Inactive</span>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted d-block text-truncate"><i class="fas fa-envelope me-1"></i>{{ school.email }}</small>
+                            <small class="text-muted d-block text-truncate"><i class="fas fa-link me-1"></i>/school/{{ school.slug }}/</small>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted opacity-50"></i>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 3. Users / Admins Matches -->
+    {% if users %}
+    <div class="mb-4">
+        <div class="search-section-header">
+            <i class="fas fa-users text-success"></i>
+            <span>Users & Administrators</span>
+            <span class="badge bg-success-subtle text-success ms-2">{{ users|length }}</span>
+        </div>
+        <div class="row g-3">
+            {% for u in users %}
+            <div class="col-md-6 col-lg-4">
+                <div class="search-result-card d-flex align-items-center gap-3">
+                    <div class="search-badge-icon bg-success-subtle text-success">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div class="flex-grow-1 overflow-hidden">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="fw-bold text-truncate">{{ u.get_full_name|default:u.email }}</span>
+                            <span class="badge bg-primary-subtle text-primary" style="font-size: 10px;">{{ u.role|title }}</span>
+                        </div>
+                        <small class="text-muted d-block text-truncate"><i class="fas fa-envelope me-1"></i>{{ u.email }}</small>
+                        {% if u.phone %}
+                        <small class="text-muted d-block text-truncate"><i class="fas fa-phone me-1"></i>{{ u.phone }}</small>
+                        {% endif %}
+                    </div>
+                    {% if u.role != 'superadmin' and u.role != 'super_admin' %}
+                    <a href="{% url 'superadmin:impersonate_user' user_id=u.pk %}" class="btn btn-sm btn-outline-primary" title="Impersonate User">
+                        <i class="fas fa-user-secret"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 4. Backups Matches -->
+    {% if backups %}
+    <div class="mb-4">
+        <div class="search-section-header">
+            <i class="fas fa-database text-warning"></i>
+            <span>Database Backups</span>
+            <span class="badge bg-warning-subtle text-warning ms-2">{{ backups|length }}</span>
+        </div>
+        <div class="row g-3">
+            {% for b in backups %}
+            <div class="col-md-6 col-lg-4">
+                <a href="{% url 'superadmin:backups' %}" class="text-decoration-none text-reset">
+                    <div class="search-result-card d-flex align-items-center gap-3">
+                        <div class="search-badge-icon bg-warning-subtle text-warning">
+                            <i class="fas fa-file-archive"></i>
+                        </div>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <span class="fw-bold text-truncate">{{ b.file_name }}</span>
+                                <span class="badge bg-secondary-subtle text-secondary" style="font-size: 10px;">{{ b.file_size_display }}</span>
+                            </div>
+                            <small class="text-muted d-block text-truncate"><i class="fas fa-database me-1"></i>Alias: {{ b.database_alias }}</small>
+                            <small class="text-muted d-block text-truncate"><i class="fas fa-calendar me-1"></i>{{ b.created_at|date:"M d, Y H:i" }}</small>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted opacity-50"></i>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

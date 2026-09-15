@@ -74,12 +74,14 @@ class School(models.Model):
     enable_dormitory = models.BooleanField(_("Enable Dormitory"), default=True)
     enable_inventory = models.BooleanField(_("Enable Inventory"), default=True)
 
+    objects = models.Manager()
+
     class Meta:
         verbose_name = _("School")
         verbose_name_plural = _("Schools")
 
-    def __str__(self):
-        return self.name
+    def __str__(self) -> str:
+        return str(self.name)
     
     @property
     def is_subscription_active(self):
@@ -99,9 +101,11 @@ class Domain(models.Model):
     is_primary = models.BooleanField(_("Is Primary"), default=True)
     created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
 
+    objects = models.Manager()
+
     class Meta:
         verbose_name = _("Domain")
         verbose_name_plural = _("Domains")
     
-    def __str__(self):
-        return self.domain
+    def __str__(self) -> str:
+        return str(self.domain)

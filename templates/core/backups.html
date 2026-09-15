@@ -1,0 +1,199 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Database Backups - {{ school.name }}{% endblock %}
+{% block page_title %}Database Backups{% endblock %}
+{% block page_icon %}database{% endblock %}
+{% block page_subtitle %}Dedicated database backups and recovery archives for {{ school.name }}.{% endblock %}
+
+{% block page_actions %}
+<form method="POST" action="{% url 'core:school_backup_create' school_slug=school_slug %}" class="d-inline" onsubmit="return confirm('Create an immediate snapshot backup of your school\'s database?');">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary">
+        <i class="fas fa-cloud-download-alt me-1"></i> Create Backup Now
+    </button>
+</form>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <!-- Tenant Isolation Notice Banner -->
+    <div class="alert alert-primary bg-primary-subtle border-0 shadow-sm rounded-3 mb-4 d-flex align-items-center">
+        <div class="me-3 fs-3 text-primary">
+            <i class="fas fa-user-shield"></i>
+        </div>
+        <div>
+            <h6 class="alert-heading fw-bold mb-1">Dedicated Tenant Isolation Active</h6>
+            <p class="mb-0 small text-muted">
+                Your school operates on an isolated database (<code>{{ school.slug }}</code>). Backups created here include all of your school's students, teachers, academic records, fee transactions, and settings. These archives are private to your school administration.
+            </p>
+        </div>
+    </div>
+
+    <!-- KPI / Database Overview Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Database Name</div>
+                        <div class="fs-5 fw-bold text-dark mt-1 font-monospace">{{ db_info.db_alias }}</div>
+                        <div class="small mt-1 text-success"><i class="fas fa-check-circle me-1"></i>Dedicated & Active</div>
+                    </div>
+                    <div class="rounded-circle bg-primary-subtle p-3 text-primary">
+                        <i class="fas fa-database fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Current DB Size</div>
+                        <div class="fs-4 fw-bold text-dark mt-1">{{ db_info.size_display }}</div>
+                        <div class="small mt-1 text-muted"><i class="fas fa-table me-1"></i>{{ db_info.table_count }} Schema Tables</div>
+                    </div>
+                    <div class="rounded-circle bg-info-subtle p-3 text-info">
+                        <i class="fas fa-chart-pie fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Total Backups</div>
+                        <div class="fs-4 fw-bold text-dark mt-1">{{ stats.total_backups_count }}</div>
+                        <div class="small mt-1 text-muted">
+                            {% if stats.last_backup %}
+                                Last: {{ stats.last_backup.created_at|date:"M d, Y" }}
+                            {% else %}
+                                No backups yet
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="rounded-circle bg-success-subtle p-3 text-success">
+                        <i class="fas fa-archive fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Backup Disk Space</div>
+                        <div class="fs-4 fw-bold text-dark mt-1">{{ stats.total_size_display }}</div>
+                        <div class="small mt-1 text-muted"><i class="fas fa-shield-alt me-1"></i>Local Storage</div>
+                    </div>
+                    <div class="rounded-circle bg-warning-subtle p-3 text-warning">
+                        <i class="fas fa-hdd fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- School Backup History Table -->
+    <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-0 fw-bold text-dark">
+                    <i class="fas fa-history text-primary me-2"></i>{{ school.name }} Backup History
+                </h5>
+                <small class="text-muted">Snapshots available for offline download and safe disaster recovery</small>
+            </div>
+            <form method="POST" action="{% url 'core:school_backup_create' school_slug=school_slug %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-plus me-1"></i> New Backup
+                </button>
+            </form>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Backup File</th>
+                        <th>Engine</th>
+                        <th>Size</th>
+                        <th>Created At</th>
+                        <th>Triggered By</th>
+                        <th>Status</th>
+                        <th class="text-end pe-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in backups %}
+                    <tr>
+                        <td class="ps-3">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm rounded-circle bg-light d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                    <i class="fas fa-file-archive text-primary"></i>
+                                </div>
+                                <div>
+                                    <code class="text-dark fw-bold">{{ b.file_name }}</code>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="badge bg-secondary text-uppercase">{{ b.engine }}</span></td>
+                        <td><strong>{{ b.file_size_display }}</strong></td>
+                        <td>{{ b.created_at|date:"M d, Y H:i:s" }}</td>
+                        <td>
+                            {% if b.created_by %}
+                                <span class="text-dark">{{ b.created_by.get_full_name|default:b.created_by.email }}</span>
+                            {% else %}
+                                <span class="text-muted">Automated</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if b.status == 'completed' %}
+                                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Completed</span>
+                            {% else %}
+                                <span class="badge bg-danger" title="{{ b.error_message }}"><i class="fas fa-times-circle me-1"></i>Failed</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-3">
+                            <div class="btn-group btn-group-sm">
+                                {% if b.status == 'completed' %}
+                                <a href="{% url 'core:school_backup_download' school_slug=school_slug pk=b.id %}" class="btn btn-success btn-sm" title="Download backup file">
+                                    <i class="fas fa-download me-1"></i> Download
+                                </a>
+                                {% endif %}
+                                <form method="POST" action="{% url 'core:school_backup_delete' school_slug=school_slug pk=b.id %}" class="d-inline ms-1" onsubmit="return confirm('Permanently delete backup {{ b.file_name }}?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete backup">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="fas fa-archive fa-3x text-muted mb-3 d-block"></i>
+                            <h6>No backups created yet for {{ school.name }}</h6>
+                            <p class="small mb-3">Click the button below to take your first database snapshot.</p>
+                            <form method="POST" action="{% url 'core:school_backup_create' school_slug=school_slug %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-cloud-download-alt me-1"></i> Take Initial Backup
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

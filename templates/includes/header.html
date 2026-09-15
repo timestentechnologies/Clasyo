@@ -7,24 +7,52 @@
     </button>
 
     {% if navigation_layout == 'horizontal' %}
-    <div class="horizontal-brand d-none d-lg-flex align-items-center me-3">
+    <div class="horizontal-brand d-none d-lg-flex align-items-center me-2">
         {% if user.role == 'superadmin' %}
-            <img src="{% static 'images/erpupdated.png' %}" alt="Logo" class="horizontal-logo me-2" style="height: 36px; width: auto; object-fit: contain;">
-            <span class="horizontal-brand-title fw-bold" style="font-size: 1.05rem; color: var(--text-primary);">Clasyo ERP</span>
+            <img src="{% static 'images/erpupdated.png' %}" alt="Logo" class="horizontal-logo me-2" style="height: 34px; width: auto; object-fit: contain;">
+            <span class="horizontal-brand-title fw-bold" style="font-size: 1.05rem; color: var(--text-primary); white-space: nowrap;">Clasyo ERP</span>
         {% else %}
             {% if school and school.logo %}
-                <img src="{{ school.logo.url }}" alt="{{ school.name }}" class="horizontal-logo me-2" style="height: 36px; width: auto; object-fit: contain;">
+                <img src="{{ school.logo.url }}" alt="{{ school.name }}" class="horizontal-logo me-2" style="height: 34px; width: auto; object-fit: contain;">
             {% else %}
-                <img src="{% static 'images/erpupdated.png' %}" alt="Logo" class="horizontal-logo me-2" style="height: 36px; width: auto; object-fit: contain;">
+                <img src="{% static 'images/erpupdated.png' %}" alt="Logo" class="horizontal-logo me-2" style="height: 34px; width: auto; object-fit: contain;">
             {% endif %}
-            <span class="horizontal-brand-title fw-bold" style="font-size: 1.05rem; color: var(--text-primary);">{{ school.name|default:"School ERP" }}</span>
+            <span class="horizontal-brand-title fw-bold" style="font-size: 1.05rem; color: var(--text-primary); white-space: nowrap;">{{ school.name|default:"School ERP" }}</span>
         {% endif %}
     </div>
+
+    <!-- In Between: Horizontal Navigation Tabs -->
+    {% include 'includes/horizontal_navbar.html' %}
     {% endif %}
 
-    <form action="{% if user.role == 'superadmin' or user.role == 'super_admin' %}#{% else %}/school/{{ school_slug }}/search/{% endif %}" method="get" class="search-bar">
-        <i class="fas fa-search"></i>
-        <input type="text" name="q" placeholder="Search for students, teachers, or anything..." id="globalSearch">
+    <form action="{% if user.role == 'superadmin' or user.role == 'super_admin' %}{% url 'superadmin:search' %}{% else %}{% if school_slug %}/school/{{ school_slug }}/search/{% else %}#{% endif %}{% endif %}" 
+          method="get" 
+          class="search-bar {% if navigation_layout == 'horizontal' %}search-bar-combined ms-auto{% endif %}" 
+          id="headerSearchForm" 
+          autocomplete="off"
+          data-user-role="{{ user.role }}" 
+          data-school-slug="{{ school_slug|default:'' }}" 
+          data-search-api="{% if user.role == 'superadmin' or user.role == 'super_admin' %}{% url 'superadmin:search_api' %}{% else %}{% if school_slug %}/school/{{ school_slug }}/api/search/{% else %}#{% endif %}{% endif %}">
+        
+        <div class="search-input-wrapper">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" 
+                   name="q" 
+                   placeholder="{% if user.role == 'superadmin' or user.role == 'super_admin' %}Search pages, schools, backups, or filter this page...{% else %}Search students, staff, pages, or filter this page...{% endif %}" 
+                   id="globalSearch" 
+                   autocomplete="off"
+                   spellcheck="false">
+            
+            <div class="search-input-actions">
+                <span id="pageFilterBadge" class="search-filter-badge d-none">0 on page</span>
+                <button type="button" id="clearSearchBtn" class="search-clear-btn d-none" title="Clear filter (Esc)">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Floating Results Dropdown -->
+        <div id="globalSearchDropdown" class="global-search-dropdown shadow-lg d-none"></div>
     </form>
     
     <div class="navbar-actions">

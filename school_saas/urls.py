@@ -46,6 +46,9 @@ urlpatterns = [
     # Subscriptions
     path('subscriptions/', include('subscriptions.urls', namespace='subscriptions')),
     
+    # Tenants & Workspace Provisioning
+    path('tenants/', include('tenants.urls', namespace='tenants')),
+    
     # School modules (tenant-specific)
     path('school/<slug:school_slug>/', include([
         path('', include('core.urls', namespace='core')),

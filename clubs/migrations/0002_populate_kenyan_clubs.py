@@ -242,9 +242,11 @@ def create_kenyan_school_clubs(apps, schema_editor):
         service_clubs + tech_clubs + religious_clubs
     )
     
-    # Create clubs
+    # Create clubs idempotently
     for club_data in all_clubs:
-        Club.objects.create(school=school, **club_data)
+        name = club_data.get('name')
+        if not Club.objects.filter(school=school, name=name).exists():
+            Club.objects.create(school=school, **club_data)
 
 def reverse_kenyan_school_clubs(apps, schema_editor):
     """

@@ -6,31 +6,31 @@
 [data-theme="dark"] .form-control-modern,
 [data-theme="dark"] textarea,
 [data-theme="dark"] select,
-[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not(.color-picker-input):not(.color-picker-swatch),
 [data-bs-theme="dark"] .form-control,
 [data-bs-theme="dark"] .form-select,
 [data-bs-theme="dark"] .form-control-modern,
 [data-bs-theme="dark"] textarea,
 [data-bs-theme="dark"] select,
-[data-bs-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+[data-bs-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not(.color-picker-input):not(.color-picker-swatch),
 .theme-dark .form-control,
 .theme-dark .form-select,
 .theme-dark .form-control-modern,
 .theme-dark textarea,
 .theme-dark select,
-.theme-dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+.theme-dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not(.color-picker-input):not(.color-picker-swatch),
 .dark-theme .form-control,
 .dark-theme .form-select,
 .dark-theme .form-control-modern,
 .dark-theme textarea,
 .dark-theme select,
-.dark-theme input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+.dark-theme input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not(.color-picker-input):not(.color-picker-swatch),
 body.dark-theme .form-control,
 body.dark-theme .form-select,
 body.dark-theme .form-control-modern,
 body.dark-theme textarea,
 body.dark-theme select,
-body.dark-theme input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]) {
+body.dark-theme input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not(.color-picker-input):not(.color-picker-swatch) {
     background-color: var(--input-bg, #1E293B) !important;
     background: var(--input-bg, #1E293B) !important;
     color: var(--input-text, #F8FAFC) !important;
@@ -45,7 +45,7 @@ body.dark-theme input:not([type="checkbox"]):not([type="radio"]):not([type="subm
 [data-theme="dark"] .form-control-modern:focus,
 [data-theme="dark"] textarea:focus,
 [data-theme="dark"] select:focus,
-[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):focus,
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not(.color-picker-input):not(.color-picker-swatch):focus,
 [data-bs-theme="dark"] .form-control:focus,
 [data-bs-theme="dark"] .form-select:focus,
 [data-bs-theme="dark"] textarea:focus,
@@ -54,13 +54,13 @@ body.dark-theme input:not([type="checkbox"]):not([type="radio"]):not([type="subm
 .theme-dark .form-control-modern:focus,
 .theme-dark textarea:focus,
 .theme-dark select:focus,
-.theme-dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):focus,
+.theme-dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not(.color-picker-input):not(.color-picker-swatch):focus,
 body.dark-theme .form-control:focus,
 body.dark-theme .form-select:focus,
 body.dark-theme .form-control-modern:focus,
 body.dark-theme textarea:focus,
 body.dark-theme select:focus,
-body.dark-theme input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):focus {
+body.dark-theme input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not(.color-picker-input):not(.color-picker-swatch):focus {
     background-color: var(--input-bg, #1E293B) !important;
     background: var(--input-bg, #1E293B) !important;
     color: #ffffff !important;
@@ -475,10 +475,21 @@ body:not([data-theme="light"]):not(.theme-light) .settings-card {
 .theme-dark .input-group > .input-group-text,
 [data-theme="dark"] .input-group > .password-toggle-btn,
 [data-bs-theme="dark"] .input-group > .password-toggle-btn,
-.theme-dark .input-group > .password-toggle-btn {
+.theme-dark .input-group > .password-toggle-btn,
+[data-theme="dark"] .password-toggle-btn,
+[data-bs-theme="dark"] .password-toggle-btn,
+.theme-dark .password-toggle-btn {
     background: transparent !important;
     border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
     color: var(--text-muted, #94A3B8) !important;
+}
+
+[data-theme="dark"] .password-toggle-btn:hover,
+[data-bs-theme="dark"] .password-toggle-btn:hover,
+.theme-dark .password-toggle-btn:hover {
+    color: var(--brand-primary, #38BDF8) !important;
 }
 
 [data-theme="dark"] .input-group > .form-control,
@@ -758,32 +769,76 @@ body.theme-dark .form-check-label {
     filter: grayscale(80%) !important;
 }
 
-/* Color Picker Group - Dark Mode */
-[data-theme="dark"] .color-picker-group,
-[data-bs-theme="dark"] .color-picker-group,
-.theme-dark .color-picker-group,
-.dark-theme .color-picker-group,
-body.dark-theme .color-picker-group {
-    background: var(--input-bg, #1E293B) !important;
-    border-color: var(--input-border, #475569) !important;
+/* Color Field Container & Trigger - Dark Mode */
+.color-field-container {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
 }
-[data-theme="dark"] .color-picker-group:focus-within,
-[data-bs-theme="dark"] .color-picker-group:focus-within,
-.theme-dark .color-picker-group:focus-within {
-    border-color: var(--brand-primary) !important;
-    box-shadow: 0 0 0 0.25rem var(--input-focus-ring) !important;
+
+.color-field-container .form-control.color-code-input,
+.color-field-container input.color-code-input {
+    width: 100% !important;
+    padding-right: 42px !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px !important;
+    text-transform: uppercase !important;
 }
-[data-theme="dark"] .color-picker-group .form-control,
-[data-bs-theme="dark"] .color-picker-group .form-control,
-.theme-dark .color-picker-group .form-control,
-[data-theme="dark"] .color-picker-group input[type="text"].form-control,
-[data-bs-theme="dark"] .color-picker-group input[type="text"].form-control,
-.theme-dark .color-picker-group input[type="text"].form-control {
-    color: var(--input-text, #F8FAFC) !important;
-    border: none !important;
-    outline: none !important;
-    box-shadow: none !important;
+
+.color-field-container .color-picker-trigger {
+    position: absolute !important;
+    right: 8px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 30px !important;
+    height: 30px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     background: transparent !important;
+    border: none !important;
+    color: #94A3B8 !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    transition: color 0.15s ease, transform 0.15s ease !important;
+    padding: 0 !important;
+    z-index: 2 !important;
+}
+
+.color-field-container .color-picker-trigger:hover {
+    color: #38BDF8 !important;
+    transform: translateY(-50%) scale(1.15) !important;
+}
+
+.color-picker-native-hidden {
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+}
+
+.color-label-clickable {
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    user-select: none !important;
+}
+
+.color-label-clickable:hover .color-label-dot {
+    transform: scale(1.25) !important;
+}
+
+.color-label-dot {
+    transition: transform 0.15s ease, color 0.2s ease !important;
+    display: inline-block !important;
 }
 
 
@@ -909,4 +964,112 @@ body.dark-theme .form-select option {
     background-color: #1E293B !important;
     color: #F8FAFC !important;
 }
+
+/* Dark Mode - Dashboard Overview & Aligned Cards */
+[data-theme="dark"] .hero-stat-card,
+[data-bs-theme="dark"] .hero-stat-card,
+.theme-dark .hero-stat-card,
+[data-theme="dark"] .side-stat-card,
+[data-bs-theme="dark"] .side-stat-card,
+.theme-dark .side-stat-card,
+[data-theme="dark"] .quick-stats-chart-card,
+[data-bs-theme="dark"] .quick-stats-chart-card,
+.theme-dark .quick-stats-chart-card {
+    background: #1E293B !important;
+    border-color: #334155 !important;
+}
+
+[data-theme="dark"] .hero-stat-title,
+[data-bs-theme="dark"] .hero-stat-title,
+.theme-dark .hero-stat-title,
+[data-theme="dark"] .hero-stat-primary-value,
+[data-bs-theme="dark"] .hero-stat-primary-value,
+.theme-dark .hero-stat-primary-value,
+[data-theme="dark"] .hero-sub-val,
+[data-bs-theme="dark"] .hero-sub-val,
+.theme-dark .hero-sub-val,
+[data-theme="dark"] .side-stat-val,
+[data-bs-theme="dark"] .side-stat-val,
+.theme-dark .side-stat-val,
+[data-theme="dark"] .quick-stats-chart-title,
+[data-bs-theme="dark"] .quick-stats-chart-title,
+.theme-dark .quick-stats-chart-title,
+[data-theme="dark"] .quick-stats-legend-val,
+[data-bs-theme="dark"] .quick-stats-legend-val,
+.theme-dark .quick-stats-legend-val {
+    color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .hero-stat-subtitle,
+[data-bs-theme="dark"] .hero-stat-subtitle,
+.theme-dark .hero-stat-subtitle,
+[data-theme="dark"] .hero-sub-lbl,
+[data-bs-theme="dark"] .hero-sub-lbl,
+.theme-dark .hero-sub-lbl,
+[data-theme="dark"] .side-stat-lbl,
+[data-bs-theme="dark"] .side-stat-lbl,
+.theme-dark .side-stat-lbl,
+[data-theme="dark"] .quick-stats-legend-item,
+[data-bs-theme="dark"] .quick-stats-legend-item,
+.theme-dark .quick-stats-legend-item {
+    color: #94A3B8 !important;
+}
+
+[data-theme="dark"] .hero-stat-footer,
+[data-bs-theme="dark"] .hero-stat-footer,
+.theme-dark .hero-stat-footer,
+[data-theme="dark"] .quick-stats-legend,
+[data-bs-theme="dark"] .quick-stats-legend,
+.theme-dark .quick-stats-legend {
+    border-top-color: #334155 !important;
+}
+
+/* ==========================================================================
+   STRICT FINAL OVERRIDE: Color Picker Group - Single Seamless Outer Border
+   Guarantees zero inner borders, zero nested backgrounds, zero outlines
+   ========================================================================== */
+.color-picker-group input,
+.color-picker-group input[type="text"],
+.color-picker-group input[type="color"],
+.color-picker-group .color-picker-input,
+.color-picker-group .color-picker-swatch,
+[data-theme="dark"] .color-picker-group input,
+[data-theme="dark"] .color-picker-group input[type="text"],
+[data-theme="dark"] .color-picker-group input[type="color"],
+[data-theme="dark"] .color-picker-group .color-picker-input,
+[data-theme="dark"] .color-picker-group .color-picker-swatch,
+[data-bs-theme="dark"] .color-picker-group input,
+[data-bs-theme="dark"] .color-picker-group input[type="text"],
+[data-bs-theme="dark"] .color-picker-group input[type="color"],
+[data-bs-theme="dark"] .color-picker-group .color-picker-input,
+[data-bs-theme="dark"] .color-picker-group .color-picker-swatch,
+.theme-dark .color-picker-group input,
+.theme-dark .color-picker-group input[type="text"],
+.theme-dark .color-picker-group input[type="color"],
+.theme-dark .color-picker-group .color-picker-input,
+.theme-dark .color-picker-group .color-picker-swatch,
+.dark-theme .color-picker-group input,
+.dark-theme .color-picker-group input[type="text"],
+.dark-theme .color-picker-group input[type="color"],
+.dark-theme .color-picker-group .color-picker-input,
+.dark-theme .color-picker-group .color-picker-swatch,
+body.dark-theme .color-picker-group input,
+body.dark-theme .color-picker-group input[type="text"],
+body.dark-theme .color-picker-group input[type="color"],
+body.dark-theme .color-picker-group .color-picker-input,
+body.dark-theme .color-picker-group .color-picker-swatch,
+body.theme-dark .color-picker-group input,
+body.theme-dark .color-picker-group input[type="text"],
+body.theme-dark .color-picker-group input[type="color"],
+body.theme-dark .color-picker-group .color-picker-input,
+body.theme-dark .color-picker-group .color-picker-swatch {
+    border: none !important;
+    border-width: 0 !important;
+    border-style: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
 

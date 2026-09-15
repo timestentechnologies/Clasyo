@@ -34,46 +34,123 @@
     </div>
 </div>
 
-<!-- Stats Grid -->
-<div class="stats-grid fade-in-up">
-    <div class="stat-card primary">
-        <div class="stat-value">{{ stats.total_schools|default:0 }}</div>
-        <div class="stat-label">Total Schools</div>
-        <div class="stat-sublabel">{{ stats.active_schools|default:0 }} active</div>
-    </div>
-    
-    <div class="stat-card success">
-        <div class="stat-value">{{ stats.total_students|default:0 }}</div>
-        <div class="stat-label">Total Students</div>
-        <div class="stat-sublabel">Across all schools</div>
-    </div>
-    
-    <div class="stat-card warning">
-        <div class="stat-value">{{ stats.total_teachers|default:0 }}</div>
-        <div class="stat-label">Total Teachers</div>
-        <div class="stat-sublabel">Active staff members</div>
-    </div>
-    
-    <div class="stat-card danger">
-        <div class="stat-value">Ksh {{ stats.total_revenue|default:0|floatformat:0 }}</div>
-        <div class="stat-label">Total Revenue</div>
-        <div class="stat-sublabel">All-time earnings</div>
+<!-- Unified Dashboard Overview Grid (Hero + Aligned Side Cards + Visual Chart) -->
+<div class="dashboard-overview-grid fade-in-up mt-3">
+    <!-- 1. Hero Card (Bigger Card - At a Glance Overview) -->
+    <div class="hero-stat-card">
+        <div>
+            <div class="hero-stat-header">
+                <div>
+                    <h3 class="hero-stat-title">System Overview</h3>
+                    <p class="hero-stat-subtitle">All institutions, active deployments & status</p>
+                </div>
+            </div>
+            <div class="hero-stat-main">
+                <div class="hero-stat-primary-value">{{ stats.total_schools|default:0 }}</div>
+                <div class="hero-stat-main-label">Registered Schools</div>
+                <div class="hero-stat-main-sub">Total institutional tenants</div>
+            </div>
+        </div>
+
+        <div class="hero-stat-footer">
+            <div class="hero-sub-metric">
+                <span class="hero-sub-val text-primary">{{ stats.active_schools|default:0 }}</span>
+                <span class="hero-sub-lbl">Active Campuses</span>
+            </div>
+            <div class="hero-sub-metric">
+                <span class="hero-sub-val text-warning">{{ stats.trial_schools|default:0 }}</span>
+                <span class="hero-sub-lbl">Trial Period</span>
+            </div>
+            <div class="hero-sub-metric">
+                <span class="hero-sub-val text-success">Ksh {{ stats.total_revenue|default:0|floatformat:0 }}</span>
+                <span class="hero-sub-lbl">Total Earnings</span>
+            </div>
+        </div>
     </div>
 
-    <div class="stat-card secondary">
-        <div class="stat-value">{{ stats.trial_schools|default:0 }}</div>
-        <div class="stat-label">Trial Schools</div>
-        <div class="stat-sublabel">On trial period</div>
+    <!-- 2. Side Stack Cards (Bottoms Aligned with Hero Card) -->
+    <div class="side-stats-stack">
+        <div class="side-stat-card success">
+            <div class="side-stat-info">
+                <span class="side-stat-val text-success">{{ stats.total_students|default:0 }}</span>
+                <span class="side-stat-lbl">Total Students</span>
+                <span class="side-stat-sub">Across all schools</span>
+            </div>
+            <div class="side-stat-icon">
+                <i class="fas fa-user-graduate"></i>
+            </div>
+        </div>
+
+        <div class="side-stat-card warning">
+            <div class="side-stat-info">
+                <span class="side-stat-val text-warning">{{ stats.total_teachers|default:0 }}</span>
+                <span class="side-stat-lbl">Total Teachers</span>
+                <span class="side-stat-sub">Active staff members</span>
+            </div>
+            <div class="side-stat-icon">
+                <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+        </div>
+
+        <div class="side-stat-card info">
+            <div class="side-stat-info">
+                <span class="side-stat-val text-info">{{ stats.trial_schools|default:0 }}</span>
+                <span class="side-stat-lbl">Trial Schools</span>
+                <span class="side-stat-sub">Pending conversion</span>
+            </div>
+            <div class="side-stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Quick Stats Chart Card (Visual Analytics on the Far Right) -->
+    <div class="quick-stats-chart-card">
+        <div class="quick-stats-chart-header">
+            <h4 class="quick-stats-chart-title">
+                <i class="fas fa-chart-pie text-primary"></i> Quick Stats
+            </h4>
+        </div>
+
+        <div class="quick-stats-chart-body">
+            <canvas id="superadminQuickStatsChart"></canvas>
+        </div>
+
+        <div class="quick-stats-legend">
+            <div class="quick-stats-legend-item">
+                <div class="quick-stats-legend-label">
+                    <span class="quick-stats-legend-dot" style="background-color: #F59E0B;"></span>
+                    <span>Pending Approvals</span>
+                </div>
+                <span class="quick-stats-legend-val">{{ stats.pending_approvals|default:0 }}</span>
+            </div>
+            <div class="quick-stats-legend-item">
+                <div class="quick-stats-legend-label">
+                    <span class="quick-stats-legend-dot" style="background-color: #EF4444;"></span>
+                    <span>Expiring Trials</span>
+                </div>
+                <span class="quick-stats-legend-val">{{ stats.expiring_trials|default:0 }}</span>
+            </div>
+            <div class="quick-stats-legend-item">
+                <div class="quick-stats-legend-label">
+                    <span class="quick-stats-legend-dot" style="background-color: #06B6D4;"></span>
+                    <span>New Messages</span>
+                </div>
+                <span class="quick-stats-legend-val">{{ stats.new_messages|default:0 }}</span>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Dashboard Cards Row -->
-<div class="row mt-4">
-    <div class="col-lg-8">
+<!-- Recent Schools & Management Row -->
+<div class="row mt-2">
+    <div class="col-12">
         <div class="modern-card">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4><i class="fas fa-school"></i> Recent Schools</h4>
-                <a href="{% url 'superadmin:schools' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                <h4><i class="fas fa-school text-primary me-2"></i>Recent Schools</h4>
+                <a href="{% url 'superadmin:schools' %}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-list me-1"></i> View All Schools
+                </a>
             </div>
             {% if recent_schools %}
             <div class="table-responsive">
@@ -100,7 +177,7 @@
                             </td>
                             <td>{{ school.student_count|default:0 }}</td>
                             <td>
-                                <a href="{% url 'superadmin:school_detail' school.pk %}" class="btn btn-sm btn-info">
+                                <a href="{% url 'superadmin:school_detail' school.pk %}" class="btn btn-sm btn-info" title="View Details">
                                     <i class="fas fa-eye"></i>
                                 </a>
                             </td>
@@ -112,33 +189,59 @@
             {% else %}
             <div class="text-center py-5">
                 <i class="fas fa-school fa-3x text-muted mb-3"></i>
-                <p class="text-muted">No schools yet</p>
+                <p class="text-muted">No schools registered yet</p>
                 <a href="{% url 'superadmin:school_create' %}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Add First School
+                    <i class="fas fa-plus me-1"></i> Add First School
                 </a>
             </div>
             {% endif %}
         </div>
     </div>
-
-    <div class="col-lg-4">
-        <div class="modern-card">
-            <h4 class="mb-4"><i class="fas fa-chart-line"></i> Quick Stats</h4>
-            <div class="list-group list-group-flush">
-                <div class="list-group-item d-flex justify-content-between">
-                    <span><i class="fas fa-clock text-warning me-2"></i>Pending Approvals</span>
-                    <strong>{{ stats.pending_approvals|default:0 }}</strong>
-                </div>
-                <div class="list-group-item d-flex justify-content-between">
-                    <span><i class="fas fa-exclamation-triangle text-danger me-2"></i>Expiring Trials</span>
-                    <strong>{{ stats.expiring_trials|default:0 }}</strong>
-                </div>
-                <div class="list-group-item d-flex justify-content-between">
-                    <span><i class="fas fa-envelope text-info me-2"></i>New Messages</span>
-                    <strong>{{ stats.new_messages|default:0 }}</strong>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const canvas = document.getElementById('superadminQuickStatsChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    const approvals = {{ stats.pending_approvals|default:0 }};
+    const expiring = {{ stats.expiring_trials|default:0 }};
+    const messages = {{ stats.new_messages|default:0 }};
+    const total = approvals + expiring + messages;
+
+    const chartData = total > 0 ? [approvals, expiring, messages] : [1, 0, 0];
+    const chartColors = total > 0 
+        ? ['#F59E0B', '#EF4444', '#06B6D4'] 
+        : ['#CBD5E1', 'transparent', 'transparent'];
+
+    new Chart(canvas.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Pending Approvals', 'Expiring Trials', 'New Messages'],
+            datasets: [{
+                data: chartData,
+                backgroundColor: chartColors,
+                borderWidth: 0,
+                hoverOffset: total > 0 ? 5 : 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '72%',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    enabled: total > 0,
+                    callbacks: {
+                        label: function(context) {
+                            return ' ' + context.label + ': ' + context.raw;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

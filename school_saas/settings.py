@@ -194,6 +194,10 @@ else:
         }
     }
 
+# Multi-tenant Database Per School Configuration
+TENANT_DBS_DIR = BASE_DIR / 'tenant_dbs'
+DATABASE_ROUTERS = ['tenants.router.TenantDatabaseRouter']
+
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {

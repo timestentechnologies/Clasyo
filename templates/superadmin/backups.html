@@ -1,0 +1,1052 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Database Backups - Super Admin{% endblock %}
+{% block page_title %}Database Backups{% endblock %}
+{% block page_icon %}database{% endblock %}
+{% block page_subtitle %}Centralized backup management for Master database and all tenant school databases.{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ==========================================================================
+   Global Standard Page Tabs (Exact match to Horizontal Navigation Bar)
+   ========================================================================== */
+.page-tabs-bar {
+    position: relative !important;
+    top: auto !important;
+    z-index: 10 !important;
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid #E2E8F0 !important;
+    padding: 0 4px !important;
+    margin-bottom: 24px !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+}
+
+[data-theme="dark"] .page-tabs-bar,
+[data-bs-theme="dark"] .page-tabs-bar,
+body.dark-theme .page-tabs-bar,
+body.theme-dark .page-tabs-bar,
+html.dark-theme .page-tabs-bar {
+    border-bottom: 1px solid #1E293B !important;
+    background: transparent !important;
+}
+
+.page-nav-tabs {
+    display: flex !important;
+    align-items: center !important;
+    list-style: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 4px !important;
+    white-space: nowrap !important;
+    border: none !important;
+    border-bottom: none !important;
+    width: 100% !important;
+}
+
+.page-tab-item {
+    position: relative !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+}
+
+.page-tab-link,
+button.page-tab-link,
+a.page-tab-link {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    padding: 9px 16px 11px 16px !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    font-family: inherit !important;
+    color: var(--text-secondary, #475569) !important;
+    text-decoration: none !important;
+    border: none !important;
+    border-bottom: 2px solid transparent !important;
+    border-radius: 8px 8px 0 0 !important;
+    background: transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    line-height: 1.4 !important;
+    margin-bottom: -1px !important;
+}
+
+.page-tab-link i {
+    font-size: 14px !important;
+    color: var(--text-muted, #64748B) !important;
+    transition: color 0.2s ease !important;
+}
+
+.page-tab-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    padding: 1px 7px !important;
+    border-radius: 12px !important;
+    background: rgba(100, 116, 139, 0.12) !important;
+    color: var(--text-muted, #64748B) !important;
+    transition: all 0.2s ease !important;
+    margin-left: 4px !important;
+}
+
+/* Light Theme Hover & Active (Matches Horizontal Navbar) */
+.page-tab-link:hover {
+    color: var(--brand-primary, #1E3A5F) !important;
+    background: rgba(0, 0, 0, 0.03) !important;
+}
+
+.page-tab-link:hover i {
+    color: var(--brand-accent, #4DD0E1) !important;
+}
+
+.page-tab-link.active {
+    color: var(--brand-primary, #1E3A5F) !important;
+    font-weight: 600 !important;
+    background: rgba(77, 208, 225, 0.08) !important;
+    border: none !important;
+    border-bottom: 2px solid var(--brand-accent, #4DD0E1) !important;
+    border-radius: 8px 8px 0 0 !important;
+}
+
+.page-tab-link.active i {
+    color: var(--brand-accent, #4DD0E1) !important;
+}
+
+.page-tab-link.active .page-tab-badge {
+    background: var(--brand-accent, #4DD0E1) !important;
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+}
+
+/* Dark Theme Overrides (Matches Horizontal Navbar Dark Mode Exactly) */
+[data-theme="dark"] .page-tab-link,
+[data-bs-theme="dark"] .page-tab-link,
+body.dark-theme .page-tab-link,
+body.theme-dark .page-tab-link,
+html.dark-theme .page-tab-link {
+    color: #CBD5E1 !important;
+}
+
+[data-theme="dark"] .page-tab-link:hover,
+[data-bs-theme="dark"] .page-tab-link:hover,
+body.dark-theme .page-tab-link:hover,
+body.theme-dark .page-tab-link:hover,
+html.dark-theme .page-tab-link:hover {
+    color: #FFFFFF !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme="dark"] .page-tab-link:hover i,
+[data-bs-theme="dark"] .page-tab-link:hover i,
+body.dark-theme .page-tab-link:hover i,
+body.theme-dark .page-tab-link:hover i,
+html.dark-theme .page-tab-link:hover i {
+    color: var(--brand-accent, #4DD0E1) !important;
+}
+
+[data-theme="dark"] .page-tab-link.active,
+[data-bs-theme="dark"] .page-tab-link.active,
+body.dark-theme .page-tab-link.active,
+body.theme-dark .page-tab-link.active,
+html.dark-theme .page-tab-link.active {
+    color: #FFFFFF !important;
+    background: rgba(77, 208, 225, 0.15) !important;
+    border: none !important;
+    border-bottom: 2px solid var(--brand-accent, #4DD0E1) !important;
+    border-radius: 8px 8px 0 0 !important;
+    box-shadow: none !important;
+    font-weight: 600 !important;
+}
+
+[data-theme="dark"] .page-tab-link.active i,
+[data-bs-theme="dark"] .page-tab-link.active i,
+body.dark-theme .page-tab-link.active i,
+body.theme-dark .page-tab-link.active i,
+html.dark-theme .page-tab-link.active i {
+    color: var(--brand-accent, #4DD0E1) !important;
+}
+
+[data-theme="dark"] .page-tab-badge,
+body.dark-theme .page-tab-badge,
+body.theme-dark .page-tab-badge,
+html.dark-theme .page-tab-badge {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #94A3B8 !important;
+}
+
+[data-theme="dark"] .page-tab-link.active .page-tab-badge,
+body.dark-theme .page-tab-link.active .page-tab-badge,
+body.theme-dark .page-tab-link.active .page-tab-badge,
+html.dark-theme .page-tab-link.active .page-tab-badge {
+    background: rgba(77, 208, 225, 0.25) !important;
+    color: var(--brand-accent, #4DD0E1) !important;
+}
+
+/* ==========================================================================
+   Card, Metadata & Dark Theme Styling for Database Backups
+   ========================================================================== */
+.custom-backup-card {
+    background: var(--bg-card, #FFFFFF);
+    border: 1px solid var(--border-color, #E2E8F0) !important;
+    color: var(--text-primary, #0F172A);
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .custom-backup-card,
+[data-bs-theme="dark"] .custom-backup-card,
+body.dark-theme .custom-backup-card,
+body.theme-dark .custom-backup-card,
+html.dark-theme .custom-backup-card {
+    background: var(--dark-unified-bg, #0F172A) !important;
+    border: 1px solid #1E293B !important;
+    color: #F8FAFC !important;
+}
+
+.custom-backup-card .card-header {
+    background: transparent;
+    border-bottom: 1px solid var(--border-color, #E2E8F0) !important;
+}
+
+[data-theme="dark"] .custom-backup-card .card-header,
+[data-bs-theme="dark"] .custom-backup-card .card-header,
+body.dark-theme .custom-backup-card .card-header,
+body.theme-dark .custom-backup-card .card-header,
+html.dark-theme .custom-backup-card .card-header {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-bottom: 1px solid #1E293B !important;
+}
+
+/* Metadata Labels & Values */
+.meta-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted, #64748B);
+    margin-bottom: 4px;
+}
+
+[data-theme="dark"] .meta-label,
+[data-bs-theme="dark"] .meta-label,
+body.dark-theme .meta-label,
+body.theme-dark .meta-label {
+    color: #94A3B8 !important;
+}
+
+.meta-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary, #0F172A);
+}
+
+[data-theme="dark"] .meta-value,
+[data-bs-theme="dark"] .meta-value,
+body.dark-theme .meta-value,
+body.theme-dark .meta-value {
+    color: #F8FAFC !important;
+}
+
+/* Database Path / Alias Code Pills */
+.db-path-code {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    background: #F1F5F9;
+    color: var(--brand-primary, #1E3A5F);
+    border: 1px solid #E2E8F0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.35;
+    vertical-align: middle;
+}
+
+.db-alias-badge-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    vertical-align: middle;
+}
+
+.db-alias-badge-group .badge {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1.2;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .db-path-code,
+[data-bs-theme="dark"] .db-path-code,
+body.dark-theme .db-path-code,
+body.theme-dark .db-path-code {
+    background: rgba(56, 189, 248, 0.1) !important;
+    color: #38BDF8 !important;
+    border: 1px solid rgba(56, 189, 248, 0.25) !important;
+}
+
+/* Badges */
+.badge-engine {
+    background: #E2E8F0;
+    color: #334155;
+    font-weight: 600;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+[data-theme="dark"] .badge-engine,
+[data-bs-theme="dark"] .badge-engine,
+body.dark-theme .badge-engine,
+body.theme-dark .badge-engine {
+    background: #1E293B !important;
+    color: #CBD5E1 !important;
+    border: 1px solid #334155 !important;
+}
+
+.badge-theme-subtle {
+    background: #F1F5F9;
+    color: #475569;
+    border: 1px solid #E2E8F0;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+}
+
+[data-theme="dark"] .badge-theme-subtle,
+[data-bs-theme="dark"] .badge-theme-subtle,
+body.dark-theme .badge-theme-subtle,
+body.theme-dark .badge-theme-subtle {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: #CBD5E1 !important;
+    border: 1px solid #334155 !important;
+}
+
+/* Border Divider */
+.border-divider {
+    border-color: #E2E8F0 !important;
+    opacity: 0.8;
+}
+
+[data-theme="dark"] .border-divider,
+[data-bs-theme="dark"] .border-divider,
+body.dark-theme .border-divider,
+body.theme-dark .border-divider {
+    border-color: #1E293B !important;
+    opacity: 1 !important;
+}
+
+/* Master Info Tiles (Highlight Cards in Tab 1) */
+.master-info-tile {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: 12px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    transition: all 0.2s ease;
+}
+
+.master-info-tile:hover {
+    border-color: var(--brand-accent, #4DD0E1);
+    transform: translateY(-1px);
+}
+
+[data-theme="dark"] .master-info-tile,
+[data-bs-theme="dark"] .master-info-tile,
+body.dark-theme .master-info-tile,
+body.theme-dark .master-info-tile,
+html.dark-theme .master-info-tile {
+    background: rgba(15, 23, 42, 0.65) !important;
+    border: 1px solid #1E293B !important;
+    box-shadow: none !important;
+}
+
+[data-theme="dark"] .master-info-tile:hover,
+[data-bs-theme="dark"] .master-info-tile:hover,
+body.dark-theme .master-info-tile:hover,
+body.theme-dark .master-info-tile:hover {
+    border-color: var(--brand-accent, #4DD0E1) !important;
+}
+
+.master-info-tile .tile-icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+}
+
+.master-info-tile .tile-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.master-info-tile .tile-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted, #64748B);
+    margin-bottom: 2px;
+}
+
+[data-theme="dark"] .master-info-tile .tile-label,
+[data-bs-theme="dark"] .master-info-tile .tile-label,
+body.dark-theme .master-info-tile .tile-label,
+body.theme-dark .master-info-tile .tile-label {
+    color: #94A3B8 !important;
+}
+
+.master-info-tile .tile-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary, #0F172A);
+    line-height: 1.3;
+}
+
+[data-theme="dark"] .master-info-tile .tile-value,
+[data-bs-theme="dark"] .master-info-tile .tile-value,
+body.dark-theme .master-info-tile .tile-value,
+body.theme-dark .master-info-tile .tile-value {
+    color: #F8FAFC !important;
+}
+
+.master-info-tile .tile-desc {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted, #64748B);
+    margin-top: 4px;
+    line-height: 1.35;
+}
+
+[data-theme="dark"] .master-info-tile .tile-desc,
+[data-bs-theme="dark"] .master-info-tile .tile-desc,
+body.dark-theme .master-info-tile .tile-desc,
+body.theme-dark .master-info-tile .tile-desc {
+    color: #64748B !important;
+}
+
+/* Subtle Icon Containers */
+.bg-primary-subtle {
+    background-color: rgba(30, 58, 95, 0.1) !important;
+}
+.bg-success-subtle {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+}
+.bg-info-subtle {
+    background-color: rgba(6, 182, 212, 0.1) !important;
+}
+
+[data-theme="dark"] .bg-primary-subtle,
+[data-bs-theme="dark"] .bg-primary-subtle,
+body.dark-theme .bg-primary-subtle {
+    background-color: rgba(77, 208, 225, 0.15) !important;
+    color: #4DD0E1 !important;
+}
+[data-theme="dark"] .bg-success-subtle,
+[data-bs-theme="dark"] .bg-success-subtle,
+body.dark-theme .bg-success-subtle {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+    color: #10B981 !important;
+}
+[data-theme="dark"] .bg-info-subtle,
+[data-bs-theme="dark"] .bg-info-subtle,
+body.dark-theme .bg-info-subtle {
+    background-color: rgba(56, 189, 248, 0.15) !important;
+    color: #38BDF8 !important;
+}
+
+/* Fallback override for any remaining bg-light-subtle in dark mode */
+[data-theme="dark"] .bg-light-subtle,
+[data-bs-theme="dark"] .bg-light-subtle,
+body.dark-theme .bg-light-subtle,
+body.theme-dark .bg-light-subtle {
+    background-color: rgba(15, 23, 42, 0.65) !important;
+    border-color: #1E293B !important;
+    color: #F8FAFC !important;
+}
+
+/* Table Dark Theme Overrides for Tenant and Archive Tabs */
+[data-theme="dark"] .table,
+[data-bs-theme="dark"] .table,
+body.dark-theme .table {
+    --bs-table-bg: transparent !important;
+    --bs-table-color: #F8FAFC !important;
+    border-color: #1E293B !important;
+    color: #F8FAFC !important;
+}
+
+[data-theme="dark"] thead.table-light th,
+[data-bs-theme="dark"] thead.table-light th,
+body.dark-theme thead.table-light th {
+    background-color: rgba(15, 23, 42, 0.95) !important;
+    color: #94A3B8 !important;
+    border-color: #1E293B !important;
+}
+
+[data-theme="dark"] .table-hover > tbody > tr:hover > * {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    color: #FFFFFF !important;
+}
+
+/* Button Theming */
+[data-theme="dark"] .btn-outline-primary,
+[data-bs-theme="dark"] .btn-outline-primary,
+body.dark-theme .btn-outline-primary {
+    color: var(--brand-accent, #4DD0E1) !important;
+    border-color: var(--brand-accent, #4DD0E1) !important;
+}
+
+[data-theme="dark"] .btn-outline-primary:hover,
+[data-bs-theme="dark"] .btn-outline-primary:hover,
+body.dark-theme .btn-outline-primary:hover {
+    background-color: var(--brand-accent, #4DD0E1) !important;
+    color: #0F172A !important;
+}
+</style>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex align-items-center gap-2">
+    <form method="POST" action="{% url 'superadmin:backup_create' %}" class="d-inline"
+        onsubmit="return confirm('Trigger an immediate snapshot backup of the Master database?');">
+        {% csrf_token %}
+        <input type="hidden" name="target" value="master">
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-server me-1"></i> Backup Master DB
+        </button>
+    </form>
+    <form method="POST" action="{% url 'superadmin:backup_create' %}" class="d-inline"
+        onsubmit="return confirm('Trigger a snapshot backup for ALL tenant school databases?');">
+        {% csrf_token %}
+        <input type="hidden" name="target" value="all_tenants">
+        <button type="submit" class="btn btn-outline-success">
+            <i class="fas fa-layer-group me-1"></i> Backup All Schools
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <!-- KPI / Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100 bg-primary bg-gradient text-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-white-50 small text-uppercase fw-bold">Master DB Size</div>
+                        <div class="fs-4 fw-bold mt-1">{{ master_db.size_display }}</div>
+                        <div class="small mt-1 text-white-50"><i class="fas fa-table me-1"></i>{{ master_db.table_count }} Tables</div>
+                    </div>
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 text-white">
+                        <i class="fas fa-server fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100 bg-info bg-gradient text-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-white-50 small text-uppercase fw-bold">Tenant Databases</div>
+                        <div class="fs-4 fw-bold mt-1">{{ tenant_databases|length }}</div>
+                        <div class="small mt-1 text-white-50"><i class="fas fa-cubes me-1"></i>Active School Tenants</div>
+                    </div>
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 text-white">
+                        <i class="fas fa-cubes fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100 bg-secondary bg-gradient text-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-white-50 small text-uppercase fw-bold">Total Backups</div>
+                        <div class="fs-4 fw-bold mt-1">{{ stats.total_backups_count }}</div>
+                        <div class="small mt-1 text-white-50"><i class="fas fa-check-circle me-1"></i>Master: {{ stats.master_backups_count }} | Tenants: {{ stats.total_backups_count|add:"-1"|default:"0" }}</div>
+                    </div>
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 text-white">
+                        <i class="fas fa-archive fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100 bg-dark bg-gradient text-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-white-50 small text-uppercase fw-bold">Backup Disk Space</div>
+                        <div class="fs-4 fw-bold mt-1">{{ stats.total_size_display }}</div>
+                        <div class="small mt-1 text-white-50"><i class="fas fa-hdd me-1"></i>Compressed Storage</div>
+                    </div>
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 text-white">
+                        <i class="fas fa-hdd fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Standard Page Tabs (Matching Horizontal Navigation Style) -->
+    <div class="page-tabs-bar mb-4">
+        <ul class="page-nav-tabs nav" id="backupsTabs" role="tablist">
+            <li class="page-tab-item" role="presentation">
+                <button class="page-tab-link active" id="tab-master-link" data-bs-toggle="tab"
+                    data-bs-target="#tab-master-pane" type="button" role="tab" aria-controls="tab-master-pane"
+                    aria-selected="true">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Master Database (System Core)</span>
+                    <span class="page-tab-badge">Core</span>
+                </button>
+            </li>
+            <li class="page-tab-item" role="presentation">
+                <button class="page-tab-link" id="tab-tenants-link" data-bs-toggle="tab"
+                    data-bs-target="#tab-tenants-pane" type="button" role="tab" aria-controls="tab-tenants-pane"
+                    aria-selected="false">
+                    <i class="fas fa-school"></i>
+                    <span>School Tenant Databases</span>
+                    <span class="page-tab-badge">{{ tenant_databases|length }}</span>
+                </button>
+            </li>
+            <li class="page-tab-item" role="presentation">
+                <button class="page-tab-link" id="tab-archives-link" data-bs-toggle="tab"
+                    data-bs-target="#tab-archives-pane" type="button" role="tab" aria-controls="tab-archives-pane"
+                    aria-selected="false">
+                    <i class="fas fa-history"></i>
+                    <span>Backup Archives & Downloads</span>
+                    <span class="page-tab-badge">{{ stats.total_backups_count }}</span>
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Tabbed Content Panes -->
+    <div class="tab-content" id="backupsTabsContent">
+
+        <!-- ================================================================= -->
+        <!-- TAB PANE 1: Master Database (System Core)                          -->
+        <!-- ================================================================= -->
+        <div class="tab-pane fade show active" id="tab-master-pane" role="tabpanel" aria-labelledby="tab-master-link">
+            <div class="card border-0 shadow-sm rounded-3 mb-4 custom-backup-card">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center border-bottom">
+                    <div>
+                        <h5 class="mb-0 fw-bold">
+                            <i class="fas fa-shield-alt text-primary me-2"></i>Master Database (System Core)
+                        </h5>
+                        <small class="text-muted">Primary database housing global schemas, user authentication, and system configs</small>
+                    </div>
+                    <span class="badge bg-primary text-uppercase px-3 py-2">Master Core ('default')</span>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-3">
+                            <small class="meta-label">Database File / Alias</small>
+                            <div class="fw-semibold text-truncate" title="{{ master_db.db_name }}">
+                                <code class="db-path-code">{{ master_db.db_name }}</code>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <small class="meta-label">Engine</small>
+                            <div><span class="badge badge-engine text-uppercase">{{ master_db.engine }}</span></div>
+                        </div>
+                        <div class="col-md-2">
+                            <small class="meta-label">Current Size</small>
+                            <div class="meta-value">{{ master_db.size_display }}</div>
+                        </div>
+                        <div class="col-md-2">
+                            <small class="meta-label">Last Master Backup</small>
+                            <div>
+                                {% if master_db.last_backup %}
+                                <span class="text-success fw-semibold">{{ master_db.last_backup.created_at|date:"M d, Y H:i" }}</span>
+                                {% else %}
+                                <span class="text-muted">No backups yet</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-md-end">
+                            <form method="POST" action="{% url 'superadmin:backup_create' %}" class="d-inline"
+                                onsubmit="return confirm('Trigger an immediate snapshot backup of the Master database?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="target" value="master">
+                                <button type="submit" class="btn btn-outline-primary btn-sm px-3">
+                                    <i class="fas fa-download me-1"></i> Snapshot Master Now
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <hr class="my-4 border-divider">
+
+                    <!-- Quick Master Info Highlights -->
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="master-info-tile">
+                                <div class="tile-icon-wrap bg-primary-subtle text-primary">
+                                    <i class="fas fa-table"></i>
+                                </div>
+                                <div class="tile-content">
+                                    <div class="tile-label">Tables Count</div>
+                                    <div class="tile-value">{{ master_db.table_count }} Registered Tables</div>
+                                    <small class="tile-desc">Core, accounts, superadmin, and subscriptions</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="master-info-tile">
+                                <div class="tile-icon-wrap bg-success-subtle text-success">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <div class="tile-content">
+                                    <div class="tile-label">Isolation Mode</div>
+                                    <div class="tile-value text-success"><i class="fas fa-shield-alt me-1"></i>Isolated Host</div>
+                                    <small class="tile-desc">Protected from direct tenant database writes</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="master-info-tile">
+                                <div class="tile-icon-wrap bg-info-subtle text-info">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="tile-content">
+                                    <div class="tile-label">Automated Snapshot Task</div>
+                                    <div class="tile-value text-primary"><i class="fas fa-calendar-check me-1"></i>Daily Scheduled</div>
+                                    <small class="tile-desc">Managed by Celery beat task worker</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- TAB PANE 2: School Tenant Databases                               -->
+        <!-- ================================================================= -->
+        <div class="tab-pane fade" id="tab-tenants-pane" role="tabpanel" aria-labelledby="tab-tenants-link">
+            <div class="card border-0 shadow-sm rounded-3 mb-4 custom-backup-card">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center border-bottom">
+                    <div>
+                        <h5 class="mb-0 fw-bold">
+                            <i class="fas fa-school text-info me-2"></i>School Tenant Databases
+                        </h5>
+                        <small class="text-muted">Individual dedicated databases provisioned for schools and user
+                            tenants</small>
+                    </div>
+                    <span class="badge badge-theme-subtle">{{ tenant_databases|length }} Provisioned</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">School Name</th>
+                                <th>Database Alias</th>
+                                <th>Engine</th>
+                                <th>Size</th>
+                                <th>Tables</th>
+                                <th>Total Backups</th>
+                                <th>Last Backup</th>
+                                <th class="text-end pe-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in tenant_databases %}
+                            <tr>
+                                <td class="ps-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm rounded-circle bg-primary-subtle d-flex align-items-center justify-content-center me-2"
+                                            style="width: 32px; height: 32px;">
+                                            <i class="fas fa-graduation-cap text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ item.school.name }}</div>
+                                            <small class="text-muted">{{ item.school.email }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="db-alias-badge-group">
+                                        <code class="db-path-code">{{ item.db_alias }}</code>
+                                        {% if item.is_ready %}
+                                        <span class="badge bg-success-subtle text-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-warning-subtle text-warning">Pending</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td><span class="badge badge-engine text-uppercase">{{ item.engine }}</span></td>
+                                <td><strong>{{ item.size_display }}</strong></td>
+                                <td>{{ item.table_count }}</td>
+                                <td>
+                                    <span class="badge badge-theme-subtle">{{ item.total_backups }}</span>
+                                </td>
+                                <td>
+                                    {% if item.last_backup %}
+                                    <small class="text-muted">{{ item.last_backup.created_at|date:"M d, Y H:i"
+                                        }}</small>
+                                    {% else %}
+                                    <small class="text-muted">Never</small>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-3">
+                                    <div class="btn-group btn-group-sm">
+                                        <form method="POST" action="{% url 'superadmin:backup_create' %}"
+                                            class="d-inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="target" value="{{ item.school.slug }}">
+                                            <button type="submit" class="btn btn-outline-primary btn-sm"
+                                                title="Backup this school's database">
+                                                <i class="fas fa-download me-1"></i> Backup
+                                            </button>
+                                        </form>
+                                        <a href="?db={{ item.school.slug }}#archives"
+                                            class="btn btn-outline-secondary btn-sm ms-1"
+                                            title="View backup history in Archives tab">
+                                            <i class="fas fa-list"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-muted">
+                                    <i class="fas fa-info-circle me-1"></i> No tenant databases found.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- TAB PANE 3: Backup Archives & Downloads                           -->
+        <!-- ================================================================= -->
+        <div class="tab-pane fade" id="tab-archives-pane" role="tabpanel" aria-labelledby="tab-archives-link">
+            <div class="card border-0 shadow-sm rounded-3 custom-backup-card">
+                <div class="card-header py-3 border-bottom">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <h5 class="mb-0 fw-bold">
+                                <i class="fas fa-history text-secondary me-2"></i>Backup Archives & Downloads
+                            </h5>
+                            <small class="text-muted">All completed and recorded database snapshots across Master and
+                                Tenants</small>
+                        </div>
+                        <!-- Filter by Database -->
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="small text-muted mb-0">Filter DB:</label>
+                            <select class="form-select form-select-sm" style="width: auto;"
+                                onchange="location.href='?db=' + this.value + '#archives';">
+                                <option value="all" {% if selected_filter == 'all' %}selected{% endif %}>All Databases</option>
+                                <option value="master" {% if selected_filter == 'master' %}selected{% endif %}>Master Database Only</option>
+                                <optgroup label="School Tenants">
+                                    {% for sch in all_schools %}
+                                    <option value="{{ sch.slug }}" {% if selected_filter == sch.slug %}selected{% endif %}>{{ sch.name }} ({{ sch.slug }})</option>
+                                    {% endfor %}
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Target Database</th>
+                                <th>Type</th>
+                                <th>Archive File</th>
+                                <th>Size</th>
+                                <th>Engine</th>
+                                <th>Created At</th>
+                                <th>Created By</th>
+                                <th>Status</th>
+                                <th class="text-end pe-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in backups %}
+                            <tr>
+                                <td class="ps-3">
+                                    {% if b.backup_type == 'master' %}
+                                    <span class="badge bg-primary px-2 py-1"><i class="fas fa-server me-1"></i>Master
+                                        (default)</span>
+                                    {% else %}
+                                    <strong>{{ b.school.name|default:b.db_alias }}</strong>
+                                    <br><small class="text-muted"><code class="db-path-code">{{ b.db_alias }}</code></small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if b.backup_type == 'master' %}
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">System</span>
+                                    {% else %}
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle">Tenant</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <code class="db-path-code">{{ b.file_name }}</code>
+                                </td>
+                                <td><strong>{{ b.file_size_display }}</strong></td>
+                                <td><span class="badge badge-engine text-uppercase">{{ b.engine }}</span></td>
+                                <td>{{ b.created_at|date:"M d, Y H:i:s" }}</td>
+                                <td>
+                                    {% if b.created_by %}
+                                    <small class="text-muted">{{ b.created_by.get_full_name|default:b.created_by.email
+                                        }}</small>
+                                    {% else %}
+                                    <small class="text-muted">System/Auto</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if b.status == 'completed' %}
+                                    <span class="badge bg-success"><i
+                                            class="fas fa-check-circle me-1"></i>Completed</span>
+                                    {% else %}
+                                    <span class="badge bg-danger" title="{{ b.error_message }}"><i
+                                            class="fas fa-times-circle me-1"></i>Failed</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-3">
+                                    <div class="btn-group btn-group-sm">
+                                        {% if b.status == 'completed' %}
+                                        <a href="{% url 'superadmin:backup_download' b.id %}"
+                                            class="btn btn-success btn-sm" title="Download backup archive">
+                                            <i class="fas fa-download"></i> Download
+                                        </a>
+                                        {% endif %}
+                                        <form method="POST" action="{% url 'superadmin:backup_delete' b.id %}"
+                                            class="d-inline ms-1"
+                                            onsubmit="return confirm('Are you sure you want to permanently delete backup {{ b.file_name }}?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-danger btn-sm"
+                                                title="Delete backup">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center py-5 text-muted">
+                                    <i class="fas fa-archive fa-3x text-muted mb-3 d-block"></i>
+                                    <h6>No backups recorded yet</h6>
+                                    <p class="small mb-3">Click <strong>Backup Master DB</strong> or backup any school
+                                        above to create a snapshot.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Tab Activation & Hash Synchronization Script -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasFilter = urlParams.has('db') && urlParams.get('db') !== 'all';
+        const hash = window.location.hash;
+        const savedTab = sessionStorage.getItem('superadmin_backups_active_tab');
+
+        function activateTab(tabBtnId, paneId, updateUrl) {
+            // Remove active and aria-selected from all buttons
+            document.querySelectorAll('#backupsTabs .page-tab-link').forEach(function (btn) {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
+            // Hide all tab panes
+            document.querySelectorAll('#backupsTabsContent .tab-pane').forEach(function (pane) {
+                pane.classList.remove('show', 'active');
+            });
+
+            // Activate specific button and pane
+            const btn = document.getElementById(tabBtnId);
+            const pane = document.getElementById(paneId);
+            if (btn && pane) {
+                btn.classList.add('active');
+                btn.setAttribute('aria-selected', 'true');
+                pane.classList.add('show', 'active');
+                sessionStorage.setItem('superadmin_backups_active_tab', tabBtnId);
+            }
+
+            // Cleanly synchronize the URL
+            if (updateUrl) {
+                if (paneId === 'tab-master-pane') {
+                    window.history.replaceState(null, null, window.location.pathname + '#master');
+                } else if (paneId === 'tab-tenants-pane') {
+                    window.history.replaceState(null, null, window.location.pathname + '#tenants');
+                } else if (paneId === 'tab-archives-pane') {
+                    const search = window.location.search || '';
+                    window.history.replaceState(null, null, window.location.pathname + search + '#archives');
+                }
+            }
+        }
+
+        // 1. Initial tab activation on load:
+        // Hash in URL has absolute highest priority so refreshes and direct links never get misdirected
+        if (hash === '#master' || hash === '#tab-master-pane') {
+            activateTab('tab-master-link', 'tab-master-pane', false);
+        } else if (hash === '#tenants' || hash === '#tab-tenants-pane') {
+            activateTab('tab-tenants-link', 'tab-tenants-pane', false);
+        } else if (hash === '#archives' || hash === '#backupHistory' || hash === '#tab-archives-pane') {
+            activateTab('tab-archives-link', 'tab-archives-pane', false);
+        } else if (hasFilter) {
+            // If explicit ?db=... search filter is present without a conflicting hash
+            activateTab('tab-archives-link', 'tab-archives-pane', false);
+        } else if (savedTab === 'tab-tenants-link') {
+            activateTab('tab-tenants-link', 'tab-tenants-pane', false);
+        } else if (savedTab === 'tab-archives-link') {
+            activateTab('tab-archives-link', 'tab-archives-pane', false);
+        } else {
+            // Default to Master Database
+            activateTab('tab-master-link', 'tab-master-pane', false);
+        }
+
+        // 2. Click handler to cleanly toggle tabs, update URL, and remember in session
+        const tabButtons = document.querySelectorAll('#backupsTabs .page-tab-link');
+        tabButtons.forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetPaneId = this.getAttribute('data-bs-target').replace('#', '');
+                activateTab(this.id, targetPaneId, true);
+            });
+        });
+    });
+</script>
+{% endblock %}

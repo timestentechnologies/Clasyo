@@ -1726,9 +1726,8 @@ class SchoolRegistrationView(View):
                 f'You can access your dashboard at /school/{school_slug}/'
             )
             
-            # Redirect to school dashboard
-            from django.urls import reverse
-            return redirect('core:dashboard', school_slug=school.slug)
+            # Redirect to interactive workspace provisioning screen
+            return redirect('tenants:workspace_provisioning', school_slug=school.slug)
             
         except Exception as e:
             messages.error(request, f'Registration failed: {str(e)}')

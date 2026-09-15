@@ -116,11 +116,13 @@ class LoginView(View):
                         redirect_target = next_url
                     else:
                         from tenants.models import School
+                        from tenants.services import ensure_school_database
                         school = getattr(user, 'school', None)
                         if not school:
                             school = School.objects.filter(is_active=True).first()
                         
                         if school:
+                            ensure_school_database(school)
                             messages.success(request, f'Welcome back, {user.get_full_name()}!')
                             redirect_target = reverse_lazy('core:apps_home', kwargs={'school_slug': school.slug})
                         else:

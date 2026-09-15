@@ -1812,3 +1812,64 @@ class SchoolEmailConfiguration(models.Model):
                 })
         
         return config
+
+
+class DatabaseBackup(models.Model):
+    """Stores metadata for database backups (both Master and Tenant databases)"""
+    BACKUP_TYPE_CHOICES = [
+        ('master', _('Master Database')),
+        ('tenant', _('Tenant Database')),
+    ]
+    STATUS_CHOICES = [
+        ('completed', _('Completed')),
+        ('failed', _('Failed')),
+        ('in_progress', _('In Progress')),
+    ]
+
+    school = models.ForeignKey(
+        School, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True, 
+        related_name='database_backups',
+        help_text=_("Associated school tenant. Null indicates the master database.")
+    )
+    db_alias = models.CharField(max_length=100, default='default', verbose_name=_("Database Alias"))
+    backup_type = models.CharField(max_length=20, choices=BACKUP_TYPE_CHOICES, default='tenant', verbose_name=_("Backup Type"))
+    file_name = models.CharField(max_length=255, verbose_name=_("File Name"))
+    file_path = models.CharField(max_length=500, verbose_name=_("File Path"))
+    file_size_bytes = models.BigIntegerField(default=0, verbose_name=_("File Size (Bytes)"))
+    engine = models.CharField(max_length=50, default='sqlite3', verbose_name=_("Database Engine"))
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='completed', verbose_name=_("Status"))
+    error_message = models.TextField(blank=True, null=True, verbose_name=_("Error Message"))
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='created_database_backups',
+        verbose_name=_("Created By")
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Database Backup")
+        verbose_name_plural = _("Database Backups")
+        ordering = ['-created_at']
+
+    def __str__(self):
+        target = self.school.name if self.school else f"Master ({self.db_alias})"
+        return f"Backup - {target} - {self.created_at.strftime('%Y-%m-%d %H:%M:%S')}"
+
+    @property
+    def file_size_display(self):
+        """Format byte size into human readable string"""
+        bytes_val = self.file_size_bytes or 0
+        if bytes_val < 1024:
+            return f"{bytes_val} B"
+        elif bytes_val < 1024 * 1024:
+            return f"{round(bytes_val / 1024, 1)} KB"
+        elif bytes_val < 1024 * 1024 * 1024:
+            return f"{round(bytes_val / (1024 * 1024), 2)} MB"
+        else:
+            return f"{round(bytes_val / (1024 * 1024 * 1024), 2)} GB"

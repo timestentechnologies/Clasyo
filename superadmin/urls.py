@@ -107,4 +107,14 @@ urlpatterns = [
     path('school/<slug:school_slug>/settings/email/create/', views.SchoolEmailConfigurationCreateView.as_view(), name='school_email_config_create'),
     path('school/<slug:school_slug>/settings/email/<int:pk>/edit/', views.SchoolEmailConfigurationUpdateView.as_view(), name='school_email_config_update'),
     path('school/<slug:school_slug>/settings/email/<int:pk>/delete/', views.SchoolEmailConfigurationDeleteView.as_view(), name='school_email_config_delete'),
+
+    # Database Backups (Super Admin - Master & All Tenants)
+    path('backups/', views.SuperAdminBackupListView.as_view(), name='backups'),
+    path('backups/create/', views.SuperAdminCreateBackupView.as_view(), name='backup_create'),
+    path('backups/<int:pk>/download/', views.SuperAdminBackupDownloadView.as_view(), name='backup_download'),
+    path('backups/<int:pk>/delete/', views.SuperAdminBackupDeleteView.as_view(), name='backup_delete'),
+
+    # Global Search
+    path('search/', views.SuperAdminSearchView.as_view(), name='search'),
+    path('api/search/', views.SuperAdminSearchApiView.as_view(), name='search_api'),
 ]

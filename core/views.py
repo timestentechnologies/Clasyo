@@ -1721,35 +1721,182 @@ class ProfileView(LoginRequiredMixin, TemplateView):
 
 
 class SearchView(LoginRequiredMixin, TemplateView):
-    """Global search view"""
+    """Global search view for school context"""
     template_name = 'core/search.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['school_slug'] = self.kwargs.get('school_slug', '')
-        query = self.request.GET.get('q', '')
+        school_slug = self.kwargs.get('school_slug', '')
+        context['school_slug'] = school_slug
+        query = self.request.GET.get('q', '').strip()
         context['query'] = query
         
-        # Simple search implementation (can be enhanced)
+        SCHOOL_MODULES = [
+            {'title': 'Students Directory', 'desc': 'Manage student enrollments, profiles, and records', 'url': f'/school/{school_slug}/students/', 'icon': 'fas fa-user-graduate', 'category': 'Students'},
+            {'title': 'Admit New Student', 'desc': 'New student admission registration form', 'url': f'/school/{school_slug}/students/add/', 'icon': 'fas fa-user-plus', 'category': 'Students'},
+            {'title': 'Parents & Guardians', 'desc': 'Parent contact details, students linked', 'url': f'/school/{school_slug}/students/parents/', 'icon': 'fas fa-user-friends', 'category': 'Students'},
+            {'title': 'Classes & Sections', 'desc': 'Class structures, sections, class teachers', 'url': f'/school/{school_slug}/academics/classes/', 'icon': 'fas fa-chalkboard', 'category': 'Academics'},
+            {'title': 'Subjects Management', 'desc': 'Curriculum subjects, codes, and teachers', 'url': f'/school/{school_slug}/academics/subjects/', 'icon': 'fas fa-book', 'category': 'Academics'},
+            {'title': 'Class Routine & Timetable', 'desc': 'Weekly schedules, periods, teacher allocations', 'url': f'/school/{school_slug}/academics/routines/', 'icon': 'fas fa-calendar-alt', 'category': 'Academics'},
+            {'title': 'Teachers & Staff', 'desc': 'Human resources, faculty directory, salaries', 'url': f'/school/{school_slug}/hr/staff/', 'icon': 'fas fa-chalkboard-teacher', 'category': 'HR'},
+            {'title': 'Daily Attendance', 'desc': 'Mark and review student & staff attendance', 'url': f'/school/{school_slug}/attendance/', 'icon': 'fas fa-clipboard-check', 'category': 'Attendance'},
+            {'title': 'Fees Management & Collect', 'desc': 'Student fee structures, invoice receipts, waivers', 'url': f'/school/{school_slug}/fees/', 'icon': 'fas fa-money-bill-wave', 'category': 'Finance'},
+            {'title': 'Fee Invoices', 'desc': 'View and manage student fee invoices', 'url': f'/school/{school_slug}/fees/invoices/', 'icon': 'fas fa-file-invoice-dollar', 'category': 'Finance'},
+            {'title': 'Exams & Results', 'desc': 'Exam schedules, mark sheets, grade reports', 'url': f'/school/{school_slug}/examinations/', 'icon': 'fas fa-file-alt', 'category': 'Examinations'},
+            {'title': 'Homework & Assignments', 'desc': 'Digital assignments, submissions, feedback', 'url': f'/school/{school_slug}/homework/', 'icon': 'fas fa-tasks', 'category': 'Academics'},
+            {'title': 'Library Books', 'desc': 'Book catalog, issues, returns, and fines', 'url': f'/school/{school_slug}/library/', 'icon': 'fas fa-book-reader', 'category': 'Library'},
+            {'title': 'Transport & Routes', 'desc': 'Bus routes, vehicles, driver assignments', 'url': f'/school/{school_slug}/transport/', 'icon': 'fas fa-bus', 'category': 'Transport'},
+            {'title': 'Dormitory & Hostels', 'desc': 'Rooms, bed capacity, student room allocations', 'url': f'/school/{school_slug}/dormitory/', 'icon': 'fas fa-hotel', 'category': 'Dormitory'},
+            {'title': 'Communication & Notices', 'desc': 'Send SMS notices, circulars, and messages', 'url': f'/school/{school_slug}/communication/notices/', 'icon': 'fas fa-bullhorn', 'category': 'Communication'},
+            {'title': 'School Database Backups', 'desc': 'Dedicated school database snapshot backups', 'url': f'/school/{school_slug}/backups/', 'icon': 'fas fa-database', 'category': 'System'},
+            {'title': 'School Settings', 'desc': 'General school info, academic year, grading scale', 'url': f'/school/{school_slug}/settings/', 'icon': 'fas fa-cog', 'category': 'Settings'},
+        ]
+
         if query:
+            q_lower = query.lower()
+            context['matched_pages'] = [
+                p for p in SCHOOL_MODULES
+                if q_lower in p['title'].lower() or q_lower in p['desc'].lower() or q_lower in p['category'].lower()
+            ]
+
             from students.models import Student
             from accounts.models import User
-            
+
             context['students'] = Student.objects.filter(
                 Q(first_name__icontains=query) |
                 Q(last_name__icontains=query) |
                 Q(admission_number__icontains=query) |
                 Q(roll_number__icontains=query)
-            )[:10]
-            
+            )[:15]
+
             context['staff'] = User.objects.filter(
                 Q(first_name__icontains=query) |
                 Q(last_name__icontains=query) |
                 Q(email__icontains=query),
-                role__in=['teacher', 'staff', 'accountant']
-            )[:10]
-        
+                role__in=['teacher', 'staff', 'accountant', 'librarian', 'driver', 'admin', 'school_admin']
+            )[:15]
+
+            try:
+                from academics.models import ClassSection
+                context['classes'] = ClassSection.objects.filter(
+                    Q(name__icontains=query) | Q(class_room__name__icontains=query)
+                )[:10]
+            except Exception:
+                context['classes'] = []
+        else:
+            context['matched_pages'] = SCHOOL_MODULES[:8]
+            context['students'] = []
+            context['staff'] = []
+            context['classes'] = []
+
+        total_results = (
+            len(context.get('matched_pages', [])) +
+            len(context.get('students', [])) +
+            len(context.get('staff', [])) +
+            len(context.get('classes', []))
+        )
+        context['total_results'] = total_results
         return context
+
+
+class SchoolSearchApiView(LoginRequiredMixin, View):
+    """Live AJAX search endpoint for school top header dropdown"""
+
+    def get(self, request, school_slug, *args, **kwargs):
+        query = request.GET.get('q', '').strip()
+        if not query or len(query) < 1:
+            return JsonResponse({'query': '', 'pages': [], 'students': [], 'staff': [], 'classes': []})
+
+        q_lower = query.lower()
+        SCHOOL_MODULES = [
+            {'title': 'Students Directory', 'desc': 'Manage student enrollments and records', 'url': f'/school/{school_slug}/students/', 'icon': 'fas fa-user-graduate', 'category': 'Students'},
+            {'title': 'Admit New Student', 'desc': 'Student registration form', 'url': f'/school/{school_slug}/students/add/', 'icon': 'fas fa-user-plus', 'category': 'Students'},
+            {'title': 'Parents & Guardians', 'desc': 'Parent contact details', 'url': f'/school/{school_slug}/students/parents/', 'icon': 'fas fa-user-friends', 'category': 'Students'},
+            {'title': 'Classes & Sections', 'desc': 'Class structures and sections', 'url': f'/school/{school_slug}/academics/classes/', 'icon': 'fas fa-chalkboard', 'category': 'Academics'},
+            {'title': 'Subjects Management', 'desc': 'Curriculum subjects and codes', 'url': f'/school/{school_slug}/academics/subjects/', 'icon': 'fas fa-book', 'category': 'Academics'},
+            {'title': 'Teachers & Staff', 'desc': 'Faculty and employee directory', 'url': f'/school/{school_slug}/hr/staff/', 'icon': 'fas fa-chalkboard-teacher', 'category': 'HR'},
+            {'title': 'Daily Attendance', 'desc': 'Mark and review attendance', 'url': f'/school/{school_slug}/attendance/', 'icon': 'fas fa-clipboard-check', 'category': 'Attendance'},
+            {'title': 'Fees Management', 'desc': 'Fee collections and invoices', 'url': f'/school/{school_slug}/fees/', 'icon': 'fas fa-money-bill-wave', 'category': 'Finance'},
+            {'title': 'Fee Invoices', 'desc': 'Student fee billing', 'url': f'/school/{school_slug}/fees/invoices/', 'icon': 'fas fa-file-invoice-dollar', 'category': 'Finance'},
+            {'title': 'Exams & Results', 'desc': 'Marksheets and grades', 'url': f'/school/{school_slug}/examinations/', 'icon': 'fas fa-file-alt', 'category': 'Examinations'},
+            {'title': 'Library Books', 'desc': 'Catalog and issues', 'url': f'/school/{school_slug}/library/', 'icon': 'fas fa-book-reader', 'category': 'Library'},
+            {'title': 'Transport & Routes', 'desc': 'Bus routes and vehicles', 'url': f'/school/{school_slug}/transport/', 'icon': 'fas fa-bus', 'category': 'Transport'},
+            {'title': 'Notices & Communication', 'desc': 'Send SMS and announcements', 'url': f'/school/{school_slug}/communication/notices/', 'icon': 'fas fa-bullhorn', 'category': 'Communication'},
+            {'title': 'Database Backups', 'desc': 'Dedicated school database backups', 'url': f'/school/{school_slug}/backups/', 'icon': 'fas fa-database', 'category': 'System'},
+            {'title': 'School Settings', 'desc': 'School configurations', 'url': f'/school/{school_slug}/settings/', 'icon': 'fas fa-cog', 'category': 'Settings'},
+        ]
+
+        matched_pages = [
+            p for p in SCHOOL_MODULES
+            if q_lower in p['title'].lower() or q_lower in p['desc'].lower() or q_lower in p['category'].lower()
+        ][:5]
+
+        students_data = []
+        try:
+            from students.models import Student
+            for s in Student.objects.filter(
+                Q(first_name__icontains=query) |
+                Q(last_name__icontains=query) |
+                Q(admission_number__icontains=query) |
+                Q(roll_number__icontains=query)
+            )[:5]:
+                class_label = ""
+                if hasattr(s, 'class_section') and s.class_section:
+                    class_label = f" • Class: {s.class_section}"
+                students_data.append({
+                    'title': f"{s.first_name} {s.last_name}",
+                    'subtitle': f"Adm: {s.admission_number}{class_label}",
+                    'url': f"/school/{school_slug}/students/{s.pk}/",
+                    'icon': 'fas fa-user-graduate',
+                    'badge': 'Student'
+                })
+        except Exception:
+            pass
+
+        staff_data = []
+        try:
+            from accounts.models import User
+            for u in User.objects.filter(
+                Q(first_name__icontains=query) |
+                Q(last_name__icontains=query) |
+                Q(email__icontains=query),
+                role__in=['teacher', 'staff', 'accountant', 'librarian', 'driver', 'admin', 'school_admin']
+            )[:5]:
+                staff_data.append({
+                    'title': u.get_full_name() or u.email,
+                    'subtitle': f"{u.email} • {u.role.title() if u.role else 'Staff'}",
+                    'url': f"/school/{school_slug}/hr/staff/",
+                    'icon': 'fas fa-chalkboard-teacher',
+                    'badge': u.role.title() if u.role else 'Staff'
+                })
+        except Exception:
+            pass
+
+        classes_data = []
+        try:
+            from academics.models import ClassSection
+            for c in ClassSection.objects.filter(
+                Q(name__icontains=query) | Q(class_room__name__icontains=query)
+            )[:4]:
+                classes_data.append({
+                    'title': str(c),
+                    'subtitle': 'Academic Class & Section',
+                    'url': f"/school/{school_slug}/academics/classes/",
+                    'icon': 'fas fa-chalkboard',
+                    'badge': 'Class'
+                })
+        except Exception:
+            pass
+
+        return JsonResponse({
+            'query': query,
+            'pages': matched_pages,
+            'students': students_data,
+            'staff': staff_data,
+            'classes': classes_data,
+            'view_all_url': f"/school/{school_slug}/search/?q={query}"
+        })
+
 
 
 class LoginAsView(LoginRequiredMixin, View):
@@ -3506,3 +3653,125 @@ def maintenance_view(request, *args, **kwargs):
         'school_slug': kwargs.get('school_slug', 'default')
     }
     return render(request, 'maintenance.html', context, status=200)
+
+
+from django.contrib import messages
+from django.http import FileResponse
+from superadmin.models import DatabaseBackup
+from tenants.backup_service import (
+    create_database_backup,
+    get_database_info,
+    delete_database_backup,
+    format_bytes,
+)
+
+
+def _get_authorized_school(request, school_slug):
+    """
+    Validates that the active user has administrative rights to access
+    the specified school's backups. Superadmins can access any school;
+    School admins can only access their own active school.
+    """
+    user = request.user
+    school = get_object_or_404(School.objects.using('default'), slug=school_slug, is_active=True)
+    
+    if user.is_superuser or getattr(user, 'role', '') == 'superadmin':
+        return school
+
+    user_school = getattr(user, 'school', None)
+    if getattr(user, 'role', '') == 'admin' and user_school and user_school.slug == school.slug:
+        return school
+
+    raise PermissionDenied("You do not have permission to access backups for this school.")
+
+
+class SchoolBackupListView(LoginRequiredMixin, TemplateView):
+    """
+    School Admin Database Backups view.
+    Strictly isolated to this school's dedicated tenant database.
+    """
+    template_name = 'core/backups.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        school_slug = kwargs.get('school_slug')
+        school = _get_authorized_school(self.request, school_slug)
+
+        # 1. School Database Metadata
+        db_info = get_database_info(school=school)
+        context['school'] = school
+        context['school_slug'] = school.slug
+        context['db_info'] = db_info
+
+        # 2. Query only this school's backups
+        backups_qs = DatabaseBackup.objects.using('default').filter(
+            school=school, 
+            backup_type='tenant'
+        ).select_related('created_by')
+
+        context['backups'] = backups_qs
+
+        total_completed = backups_qs.filter(status='completed')
+        total_bytes = sum(b.file_size_bytes for b in total_completed)
+        context['stats'] = {
+            'total_backups_count': total_completed.count(),
+            'total_size_display': format_bytes(total_bytes),
+            'last_backup': total_completed.first(),
+        }
+
+        return context
+
+
+class SchoolBackupCreateView(LoginRequiredMixin, View):
+    """Trigger a fresh on-demand backup for the school's dedicated database"""
+
+    def post(self, request, school_slug, *args, **kwargs):
+        school = _get_authorized_school(request, school_slug)
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', '')
+
+        try:
+            backup = create_database_backup(school.slug, school=school, user=request.user)
+            msg = f"Database backup '{backup.file_name}' ({backup.file_size_display}) created successfully."
+            messages.success(request, msg)
+            if is_ajax:
+                return JsonResponse({'success': True, 'message': msg})
+        except Exception as e:
+            err_msg = f"Failed to create database backup: {e}"
+            messages.error(request, err_msg)
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+        return redirect('core:school_backups', school_slug=school.slug)
+
+
+class SchoolBackupDownloadView(LoginRequiredMixin, View):
+    """Securely download a backup file belonging exclusively to this school"""
+
+    def get(self, request, school_slug, pk, *args, **kwargs):
+        school = _get_authorized_school(request, school_slug)
+        backup = get_object_or_404(DatabaseBackup.objects.using('default'), pk=pk, school=school)
+
+        if not backup.file_path or not os.path.exists(backup.file_path):
+            messages.error(request, f"Backup file '{backup.file_name}' was not found on disk.")
+            return redirect('core:school_backups', school_slug=school.slug)
+
+        try:
+            response = FileResponse(open(backup.file_path, 'rb'), as_attachment=True, filename=backup.file_name)
+            return response
+        except Exception as e:
+            messages.error(request, f"Error downloading backup file: {e}")
+            return redirect('core:school_backups', school_slug=school.slug)
+
+
+class SchoolBackupDeleteView(LoginRequiredMixin, View):
+    """Delete a backup file belonging exclusively to this school"""
+
+    def post(self, request, school_slug, pk, *args, **kwargs):
+        school = _get_authorized_school(request, school_slug)
+        success = delete_database_backup(pk, school=school)
+        if success:
+            messages.success(request, "Backup deleted successfully.")
+        else:
+            messages.error(request, "Could not delete backup or backup does not exist.")
+
+        return redirect('core:school_backups', school_slug=school.slug)

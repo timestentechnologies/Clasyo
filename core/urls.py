@@ -64,11 +64,18 @@ urlpatterns = [
     # Profile and Settings
     path('profile/', views.ProfileView.as_view(), name='profile'),
     path('search/', views.SearchView.as_view(), name='search'),
+    path('api/search/', views.SchoolSearchApiView.as_view(), name='search_api'),
     
     # Settings
     path('settings/', views.SystemSettingsView.as_view(), name='settings'),
     path('settings/update/', views.SystemSettingsApiView.as_view(), name='settings_update'),
     path('settings/db-actions/', views.DatabaseActionsApiView.as_view(), name='database_actions'),
+    
+    # Dedicated School Database Backups
+    path('backups/', views.SchoolBackupListView.as_view(), name='school_backups'),
+    path('backups/create/', views.SchoolBackupCreateView.as_view(), name='school_backup_create'),
+    path('backups/<int:pk>/download/', views.SchoolBackupDownloadView.as_view(), name='school_backup_download'),
+    path('backups/<int:pk>/delete/', views.SchoolBackupDeleteView.as_view(), name='school_backup_delete'),
     
     # Academic Year
     path('academic-years/', views.AcademicYearListView.as_view(), name='academic_years'),

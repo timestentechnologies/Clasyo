@@ -1,8 +1,7 @@
 {% load static %}
-<!-- Horizontal Tab Navigation Bar -->
-<div class="horizontal-navbar-wrapper" id="horizontalNavbar">
-    <div class="horizontal-navbar-container">
-        <ul class="horizontal-nav-tabs">
+<!-- Horizontal Navigation Bar (Combined Header) -->
+<div class="horizontal-nav-combined d-none d-lg-flex align-items-center" id="horizontalNavbar">
+    <ul class="horizontal-nav-tabs">
             <!-- Apps Link (Non-Superadmin) -->
             {% if user.role != 'superadmin' %}
             <li class="nav-tab-item {% if '/apps/' in request.path %}active{% endif %}">
@@ -68,7 +67,7 @@
                 </ul>
             </li>
 
-            <li class="nav-tab-item dropdown {% if '/global-settings/' in request.path or '/sms-config/' in request.path or '/email-config/' in request.path or '/db-config/' in request.path %}active{% endif %}">
+            <li class="nav-tab-item dropdown {% if '/global-settings/' in request.path or '/sms-config/' in request.path or '/email-config/' in request.path or '/db-config/' in request.path or '/superadmin/backups/' in request.path %}active{% endif %}">
                 <a href="javascript:void(0)" class="nav-tab-link" role="button">
                     <i class="fas fa-cog"></i>
                     <span>Global Settings</span>
@@ -80,6 +79,7 @@
                     <li><a class="dropdown-item" href="{% url 'superadmin:sms_config_list' %}"><i class="fas fa-sms me-2"></i>SMS Configurations</a></li>
                     <li><a class="dropdown-item" href="{% url 'superadmin:email_config_list' %}"><i class="fas fa-envelope me-2"></i>Email Configurations</a></li>
                     <li><a class="dropdown-item" href="{% url 'superadmin:db_config_list' %}"><i class="fas fa-database me-2"></i>Database Configurations</a></li>
+                    <li><a class="dropdown-item" href="{% url 'superadmin:backups' %}"><i class="fas fa-archive me-2"></i>Database Backups</a></li>
                     <li><a class="dropdown-item" href="{% url 'superadmin:ai_config_global_list' %}"><i class="fas fa-robot me-2"></i>AI Configurations</a></li>
                 </ul>
             </li>
@@ -292,7 +292,7 @@
             {# ===        SETTINGS & ADMIN TABS      === #}
             {# ========================================= #}
             {% if user.role == 'admin' %}
-            <li class="nav-tab-item dropdown {% if '/settings/' in request.path or '/billing/' in request.path or '/payment-config/' in request.path %}active{% endif %}">
+            <li class="nav-tab-item dropdown {% if '/settings/' in request.path or '/billing/' in request.path or '/payment-config/' in request.path or '/backups/' in request.path %}active{% endif %}">
                 <a href="javascript:void(0)" class="nav-tab-link" role="button">
                     <i class="fas fa-cog"></i>
                     <span>Settings & Billing</span>
@@ -300,6 +300,7 @@
                 </a>
                 <ul class="modern-dropdown-menu">
                     <li><a class="dropdown-item" href="{% if school_slug %}{% url 'core:settings' school_slug=school_slug %}{% else %}#{% endif %}"><i class="fas fa-cog me-2"></i>School Settings</a></li>
+                    <li><a class="dropdown-item" href="{% if school_slug %}{% url 'core:school_backups' school_slug=school_slug %}{% else %}#{% endif %}"><i class="fas fa-database me-2"></i>Database Backups</a></li>
                     <li><a class="dropdown-item" href="{% if school_slug %}{% url 'superadmin:school_payment_config_list' school_slug=school_slug %}{% else %}#{% endif %}"><i class="fas fa-credit-card me-2"></i>Payment Configurations</a></li>
                     <li><a class="dropdown-item" href="{% if school_slug %}{% url 'superadmin:school_sms_config_list' school_slug=school_slug %}{% else %}#{% endif %}"><i class="fas fa-sms me-2"></i>SMS Settings</a></li>
                     <li><a class="dropdown-item" href="{% if school_slug %}{% url 'superadmin:school_email_config_list' school_slug=school_slug %}{% else %}#{% endif %}"><i class="fas fa-envelope me-2"></i>Email Settings</a></li>
@@ -312,7 +313,6 @@
 
             {% endif %}
         </ul>
-    </div>
 </div>
 
 <script>

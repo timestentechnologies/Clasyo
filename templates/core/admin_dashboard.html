@@ -34,28 +34,159 @@
     </div>
 </div>
 
-<!-- Stats Grid -->
-<div class="stats-grid fade-in-up">
-    <div class="stat-card primary">
-        <div class="stat-value">{{ total_students|default:0 }}</div>
-        <div class="stat-label">Total Students</div>
+<!-- Unified Dashboard Overview Grid (Hero + Aligned Side Cards + Visual Chart) -->
+<div class="dashboard-overview-grid fade-in-up mt-3">
+    <!-- 1. Hero Card (Bigger Card - At a Glance Overview) -->
+    <div class="hero-stat-card">
+        <div>
+            <div class="hero-stat-header">
+                <div>
+                    <h3 class="hero-stat-title">Academic Operations</h3>
+                    <p class="hero-stat-subtitle">Students, teaching staff & daily workload</p>
+                </div>
+            </div>
+            <div class="hero-stat-main">
+                <div class="hero-stat-primary-value">{{ total_students|default:0 }}</div>
+                <div class="hero-stat-main-label">Total Enrolled Students</div>
+                <div class="hero-stat-main-sub">Active learner population</div>
+            </div>
+        </div>
+
+        <div class="hero-stat-footer">
+            <div class="hero-sub-metric">
+                <span class="hero-sub-val text-success">{{ total_teachers|default:0 }}</span>
+                <span class="hero-sub-lbl">Teachers</span>
+            </div>
+            <div class="hero-sub-metric">
+                <span class="hero-sub-val text-warning">{{ total_classes|default:0 }}</span>
+                <span class="hero-sub-lbl">Classes</span>
+            </div>
+            <div class="hero-sub-metric">
+                <span class="hero-sub-val text-danger">{{ pending_tasks|default:0 }}</span>
+                <span class="hero-sub-lbl">Pending Tasks</span>
+            </div>
+        </div>
     </div>
-    
-    <div class="stat-card success">
-        <div class="stat-value">{{ total_teachers|default:0 }}</div>
-        <div class="stat-label">Total Teachers</div>
+
+    <!-- 2. Side Stack Cards (Bottoms Aligned with Hero Card) -->
+    <div class="side-stats-stack">
+        <div class="side-stat-card success">
+            <div class="side-stat-info">
+                <span class="side-stat-val text-success">{{ total_teachers|default:0 }}</span>
+                <span class="side-stat-lbl">Active Teachers</span>
+                <span class="side-stat-sub">Faculty members</span>
+            </div>
+            <div class="side-stat-icon">
+                <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+        </div>
+
+        <div class="side-stat-card warning">
+            <div class="side-stat-info">
+                <span class="side-stat-val text-warning">{{ total_classes|default:0 }}</span>
+                <span class="side-stat-lbl">Active Classes</span>
+                <span class="side-stat-sub">Streams & grades</span>
+            </div>
+            <div class="side-stat-icon">
+                <i class="fas fa-layer-group"></i>
+            </div>
+        </div>
+
+        <div class="side-stat-card danger">
+            <div class="side-stat-info">
+                <span class="side-stat-val text-danger">{{ pending_tasks|default:0 }}</span>
+                <span class="side-stat-lbl">Pending Tasks</span>
+                <span class="side-stat-sub">Needs attention</span>
+            </div>
+            <div class="side-stat-icon">
+                <i class="fas fa-tasks"></i>
+            </div>
+        </div>
     </div>
-    
-    <div class="stat-card warning">
-        <div class="stat-value">{{ total_classes|default:0 }}</div>
-        <div class="stat-label">Active Classes</div>
-    </div>
-    
-    <div class="stat-card danger">
-        <div class="stat-value">{{ pending_tasks|default:0 }}</div>
-        <div class="stat-label">Pending Tasks</div>
+
+    <!-- 3. Quick Stats Chart Card (Visual Analytics on the Far Right) -->
+    <div class="quick-stats-chart-card">
+        <div class="quick-stats-chart-header">
+            <h4 class="quick-stats-chart-title">
+                <i class="fas fa-chart-pie text-primary"></i> Quick Stats
+            </h4>
+        </div>
+
+        <div class="quick-stats-chart-body">
+            <canvas id="adminQuickStatsChart"></canvas>
+        </div>
+
+        <div class="quick-stats-legend">
+            <div class="quick-stats-legend-item">
+                <div class="quick-stats-legend-label">
+                    <span class="quick-stats-legend-dot" style="background-color: #0284C7;"></span>
+                    <span>Students</span>
+                </div>
+                <span class="quick-stats-legend-val">{{ total_students|default:0 }}</span>
+            </div>
+            <div class="quick-stats-legend-item">
+                <div class="quick-stats-legend-label">
+                    <span class="quick-stats-legend-dot" style="background-color: #10B981;"></span>
+                    <span>Teachers</span>
+                </div>
+                <span class="quick-stats-legend-val">{{ total_teachers|default:0 }}</span>
+            </div>
+            <div class="quick-stats-legend-item">
+                <div class="quick-stats-legend-label">
+                    <span class="quick-stats-legend-dot" style="background-color: #F59E0B;"></span>
+                    <span>Classes</span>
+                </div>
+                <span class="quick-stats-legend-val">{{ total_classes|default:0 }}</span>
+            </div>
+        </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const canvas = document.getElementById('adminQuickStatsChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    const students = {{ total_students|default:0 }};
+    const teachers = {{ total_teachers|default:0 }};
+    const classes = {{ total_classes|default:0 }};
+    const total = students + teachers + classes;
+
+    const chartData = total > 0 ? [students, teachers, classes] : [1, 0, 0];
+    const chartColors = total > 0 
+        ? ['#0284C7', '#10B981', '#F59E0B'] 
+        : ['#CBD5E1', 'transparent', 'transparent'];
+
+    new Chart(canvas.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Students', 'Teachers', 'Classes'],
+            datasets: [{
+                data: chartData,
+                backgroundColor: chartColors,
+                borderWidth: 0,
+                hoverOffset: total > 0 ? 5 : 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '72%',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    enabled: total > 0,
+                    callbacks: {
+                        label: function(context) {
+                            return ' ' + context.label + ': ' + context.raw;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
 
 <!-- Today's Events -->
 <div class="row mt-4">

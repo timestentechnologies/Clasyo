@@ -1,39 +1,59 @@
 from django.utils.deprecation import MiddlewareMixin
 from django.shortcuts import redirect
 from .models import School
+from .threadlocals import set_current_tenant_db, clear_current_tenant_db
+from .services import ensure_school_database, register_tenant_connection
 
 
 class TenantMiddleware(MiddlewareMixin):
-    """Simple tenant middleware using subdomain or URL parameter"""
+    """
+    Multi-tenant middleware:
+    - Resolves tenant via subdomain or /school/<slug>/ path
+    - Sets active database connection for the thread/request
+    - Auto-provisions and migrates tenant database on first access
+    - Guarantees superadmin always operates against master ('default')
+    """
     
     def process_request(self, request):
-        # Resolve tenant first without relying on authentication
+        # 1. Superadmin path check: always use master ('default')
+        if request.path.startswith('/superadmin/'):
+            clear_current_tenant_db()
+            request.tenant = None
+            request.school = None
+            return None
+
+        # 2. Resolve tenant by subdomain
         host = request.get_host().split(':')[0]
         parts = host.split('.')
+        school = None
+        
         if len(parts) > 2 or (len(parts) == 2 and parts[0] not in ['localhost', '127']):
             subdomain = parts[0]
             try:
-                school = School.objects.get(slug=subdomain, is_active=True)
-                request.tenant = school
-                request.school = school
+                school = School.objects.using('default').get(slug=subdomain, is_active=True)
             except School.DoesNotExist:
-                request.tenant = None
-                request.school = None
+                school = None
         else:
-            # Try to get from URL (e.g., /school/demo-school/)
+            # 3. Resolve tenant from URL (e.g., /school/demo-school/)
             path_parts = request.path.strip('/').split('/')
             if len(path_parts) >= 2 and path_parts[0] == 'school':
                 slug = path_parts[1]
                 try:
-                    school = School.objects.get(slug=slug, is_active=True)
-                    request.tenant = school
-                    request.school = school
+                    school = School.objects.using('default').get(slug=slug, is_active=True)
                 except School.DoesNotExist:
-                    request.tenant = None
-                    request.school = None
-            else:
-                request.tenant = None
-                request.school = None
+                    school = None
+
+        request.tenant = school
+        request.school = school
+
+        # 4. Attach active tenant database
+        if school:
+            register_tenant_connection(school.slug)
+            set_current_tenant_db(school.slug)
+        else:
+            clear_current_tenant_db()
+
+        return None
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         # Enforce that authenticated non-superadmin users access only their own school slug
@@ -46,3 +66,19 @@ class TenantMiddleware(MiddlewareMixin):
                 if user_school and getattr(user, 'role', None) != 'superadmin' and slug != user_school.slug:
                     full_path = request.get_full_path()
                     return redirect(full_path.replace(f'/school/{slug}/', f'/school/{user_school.slug}/', 1))
+
+        # If user is in their school context, ensure their database is ready
+        if request.school:
+            ensure_school_database(request.school)
+            set_current_tenant_db(request.school.slug)
+
+        return None
+
+    def process_response(self, request, response):
+        # Clear thread-local tenant context to prevent leaking across requests
+        clear_current_tenant_db()
+        return response
+
+    def process_exception(self, request, exception):
+        clear_current_tenant_db()
+        return None
