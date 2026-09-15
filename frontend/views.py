@@ -38,6 +38,17 @@ class HomeView(TemplateView):
         context['parallax_sections'] = ParallaxSection.objects.filter(is_active=True).order_by('order', 'id')
         return context
 
+class FeaturesView(TemplateView):
+    """Dedicated features page showing all modules and capabilities"""
+    template_name = 'frontend/features.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['features'] = FeatureItem.objects.filter(is_active=True).order_by('order', 'id')
+        context['parallax_sections'] = ParallaxSection.objects.filter(is_active=True).order_by('order', 'id')
+        context['faqs'] = FAQ.objects.filter(is_active=True).order_by('order')[:6]
+        return context
+
 
 class AboutView(TemplateView):
     """About page view"""

@@ -6,6 +6,7 @@ app_name = 'frontend'
 
 urlpatterns = [
     path('', cache_page(60 * 10)(views.HomeView.as_view()), name='home'),  # 10 minutes
+    path('features/', cache_page(60 * 30)(views.FeaturesView.as_view()), name='features'),  # 30 minutes
     path('about/', cache_page(60 * 60)(views.AboutView.as_view()), name='about'),  # 1 hour
     path('pricing/', cache_page(60 * 30)(views.PricingView.as_view()), name='pricing'),  # 30 minutes
     path('contact/', views.ContactView.as_view(), name='contact'),  # has form; avoid full-page cache
