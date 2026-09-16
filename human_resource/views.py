@@ -324,6 +324,8 @@ class TeacherDeleteView(LoginRequiredMixin, DeleteView):
     def post(self, request, *args, **kwargs):
         try:
             teacher = self.get_object()
+            if getattr(teacher, 'is_sample_data', False):
+                return JsonResponse({'success': False, 'error': 'Sample/Demo data cannot be deleted.'})
             if teacher.role == 'teacher':
                 teacher.delete()
                 return JsonResponse({'success': True})
@@ -554,7 +556,10 @@ class StaffDeleteView(LoginRequiredMixin, DeleteView):
     
     def post(self, request, *args, **kwargs):
         try:
-            self.get_object().delete()
+            obj = self.get_object()
+            if getattr(obj, 'is_sample_data', False):
+                return JsonResponse({'success': False, 'error': 'Sample/Demo data cannot be deleted.'})
+            obj.delete()
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})

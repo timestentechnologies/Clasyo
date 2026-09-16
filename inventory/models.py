@@ -410,6 +410,7 @@ class Expense(models.Model):
     payee_name = models.CharField(_("Payee Name"), max_length=200)
     notes = models.TextField(_("Notes"), blank=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_expenses')
+    is_sample_data = models.BooleanField(_("Is Sample Data"), default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -419,6 +420,12 @@ class Expense(models.Model):
     
     def __str__(self):
         return f"{self.expense_number} - {self.description}"
+
+    def delete(self, *args, **kwargs):
+        if getattr(self, 'is_sample_data', False):
+            from django.core.exceptions import ValidationError
+            raise ValidationError(_("Sample/Demo data cannot be deleted."))
+        return super().delete(*args, **kwargs)
 
 
 class StaffPayment(models.Model):

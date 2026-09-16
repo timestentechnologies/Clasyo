@@ -701,8 +701,10 @@ class StudentDeleteView(DeleteView):
         try:
             if not request.user.is_authenticated:
                 return JsonResponse({'success': False, 'error': 'Not authenticated'})
-                
+
             student = self.get_object()
+            if getattr(student, 'is_sample_data', False) or getattr(student.user, 'is_sample_data', False):
+                return JsonResponse({'success': False, 'error': 'Sample/Demo data cannot be deleted.'})
             student.user.delete()  # This will cascade delete the student
             return JsonResponse({'success': True, 'message': 'Student deleted successfully'})
         except Exception as e:

@@ -143,6 +143,8 @@ class Book(models.Model):
     created_at = models.DateTimeField(_('Created At'), auto_now_add=True)
     updated_at = models.DateTimeField(_('Updated At'), auto_now=True)
     
+    is_sample_data = models.BooleanField(_('Is Sample Data'), default=False)
+    
     class Meta:
         verbose_name = _('Book')
         verbose_name_plural = _('Books')
@@ -155,6 +157,12 @@ class Book(models.Model):
     
     def __str__(self):
         return self.title
+
+    def delete(self, *args, **kwargs):
+        if getattr(self, 'is_sample_data', False):
+            from django.core.exceptions import ValidationError
+            raise ValidationError(_("Sample/Demo data cannot be deleted."))
+        return super().delete(*args, **kwargs)
     
     @property
     def is_available(self):

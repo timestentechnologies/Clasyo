@@ -1716,8 +1716,74 @@ class ProfileView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['school_slug'] = self.kwargs.get('school_slug', '')
+        school_slug = self.kwargs.get('school_slug', '')
+        context['school_slug'] = school_slug
+        
+        school = get_current_school(self.request)
+        db_alias = school.slug if school else 'default'
+        
+        from students.models import Student
+        from human_resource.models import Teacher, Staff
+        from fees.models import FeeCollection
+        from inventory.models import Expense
+        from library.models import Book
+        from dormitory.models import Dormitory
+        from examinations.models import Exam
+        from leave_management.models import Leave
+        from clubs.models import Club
+
+        try:
+            sample_stats = {
+                'students': Student.objects.using(db_alias).filter(is_sample_data=True).count(),
+                'teachers': Teacher.objects.using(db_alias).filter(is_sample_data=True).count(),
+                'staff': Staff.objects.using(db_alias).filter(is_sample_data=True).count(),
+                'invoices': FeeCollection.objects.using(db_alias).filter(is_sample_data=True).count(),
+                'expenses': Expense.objects.using(db_alias).filter(is_sample_data=True).count(),
+                'books': Book.objects.using(db_alias).filter(is_sample_data=True).count(),
+                'dormitories': Dormitory.objects.using(db_alias).filter(is_sample_data=True).count(),
+                'exams': Exam.objects.using(db_alias).filter(is_sample_data=True).count(),
+                'leaves': Leave.objects.using(db_alias).filter(is_sample_data=True).count(),
+                'clubs': Club.objects.using(db_alias).filter(is_sample_data=True).count(),
+            }
+            context['sample_stats'] = sample_stats
+            context['has_sample_data'] = any(v > 0 for v in sample_stats.values())
+        except Exception:
+            context['sample_stats'] = {}
+            context['has_sample_data'] = False
+
         return context
+
+
+class LoadSampleDataView(LoginRequiredMixin, View):
+    """View to load sample demo database for current school tenant"""
+    def post(self, request, *args, **kwargs):
+        from core.sample_data import generate_all_sample_data_for_school
+        school_slug = kwargs.get('school_slug', '')
+        school = get_current_school(request)
+
+        if not school and school_slug:
+            school = School.objects.filter(slug=school_slug).first()
+
+        if not school:
+            messages.error(request, "School tenant context not found.")
+            return redirect('/')
+
+        try:
+            stats = generate_all_sample_data_for_school(school, db_alias=school.slug)
+            messages.success(
+                request,
+                f"Sample data successfully loaded! Created: "
+                f"{stats.get('students', 0)} Students, {stats.get('teachers', 0)} Teachers, "
+                f"{stats.get('staff', 0)} Staff, {stats.get('parents', 0)} Parents, "
+                f"{stats.get('invoices', 0)} Invoices, {stats.get('expenses', 0)} Expenses, "
+                f"{stats.get('books', 0)} Books, and interlinked records across all modules."
+            )
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            messages.error(request, f"Failed to load sample data: {str(e)}")
+
+        return redirect('core:profile', school_slug=school.slug)
 
 
 class SearchView(LoginRequiredMixin, TemplateView):

@@ -14,6 +14,7 @@ class Dormitory(models.Model):
     description = models.TextField(_('Description'), blank=True)
     total_capacity = models.IntegerField(_('Total Capacity'), default=0)
     is_active = models.BooleanField(_('Is Active'), default=True)
+    is_sample_data = models.BooleanField(_('Is Sample Data'), default=False)
     created_at = models.DateTimeField(_('Created At'), auto_now_add=True)
     updated_at = models.DateTimeField(_('Updated At'), auto_now=True)
     
@@ -24,6 +25,12 @@ class Dormitory(models.Model):
     
     def __str__(self):
         return self.name
+
+    def delete(self, *args, **kwargs):
+        if getattr(self, 'is_sample_data', False):
+            from django.core.exceptions import ValidationError
+            raise ValidationError(_("Sample/Demo data cannot be deleted."))
+        return super().delete(*args, **kwargs)
     
     def get_total_rooms(self):
         return self.rooms.count()

@@ -71,6 +71,7 @@ class Teacher(models.Model):
     
     # Status
     is_active = models.BooleanField(_('Is Active'), default=True)
+    is_sample_data = models.BooleanField(_('Is Sample Data'), default=False)
     created_at = models.DateTimeField(_('Created At'), auto_now_add=True)
     updated_at = models.DateTimeField(_('Updated At'), auto_now=True)
     
@@ -81,6 +82,12 @@ class Teacher(models.Model):
     
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+
+    def delete(self, *args, **kwargs):
+        if getattr(self, 'is_sample_data', False):
+            from django.core.exceptions import ValidationError
+            raise ValidationError(_("Sample/Demo data cannot be deleted."))
+        return super().delete(*args, **kwargs)
     
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}"
@@ -117,6 +124,7 @@ class Staff(models.Model):
     
     # Status
     is_active = models.BooleanField(_('Is Active'), default=True)
+    is_sample_data = models.BooleanField(_('Is Sample Data'), default=False)
     created_at = models.DateTimeField(_('Created At'), auto_now_add=True)
     updated_at = models.DateTimeField(_('Updated At'), auto_now=True)
     
@@ -127,6 +135,12 @@ class Staff(models.Model):
     
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+
+    def delete(self, *args, **kwargs):
+        if getattr(self, 'is_sample_data', False):
+            from django.core.exceptions import ValidationError
+            raise ValidationError(_("Sample/Demo data cannot be deleted."))
+        return super().delete(*args, **kwargs)
     
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}"

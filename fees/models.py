@@ -24,6 +24,7 @@ class FeeStructure(models.Model):
     amount = models.DecimalField(_("Amount"), max_digits=10, decimal_places=2)
     description = models.TextField(_("Description"), blank=True)
     is_active = models.BooleanField(_("Is Active"), default=True)
+    is_sample_data = models.BooleanField(_("Is Sample Data"), default=False)
     created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
     
     class Meta:
@@ -33,6 +34,12 @@ class FeeStructure(models.Model):
     
     def __str__(self):
         return f"{self.name} - {self.class_name.name} - ${self.amount}"
+
+    def delete(self, *args, **kwargs):
+        if getattr(self, 'is_sample_data', False):
+            from django.core.exceptions import ValidationError
+            raise ValidationError(_("Sample/Demo data cannot be deleted."))
+        return super().delete(*args, **kwargs)
 
 
 class FeeCollection(models.Model):
@@ -64,6 +71,7 @@ class FeeCollection(models.Model):
     # Optional: selected deposit account (Cash/Bank) for this collection
     deposit_account = models.ForeignKey('finance.Account', on_delete=models.SET_NULL, null=True, blank=True, related_name='fee_collections')
     collected_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='collected_fees')
+    is_sample_data = models.BooleanField(_("Is Sample Data"), default=False)
     created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
     
     class Meta:
@@ -73,3 +81,9 @@ class FeeCollection(models.Model):
     
     def __str__(self):
         return f"{self.student.get_full_name()} - {self.fee_structure.name}"
+
+    def delete(self, *args, **kwargs):
+        if getattr(self, 'is_sample_data', False):
+            from django.core.exceptions import ValidationError
+            raise ValidationError(_("Sample/Demo data cannot be deleted."))
+        return super().delete(*args, **kwargs)

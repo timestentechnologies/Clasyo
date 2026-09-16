@@ -52,6 +52,7 @@ class Club(models.Model):
     
     # Status
     is_active = models.BooleanField(default=True)
+    is_sample_data = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -61,6 +62,12 @@ class Club(models.Model):
     
     def __str__(self):
         return f"{self.name} - {self.school.name}"
+
+    def delete(self, *args, **kwargs):
+        if getattr(self, 'is_sample_data', False):
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Sample/Demo data cannot be deleted.")
+        return super().delete(*args, **kwargs)
     
     def get_current_members_count(self):
         return self.memberships.filter(status='active').count()

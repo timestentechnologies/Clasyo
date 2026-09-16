@@ -161,6 +161,7 @@ class Student(models.Model):
     is_alumni = models.BooleanField(_("Is Alumni"), default=False)
     leaving_date = models.DateField(_("Leaving Date"), null=True, blank=True)
     leaving_reason = models.TextField(_("Leaving Reason"), blank=True)
+    is_sample_data = models.BooleanField(_("Is Sample Data"), default=False)
     
     # Metadata
     created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
@@ -181,6 +182,12 @@ class Student(models.Model):
     def __str__(self):
         return f"{self.admission_number} - {self.get_full_name()}"
     
+    def delete(self, *args, **kwargs):
+        if getattr(self, 'is_sample_data', False):
+            from django.core.exceptions import ValidationError
+            raise ValidationError(_("Sample/Demo data cannot be deleted."))
+        return super().delete(*args, **kwargs)
+
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
     

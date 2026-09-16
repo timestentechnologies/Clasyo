@@ -109,6 +109,7 @@ class User(AbstractUser):
         blank=True,
         default=''
     )
+    is_sample_data = models.BooleanField(_('Is Sample Data'), default=False)
 
     objects = UserManager()
     
@@ -123,6 +124,12 @@ class User(AbstractUser):
     def __str__(self):
         return f"{self.get_full_name()} ({self.get_role_display()})"
     
+    def delete(self, *args, **kwargs):
+        if getattr(self, 'is_sample_data', False):
+            from django.core.exceptions import ValidationError
+            raise ValidationError(_("Sample/Demo data cannot be deleted."))
+        return super().delete(*args, **kwargs)
+
     def get_full_name(self):
         """Return the full name of the user"""
         return f"{self.first_name} {self.last_name}".strip()

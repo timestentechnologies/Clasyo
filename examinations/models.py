@@ -38,6 +38,7 @@ class Exam(models.Model):
     
     # Creator tracking
     created_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='exams_created')
+    is_sample_data = models.BooleanField(default=False)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -47,6 +48,12 @@ class Exam(models.Model):
     
     def __str__(self):
         return f"{self.name} ({self.get_exam_type_display()})"
+
+    def delete(self, *args, **kwargs):
+        if getattr(self, 'is_sample_data', False):
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Sample/Demo data cannot be deleted.")
+        return super().delete(*args, **kwargs)
 
 
 class ExamSubjectConfig(models.Model):

@@ -67,6 +67,72 @@
             </table>
         </div>
         
+        <!-- Sample / Demo Data Section -->
+        <div class="modern-card mt-4" id="sample-data-card">
+            <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="avatar-circle profile-password-icon bg-primary text-white p-2 rounded-circle">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold">Demo Database & Sample Data</h6>
+                        <small class="text-muted">Populate school tenant database with complete demo records across all tables</small>
+                    </div>
+                </div>
+                {% if has_sample_data %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
+                        <i class="fas fa-shield-alt me-1"></i> Protected Sample Data Active
+                    </span>
+                {% else %}
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 rounded-pill">
+                        <i class="fas fa-info-circle me-1"></i> No Sample Data
+                    </span>
+                {% endif %}
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-12">
+                    <p class="text-muted small mb-2">
+                        Clicking <strong>Load Sample Data</strong> populates interlinked demo records for:
+                        <span class="fw-semibold text-dark">Teachers, Students, Staff, Parents, Fee Invoices, Expenses, Library Books, Dormitories, Exams, Leaves, Clubs, Transport, and Academics.</span>
+                    </p>
+                    <div class="alert alert-info py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                        <i class="fas fa-lock text-info"></i>
+                        <span>Sample data is marked and protected against deletion across all modules.</span>
+                    </div>
+                </div>
+                
+                {% if has_sample_data %}
+                <div class="col-md-12">
+                    <div class="p-3 bg-light rounded border">
+                        <h6 class="small fw-bold text-uppercase text-muted mb-2">Loaded Sample Data Summary</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            <span class="badge bg-secondary p-2"><i class="fas fa-user-graduate me-1"></i> {{ sample_stats.students }} Students</span>
+                            <span class="badge bg-secondary p-2"><i class="fas fa-chalkboard-teacher me-1"></i> {{ sample_stats.teachers }} Teachers</span>
+                            <span class="badge bg-secondary p-2"><i class="fas fa-user-tie me-1"></i> {{ sample_stats.staff }} Staff</span>
+                            <span class="badge bg-secondary p-2"><i class="fas fa-file-invoice-dollar me-1"></i> {{ sample_stats.invoices }} Fee Invoices</span>
+                            <span class="badge bg-secondary p-2"><i class="fas fa-receipt me-1"></i> {{ sample_stats.expenses }} Expenses</span>
+                            <span class="badge bg-secondary p-2"><i class="fas fa-book me-1"></i> {{ sample_stats.books }} Library Books</span>
+                            <span class="badge bg-secondary p-2"><i class="fas fa-building me-1"></i> {{ sample_stats.dormitories }} Hostels</span>
+                            <span class="badge bg-secondary p-2"><i class="fas fa-file-alt me-1"></i> {{ sample_stats.exams }} Exams</span>
+                            <span class="badge bg-secondary p-2"><i class="fas fa-calendar-minus me-1"></i> {{ sample_stats.leaves }} Leaves</span>
+                            <span class="badge bg-secondary p-2"><i class="fas fa-users-cog me-1"></i> {{ sample_stats.clubs }} Clubs</span>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <form method="post" action="{% url 'core:load_sample_data' school_slug=school_slug %}" onsubmit="return confirm('Load comprehensive sample data into this school database? Existing non-sample data will not be affected.');">
+                {% csrf_token %}
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-cloud-download-alt me-1"></i> {% if has_sample_data %}Reload Sample Data{% else %}Load Sample Data{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+        
         <div class="modern-card mt-4" id="password">
             <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
                 <div class="avatar-circle profile-password-icon">
