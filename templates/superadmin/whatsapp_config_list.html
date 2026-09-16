@@ -1,0 +1,124 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}WhatsApp Configurations - Super Admin{% endblock %}
+{% block page_title %}WhatsApp Configurations{% endblock %}
+{% block page_icon %}fab fa-whatsapp{% endblock %}
+{% block page_subtitle %}Manage global WhatsApp business API gateway configurations{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'superadmin:global_settings' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-left me-1"></i> Back to Settings
+</a>
+<a href="{% url 'superadmin:whatsapp_config_create' %}" class="btn btn-primary">
+    <i class="fas fa-plus me-1"></i> Add Configuration
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Unified WhatsApp Configurations Section -->
+<div class="modern-card">
+    <div class="d-flex justify-content-between align-items-center p-3 p-md-4 border-bottom flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="avatar-icon-box-md avatar-icon-whatsapp">
+                <i class="fab fa-whatsapp"></i>
+            </div>
+            <div>
+                <h6 class="mb-0 fw-bold">WhatsApp Configurations</h6>
+                <small class="text-muted">Global WhatsApp Business API gateway providers, phone numbers, and credentials</small>
+            </div>
+        </div>
+        {% if configs %}
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge-port">{{ configs|length }} provider{% if configs|length != 1 %}s{% endif %}</span>
+        </div>
+        {% endif %}
+    </div>
+    
+    {% if configs %}
+    <div class="table-responsive">
+        <table class="table modern-table mb-0">
+            <thead>
+                <tr>
+                    <th>Provider</th>
+                    <th>Status</th>
+                    <th>Sender Phone</th>
+                    <th>Account / Details</th>
+                    <th>Created</th>
+                    <th>Last Updated</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for config in configs %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-icon-box-sm avatar-icon-whatsapp me-3">
+                                {% if config.provider == 'meta' %}
+                                    <i class="fab fa-facebook text-primary"></i>
+                                {% elif config.provider == 'twilio' %}
+                                    <i class="fas fa-phone text-danger"></i>
+                                {% elif config.provider == 'africastalking' %}
+                                    <i class="fas fa-comments text-warning"></i>
+                                {% else %}
+                                    <i class="fab fa-whatsapp text-success"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <strong>{{ config.get_provider_display }}</strong>
+                                <br>
+                                <small class="text-muted">{{ config.provider|upper }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% if config.is_active %}
+                            <span class="badge bg-success">Active Gateway</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if config.default_sender_phone %}
+                            <span class="fw-semibold text-body">{{ config.default_sender_phone }}</span>
+                        {% else %}
+                            <span class="text-muted">Not specified</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="small font-monospace text-muted">
+                            {{ config.meta_waba_id|default:config.twilio_account_sid|default:config.africastalking_username|default:"—" }}
+                        </span>
+                    </td>
+                    <td>{{ config.created_at|date:"M d, Y" }}</td>
+                    <td>{{ config.updated_at|date:"M d, Y" }}</td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'superadmin:whatsapp_config_update' config.pk %}" class="btn btn-outline-primary" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'superadmin:whatsapp_config_delete' config.pk %}" class="btn btn-outline-danger" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <div class="avatar-icon-box-lg avatar-icon-whatsapp mx-auto mb-3">
+            <i class="fab fa-whatsapp"></i>
+        </div>
+        <h5 class="fw-bold mb-1">No WhatsApp Configurations Found</h5>
+        <p class="text-muted mb-4">Set up a WhatsApp Business API provider (Meta Cloud API, Twilio, etc.) to enable instant messages and receipts.</p>
+        <a href="{% url 'superadmin:whatsapp_config_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Add WhatsApp Configuration
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

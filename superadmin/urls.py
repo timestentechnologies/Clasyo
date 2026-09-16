@@ -96,6 +96,12 @@ urlpatterns = [
     path('settings/database/<int:pk>/edit/', views.GlobalDatabaseConfigurationUpdateView.as_view(), name='db_config_update'),
     path('settings/database/<int:pk>/delete/', views.GlobalDatabaseConfigurationDeleteView.as_view(), name='db_config_delete'),
     
+    # WhatsApp Configurations (Global)
+    path('settings/whatsapp/', views.GlobalWhatsAppConfigurationListView.as_view(), name='whatsapp_config_list'),
+    path('settings/whatsapp/create/', views.GlobalWhatsAppConfigurationCreateView.as_view(), name='whatsapp_config_create'),
+    path('settings/whatsapp/<int:pk>/edit/', views.GlobalWhatsAppConfigurationUpdateView.as_view(), name='whatsapp_config_update'),
+    path('settings/whatsapp/<int:pk>/delete/', views.GlobalWhatsAppConfigurationDeleteView.as_view(), name='whatsapp_config_delete'),
+    
     # School SMS Configurations
     path('school/<slug:school_slug>/settings/sms/', views.SchoolSMSConfigurationListView.as_view(), name='school_sms_config_list'),
     path('school/<slug:school_slug>/settings/sms/create/', views.SchoolSMSConfigurationCreateView.as_view(), name='school_sms_config_create'),
@@ -107,6 +113,12 @@ urlpatterns = [
     path('school/<slug:school_slug>/settings/email/create/', views.SchoolEmailConfigurationCreateView.as_view(), name='school_email_config_create'),
     path('school/<slug:school_slug>/settings/email/<int:pk>/edit/', views.SchoolEmailConfigurationUpdateView.as_view(), name='school_email_config_update'),
     path('school/<slug:school_slug>/settings/email/<int:pk>/delete/', views.SchoolEmailConfigurationDeleteView.as_view(), name='school_email_config_delete'),
+
+    # School WhatsApp Configurations
+    path('school/<slug:school_slug>/settings/whatsapp/', views.SchoolWhatsAppConfigurationListView.as_view(), name='school_whatsapp_config_list'),
+    path('school/<slug:school_slug>/settings/whatsapp/create/', views.SchoolWhatsAppConfigurationCreateView.as_view(), name='school_whatsapp_config_create'),
+    path('school/<slug:school_slug>/settings/whatsapp/<int:pk>/edit/', views.SchoolWhatsAppConfigurationUpdateView.as_view(), name='school_whatsapp_config_update'),
+    path('school/<slug:school_slug>/settings/whatsapp/<int:pk>/delete/', views.SchoolWhatsAppConfigurationDeleteView.as_view(), name='school_whatsapp_config_delete'),
 
     # Database Backups (Super Admin - Master & All Tenants)
     path('backups/', views.SuperAdminBackupListView.as_view(), name='backups'),

@@ -1,173 +1,183 @@
 {% extends 'dashboards/base.html' %}
 {% load static %}
 
-{% block title %}Payment Configurations{% endblock %}
-
+{% block title %}Payment Configurations - Super Admin{% endblock %}
 {% block page_title %}Payment Configurations{% endblock %}
 {% block page_icon %}credit-card{% endblock %}
 {% block page_subtitle %}Manage payment gateway configurations{% endblock %}
 
+{% block page_actions %}
+<a href="{% url 'superadmin:global_settings' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-left me-1"></i> Back to Settings
+</a>
+<a href="{% url 'superadmin:payment_config_create' %}" class="btn btn-primary">
+    <i class="fas fa-plus me-1"></i> Add Configuration
+</a>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid">
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h4>Payment Gateway Configurations</h4>
-                <a href="{% url 'superadmin:payment_config_create' %}" class="btn btn-primary">
-                    <i class="fas fa-plus me-2"></i>Add Configuration
-                </a>
-            </div>
-        </div>
+<div class="modern-card">
+    <div class="d-flex justify-content-between align-items-center p-3 p-md-4 border-bottom">
+        <h6 class="mb-0 fw-bold">
+            <i class="fas fa-credit-card me-2 text-primary"></i>Configured Gateways
+        </h6>
+        {% if configs %}
+        <span class="badge bg-light text-muted border px-3 py-1">{{ configs|length }} configured</span>
+        {% endif %}
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    {% if configs %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Gateway</th>
-                                    <th>Environment</th>
-                                    <th>Status</th>
-                                    <th>Configuration Status</th>
-                                    <th>Created</th>
-                                    <th>Updated</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for config in configs %}
-                                <tr>
-                                    <td>
-                                        <strong>{{ config.get_gateway_display }}</strong>
-                                        {% if config.gateway == 'mpesa' %}
-                                            <span class="badge bg-success ms-1"><i class="fas fa-mobile-alt"></i></span>
-                                        {% elif config.gateway == 'paypal' %}
-                                            <span class="badge bg-primary ms-1"><i class="fab fa-paypal"></i></span>
-                                        {% elif config.gateway == 'stripe' %}
-                                            <span class="badge bg-info ms-1"><i class="fab fa-stripe"></i></span>
-                                        {% elif config.gateway == 'bank' %}
-                                            <span class="badge bg-secondary ms-1"><i class="fas fa-university"></i></span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <span class="badge {% if config.environment == 'live' %}bg-success{% else %}bg-warning{% endif %}">
-                                            {{ config.get_environment_display }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {% if config.is_active %}
-                                            <span class="badge bg-success">Active</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">Inactive</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if config.gateway == 'mpesa' %}
-                                            {% if config.mpesa_consumer_key and config.mpesa_consumer_secret and config.mpesa_passkey %}
-                                                <span class="badge bg-success">Configured</span>
-                                            {% else %}
-                                                <span class="badge bg-warning">Incomplete</span>
-                                            {% endif %}
-                                        {% elif config.gateway == 'paypal' %}
-                                            {% if config.paypal_client_id and config.paypal_client_secret %}
-                                                <span class="badge bg-success">Configured</span>
-                                            {% else %}
-                                                <span class="badge bg-warning">Incomplete</span>
-                                            {% endif %}
-                                        {% elif config.gateway == 'stripe' %}
-                                            {% if config.stripe_publishable_key and config.stripe_secret_key %}
-                                                <span class="badge bg-success">Configured</span>
-                                            {% else %}
-                                                <span class="badge bg-warning">Incomplete</span>
-                                            {% endif %}
-                                        {% elif config.gateway == 'bank' %}
-                                            {% if config.bank_name and config.bank_account_name and config.bank_account_number %}
-                                                <span class="badge bg-success">Configured</span>
-                                            {% else %}
-                                                <span class="badge bg-warning">Incomplete</span>
-                                            {% endif %}
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ config.created_at|date:"M d, Y" }}</td>
-                                    <td>{{ config.updated_at|date:"M d, Y" }}</td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            <a href="{% url 'superadmin:payment_config_detail' config.pk %}" 
-                                               class="btn btn-outline-info" title="View Details">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <a href="{% url 'superadmin:payment_config_update' config.pk %}" 
-                                               class="btn btn-outline-primary" title="Edit">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <a href="{% url 'superadmin:payment_config_delete' config.pk %}" 
-                                               class="btn btn-outline-danger" title="Delete">
-                                                <i class="fas fa-trash"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination -->
-                    {% if is_paginated %}
-                    <nav aria-label="Page navigation">
-                        <ul class="pagination justify-content-center">
-                            {% if page_obj.has_previous %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page=1">First</a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
-                            </li>
+    {% if configs %}
+    <div class="table-responsive">
+        <table class="table modern-table mb-0">
+            <thead>
+                <tr>
+                    <th>Gateway</th>
+                    <th>Environment</th>
+                    <th>Status</th>
+                    <th>Configuration Status</th>
+                    <th>Created</th>
+                    <th>Updated</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for config in configs %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-circle me-3" style="width: 36px; height: 36px; font-size: 14px;">
+                                {% if config.gateway == 'mpesa' %}
+                                    <i class="fas fa-mobile-alt text-success"></i>
+                                {% elif config.gateway == 'paypal' %}
+                                    <i class="fab fa-paypal text-primary"></i>
+                                {% elif config.gateway == 'stripe' %}
+                                    <i class="fab fa-stripe text-info"></i>
+                                {% elif config.gateway == 'bank' %}
+                                    <i class="fas fa-university text-secondary"></i>
+                                {% else %}
+                                    <i class="fas fa-credit-card text-primary"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <strong>{{ config.get_gateway_display }}</strong>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge {% if config.environment == 'live' %}bg-success{% else %}bg-warning{% endif %}">
+                            {{ config.get_environment_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if config.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if config.gateway == 'mpesa' %}
+                            {% if config.mpesa_consumer_key and config.mpesa_consumer_secret and config.mpesa_passkey %}
+                                <span class="badge bg-success">Configured</span>
+                            {% else %}
+                                <span class="badge bg-warning">Incomplete</span>
                             {% endif %}
-
-                            {% for num in page_obj.paginator.page_range %}
-                            {% if page_obj.number == num %}
-                            <li class="page-item active">
-                                <span class="page-link">{{ num }}</span>
-                            </li>
-                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                            </li>
+                        {% elif config.gateway == 'paypal' %}
+                            {% if config.paypal_client_id and config.paypal_client_secret %}
+                                <span class="badge bg-success">Configured</span>
+                            {% else %}
+                                <span class="badge bg-warning">Incomplete</span>
                             {% endif %}
-                            {% endfor %}
-
-                            {% if page_obj.has_next %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
-                            </li>
+                        {% elif config.gateway == 'stripe' %}
+                            {% if config.stripe_publishable_key and config.stripe_secret_key %}
+                                <span class="badge bg-success">Configured</span>
+                            {% else %}
+                                <span class="badge bg-warning">Incomplete</span>
                             {% endif %}
-                        </ul>
-                    </nav>
-                    {% endif %}
-
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
-                        <h5>No Payment Configurations</h5>
-                        <p class="text-muted mb-4">
-                            You haven't configured any payment gateways yet. Add your first configuration to start accepting payments.
-                        </p>
-                        <a href="{% url 'superadmin:payment_config_create' %}" class="btn btn-primary">
-                            <i class="fas fa-plus me-2"></i>Add Your First Configuration
-                        </a>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+                        {% elif config.gateway == 'bank' %}
+                            {% if config.bank_name and config.bank_account_name and config.bank_account_number %}
+                                <span class="badge bg-success">Configured</span>
+                            {% else %}
+                                <span class="badge bg-warning">Incomplete</span>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    <td>{{ config.created_at|date:"M d, Y" }}</td>
+                    <td>{{ config.updated_at|date:"M d, Y" }}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'superadmin:payment_config_detail' config.pk %}" 
+                               class="btn btn-outline-info" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'superadmin:payment_config_update' config.pk %}" 
+                               class="btn btn-outline-primary" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'superadmin:payment_config_delete' config.pk %}" 
+                               class="btn btn-outline-danger" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="p-3 border-top">
+        <nav aria-label="Page navigation">
+            <ul class="pagination modern-pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1">First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="text-center py-5">
+        <div class="avatar-circle mx-auto mb-3" style="width: 64px; height: 64px; background: rgba(56, 189, 248, 0.1); color: var(--accent-cyan, #38BDF8); font-size: 24px;">
+            <i class="fas fa-credit-card"></i>
+        </div>
+        <h5 class="fw-bold mb-1">No Payment Configurations</h5>
+        <p class="text-muted mb-4">
+            You haven't configured any payment gateways yet. Add your first configuration to start accepting payments.
+        </p>
+        <a href="{% url 'superadmin:payment_config_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Add Your First Configuration
+        </a>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

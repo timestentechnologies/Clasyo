@@ -230,45 +230,72 @@
 
 {% if school %}
 <div class="row mt-4">
-    <div class="col-md-4">
-        <div class="modern-card mb-4">
-            <h4 class="mb-3"><i class="fas fa-credit-card text-primary"></i> Payment Gateways</h4>
-            <p class="text-muted mb-3">
-                Configure M-Pesa (Paybill / Till), Stripe, PayPal, and bank gateways for collecting student fees.
-            </p>
-            <a href="{% url 'superadmin:school_payment_config_list' school_slug=school.slug %}" class="btn btn-outline-primary btn-sm">
-                <i class="fas fa-cog me-1"></i> Manage Payments
-            </a>
+    <div class="col-md-6 col-lg-3">
+        <div class="modern-card mb-4 h-100 d-flex flex-column justify-content-between">
+            <div>
+                <h4 class="mb-3"><i class="fas fa-credit-card text-primary"></i> Payment Gateways</h4>
+                <p class="text-muted mb-3">
+                    Configure M-Pesa (Paybill / Till), Stripe, PayPal, and bank gateways for collecting student fees.
+                </p>
+            </div>
+            <div>
+                <a href="{% url 'superadmin:school_payment_config_list' school_slug=school.slug %}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-cog me-1"></i> Manage Payments
+                </a>
+            </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="modern-card mb-4">
-            <h4 class="mb-3"><i class="fas fa-sms text-info"></i> SMS Configurations</h4>
-            <p class="text-muted mb-3">
-                {% if sms_configs %}
-                    {{ sms_configs|length }} configuration{{ sms_configs|length|pluralize }}
-                {% else %}
-                    Using global SMS settings ({{ global_sms_config.provider|default:'system' }})
-                {% endif %}
-            </p>
-            <a href="{% url 'superadmin:school_sms_config_list' school_slug=school.slug %}" class="btn btn-outline-primary btn-sm">
-                <i class="fas fa-cog me-1"></i> Manage SMS
-            </a>
+    <div class="col-md-6 col-lg-3">
+        <div class="modern-card mb-4 h-100 d-flex flex-column justify-content-between">
+            <div>
+                <h4 class="mb-3"><i class="fas fa-sms text-info"></i> SMS Gateways</h4>
+                <p class="text-muted mb-3">
+                    {% if sms_configs %}
+                        {{ sms_configs|length }} configuration{{ sms_configs|length|pluralize }}
+                    {% else %}
+                        Using global SMS settings ({{ global_sms_config.provider|default:'system' }})
+                    {% endif %}
+                </p>
+            </div>
+            <div>
+                <a href="{% url 'superadmin:school_sms_config_list' school_slug=school.slug %}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-cog me-1"></i> Manage SMS
+                </a>
+            </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="modern-card mb-4">
-            <h4 class="mb-3"><i class="fas fa-envelope text-warning"></i> Email Configurations</h4>
-            <p class="text-muted mb-3">
-                {% if email_configs %}
-                    {{ email_configs|length }} configuration{{ email_configs|length|pluralize }}
-                {% else %}
-                    Using global email settings ({{ global_email_config.provider|default:'system' }})
-                {% endif %}
-            </p>
-            <a href="{% url 'superadmin:school_email_config_list' school_slug=school.slug %}" class="btn btn-outline-primary btn-sm">
-                <i class="fas fa-cog me-1"></i> Manage Email
-            </a>
+    <div class="col-md-6 col-lg-3">
+        <div class="modern-card mb-4 h-100 d-flex flex-column justify-content-between">
+            <div>
+                <h4 class="mb-3"><i class="fas fa-envelope text-warning"></i> Email Servers</h4>
+                <p class="text-muted mb-3">
+                    {% if email_configs %}
+                        {{ email_configs|length }} configuration{{ email_configs|length|pluralize }}
+                    {% else %}
+                        Using global email settings ({{ global_email_config.provider|default:'system' }})
+                    {% endif %}
+                </p>
+            </div>
+            <div>
+                <a href="{% url 'superadmin:school_email_config_list' school_slug=school.slug %}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-cog me-1"></i> Manage Email
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="modern-card mb-4 h-100 d-flex flex-column justify-content-between">
+            <div>
+                <h4 class="mb-3"><i class="fab fa-whatsapp text-success"></i> WhatsApp Business</h4>
+                <p class="text-muted mb-3">
+                    Custom school WhatsApp Business gateway for receipts, attendance, and exam alerts.
+                </p>
+            </div>
+            <div>
+                <a href="{% url 'superadmin:school_whatsapp_config_list' school_slug=school.slug %}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-cog me-1"></i> Manage WhatsApp
+                </a>
+            </div>
         </div>
     </div>
 </div>

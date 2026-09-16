@@ -1,33 +1,33 @@
 {% extends 'dashboards/base.html' %}
 {% load static %}
 
-{% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} SMS Configuration - Super Admin{% endblock %}
-{% block page_title %}{% if form.instance.pk %}Edit SMS Configuration{% else %}Add SMS Configuration{% endif %}{% endblock %}
-{% block page_icon %}sms{% endblock %}
-{% block page_subtitle %}Configure global SMS gateway credentials and sender IDs{% endblock %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} WhatsApp Configuration - Super Admin{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit WhatsApp Configuration{% else %}Add WhatsApp Configuration{% endif %}{% endblock %}
+{% block page_icon %}fab fa-whatsapp{% endblock %}
+{% block page_subtitle %}Configure global WhatsApp Business API provider credentials and phone numbers{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-0">
     <!-- Shared In-Page Single Form Panel -->
-    <div class="form-panel-view" id="smsConfigPanel">
+    <div class="form-panel-view" id="whatsappConfigPanel">
         <div class="form-header-bar">
             <div class="form-header-title-group">
-                <a href="{% url 'superadmin:sms_config_list' %}" class="btn btn-sm btn-outline-secondary">
+                <a href="{% url 'superadmin:whatsapp_config_list' %}" class="btn btn-sm btn-outline-secondary">
                     <i class="fas fa-arrow-left me-1"></i> Back to Configurations
                 </a>
                 <h5 class="mb-0 fw-bold form-title-text">
-                    {% if form.instance.pk %}Edit SMS Configuration{% else %}Add SMS Configuration{% endif %}
+                    {% if form.instance.pk %}Edit WhatsApp Configuration{% else %}Add WhatsApp Configuration{% endif %}
                 </h5>
             </div>
             <div class="form-header-actions">
-                <a href="{% url 'superadmin:sms_config_list' %}" class="btn btn-sm btn-light">Cancel</a>
-                <button type="submit" form="smsConfigForm" class="btn btn-sm btn-primary form-submit-btn">
+                <a href="{% url 'superadmin:whatsapp_config_list' %}" class="btn btn-sm btn-light">Cancel</a>
+                <button type="submit" form="whatsappConfigForm" class="btn btn-sm btn-primary form-submit-btn">
                     <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Configuration{% else %}Save Configuration{% endif %}
                 </button>
             </div>
         </div>
         <div class="form-card-body">
-            <form method="post" id="smsConfigForm" novalidate>
+            <form method="post" id="whatsappConfigForm" novalidate>
                 {% csrf_token %}
 
                 {% if form.non_field_errors %}
@@ -38,10 +38,10 @@
                 </div>
                 {% endif %}
 
-                <!-- Provider Selection & Status -->
+                <!-- Provider & Activation -->
                 <div class="mb-4">
                     <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                        <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(56, 189, 248, 0.15); color: var(--accent-cyan, #38BDF8);">
+                        <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(34, 197, 94, 0.15); color: #22c55e;">
                             <i class="fas fa-sliders-h"></i>
                         </div>
                         <h6 class="mb-0 fw-bold">Provider & Status</h6>
@@ -50,50 +50,125 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label for="{{ form.provider.id_for_label }}" class="form-label fw-bold">
-                                SMS Provider <span class="text-danger">*</span>
+                                WhatsApp Provider <span class="text-danger">*</span>
                             </label>
                             {{ form.provider }}
                             {% if form.provider.errors %}
                             <div class="text-danger small mt-1">{{ form.provider.errors.0 }}</div>
                             {% endif %}
-                            <small class="text-muted">Select your SMS gateway vendor.</small>
+                            <small class="text-muted">Choose between Meta Cloud API (direct), Twilio, or other providers.</small>
                         </div>
+
                         <div class="col-md-6 d-flex flex-column justify-content-center">
-                            <label class="form-label fw-bold">Activation</label>
+                            <label class="form-label fw-bold">Primary Activation</label>
                             <div class="form-check form-switch mt-1">
                                 {{ form.is_active }}
                                 <label class="form-check-label fw-semibold" for="{{ form.is_active.id_for_label }}">
-                                    Set as Primary Active SMS Provider
+                                    Set as Primary Active WhatsApp Gateway
                                 </label>
                             </div>
                             {% if form.is_active.errors %}
                             <div class="text-danger small mt-1">{{ form.is_active.errors.0 }}</div>
                             {% endif %}
-                            <small class="text-muted">Only one global SMS provider can be active at a time.</small>
+                            <small class="text-muted">Directs all automated school and superadmin notifications to this provider.</small>
                         </div>
+
                         <div class="col-12 col-md-6">
-                            <label for="{{ form.default_sender_id.id_for_label }}" class="form-label fw-bold">
-                                Default Sender ID
+                            <label for="{{ form.default_sender_phone.id_for_label }}" class="form-label fw-bold">
+                                Default Sender Phone Number
                             </label>
-                            {{ form.default_sender_id }}
-                            {% if form.default_sender_id.errors %}
-                            <div class="text-danger small mt-1">{{ form.default_sender_id.errors.0 }}</div>
+                            {{ form.default_sender_phone }}
+                            {% if form.default_sender_phone.errors %}
+                            <div class="text-danger small mt-1">{{ form.default_sender_phone.errors.0 }}</div>
                             {% endif %}
-                            <small class="text-muted">Default alphanumeric sender header (max 11 characters, e.g. SCHOOL).</small>
+                            <small class="text-muted">e.g. +254712345678 (in international E.164 format).</small>
                         </div>
                     </div>
                 </div>
 
-                <!-- Provider Specific Settings -->
+                <!-- Provider Specific Credentials -->
                 <div class="mb-4" id="providerSpecificCard" style="display: none;">
-                    <!-- Twilio -->
-                    <div id="section-twilio" class="provider-section">
+                    <!-- Meta WhatsApp Cloud API -->
+                    <div id="section-meta" class="provider-section">
                         <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 14px; background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+                                <i class="fab fa-facebook"></i>
+                            </div>
+                            <h6 class="mb-0 fw-bold">Meta WhatsApp Cloud API Settings</h6>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.meta_phone_number_id.id_for_label }}" class="form-label fw-bold">Phone Number ID</label>
+                                {{ form.meta_phone_number_id }}
+                                {% if form.meta_phone_number_id.errors %}
+                                <div class="text-danger small mt-1">{{ form.meta_phone_number_id.errors.0 }}</div>
+                                {% endif %}
+                                <small class="text-muted">Found in Meta App Dashboard > WhatsApp > API Setup.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.meta_waba_id.id_for_label }}" class="form-label fw-bold">WhatsApp Business Account ID (WABA)</label>
+                                {{ form.meta_waba_id }}
+                                {% if form.meta_waba_id.errors %}
+                                <div class="text-danger small mt-1">{{ form.meta_waba_id.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-12">
+                                <label for="{{ form.meta_access_token.id_for_label }}" class="form-label fw-bold">System User Permanent Access Token</label>
+                                <div class="input-group">
+                                    {{ form.meta_access_token }}
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ form.meta_access_token.id_for_label }}', this)">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                {% if form.meta_access_token.errors %}
+                                <div class="text-danger small mt-1">{{ form.meta_access_token.errors.0 }}</div>
+                                {% endif %}
+                                <small class="text-muted">Generate a permanent token from Meta Business Manager > System Users.</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.meta_app_id.id_for_label }}" class="form-label fw-bold">Meta App ID (Optional)</label>
+                                {{ form.meta_app_id }}
+                                {% if form.meta_app_id.errors %}
+                                <div class="text-danger small mt-1">{{ form.meta_app_id.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.meta_app_secret.id_for_label }}" class="form-label fw-bold">Meta App Secret (Optional)</label>
+                                <div class="input-group">
+                                    {{ form.meta_app_secret }}
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ form.meta_app_secret.id_for_label }}', this)">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                {% if form.meta_app_secret.errors %}
+                                <div class="text-danger small mt-1">{{ form.meta_app_secret.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.meta_webhook_verify_token.id_for_label }}" class="form-label fw-bold">Webhook Verify Token</label>
+                                <div class="input-group">
+                                    {{ form.meta_webhook_verify_token }}
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ form.meta_webhook_verify_token.id_for_label }}', this)">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                {% if form.meta_webhook_verify_token.errors %}
+                                <div class="text-danger small mt-1">{{ form.meta_webhook_verify_token.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Twilio WhatsApp API -->
+                    <div id="section-twilio" class="provider-section" style="display: none;">
+                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 14px; background: rgba(239, 68, 68, 0.15); color: #ef4444;">
                                 <i class="fas fa-phone"></i>
                             </div>
-                            <h6 class="mb-0 fw-bold">Twilio SMS Credentials</h6>
+                            <h6 class="mb-0 fw-bold">Twilio WhatsApp Credentials</h6>
                         </div>
+
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label for="{{ form.twilio_account_sid.id_for_label }}" class="form-label fw-bold">Account SID</label>
@@ -115,33 +190,34 @@
                                 {% endif %}
                             </div>
                             <div class="col-md-6">
-                                <label for="{{ form.twilio_phone_number.id_for_label }}" class="form-label fw-bold">Twilio Phone Number</label>
-                                {{ form.twilio_phone_number }}
-                                {% if form.twilio_phone_number.errors %}
-                                <div class="text-danger small mt-1">{{ form.twilio_phone_number.errors.0 }}</div>
+                                <label for="{{ form.twilio_from_number.id_for_label }}" class="form-label fw-bold">Twilio WhatsApp "From" Number</label>
+                                {{ form.twilio_from_number }}
+                                {% if form.twilio_from_number.errors %}
+                                <div class="text-danger small mt-1">{{ form.twilio_from_number.errors.0 }}</div>
                                 {% endif %}
+                                <small class="text-muted">Format: <code>whatsapp:+14155238886</code></small>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Africa's Talking -->
+                    <!-- Africa's Talking WhatsApp -->
                     <div id="section-africastalking" class="provider-section" style="display: none;">
                         <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(34, 197, 94, 0.15); color: #22c55e;">
+                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 14px; background: rgba(34, 197, 94, 0.15); color: #22c55e;">
                                 <i class="fas fa-comments"></i>
                             </div>
-                            <h6 class="mb-0 fw-bold">Africa's Talking Credentials</h6>
+                            <h6 class="mb-0 fw-bold">Africa's Talking WhatsApp Settings</h6>
                         </div>
+
                         <div class="row g-3">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label for="{{ form.africastalking_username.id_for_label }}" class="form-label fw-bold">Username</label>
                                 {{ form.africastalking_username }}
                                 {% if form.africastalking_username.errors %}
                                 <div class="text-danger small mt-1">{{ form.africastalking_username.errors.0 }}</div>
                                 {% endif %}
-                                <small class="text-muted">Use <code>sandbox</code> for testing, or your registered account username.</small>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label for="{{ form.africastalking_api_key.id_for_label }}" class="form-label fw-bold">API Key</label>
                                 <div class="input-group">
                                     {{ form.africastalking_api_key }}
@@ -153,26 +229,27 @@
                                 <div class="text-danger small mt-1">{{ form.africastalking_api_key.errors.0 }}</div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6">
-                                <label for="{{ form.africastalking_sender_id.id_for_label }}" class="form-label fw-bold">Custom Sender ID (Optional)</label>
-                                {{ form.africastalking_sender_id }}
-                                {% if form.africastalking_sender_id.errors %}
-                                <div class="text-danger small mt-1">{{ form.africastalking_sender_id.errors.0 }}</div>
+                            <div class="col-md-4">
+                                <label for="{{ form.africastalking_sender_phone.id_for_label }}" class="form-label fw-bold">Sender Phone Number</label>
+                                {{ form.africastalking_sender_phone }}
+                                {% if form.africastalking_sender_phone.errors %}
+                                <div class="text-danger small mt-1">{{ form.africastalking_sender_phone.errors.0 }}</div>
                                 {% endif %}
                             </div>
                         </div>
                     </div>
 
-                    <!-- Infobip -->
+                    <!-- Infobip WhatsApp -->
                     <div id="section-infobip" class="provider-section" style="display: none;">
                         <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
+                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 14px; background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
                                 <i class="fas fa-satellite-dish"></i>
                             </div>
-                            <h6 class="mb-0 fw-bold">Infobip Credentials</h6>
+                            <h6 class="mb-0 fw-bold">Infobip WhatsApp Credentials</h6>
                         </div>
+
                         <div class="row g-3">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label for="{{ form.infobip_api_key.id_for_label }}" class="form-label fw-bold">API Key</label>
                                 <div class="input-group">
                                     {{ form.infobip_api_key }}
@@ -184,89 +261,27 @@
                                 <div class="text-danger small mt-1">{{ form.infobip_api_key.errors.0 }}</div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label for="{{ form.infobip_base_url.id_for_label }}" class="form-label fw-bold">Base URL</label>
                                 {{ form.infobip_base_url }}
                                 {% if form.infobip_base_url.errors %}
                                 <div class="text-danger small mt-1">{{ form.infobip_base_url.errors.0 }}</div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6">
-                                <label for="{{ form.infobip_sender.id_for_label }}" class="form-label fw-bold">Sender Identifier</label>
-                                {{ form.infobip_sender }}
-                                {% if form.infobip_sender.errors %}
-                                <div class="text-danger small mt-1">{{ form.infobip_sender.errors.0 }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Clickatell -->
-                    <div id="section-clickatell" class="provider-section" style="display: none;">
-                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
-                                <i class="fas fa-paper-plane"></i>
-                            </div>
-                            <h6 class="mb-0 fw-bold">Clickatell Credentials</h6>
-                        </div>
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label for="{{ form.clickatell_api_key.id_for_label }}" class="form-label fw-bold">API Key</label>
-                                <div class="input-group">
-                                    {{ form.clickatell_api_key }}
-                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ form.clickatell_api_key.id_for_label }}', this)">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </div>
-                                {% if form.clickatell_api_key.errors %}
-                                <div class="text-danger small mt-1">{{ form.clickatell_api_key.errors.0 }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Nexmo / Vonage -->
-                    <div id="section-nexmo" class="provider-section" style="display: none;">
-                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(168, 85, 247, 0.15); color: #a855f7;">
-                                <i class="fas fa-mobile-alt"></i>
-                            </div>
-                            <h6 class="mb-0 fw-bold">Nexmo (Vonage) Credentials</h6>
-                        </div>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="{{ form.nexmo_api_key.id_for_label }}" class="form-label fw-bold">API Key</label>
-                                {{ form.nexmo_api_key }}
-                                {% if form.nexmo_api_key.errors %}
-                                <div class="text-danger small mt-1">{{ form.nexmo_api_key.errors.0 }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6">
-                                <label for="{{ form.nexmo_api_secret.id_for_label }}" class="form-label fw-bold">API Secret</label>
-                                <div class="input-group">
-                                    {{ form.nexmo_api_secret }}
-                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ form.nexmo_api_secret.id_for_label }}', this)">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </div>
-                                {% if form.nexmo_api_secret.errors %}
-                                <div class="text-danger small mt-1">{{ form.nexmo_api_secret.errors.0 }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6">
-                                <label for="{{ form.nexmo_from_number.id_for_label }}" class="form-label fw-bold">From Number / Sender Name</label>
-                                {{ form.nexmo_from_number }}
-                                {% if form.nexmo_from_number.errors %}
-                                <div class="text-danger small mt-1">{{ form.nexmo_from_number.errors.0 }}</div>
+                            <div class="col-md-4">
+                                <label for="{{ form.infobip_sender_phone.id_for_label }}" class="form-label fw-bold">Sender Phone Number</label>
+                                {{ form.infobip_sender_phone }}
+                                {% if form.infobip_sender_phone.errors %}
+                                <div class="text-danger small mt-1">{{ form.infobip_sender_phone.errors.0 }}</div>
                                 {% endif %}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Action Buttons -->
+                <!-- Actions -->
                 <div class="d-flex justify-content-end gap-2 mb-2">
-                    <a href="{% url 'superadmin:sms_config_list' %}" class="btn btn-outline-secondary px-4">
+                    <a href="{% url 'superadmin:whatsapp_config_list' %}" class="btn btn-outline-secondary px-4">
                         Cancel
                     </a>
                     <button type="submit" class="btn btn-primary px-4 fw-semibold">
@@ -304,11 +319,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const providerSelect = document.getElementById('id_provider');
     const providerCard = document.getElementById('providerSpecificCard');
     const sections = {
+        'meta': document.getElementById('section-meta'),
         'twilio': document.getElementById('section-twilio'),
         'africastalking': document.getElementById('section-africastalking'),
-        'infobip': document.getElementById('section-infobip'),
-        'clickatell': document.getElementById('section-clickatell'),
-        'nexmo': document.getElementById('section-nexmo')
+        'infobip': document.getElementById('section-infobip')
     };
 
     function updateSections() {

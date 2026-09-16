@@ -1,0 +1,241 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Database Configuration - Super Admin{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit Database Configuration{% else %}Add Database Configuration{% endif %}{% endblock %}
+{% block page_icon %}database{% endblock %}
+{% block page_subtitle %}Configure global external databases, replicas, and backup routines{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Shared In-Page Single Form Panel -->
+    <div class="form-panel-view" id="dbConfigPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <a href="{% url 'superadmin:db_config_list' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Configurations
+                </a>
+                <h5 class="mb-0 fw-bold form-title-text">
+                    {% if form.instance.pk %}Edit Database Configuration{% else %}Add Database Configuration{% endif %}
+                </h5>
+            </div>
+            <div class="form-header-actions">
+                <a href="{% url 'superadmin:db_config_list' %}" class="btn btn-sm btn-light">Cancel</a>
+                <button type="submit" form="dbConfigForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Configuration{% else %}Save Configuration{% endif %}
+                </button>
+            </div>
+        </div>
+        <div class="form-card-body">
+            <form method="post" id="dbConfigForm" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger mb-4">
+                    {% for error in form.non_field_errors %}
+                        <p class="mb-0"><i class="fas fa-exclamation-circle me-2"></i>{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Configuration Profile & Activation -->
+                <div class="mb-4">
+                    <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                        <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(56, 189, 248, 0.15); color: var(--accent-cyan, #38BDF8);">
+                            <i class="fas fa-sliders-h"></i>
+                        </div>
+                        <h6 class="mb-0 fw-bold">Configuration Profile</h6>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <label for="{{ form.name.id_for_label }}" class="form-label fw-bold">
+                                Configuration Name <span class="text-danger">*</span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>
+                            {% endif %}
+                            <small class="text-muted">A descriptive name (e.g. "Primary PostgreSQL Cluster", "Read Replica").</small>
+                        </div>
+                        <div class="col-md-5 d-flex flex-column justify-content-center">
+                            <label class="form-label fw-bold">Status</label>
+                            <div class="form-check form-switch mt-1">
+                                {{ form.is_active }}
+                                <label class="form-check-label fw-semibold" for="{{ form.is_active.id_for_label }}">
+                                    Set as Primary Active Connection
+                                </label>
+                            </div>
+                            {% if form.is_active.errors %}
+                            <div class="text-danger small mt-1">{{ form.is_active.errors.0 }}</div>
+                            {% endif %}
+                            <small class="text-muted">Enabling this makes it the active configured database.</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Connection Settings -->
+                <div class="mb-4">
+                    <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                        <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+                            <i class="fas fa-network-wired"></i>
+                        </div>
+                        <h6 class="mb-0 fw-bold">Connection Parameters</h6>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label for="{{ form.db_host.id_for_label }}" class="form-label fw-bold">Database Host / Server IP</label>
+                            {{ form.db_host }}
+                            {% if form.db_host.errors %}
+                            <div class="text-danger small mt-1">{{ form.db_host.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.db_port.id_for_label }}" class="form-label fw-bold">Port</label>
+                            {{ form.db_port }}
+                            {% if form.db_port.errors %}
+                            <div class="text-danger small mt-1">{{ form.db_port.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.db_name.id_for_label }}" class="form-label fw-bold">Database Name</label>
+                            {{ form.db_name }}
+                            {% if form.db_name.errors %}
+                            <div class="text-danger small mt-1">{{ form.db_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.db_user.id_for_label }}" class="form-label fw-bold">Username</label>
+                            {{ form.db_user }}
+                            {% if form.db_user.errors %}
+                            <div class="text-danger small mt-1">{{ form.db_user.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.db_password.id_for_label }}" class="form-label fw-bold">Password</label>
+                            <div class="input-group">
+                                {{ form.db_password }}
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ form.db_password.id_for_label }}', this)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            {% if form.db_password.errors %}
+                            <div class="text-danger small mt-1">{{ form.db_password.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Backup & Retention Routine -->
+                <div class="mb-4">
+                    <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                        <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(34, 197, 94, 0.15); color: #22c55e;">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <h6 class="mb-0 fw-bold">Automated Backups & Retention</h6>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-4 d-flex flex-column justify-content-center">
+                            <label class="form-label fw-bold">Routine Backup</label>
+                            <div class="form-check form-switch mt-1">
+                                {{ form.backup_enabled }}
+                                <label class="form-check-label fw-semibold" for="{{ form.backup_enabled.id_for_label }}">
+                                    Enable Automated Routine
+                                </label>
+                            </div>
+                            {% if form.backup_enabled.errors %}
+                            <div class="text-danger small mt-1">{{ form.backup_enabled.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.backup_frequency.id_for_label }}" class="form-label fw-bold">Backup Frequency</label>
+                            {{ form.backup_frequency }}
+                            {% if form.backup_frequency.errors %}
+                            <div class="text-danger small mt-1">{{ form.backup_frequency.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.backup_retention_days.id_for_label }}" class="form-label fw-bold">Retention Period (Days)</label>
+                            {{ form.backup_retention_days }}
+                            {% if form.backup_retention_days.errors %}
+                            <div class="text-danger small mt-1">{{ form.backup_retention_days.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ form.backup_storage_path.id_for_label }}" class="form-label fw-bold">Storage Path (Optional)</label>
+                            {{ form.backup_storage_path }}
+                            {% if form.backup_storage_path.errors %}
+                            <div class="text-danger small mt-1">{{ form.backup_storage_path.errors.0 }}</div>
+                            {% endif %}
+                            <small class="text-muted">Leave empty to use system default backup storage directory.</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Settings -->
+                <div class="mb-4">
+                    <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                        <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <h6 class="mb-0 fw-bold">Connection Pool & Limits</h6>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.max_connections.id_for_label }}" class="form-label fw-bold">Max Connections</label>
+                            {{ form.max_connections }}
+                            {% if form.max_connections.errors %}
+                            <div class="text-danger small mt-1">{{ form.max_connections.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.connection_timeout.id_for_label }}" class="form-label fw-bold">Connection Timeout (Seconds)</label>
+                            {{ form.connection_timeout }}
+                            {% if form.connection_timeout.errors %}
+                            <div class="text-danger small mt-1">{{ form.connection_timeout.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Form Actions -->
+                <div class="d-flex justify-content-end gap-2 mb-2">
+                    <a href="{% url 'superadmin:db_config_list' %}" class="btn btn-outline-secondary px-4">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                        <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Configuration{% else %}Save Configuration{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePasswordVisibility(fieldId, btn) {
+    const input = document.getElementById(fieldId);
+    if (!input) return;
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (icon) {
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        }
+    } else {
+        input.type = 'password';
+        if (icon) {
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+}
+</script>
+{% endblock %}

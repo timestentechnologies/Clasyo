@@ -19,12 +19,19 @@ from .models import (
     GlobalSMSConfiguration,
     GlobalEmailConfiguration,
     GlobalDatabaseConfiguration,
+    GlobalWhatsAppConfiguration,
     SchoolSMSConfiguration,
     SchoolEmailConfiguration,
+    SchoolWhatsAppConfiguration,
     GlobalAIConfiguration,
     SchoolAIConfiguration,
 )
-from .forms import PaymentConfigurationForm, SchoolPaymentConfigurationForm
+from .forms import (
+    PaymentConfigurationForm, SchoolPaymentConfigurationForm,
+    GlobalEmailConfigurationForm, GlobalSMSConfigurationForm,
+    GlobalDatabaseConfigurationForm, GlobalWhatsAppConfigurationForm,
+    SchoolWhatsAppConfigurationForm,
+)
 from .ai_forms import GlobalAIConfigurationForm, SchoolAIConfigurationForm
 from tenants.models import School
 from accounts.models import User
@@ -1808,33 +1815,41 @@ class GlobalSMSConfigurationListView(SuperAdminRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from django.conf import settings
-        
-        # Add current SMS configuration from settings
-        current_sms = {
-            'name': 'Current SMS Configuration',
-            'is_active': True,
-            'provider': 'system',
-            'api_key': getattr(settings, 'SMS_API_KEY', None),
-            'default_sender_id': getattr(settings, 'SMS_SENDER_ID', None),
-            'is_current': True
-        }
-        
-        # Create simple object that can be used in template
         from collections import namedtuple
-        CurrentSMS = namedtuple('CurrentSMS', current_sms.keys())
         
-        context['current_sms'] = CurrentSMS(**current_sms)
+        # Check active database config FIRST
+        active_config = GlobalSMSConfiguration.objects.filter(is_active=True).first()
+        if active_config:
+            context['current_sms'] = active_config
+            context['is_database_config'] = True
+        else:
+            # Fallback to system settings
+            current_sms = {
+                'id': None,
+                'name': 'System SMS Settings',
+                'is_active': True,
+                'provider': 'system',
+                'get_provider_display': 'Environment Variables',
+                'api_key': getattr(settings, 'SMS_API_KEY', None) or 'Configured via .env',
+                'default_sender_id': getattr(settings, 'SMS_SENDER_ID', 'SCHOOL'),
+                'is_current': True,
+            }
+            CurrentSMS = namedtuple('CurrentSMS', current_sms.keys())
+            context['current_sms'] = CurrentSMS(**current_sms)
+            context['is_database_config'] = False
         return context
 
 
 class GlobalSMSConfigurationCreateView(SuperAdminRequiredMixin, CreateView):
     """Create a new global SMS configuration"""
     model = GlobalSMSConfiguration
+    form_class = GlobalSMSConfigurationForm
     template_name = 'superadmin/sms_config_form.html'
-    fields = '__all__'
     success_url = reverse_lazy('superadmin:sms_config_list')
     
     def form_valid(self, form):
+        if form.cleaned_data.get('is_active'):
+            GlobalSMSConfiguration.objects.filter(is_active=True).update(is_active=False)
         messages.success(self.request, 'SMS configuration created successfully.')
         return super().form_valid(form)
 
@@ -1842,11 +1857,13 @@ class GlobalSMSConfigurationCreateView(SuperAdminRequiredMixin, CreateView):
 class GlobalSMSConfigurationUpdateView(SuperAdminRequiredMixin, UpdateView):
     """Update a global SMS configuration"""
     model = GlobalSMSConfiguration
+    form_class = GlobalSMSConfigurationForm
     template_name = 'superadmin/sms_config_form.html'
-    fields = '__all__'
     success_url = reverse_lazy('superadmin:sms_config_list')
     
     def form_valid(self, form):
+        if form.cleaned_data.get('is_active'):
+            GlobalSMSConfiguration.objects.exclude(pk=self.object.pk).filter(is_active=True).update(is_active=False)
         messages.success(self.request, 'SMS configuration updated successfully.')
         return super().form_valid(form)
 
@@ -1876,38 +1893,46 @@ class GlobalEmailConfigurationListView(SuperAdminRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from django.conf import settings
-        
-        # Add current email configuration from settings
-        current_email = {
-            'name': 'Current Email Configuration',
-            'is_active': True,
-            'provider': 'system',
-            'smtp_host': getattr(settings, 'EMAIL_HOST', 'Not configured'),
-            'smtp_port': getattr(settings, 'EMAIL_PORT', 587),
-            'smtp_use_tls': getattr(settings, 'EMAIL_USE_TLS', True),
-            'smtp_use_ssl': getattr(settings, 'EMAIL_USE_SSL', False),
-            'default_from_email': getattr(settings, 'DEFAULT_FROM_EMAIL', 'Not configured'),
-            'default_from_name': getattr(settings, 'DEFAULT_FROM_NAME', 'Clasyo'),
-            'backend': getattr(settings, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend').split('.')[-1],
-            'is_current': True
-        }
-        
-        # Create simple object that can be used in template
         from collections import namedtuple
-        CurrentEmail = namedtuple('CurrentEmail', current_email.keys())
         
-        context['current_email'] = CurrentEmail(**current_email)
+        # Check active database config FIRST
+        active_config = GlobalEmailConfiguration.objects.filter(is_active=True).first()
+        if active_config:
+            context['current_email'] = active_config
+            context['is_database_config'] = True
+        else:
+            current_email = {
+                'id': None,
+                'name': 'System Email Settings',
+                'is_active': True,
+                'provider': 'system',
+                'get_provider_display': 'Environment Variables',
+                'smtp_host': getattr(settings, 'EMAIL_HOST', 'Not configured'),
+                'smtp_port': getattr(settings, 'EMAIL_PORT', 587),
+                'smtp_username': getattr(settings, 'EMAIL_HOST_USER', 'Not configured'),
+                'smtp_use_tls': getattr(settings, 'EMAIL_USE_TLS', True),
+                'smtp_use_ssl': getattr(settings, 'EMAIL_USE_SSL', False),
+                'default_from_email': getattr(settings, 'DEFAULT_FROM_EMAIL', 'Not configured'),
+                'default_from_name': getattr(settings, 'DEFAULT_FROM_NAME', 'Clasyo'),
+                'backend': getattr(settings, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend').split('.')[-1],
+                'is_current': True,
+            }
+            CurrentEmail = namedtuple('CurrentEmail', current_email.keys())
+            context['current_email'] = CurrentEmail(**current_email)
+            context['is_database_config'] = False
         return context
 
 
 class GlobalEmailConfigurationCreateView(SuperAdminRequiredMixin, CreateView):
     """Create a new global email configuration"""
     model = GlobalEmailConfiguration
+    form_class = GlobalEmailConfigurationForm
     template_name = 'superadmin/email_config_form.html'
-    fields = '__all__'
     success_url = reverse_lazy('superadmin:email_config_list')
     
     def form_valid(self, form):
+        if form.cleaned_data.get('is_active'):
+            GlobalEmailConfiguration.objects.filter(is_active=True).update(is_active=False)
         messages.success(self.request, 'Email configuration created successfully.')
         return super().form_valid(form)
 
@@ -1915,11 +1940,13 @@ class GlobalEmailConfigurationCreateView(SuperAdminRequiredMixin, CreateView):
 class GlobalEmailConfigurationUpdateView(SuperAdminRequiredMixin, UpdateView):
     """Update a global email configuration"""
     model = GlobalEmailConfiguration
+    form_class = GlobalEmailConfigurationForm
     template_name = 'superadmin/email_config_form.html'
-    fields = '__all__'
     success_url = reverse_lazy('superadmin:email_config_list')
     
     def form_valid(self, form):
+        if form.cleaned_data.get('is_active'):
+            GlobalEmailConfiguration.objects.exclude(pk=self.object.pk).filter(is_active=True).update(is_active=False)
         messages.success(self.request, 'Email configuration updated successfully.')
         return super().form_valid(form)
 
@@ -2095,36 +2122,43 @@ class GlobalDatabaseConfigurationListView(SuperAdminRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from django.conf import settings
-        
-        # Add current database configuration from settings
-        current_db = {
-            'name': 'Current Database',
-            'is_active': True,
-            'db_host': getattr(settings, 'DB_HOST', None) or settings.DATABASES['default'].get('HOST', 'localhost'),
-            'db_port': getattr(settings, 'DB_PORT', None) or settings.DATABASES['default'].get('PORT', '5432'),
-            'db_name': settings.DATABASES['default'].get('NAME', 'N/A'),
-            'db_user': getattr(settings, 'DB_USER', None) or settings.DATABASES['default'].get('USER', 'N/A'),
-            'db_password': '***' if settings.DATABASES['default'].get('PASSWORD') else None,
-            'engine': settings.DATABASES['default']['ENGINE'].split('.')[-1],
-            'is_current': True
-        }
-        
-        # Create simple object that can be used in template
         from collections import namedtuple
-        CurrentDB = namedtuple('CurrentDB', current_db.keys())
         
-        context['current_db'] = CurrentDB(**current_db)
+        # Check active database config FIRST
+        active_config = GlobalDatabaseConfiguration.objects.filter(is_active=True).first()
+        if active_config:
+            context['current_db'] = active_config
+            context['is_database_config'] = True
+        else:
+            # Fallback to current settings connection
+            current_db = {
+                'id': None,
+                'name': 'Primary System Database (Settings)',
+                'is_active': True,
+                'db_host': getattr(settings, 'DB_HOST', None) or settings.DATABASES['default'].get('HOST', 'localhost'),
+                'db_port': getattr(settings, 'DB_PORT', None) or settings.DATABASES['default'].get('PORT', '5432'),
+                'db_name': settings.DATABASES['default'].get('NAME', 'N/A'),
+                'db_user': getattr(settings, 'DB_USER', None) or settings.DATABASES['default'].get('USER', 'N/A'),
+                'db_password': '***' if settings.DATABASES['default'].get('PASSWORD') else None,
+                'engine': settings.DATABASES['default']['ENGINE'].split('.')[-1],
+                'is_current': True
+            }
+            CurrentDB = namedtuple('CurrentDB', current_db.keys())
+            context['current_db'] = CurrentDB(**current_db)
+            context['is_database_config'] = False
         return context
 
 
 class GlobalDatabaseConfigurationCreateView(SuperAdminRequiredMixin, CreateView):
     """Create a new global database configuration"""
     model = GlobalDatabaseConfiguration
+    form_class = GlobalDatabaseConfigurationForm
     template_name = 'superadmin/db_config_form.html'
-    fields = '__all__'
     success_url = reverse_lazy('superadmin:db_config_list')
     
     def form_valid(self, form):
+        if form.cleaned_data.get('is_active'):
+            GlobalDatabaseConfiguration.objects.filter(is_active=True).update(is_active=False)
         messages.success(self.request, 'Database configuration created successfully.')
         return super().form_valid(form)
 
@@ -2132,11 +2166,13 @@ class GlobalDatabaseConfigurationCreateView(SuperAdminRequiredMixin, CreateView)
 class GlobalDatabaseConfigurationUpdateView(SuperAdminRequiredMixin, UpdateView):
     """Update a global database configuration"""
     model = GlobalDatabaseConfiguration
+    form_class = GlobalDatabaseConfigurationForm
     template_name = 'superadmin/db_config_form.html'
-    fields = '__all__'
     success_url = reverse_lazy('superadmin:db_config_list')
     
     def form_valid(self, form):
+        if form.cleaned_data.get('is_active'):
+            GlobalDatabaseConfiguration.objects.exclude(pk=self.object.pk).filter(is_active=True).update(is_active=False)
         messages.success(self.request, 'Database configuration updated successfully.')
         return super().form_valid(form)
 
@@ -2151,6 +2187,68 @@ class GlobalDatabaseConfigurationDeleteView(SuperAdminRequiredMixin, DeleteView)
     def delete(self, request, *args, **kwargs):
         config = self.get_object()
         messages.success(request, f'Database configuration "{config.name}" deleted successfully.')
+        return super().delete(request, *args, **kwargs)
+
+
+class GlobalWhatsAppConfigurationListView(SuperAdminRequiredMixin, ListView):
+    """List all global WhatsApp configurations"""
+    model = GlobalWhatsAppConfiguration
+    template_name = 'superadmin/whatsapp_config_list.html'
+    context_object_name = 'configs'
+    
+    def get_queryset(self):
+        return GlobalWhatsAppConfiguration.objects.all().order_by('provider')
+        
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        active_config = GlobalWhatsAppConfiguration.objects.filter(is_active=True).first()
+        if active_config:
+            context['current_whatsapp'] = active_config
+            context['is_database_config'] = True
+        else:
+            context['current_whatsapp'] = None
+            context['is_database_config'] = False
+        return context
+
+
+class GlobalWhatsAppConfigurationCreateView(SuperAdminRequiredMixin, CreateView):
+    """Create a new global WhatsApp configuration"""
+    model = GlobalWhatsAppConfiguration
+    form_class = GlobalWhatsAppConfigurationForm
+    template_name = 'superadmin/whatsapp_config_form.html'
+    success_url = reverse_lazy('superadmin:whatsapp_config_list')
+    
+    def form_valid(self, form):
+        if form.cleaned_data.get('is_active'):
+            GlobalWhatsAppConfiguration.objects.filter(is_active=True).update(is_active=False)
+        messages.success(self.request, 'WhatsApp configuration created successfully.')
+        return super().form_valid(form)
+
+
+class GlobalWhatsAppConfigurationUpdateView(SuperAdminRequiredMixin, UpdateView):
+    """Update a global WhatsApp configuration"""
+    model = GlobalWhatsAppConfiguration
+    form_class = GlobalWhatsAppConfigurationForm
+    template_name = 'superadmin/whatsapp_config_form.html'
+    success_url = reverse_lazy('superadmin:whatsapp_config_list')
+    
+    def form_valid(self, form):
+        if form.cleaned_data.get('is_active'):
+            GlobalWhatsAppConfiguration.objects.exclude(pk=self.object.pk).filter(is_active=True).update(is_active=False)
+        messages.success(self.request, 'WhatsApp configuration updated successfully.')
+        return super().form_valid(form)
+
+
+class GlobalWhatsAppConfigurationDeleteView(SuperAdminRequiredMixin, DeleteView):
+    """Delete a global WhatsApp configuration"""
+    model = GlobalWhatsAppConfiguration
+    template_name = 'superadmin/whatsapp_config_confirm_delete.html'
+    context_object_name = 'config'
+    success_url = reverse_lazy('superadmin:whatsapp_config_list')
+    
+    def delete(self, request, *args, **kwargs):
+        config = self.get_object()
+        messages.success(request, f'WhatsApp configuration for {config.get_provider_display()} deleted successfully.')
         return super().delete(request, *args, **kwargs)
 
 
@@ -2507,6 +2605,102 @@ class SchoolEmailConfigurationDeleteView(LoginRequiredMixin, DeleteView):
     def delete(self, request, *args, **kwargs):
         config = self.get_object()
         messages.success(request, f'Email configuration for {config.get_provider_display()} deleted successfully.')
+        return super().delete(request, *args, **kwargs)
+
+
+class SchoolWhatsAppConfigurationListView(LoginRequiredMixin, ListView):
+    """List all WhatsApp configurations for a school"""
+    model = SchoolWhatsAppConfiguration
+    template_name = 'superadmin/school_whatsapp_config_list.html'
+    context_object_name = 'configs'
+    
+    def get_queryset(self):
+        school = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+        if not (self.request.user.role == 'superadmin' or (self.request.user.role == 'admin' and school.is_active)):
+            messages.error(self.request, "You do not have permission to access this school's settings.")
+            return SchoolWhatsAppConfiguration.objects.none()
+        return SchoolWhatsAppConfiguration.objects.filter(school=school).order_by('provider')
+        
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        school = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+        context['school'] = school
+        context['school_slug'] = school.slug
+        context['global_config'] = GlobalWhatsAppConfiguration.objects.filter(is_active=True).first()
+        return context
+
+
+class SchoolWhatsAppConfigurationCreateView(LoginRequiredMixin, CreateView):
+    """Create a new WhatsApp configuration for a school"""
+    model = SchoolWhatsAppConfiguration
+    form_class = SchoolWhatsAppConfigurationForm
+    template_name = 'superadmin/school_whatsapp_config_form.html'
+    
+    def get_success_url(self):
+        return reverse_lazy('superadmin:school_whatsapp_config_list', kwargs={'school_slug': self.object.school.slug})
+        
+    def get_initial(self):
+        initial = super().get_initial()
+        school = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+        initial['school'] = school
+        return initial
+        
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        school = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+        context['school'] = school
+        context['school_slug'] = school.slug
+        return context
+        
+    def form_valid(self, form):
+        school = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+        form.instance.school = school
+        if form.cleaned_data.get('is_active'):
+            SchoolWhatsAppConfiguration.objects.filter(school=school, is_active=True).update(is_active=False)
+        messages.success(self.request, 'WhatsApp configuration created successfully.')
+        return super().form_valid(form)
+
+
+class SchoolWhatsAppConfigurationUpdateView(LoginRequiredMixin, UpdateView):
+    """Update a WhatsApp configuration for a school"""
+    model = SchoolWhatsAppConfiguration
+    form_class = SchoolWhatsAppConfigurationForm
+    template_name = 'superadmin/school_whatsapp_config_form.html'
+    
+    def get_success_url(self):
+        return reverse_lazy('superadmin:school_whatsapp_config_list', kwargs={'school_slug': self.object.school.slug})
+        
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school'] = self.object.school
+        context['school_slug'] = self.object.school.slug
+        return context
+        
+    def form_valid(self, form):
+        if form.cleaned_data.get('is_active'):
+            SchoolWhatsAppConfiguration.objects.filter(school=self.object.school, is_active=True).exclude(pk=self.object.pk).update(is_active=False)
+        messages.success(self.request, 'WhatsApp configuration updated successfully.')
+        return super().form_valid(form)
+
+
+class SchoolWhatsAppConfigurationDeleteView(LoginRequiredMixin, DeleteView):
+    """Delete a WhatsApp configuration for a school"""
+    model = SchoolWhatsAppConfiguration
+    template_name = 'superadmin/school_whatsapp_config_confirm_delete.html'
+    context_object_name = 'config'
+    
+    def get_success_url(self):
+        return reverse_lazy('superadmin:school_whatsapp_config_list', kwargs={'school_slug': self.object.school.slug})
+        
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school'] = self.object.school
+        context['school_slug'] = self.object.school.slug
+        return context
+        
+    def delete(self, request, *args, **kwargs):
+        config = self.get_object()
+        messages.success(request, f'WhatsApp configuration for {config.get_provider_display()} deleted.')
         return super().delete(request, *args, **kwargs)
 
 

@@ -1,150 +1,159 @@
 {% extends 'dashboards/base.html' %}
 {% load static %}
 
-{% block title %}SMS Configurations - Clasyo{% endblock %}
+{% block title %}SMS Configurations - Super Admin{% endblock %}
+{% block page_title %}SMS Configurations{% endblock %}
+{% block page_icon %}sms{% endblock %}
+{% block page_subtitle %}Manage global SMS provider configurations{% endblock %}
 
-{% block page_header %}{% endblock %}
+{% block page_actions %}
+<a href="{% url 'superadmin:global_settings' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-left me-1"></i> Back to Settings
+</a>
+<a href="{% url 'superadmin:sms_config_create' %}" class="btn btn-primary">
+    <i class="fas fa-plus me-1"></i> Add Configuration
+</a>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h1 class="h3 mb-0"><i class="fas fa-sms me-2"></i>SMS Configurations</h1>
-                    <p class="text-muted mb-0">Manage global SMS provider configurations</p>
-                </div>
-                <div>
-                    <a href="{% url 'superadmin:sms_config_create' %}" class="btn btn-primary">
-                        <i class="fas fa-plus me-2"></i>Add Configuration
-                    </a>
-                    <a href="{% url 'superadmin:global_settings' %}" class="btn btn-outline-secondary ms-2">
-                        <i class="fas fa-arrow-left me-2"></i>Back to Settings
-                    </a>
-                </div>
+<!-- Unified SMS Configurations Section -->
+<div class="modern-card">
+    <div class="d-flex justify-content-between align-items-center p-3 p-md-4 border-bottom flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="avatar-icon-box-md avatar-icon-sms">
+                <i class="fas fa-sms"></i>
+            </div>
+            <div>
+                <h6 class="mb-0 fw-bold">SMS Configurations</h6>
+                <small class="text-muted">Global SMS providers, API credentials, and default sender IDs</small>
             </div>
         </div>
+        {% if configs %}
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge-port">{{ configs|length }} provider{% if configs|length != 1 %}s{% endif %}</span>
+        </div>
+        {% endif %}
     </div>
-
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <!-- Current SMS Configuration -->
-                    {% if current_sms %}
-                        <div class="alert alert-info mb-4">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-2">
-                                        <i class="fas fa-cog me-2"></i>{{ current_sms.name }}
-                                        <span class="badge bg-success ms-2">Active</span>
-                                    </h6>
-                                    <div class="row">
-                                        <div class="col-md-3">
-                                            <small class="text-muted">Provider:</small><br>
-                                            <strong>System Settings</strong>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <small class="text-muted">API Key:</small><br>
-                                            <strong>{% if current_sms.api_key %}Configured{% else %}Not Configured{% endif %}</strong>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <small class="text-muted">Default Sender ID:</small><br>
-                                            <strong>{{ current_sms.default_sender_id|default:"Not Set" }}</strong>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <small class="text-muted">Status:</small><br>
-                                            <strong>Environment Variables</strong>
-                                        </div>
-                                    </div>
-                                </div>
+    
+    <div class="table-responsive">
+        <table class="table modern-table mb-0">
+            <thead>
+                <tr>
+                    <th>Provider</th>
+                    <th>Status</th>
+                    <th>Default Sender ID</th>
+                    <th>API Key / Auth</th>
+                    <th>Account / Details</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- System Environment Fallback / Baseline -->
+                {% if not is_database_config or current_sms %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-icon-box-sm avatar-icon-sms me-3">
+                                <i class="fas fa-server"></i>
+                            </div>
+                            <div>
+                                <strong>System Defaults</strong>
+                                <br>
+                                <small class="text-muted">Server Environment (.env)</small>
                             </div>
                         </div>
-                    {% endif %}
-                    
-                    {% if configs %}
-                        <h5 class="mb-3">Manual Configurations</h5>
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Provider</th>
-                                        <th>Status</th>
-                                        <th>Default Sender ID</th>
-                                        <th>Created</th>
-                                        <th>Last Updated</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for config in configs %}
-                                        <tr>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="me-3">
-                                                        {% if config.provider == 'twilio' %}
-                                                            <i class="fas fa-phone fa-lg text-primary"></i>
-                                                        {% elif config.provider == 'africastalking' %}
-                                                            <i class="fas fa-comments fa-lg text-success"></i>
-                                                        {% elif config.provider == 'infobip' %}
-                                                            <i class="fas fa-satellite-dish fa-lg text-info"></i>
-                                                        {% elif config.provider == 'clickatell' %}
-                                                            <i class="fas fa-paper-plane fa-lg text-warning"></i>
-                                                        {% elif config.provider == 'nexmo' %}
-                                                            <i class="fas fa-mobile-alt fa-lg text-danger"></i>
-                                                        {% endif %}
-                                                    </div>
-                                                    <div>
-                                                        <strong>{{ config.get_provider_display }}</strong>
-                                                        <br>
-                                                        <small class="text-muted">{{ config.provider|upper }}</small>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                {% if config.is_active %}
-                                                    <span class="badge bg-success">Active</span>
-                                                {% else %}
-                                                    <span class="badge bg-secondary">Inactive</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if config.default_sender_id %}
-                                                    {{ config.default_sender_id }}
-                                                {% else %}
-                                                    <span class="text-muted">Not set</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>{{ config.created_at|date:"M d, Y" }}</td>
-                                            <td>{{ config.updated_at|date:"M d, Y" }}</td>
-                                            <td>
-                                                <div class="btn-group" role="group">
-                                                    <a href="{% url 'superadmin:sms_config_update' config.pk %}" class="btn btn-sm btn-outline-primary">
-                                                        <i class="fas fa-edit"></i>
-                                                    </a>
-                                                    <a href="{% url 'superadmin:sms_config_delete' config.pk %}" class="btn btn-sm btn-outline-danger">
-                                                        <i class="fas fa-trash"></i>
-                                                    </a>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                    </td>
+                    <td>
+                        {% if not is_database_config %}
+                            <span class="badge bg-success">Active (Default)</span>
+                        {% else %}
+                            <span class="badge bg-light text-muted border">System Fallback</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="fw-semibold text-body">{{ current_sms.default_sender_id|default:"SCHOOL" }}</span>
+                    </td>
+                    <td>
+                        {% if current_sms.api_key %}
+                            <span class="badge bg-info-subtle text-info">Configured in .env</span>
+                        {% else %}
+                            <span class="text-muted">Not Set</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="text-muted">Default Environment Settings</span>
+                    </td>
+                    <td class="text-end">
+                        <span class="badge-system-default">
+                            <i class="fas fa-lock me-1"></i> System Default
+                        </span>
+                    </td>
+                </tr>
+                {% endif %}
+
+                <!-- Database Configured Providers -->
+                {% for config in configs %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-icon-box-sm bg-light-subtle me-3">
+                                {% if config.provider == 'twilio' %}
+                                    <i class="fas fa-phone text-primary"></i>
+                                {% elif config.provider == 'africastalking' %}
+                                    <i class="fas fa-comments text-success"></i>
+                                {% elif config.provider == 'infobip' %}
+                                    <i class="fas fa-satellite-dish text-info"></i>
+                                {% elif config.provider == 'clickatell' %}
+                                    <i class="fas fa-paper-plane text-warning"></i>
+                                {% elif config.provider == 'nexmo' %}
+                                    <i class="fas fa-mobile-alt text-danger"></i>
+                                {% else %}
+                                    <i class="fas fa-sms text-primary"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <strong>{{ config.get_provider_display }}</strong>
+                                <br>
+                                <small class="text-muted">{{ config.provider|upper }}</small>
+                            </div>
                         </div>
-                    {% else %}
-                        <div class="text-center py-5">
-                            <i class="fas fa-sms fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">No SMS Configurations Found</h5>
-                            <p class="text-muted mb-4">Create your first SMS configuration to enable SMS functionality across all schools.</p>
-                            <a href="{% url 'superadmin:sms_config_create' %}" class="btn btn-primary">
-                                <i class="fas fa-plus me-2"></i>Create Configuration
+                    </td>
+                    <td>
+                        {% if config.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if config.default_sender_id %}
+                            <span class="fw-semibold text-body">{{ config.default_sender_id }}</span>
+                        {% else %}
+                            <span class="text-muted">Not set</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-success-subtle text-success">Configured in DB</span>
+                    </td>
+                    <td>
+                        <span class="small font-monospace text-muted">
+                            {{ config.twilio_account_sid|default:config.africastalking_username|default:config.infobip_sender|default:"—" }}
+                        </span>
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'superadmin:sms_config_update' config.pk %}" class="btn btn-outline-primary" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'superadmin:sms_config_delete' config.pk %}" class="btn btn-outline-danger" title="Delete">
+                                <i class="fas fa-trash"></i>
                             </a>
                         </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

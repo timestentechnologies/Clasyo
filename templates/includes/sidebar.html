@@ -147,6 +147,11 @@
             <span>Email Configurations</span>
         </a></li>
 
+        <li class="{% if '/settings/whatsapp/' in request.path %}active{% endif %}"><a href="{% url 'superadmin:whatsapp_config_list' %}">
+            <i class="fab fa-whatsapp"></i>
+            <span>WhatsApp Configurations</span>
+        </a></li>
+
         <li><a href="{% url 'superadmin:db_config_list' %}">
             <i class="fas fa-database"></i>
             <span>Database Configurations</span>
@@ -380,6 +385,13 @@
         <a href="{% if school_slug %}{% url 'superadmin:school_email_config_list' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-envelope"></i>
             <span>Email Settings</span>
+        </a>
+        </li>
+
+        <li class="{% if '/superadmin/school/' in request.path and '/settings/whatsapp/' in request.path %}active{% endif %}">
+        <a href="{% if school_slug %}{% url 'superadmin:school_whatsapp_config_list' school_slug=school_slug %}{% else %}#{% endif %}">
+            <i class="fab fa-whatsapp"></i>
+            <span>WhatsApp Settings</span>
         </a>
         </li>
         <li><a href="{% if school_slug %}{% url 'superadmin:school_audit_logs' school_slug=school_slug %}{% else %}#{% endif %}">

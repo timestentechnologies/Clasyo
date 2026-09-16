@@ -1,0 +1,137 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}WhatsApp Configurations - {{ school.name }}{% endblock %}
+{% block page_title %}WhatsApp Configurations{% endblock %}
+{% block page_icon %}fab fa-whatsapp{% endblock %}
+{% block page_subtitle %}Manage custom WhatsApp Business gateway settings for {{ school.name }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'core:settings' school_slug=school.slug %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-left me-1"></i> Back to Settings
+</a>
+<a href="{% url 'superadmin:school_whatsapp_config_create' school_slug=school.slug %}" class="btn btn-primary">
+    <i class="fas fa-plus me-1"></i> Add Configuration
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Global Fallback Banner -->
+{% if global_config %}
+<div class="modern-card mb-4 p-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <div class="avatar-circle" style="width: 36px; height: 36px; font-size: 16px; background: rgba(34, 197, 94, 0.15); color: #22c55e;">
+                <i class="fab fa-whatsapp"></i>
+            </div>
+            <div>
+                <h6 class="mb-0 fw-bold">Global System WhatsApp Active: {{ global_config.get_provider_display }}</h6>
+                <small class="text-muted">If a school does not set custom credentials or checks "Use Global Settings", this global gateway is used.</small>
+            </div>
+        </div>
+        <span class="badge bg-success-subtle text-success">Global Active</span>
+    </div>
+</div>
+{% endif %}
+
+<!-- School Configurations List -->
+<div class="modern-card mb-4">
+    <div class="d-flex justify-content-between align-items-center p-3 p-md-4 border-bottom">
+        <h6 class="mb-0 fw-bold">
+            <i class="fab fa-whatsapp me-2 text-success"></i>School WhatsApp Gateways
+        </h6>
+        <span class="badge bg-light text-muted border px-3 py-1">{{ configs|length }} configuration(s)</span>
+    </div>
+
+    {% if configs %}
+    <div class="table-responsive">
+        <table class="table modern-table mb-0">
+            <thead>
+                <tr>
+                    <th>Provider</th>
+                    <th>Sender Phone</th>
+                    <th>Status</th>
+                    <th>Global Fallback</th>
+                    <th>Usage Limits</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for config in configs %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-circle me-3" style="width: 36px; height: 36px; font-size: 16px; background: rgba(34, 197, 94, 0.1); color: #22c55e;">
+                                {% if config.provider == 'meta' %}
+                                    <i class="fab fa-facebook text-primary"></i>
+                                {% elif config.provider == 'twilio' %}
+                                    <i class="fas fa-phone text-danger"></i>
+                                {% elif config.provider == 'africastalking' %}
+                                    <i class="fas fa-comments text-warning"></i>
+                                {% else %}
+                                    <i class="fab fa-whatsapp text-success"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <strong>{{ config.get_provider_display }}</strong>
+                                <br>
+                                <small class="text-muted">{{ config.provider|upper }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% if config.custom_sender_phone %}
+                            <code>{{ config.custom_sender_phone }}</code>
+                        {% else %}
+                            <span class="text-muted">Default</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if config.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if config.use_global_settings %}
+                            <span class="badge bg-info-subtle text-info"><i class="fas fa-globe me-1"></i>Using Global</span>
+                        {% else %}
+                            <span class="badge bg-primary-subtle text-primary"><i class="fas fa-key me-1"></i>Custom Keys</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <small class="text-muted">
+                            Daily: {{ config.daily_whatsapp_limit|default:"Unlimited" }}<br>
+                            Monthly: {{ config.monthly_whatsapp_limit|default:"Unlimited" }}
+                        </small>
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'superadmin:school_whatsapp_config_update' school_slug=school.slug pk=config.pk %}" class="btn btn-outline-primary" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'superadmin:school_whatsapp_config_delete' school_slug=school.slug pk=config.pk %}" class="btn btn-outline-danger" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <div class="avatar-circle mx-auto mb-3" style="width: 64px; height: 64px; background: rgba(34, 197, 94, 0.1); color: #22c55e; font-size: 28px;">
+            <i class="fab fa-whatsapp"></i>
+        </div>
+        <h5 class="fw-bold mb-1">No Custom WhatsApp Gateways Configured</h5>
+        <p class="text-muted mb-4">This school is currently using the platform's global WhatsApp configuration. Add custom credentials to send notifications from the school's own verified number.</p>
+        <a href="{% url 'superadmin:school_whatsapp_config_create' school_slug=school.slug %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Add Custom WhatsApp Gateway
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

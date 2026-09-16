@@ -1,0 +1,312 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} WhatsApp Configuration - {{ school.name }}{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit WhatsApp Configuration{% else %}Add WhatsApp Configuration{% endif %}{% endblock %}
+{% block page_icon %}fab fa-whatsapp{% endblock %}
+{% block page_subtitle %}Configure school-specific WhatsApp Business Gateway for {{ school.name }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'superadmin:school_whatsapp_config_list' school_slug=school.slug %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-left me-1"></i> Back to Configurations
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+        <form method="post" id="schoolWhatsappForm" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger mb-4">
+                {% for error in form.non_field_errors %}
+                    <p class="mb-0"><i class="fas fa-exclamation-circle me-2"></i>{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Basic Settings -->
+            <div class="modern-card mb-4 p-4">
+                <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                    <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(34, 197, 94, 0.15); color: #22c55e;">
+                        <i class="fas fa-sliders-h"></i>
+                    </div>
+                    <h6 class="mb-0 fw-bold">Provider & Mode</h6>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.provider.id_for_label }}" class="form-label fw-bold">WhatsApp Provider *</label>
+                        {{ form.provider }}
+                        {% if form.provider.errors %}
+                        <div class="text-danger small mt-1">{{ form.provider.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 d-flex flex-column justify-content-center">
+                        <label class="form-label fw-bold">Status</label>
+                        <div class="form-check form-switch mt-1">
+                            {{ form.is_active }}
+                            <label class="form-check-label fw-semibold" for="{{ form.is_active.id_for_label }}">
+                                Enable this configuration
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check p-3 rounded" style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2);">
+                            {{ form.use_global_settings }}
+                            <label class="form-check-label fw-bold ms-2" for="{{ form.use_global_settings.id_for_label }}">
+                                Use Global Super Admin Settings (Default Fallback)
+                            </label>
+                            <div class="small text-muted ms-4">When enabled, the platform's central WhatsApp credentials are used instead of school-specific API credentials.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sender & Limits -->
+            <div class="modern-card mb-4 p-4">
+                <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                    <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+                        <i class="fas fa-phone"></i>
+                    </div>
+                    <h6 class="mb-0 fw-bold">Sender Identity & Usage Limits</h6>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="{{ form.custom_sender_phone.id_for_label }}" class="form-label fw-bold">Custom Sender Phone</label>
+                        {{ form.custom_sender_phone }}
+                        {% if form.custom_sender_phone.errors %}
+                        <div class="text-danger small mt-1">{{ form.custom_sender_phone.errors.0 }}</div>
+                        {% endif %}
+                        <small class="text-muted">e.g. +254712345678</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.daily_whatsapp_limit.id_for_label }}" class="form-label fw-bold">Daily Message Limit</label>
+                        {{ form.daily_whatsapp_limit }}
+                        {% if form.daily_whatsapp_limit.errors %}
+                        <div class="text-danger small mt-1">{{ form.daily_whatsapp_limit.errors.0 }}</div>
+                        {% endif %}
+                        <small class="text-muted">0 = unlimited</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.monthly_whatsapp_limit.id_for_label }}" class="form-label fw-bold">Monthly Message Limit</label>
+                        {{ form.monthly_whatsapp_limit }}
+                        {% if form.monthly_whatsapp_limit.errors %}
+                        <div class="text-danger small mt-1">{{ form.monthly_whatsapp_limit.errors.0 }}</div>
+                        {% endif %}
+                        <small class="text-muted">0 = unlimited</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Provider Specific Credentials -->
+            <div class="modern-card mb-4 p-4" id="custom-credentials-card" style="display: none;">
+                <!-- Meta Cloud API -->
+                <div id="section-meta" class="provider-section">
+                    <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                        <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 14px; background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+                            <i class="fab fa-facebook"></i>
+                        </div>
+                        <h6 class="mb-0 fw-bold">Meta Cloud API Credentials (School Override)</h6>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.meta_phone_number_id.id_for_label }}" class="form-label fw-bold">Phone Number ID</label>
+                            {{ form.meta_phone_number_id }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.meta_waba_id.id_for_label }}" class="form-label fw-bold">WABA ID</label>
+                            {{ form.meta_waba_id }}
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ form.meta_access_token.id_for_label }}" class="form-label fw-bold">System User Access Token</label>
+                            <div class="input-group">
+                                {{ form.meta_access_token }}
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ form.meta_access_token.id_for_label }}', this)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.meta_app_id.id_for_label }}" class="form-label fw-bold">App ID</label>
+                            {{ form.meta_app_id }}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.meta_app_secret.id_for_label }}" class="form-label fw-bold">App Secret</label>
+                            <div class="input-group">
+                                {{ form.meta_app_secret }}
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ form.meta_app_secret.id_for_label }}', this)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.meta_webhook_verify_token.id_for_label }}" class="form-label fw-bold">Webhook Verify Token</label>
+                            {{ form.meta_webhook_verify_token }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Twilio -->
+                <div id="section-twilio" class="provider-section" style="display: none;">
+                    <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                        <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 14px; background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <h6 class="mb-0 fw-bold">Twilio WhatsApp (School Override)</h6>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.twilio_account_sid.id_for_label }}" class="form-label fw-bold">Account SID</label>
+                            {{ form.twilio_account_sid }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.twilio_auth_token.id_for_label }}" class="form-label fw-bold">Auth Token</label>
+                            <div class="input-group">
+                                {{ form.twilio_auth_token }}
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ form.twilio_auth_token.id_for_label }}', this)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.twilio_from_number.id_for_label }}" class="form-label fw-bold">From WhatsApp Number</label>
+                            {{ form.twilio_from_number }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Africa's Talking -->
+                <div id="section-africastalking" class="provider-section" style="display: none;">
+                    <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                        <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 14px; background: rgba(34, 197, 94, 0.15); color: #22c55e;">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h6 class="mb-0 fw-bold">Africa's Talking WhatsApp (School Override)</h6>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="{{ form.africastalking_username.id_for_label }}" class="form-label fw-bold">Username</label>
+                            {{ form.africastalking_username }}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.africastalking_api_key.id_for_label }}" class="form-label fw-bold">API Key</label>
+                            <div class="input-group">
+                                {{ form.africastalking_api_key }}
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ form.africastalking_api_key.id_for_label }}', this)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.africastalking_sender_phone.id_for_label }}" class="form-label fw-bold">Sender Phone</label>
+                            {{ form.africastalking_sender_phone }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Infobip -->
+                <div id="section-infobip" class="provider-section" style="display: none;">
+                    <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                        <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 14px; background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
+                            <i class="fas fa-satellite-dish"></i>
+                        </div>
+                        <h6 class="mb-0 fw-bold">Infobip WhatsApp (School Override)</h6>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="{{ form.infobip_api_key.id_for_label }}" class="form-label fw-bold">API Key</label>
+                            <div class="input-group">
+                                {{ form.infobip_api_key }}
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ form.infobip_api_key.id_for_label }}', this)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.infobip_base_url.id_for_label }}" class="form-label fw-bold">Base URL</label>
+                            {{ form.infobip_base_url }}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.infobip_sender_phone.id_for_label }}" class="form-label fw-bold">Sender Phone</label>
+                            {{ form.infobip_sender_phone }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="d-flex justify-content-end gap-2 mb-5">
+                <a href="{% url 'superadmin:school_whatsapp_config_list' school_slug=school.slug %}" class="btn btn-outline-secondary px-4">
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                    <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Configuration{% else %}Save Configuration{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePasswordVisibility(fieldId, btn) {
+    const input = document.getElementById(fieldId);
+    if (!input) return;
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (icon) {
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        }
+    } else {
+        input.type = 'password';
+        if (icon) {
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const providerSelect = document.getElementById('id_provider');
+    const sections = {
+        'meta': document.getElementById('section-meta'),
+        'twilio': document.getElementById('section-twilio'),
+        'africastalking': document.getElementById('section-africastalking'),
+        'infobip': document.getElementById('section-infobip')
+    };
+
+    const customCredsCard = document.getElementById('custom-credentials-card');
+
+    function updateSections() {
+        const val = providerSelect ? providerSelect.value : '';
+        let hasActiveSection = false;
+
+        Object.keys(sections).forEach(key => {
+            if (sections[key]) {
+                if (key === val) {
+                    sections[key].style.display = 'block';
+                    hasActiveSection = true;
+                } else {
+                    sections[key].style.display = 'none';
+                }
+            }
+        });
+
+        if (customCredsCard) {
+            customCredsCard.style.display = hasActiveSection ? 'block' : 'none';
+        }
+    }
+
+    if (providerSelect) {
+        providerSelect.addEventListener('change', updateSections);
+        updateSections();
+    }
+});
+</script>
+{% endblock %}

@@ -21,6 +21,13 @@ EMAIL_PROVIDER_CHOICES = [
     ('postmark', _('Postmark')),
 ]
 
+WHATSAPP_PROVIDER_CHOICES = [
+    ('meta', _('Meta WhatsApp Cloud API')),
+    ('twilio', _('Twilio WhatsApp')),
+    ('africastalking', _('Africa\'s Talking WhatsApp')),
+    ('infobip', _('Infobip WhatsApp')),
+]
+
 GATEWAY_CHOICES = [
     ('mpesa_stk', _('M-Pesa STK Push')),
     ('mpesa_paybill', _('M-Pesa Manual Paybill')),
@@ -499,6 +506,173 @@ class GlobalDatabaseConfiguration(models.Model):
             'max_connections': self.max_connections,
             'connection_timeout': self.connection_timeout,
         }
+
+
+class GlobalWhatsAppConfiguration(models.Model):
+    """Global WhatsApp configuration for all schools"""
+    
+    provider = models.CharField(
+        max_length=20, 
+        choices=WHATSAPP_PROVIDER_CHOICES, 
+        unique=True,
+        verbose_name=_('WhatsApp Provider')
+    )
+    
+    is_active = models.BooleanField(default=False, verbose_name=_('Is Active'))
+    
+    # Meta WhatsApp Cloud API fields
+    meta_phone_number_id = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Meta Phone Number ID')
+    )
+    meta_waba_id = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        verbose_name=_('WhatsApp Business Account ID (WABA)')
+    )
+    meta_access_token = models.CharField(
+        max_length=500, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Meta Access Token')
+    )
+    meta_app_id = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Meta App ID')
+    )
+    meta_app_secret = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Meta App Secret')
+    )
+    meta_webhook_verify_token = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Webhook Verify Token')
+    )
+    
+    # Twilio WhatsApp fields
+    twilio_account_sid = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Twilio Account SID')
+    )
+    twilio_auth_token = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Twilio Auth Token')
+    )
+    twilio_from_number = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Twilio From WhatsApp Number'),
+        help_text=_('Format: whatsapp:+14155238886')
+    )
+    
+    # Africa's Talking WhatsApp fields
+    africastalking_username = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Africa\'s Talking Username')
+    )
+    africastalking_api_key = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Africa\'s Talking API Key')
+    )
+    africastalking_sender_phone = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Africa\'s Talking Sender Phone')
+    )
+    
+    # Infobip WhatsApp fields
+    infobip_api_key = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Infobip API Key')
+    )
+    infobip_base_url = models.URLField(
+        blank=True, 
+        null=True,
+        verbose_name=_('Infobip Base URL'),
+        default='https://api.infobip.com'
+    )
+    infobip_sender_phone = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Infobip Sender Phone Number')
+    )
+    
+    # Common settings
+    default_sender_phone = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Default Sender Phone Number'),
+        help_text=_('Default outgoing phone number for WhatsApp notifications')
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Created At'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('Updated At'))
+    
+    class Meta:
+        verbose_name = _('Global WhatsApp Configuration')
+        verbose_name_plural = _('Global WhatsApp Configurations')
+        
+    def __str__(self):
+        return f"{self.get_provider_display()} ({'Active' if self.is_active else 'Inactive'})"
+        
+    def get_config_data(self):
+        """Return configuration data as dictionary"""
+        config = {
+            'provider': self.provider,
+            'is_active': self.is_active,
+            'default_sender_phone': self.default_sender_phone,
+        }
+        if self.provider == 'meta':
+            config.update({
+                'phone_number_id': self.meta_phone_number_id,
+                'waba_id': self.meta_waba_id,
+                'access_token': self.meta_access_token,
+                'app_id': self.meta_app_id,
+                'app_secret': self.meta_app_secret,
+                'webhook_verify_token': self.meta_webhook_verify_token,
+            })
+        elif self.provider == 'twilio':
+            config.update({
+                'account_sid': self.twilio_account_sid,
+                'auth_token': self.twilio_auth_token,
+                'from_number': self.twilio_from_number,
+            })
+        elif self.provider == 'africastalking':
+            config.update({
+                'username': self.africastalking_username,
+                'api_key': self.africastalking_api_key,
+                'sender_phone': self.africastalking_sender_phone,
+            })
+        elif self.provider == 'infobip':
+            config.update({
+                'api_key': self.infobip_api_key,
+                'base_url': self.infobip_base_url,
+                'sender_phone': self.infobip_sender_phone,
+            })
+        return config
 
 
 class PaymentConfiguration(models.Model):
@@ -1811,6 +1985,219 @@ class SchoolEmailConfiguration(models.Model):
                     'sender_name': self.postmark_sender_name,
                 })
         
+        return config
+
+
+class SchoolWhatsAppConfiguration(models.Model):
+    """School-specific WhatsApp configuration"""
+    
+    school = models.ForeignKey(
+        School, 
+        on_delete=models.CASCADE, 
+        verbose_name=_('School'),
+        related_name='whatsapp_configurations'
+    )
+    
+    provider = models.CharField(
+        max_length=20, 
+        choices=WHATSAPP_PROVIDER_CHOICES, 
+        verbose_name=_('WhatsApp Provider')
+    )
+    
+    is_active = models.BooleanField(default=False, verbose_name=_('Is Active'))
+    
+    # Override global settings
+    use_global_settings = models.BooleanField(
+        default=True,
+        verbose_name=_('Use Global Settings'),
+        help_text=_('Use global WhatsApp configuration settings')
+    )
+    
+    # Meta WhatsApp Cloud API fields
+    meta_phone_number_id = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Meta Phone Number ID'),
+        help_text=_('Override global Meta Phone Number ID')
+    )
+    meta_waba_id = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        verbose_name=_('WhatsApp Business Account ID (WABA)'),
+        help_text=_('Override global WABA ID')
+    )
+    meta_access_token = models.CharField(
+        max_length=500, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Meta Access Token'),
+        help_text=_('Override global Meta Access Token')
+    )
+    meta_app_id = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Meta App ID'),
+        help_text=_('Override global Meta App ID')
+    )
+    meta_app_secret = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Meta App Secret'),
+        help_text=_('Override global Meta App Secret')
+    )
+    meta_webhook_verify_token = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Webhook Verify Token'),
+        help_text=_('Override global Webhook Verify Token')
+    )
+    
+    # Twilio WhatsApp fields
+    twilio_account_sid = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Twilio Account SID'),
+        help_text=_('Override global Twilio Account SID')
+    )
+    twilio_auth_token = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Twilio Auth Token'),
+        help_text=_('Override global Twilio Auth Token')
+    )
+    twilio_from_number = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Twilio From WhatsApp Number'),
+        help_text=_('Format: whatsapp:+14155238886')
+    )
+    
+    # Africa's Talking WhatsApp fields
+    africastalking_username = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Africa\'s Talking Username'),
+        help_text=_('Override global Africa\'s Talking Username')
+    )
+    africastalking_api_key = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Africa\'s Talking API Key'),
+        help_text=_('Override global Africa\'s Talking API Key')
+    )
+    africastalking_sender_phone = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Africa\'s Talking Sender Phone'),
+        help_text=_('Override global Africa\'s Talking Sender Phone')
+    )
+    
+    # Infobip WhatsApp fields
+    infobip_api_key = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Infobip API Key'),
+        help_text=_('Override global Infobip API Key')
+    )
+    infobip_base_url = models.URLField(
+        blank=True, 
+        null=True,
+        verbose_name=_('Infobip Base URL'),
+        default='https://api.infobip.com'
+    )
+    infobip_sender_phone = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Infobip Sender Phone Number'),
+        help_text=_('Override global Infobip Sender Phone Number')
+    )
+    
+    # School-specific settings
+    custom_sender_phone = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Custom Sender Phone'),
+        help_text=_('School-specific sender phone for WhatsApp messages')
+    )
+    
+    # Usage limits
+    daily_whatsapp_limit = models.PositiveIntegerField(
+        blank=True, 
+        null=True,
+        verbose_name=_('Daily WhatsApp Limit'),
+        help_text=_('Maximum number of WhatsApp messages per day (0 = unlimited)')
+    )
+    monthly_whatsapp_limit = models.PositiveIntegerField(
+        blank=True, 
+        null=True,
+        verbose_name=_('Monthly WhatsApp Limit'),
+        help_text=_('Maximum number of WhatsApp messages per month (0 = unlimited)')
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Created At'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('Updated At'))
+    
+    class Meta:
+        verbose_name = _('School WhatsApp Configuration')
+        verbose_name_plural = _('School WhatsApp Configurations')
+        unique_together = ['school', 'provider']
+    
+    def __str__(self):
+        return f"{self.school.name} - {self.get_provider_display()}"
+    
+    def get_config_data(self):
+        """Return configuration data as dictionary"""
+        config = {
+            'provider': self.provider,
+            'is_active': self.is_active,
+            'use_global_settings': self.use_global_settings,
+            'custom_sender_phone': self.custom_sender_phone,
+            'daily_whatsapp_limit': self.daily_whatsapp_limit,
+            'monthly_whatsapp_limit': self.monthly_whatsapp_limit,
+        }
+        
+        if not self.use_global_settings:
+            if self.provider == 'meta':
+                config.update({
+                    'phone_number_id': self.meta_phone_number_id,
+                    'waba_id': self.meta_waba_id,
+                    'access_token': self.meta_access_token,
+                    'app_id': self.meta_app_id,
+                    'app_secret': self.meta_app_secret,
+                    'webhook_verify_token': self.meta_webhook_verify_token,
+                })
+            elif self.provider == 'twilio':
+                config.update({
+                    'account_sid': self.twilio_account_sid,
+                    'auth_token': self.twilio_auth_token,
+                    'from_number': self.twilio_from_number,
+                })
+            elif self.provider == 'africastalking':
+                config.update({
+                    'username': self.africastalking_username,
+                    'api_key': self.africastalking_api_key,
+                    'sender_phone': self.africastalking_sender_phone,
+                })
+            elif self.provider == 'infobip':
+                config.update({
+                    'api_key': self.infobip_api_key,
+                    'base_url': self.infobip_base_url,
+                    'sender_phone': self.infobip_sender_phone,
+                })
         return config
 
 

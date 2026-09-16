@@ -34,35 +34,46 @@
                     <!-- Current Database Configuration -->
                     {% if current_db %}
                         <div class="current-db-banner mb-4">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                                 <div class="d-flex align-items-center gap-2">
-                                    <div class="avatar-sm rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                                        <i class="fas fa-cog"></i>
+                                    <div class="avatar-icon-box-sm avatar-icon-db">
+                                        <i class="fas fa-database"></i>
                                     </div>
                                     <h6 class="mb-0 fw-bold fs-6">
                                         {{ current_db.name }}
                                     </h6>
                                     <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Active</span>
                                 </div>
-                                <span class="badge bg-primary-subtle text-primary" style="font-size: 11px;">Primary Core Connection</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    {% if is_database_config %}
+                                        <a href="{% url 'superadmin:db_config_update' current_db.pk %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-edit me-1"></i> Edit Active Config
+                                        </a>
+                                        <a href="{% url 'superadmin:db_config_delete' current_db.pk %}" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash me-1"></i> Delete
+                                        </a>
+                                    {% else %}
+                                        <span class="badge-protocol-primary">Primary Core Connection</span>
+                                    {% endif %}
+                                </div>
                             </div>
 
                             <div class="row g-2">
                                 <div class="col-md-4 col-lg-2">
                                     <div class="db-meta-item">
-                                        <span class="db-meta-label">Engine</span>
-                                        <span class="db-meta-value text-primary"><i class="fas fa-microchip me-1"></i>{{ current_db.engine|upper }}</span>
+                                        <span class="db-meta-label">Engine / Host</span>
+                                        <span class="db-meta-value text-primary"><i class="fas fa-server me-1"></i>{{ current_db.db_host|default:"localhost" }}</span>
                                     </div>
                                 </div>
                                 <div class="col-md-4 col-lg-2">
                                     <div class="db-meta-item">
-                                        <span class="db-meta-label">Host</span>
-                                        <span class="db-meta-value">{{ current_db.db_host }}:{{ current_db.db_port }}</span>
+                                        <span class="db-meta-label">Port</span>
+                                        <span class="db-meta-value">{{ current_db.db_port|default:"5432" }}</span>
                                     </div>
                                 </div>
                                 <div class="col-md-8 col-lg-4">
                                     <div class="db-meta-item">
-                                        <span class="db-meta-label">Database Path / Name</span>
+                                        <span class="db-meta-label">Database Name</span>
                                         <span class="db-meta-value font-monospace small">{{ current_db.db_name }}</span>
                                     </div>
                                 </div>
@@ -74,8 +85,14 @@
                                 </div>
                                 <div class="col-md-4 col-lg-2">
                                     <div class="db-meta-item">
-                                        <span class="db-meta-label">Status</span>
-                                        <span class="db-meta-value text-success"><i class="fas fa-shield-alt me-1"></i>System</span>
+                                        <span class="db-meta-label">Source</span>
+                                        <span class="db-meta-value text-success">
+                                            {% if is_database_config %}
+                                                <i class="fas fa-check-circle me-1"></i>Database Record
+                                            {% else %}
+                                                <i class="fas fa-shield-alt me-1"></i>System Settings
+                                            {% endif %}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -91,7 +108,7 @@
                                         <th>Name</th>
                                         <th>Host</th>
                                         <th>Database</th>
-                                        <th>Environment</th>
+                                        <th>Backups</th>
                                         <th>Status</th>
                                         <th class="text-end">Actions</th>
                                     </tr>
@@ -101,23 +118,30 @@
                                         <tr>
                                             <td><strong>{{ config.name }}</strong></td>
                                             <td>
-                                                {% if config.db_host %}
-                                                    <code>{{ config.db_host }}:{{ config.db_port|default:"5432" }}</code>
-                                                {% else %}
-                                                    <span class="text-muted">Not configured</span>
-                                                {% endif %}
-                                            </td>
+                                                 {% if config.db_host %}
+                                                     <div class="d-flex align-items-center gap-1">
+                                                         <span class="fw-semibold text-body">{{ config.db_host }}</span>
+                                                         <span class="badge-port">:{{ config.db_port|default:"5432" }}</span>
+                                                     </div>
+                                                 {% else %}
+                                                     <span class="text-muted">Not configured</span>
+                                                 {% endif %}
+                                             </td>
+                                             <td>
+                                                 {% if config.db_name %}
+                                                     <span class="fw-semibold text-body">{{ config.db_name }}</span>
+                                                 {% else %}
+                                                     <span class="text-muted">Not set</span>
+                                                 {% endif %}
+                                             </td>
                                             <td>
-                                                {% if config.db_name %}
-                                                    <code>{{ config.db_name }}</code>
+                                                {% if config.backup_enabled %}
+                                                    <span class="badge bg-success-subtle text-success">
+                                                        <i class="fas fa-shield-alt me-1"></i>{{ config.get_backup_frequency_display|default:"Active" }}
+                                                    </span>
                                                 {% else %}
-                                                    <span class="text-muted">Not set</span>
+                                                    <span class="badge bg-secondary-subtle text-secondary">Disabled</span>
                                                 {% endif %}
-                                            </td>
-                                            <td>
-                                                <span class="badge bg-{% if config.environment == 'production' %}danger{% elif config.environment == 'staging' %}warning{% else %}info{% endif %}-subtle text-{% if config.environment == 'production' %}danger{% elif config.environment == 'staging' %}warning{% else %}info{% endif %}">
-                                                    {{ config.get_environment_display }}
-                                                </span>
                                             </td>
                                             <td>
                                                 {% if config.is_active %}
@@ -143,8 +167,8 @@
                         </div>
                     {% else %}
                         <div class="text-center py-5">
-                            <div class="avatar-lg rounded-circle bg-secondary-subtle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
-                                <i class="fas fa-database fa-2x text-muted"></i>
+                            <div class="avatar-icon-box-lg bg-secondary-subtle mx-auto mb-3">
+                                <i class="fas fa-database text-muted"></i>
                             </div>
                             <h5 class="fw-bold">No Custom Database Configurations Found</h5>
                             <p class="text-muted">You are currently running on the system core database above. Add an external database if you need to route specific tenants to a dedicated database server.</p>

@@ -2,6 +2,9 @@ from django import forms
 from .models import (
     PaymentConfiguration, SchoolPaymentConfiguration,
     GlobalAIConfiguration, SchoolAIConfiguration,
+    GlobalEmailConfiguration, GlobalSMSConfiguration,
+    GlobalDatabaseConfiguration, GlobalWhatsAppConfiguration,
+    SchoolWhatsAppConfiguration,
 )
 
 
@@ -356,5 +359,143 @@ class ParallaxSectionForm(forms.ModelForm):
             'order': forms.NumberInput(attrs={'class': 'form-control'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+
+class GlobalEmailConfigurationForm(forms.ModelForm):
+    """Form for creating and editing Global Email Configuration"""
+    class Meta:
+        model = GlobalEmailConfiguration
+        fields = '__all__'
+        widgets = {
+            'provider': forms.Select(attrs={'class': 'form-select', 'id': 'id_provider'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'smtp_host': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., smtp.gmail.com'}),
+            'smtp_port': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '587'}),
+            'smtp_username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'user@domain.com'}),
+            'smtp_password': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': '••••••••'}),
+            'smtp_use_tls': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'smtp_use_ssl': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'sendgrid_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': 'SG.xxxxxxxx'}),
+            'sendgrid_sender_email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'noreply@yourdomain.com'}),
+            'sendgrid_sender_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'School Notifications'}),
+            'mailgun_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': 'key-xxxxxxxx'}),
+            'mailgun_domain': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'mg.yourdomain.com'}),
+            'mailgun_sender_email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'noreply@yourdomain.com'}),
+            'ses_access_key': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'AKIAxxxxxxxx'}),
+            'ses_secret_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': '••••••••'}),
+            'ses_region': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'us-east-1'}),
+            'ses_sender_email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'noreply@yourdomain.com'}),
+            'postmark_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'}),
+            'postmark_sender_email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'noreply@yourdomain.com'}),
+            'postmark_sender_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'School Notifications'}),
+            'default_from_email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'noreply@yourdomain.com'}),
+            'default_from_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Clasyo Notifications'}),
+        }
+
+
+class GlobalSMSConfigurationForm(forms.ModelForm):
+    """Form for creating and editing Global SMS Configuration"""
+    class Meta:
+        model = GlobalSMSConfiguration
+        fields = '__all__'
+        widgets = {
+            'provider': forms.Select(attrs={'class': 'form-select', 'id': 'id_provider'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'default_sender_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. SCHOOL or 8-11 alphanumeric'}),
+            'twilio_account_sid': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ACxxxxxxxx'}),
+            'twilio_auth_token': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': '••••••••'}),
+            'twilio_phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+1234567890'}),
+            'africastalking_username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'sandbox or your_username'}),
+            'africastalking_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': '••••••••'}),
+            'africastalking_sender_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional Alphanumeric Sender ID'}),
+            'infobip_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': '••••••••'}),
+            'infobip_base_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://xxxxxx.api.infobip.com'}),
+            'infobip_sender': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Sender ID or Number'}),
+            'clickatell_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': '••••••••'}),
+            'nexmo_api_key': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'API Key'}),
+            'nexmo_api_secret': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': '••••••••'}),
+            'nexmo_from_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'From Name or Number'}),
+        }
+
+
+class GlobalDatabaseConfigurationForm(forms.ModelForm):
+    """Form for creating and editing Global Database Configuration"""
+    class Meta:
+        model = GlobalDatabaseConfiguration
+        fields = '__all__'
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Primary Read Replica or External School DB'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'db_host': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'localhost or db.example.com'}),
+            'db_port': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '5432'}),
+            'db_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'school_saas_db'}),
+            'db_user': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'postgres'}),
+            'db_password': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': '••••••••'}),
+            'backup_enabled': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'backup_frequency': forms.Select(attrs={'class': 'form-select'}),
+            'backup_retention_days': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '30'}),
+            'backup_storage_path': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '/backups/databases'}),
+            'max_connections': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '100'}),
+            'connection_timeout': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '30'}),
+        }
+
+
+class GlobalWhatsAppConfigurationForm(forms.ModelForm):
+    """Form for creating and editing Global WhatsApp Configuration"""
+    class Meta:
+        model = GlobalWhatsAppConfiguration
+        fields = '__all__'
+        widgets = {
+            'provider': forms.Select(attrs={'class': 'form-select', 'id': 'id_provider'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'default_sender_phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+254700000000'}),
+            'meta_phone_number_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 104857291048572'}),
+            'meta_waba_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 294857291048572'}),
+            'meta_access_token': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': 'EAAxxxxx Permanent System User Token'}),
+            'meta_app_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Meta App ID'}),
+            'meta_app_secret': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': 'Meta App Secret'}),
+            'meta_webhook_verify_token': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Custom verify token'}),
+            'twilio_account_sid': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ACxxxxxxxx'}),
+            'twilio_auth_token': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': '••••••••'}),
+            'twilio_from_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'whatsapp:+14155238886'}),
+            'africastalking_username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'sandbox or your_username'}),
+            'africastalking_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': '••••••••'}),
+            'africastalking_sender_phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+254700000000'}),
+            'infobip_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': '••••••••'}),
+            'infobip_base_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://xxxxxx.api.infobip.com'}),
+            'infobip_sender_phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Infobip WhatsApp Number'}),
+        }
+
+
+class SchoolWhatsAppConfigurationForm(forms.ModelForm):
+    """Form for creating and editing School-specific WhatsApp Configuration"""
+    class Meta:
+        model = SchoolWhatsAppConfiguration
+        fields = '__all__'
+        widgets = {
+            'school': forms.Select(attrs={'class': 'form-select'}),
+            'provider': forms.Select(attrs={'class': 'form-select', 'id': 'id_provider'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'use_global_settings': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'custom_sender_phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+254700000000'}),
+            'daily_whatsapp_limit': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0 for unlimited'}),
+            'monthly_whatsapp_limit': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0 for unlimited'}),
+            'meta_phone_number_id': forms.TextInput(attrs={'class': 'form-control'}),
+            'meta_waba_id': forms.TextInput(attrs={'class': 'form-control'}),
+            'meta_access_token': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
+            'meta_app_id': forms.TextInput(attrs={'class': 'form-control'}),
+            'meta_app_secret': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
+            'meta_webhook_verify_token': forms.TextInput(attrs={'class': 'form-control'}),
+            'twilio_account_sid': forms.TextInput(attrs={'class': 'form-control'}),
+            'twilio_auth_token': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
+            'twilio_from_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'whatsapp:+14155238886'}),
+            'africastalking_username': forms.TextInput(attrs={'class': 'form-control'}),
+            'africastalking_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
+            'africastalking_sender_phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'infobip_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
+            'infobip_base_url': forms.URLInput(attrs={'class': 'form-control'}),
+            'infobip_sender_phone': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
 
 

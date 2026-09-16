@@ -7704,6 +7704,21 @@ footer a:hover {
     padding: 1.5rem;
 }
 
+/* Universal Form Panel Inner Border / Nested Card Outline Removal Across The Entire System */
+.form-panel-view .modern-card,
+.form-panel-view .card,
+.form-card-body .modern-card,
+.form-card-body .card,
+.form-panel-view .card-body,
+.form-card-body .card-body {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+}
+
 /* Universal Focus Outline & Glow Ring Removal Across All Inputs, Selects & Dropdowns */
 *:focus,
 *:focus-visible,
@@ -7892,7 +7907,245 @@ html.dark-theme .master-info-tile {
 [data-bs-theme="dark"] .bg-light-subtle,
 body.dark-theme .bg-light-subtle,
 body.theme-dark .bg-light-subtle {
-    background-color: rgba(15, 23, 42, 0.65) !important;
-    border-color: #1E293B !important;
-    color: #F8FAFC !important;
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color: #CBD5E1 !important;
+}
+
+/* ==========================================================================
+   Global Badges, Chips & Table Utilities (Theme-Aware & High-Contrast)
+   ========================================================================== */
+
+/* Server Port & Code Chip */
+.badge-port,
+.badge-code-chip {
+    display: inline-flex !important;
+    align-items: center !important;
+    font-family: var(--font-mono, SFMono-Regular, Menlo, Monaco, Consolas, monospace) !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    padding: 0.2rem 0.5rem !important;
+    border-radius: 6px !important;
+    background-color: #F1F5F9 !important;
+    color: #334155 !important;
+    border: 1px solid #CBD5E1 !important;
+    line-height: 1.2 !important;
+}
+
+[data-theme="dark"] .badge-port,
+[data-bs-theme="dark"] .badge-port,
+body.dark-theme .badge-port,
+body.theme-dark .badge-port,
+html.dark-theme .badge-port,
+[data-theme="dark"] .badge-code-chip,
+[data-bs-theme="dark"] .badge-code-chip,
+body.dark-theme .badge-code-chip,
+body.theme-dark .badge-code-chip,
+html.dark-theme .badge-code-chip {
+    background-color: rgba(30, 41, 59, 0.95) !important;
+    color: #94A3B8 !important;
+    border: 1px solid rgba(148, 163, 184, 0.35) !important;
+}
+
+/* Protocol Badges (TLS / SSL / API) */
+.badge-protocol {
+    display: inline-flex !important;
+    align-items: center !important;
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    padding: 0.2rem 0.5rem !important;
+    border-radius: 5px !important;
+    line-height: 1.2 !important;
+    background-color: rgba(14, 165, 233, 0.12) !important;
+    color: #0284C7 !important;
+    border: 1px solid rgba(14, 165, 233, 0.25) !important;
+}
+
+[data-theme="dark"] .badge-protocol,
+[data-bs-theme="dark"] .badge-protocol,
+body.dark-theme .badge-protocol,
+body.theme-dark .badge-protocol,
+html.dark-theme .badge-protocol {
+    background-color: rgba(14, 165, 233, 0.2) !important;
+    color: #38BDF8 !important;
+    border: 1px solid rgba(56, 189, 248, 0.45) !important;
+}
+
+.badge-protocol-primary {
+    display: inline-flex !important;
+    align-items: center !important;
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    padding: 0.2rem 0.5rem !important;
+    border-radius: 5px !important;
+    line-height: 1.2 !important;
+    background-color: rgba(99, 102, 241, 0.12) !important;
+    color: #4F46E5 !important;
+    border: 1px solid rgba(99, 102, 241, 0.25) !important;
+}
+
+[data-theme="dark"] .badge-protocol-primary,
+[data-bs-theme="dark"] .badge-protocol-primary,
+body.dark-theme .badge-protocol-primary,
+body.theme-dark .badge-protocol-primary,
+html.dark-theme .badge-protocol-primary {
+    background-color: rgba(99, 102, 241, 0.2) !important;
+    color: #818CF8 !important;
+    border: 1px solid rgba(129, 140, 248, 0.45) !important;
+}
+
+/* System Default & Fallback Badges */
+.badge-system-default {
+    display: inline-flex !important;
+    align-items: center !important;
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    padding: 0.25rem 0.6rem !important;
+    border-radius: 6px !important;
+    background-color: #F8FAFC !important;
+    color: #64748B !important;
+    border: 1px solid #E2E8F0 !important;
+}
+
+[data-theme="dark"] .badge-system-default,
+[data-bs-theme="dark"] .badge-system-default,
+body.dark-theme .badge-system-default,
+body.theme-dark .badge-system-default,
+html.dark-theme .badge-system-default {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: #94A3B8 !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Comprehensive Dark Mode Overrides for Bootstrap Subtle Badges */
+[data-theme="dark"] .badge.bg-secondary-subtle,
+[data-bs-theme="dark"] .badge.bg-secondary-subtle,
+body.dark-theme .badge.bg-secondary-subtle,
+body.theme-dark .badge.bg-secondary-subtle,
+html.dark-theme .badge.bg-secondary-subtle {
+    background-color: rgba(51, 65, 85, 0.7) !important;
+    color: #CBD5E1 !important;
+    border: 1px solid rgba(148, 163, 184, 0.25) !important;
+}
+
+[data-theme="dark"] .badge.bg-info-subtle,
+[data-bs-theme="dark"] .badge.bg-info-subtle,
+body.dark-theme .badge.bg-info-subtle,
+body.theme-dark .badge.bg-info-subtle,
+html.dark-theme .badge.bg-info-subtle {
+    background-color: rgba(14, 165, 233, 0.2) !important;
+    color: #38BDF8 !important;
+    border: 1px solid rgba(56, 189, 248, 0.4) !important;
+}
+
+[data-theme="dark"] .badge.bg-success-subtle,
+[data-bs-theme="dark"] .badge.bg-success-subtle,
+body.dark-theme .badge.bg-success-subtle,
+body.theme-dark .badge.bg-success-subtle,
+html.dark-theme .badge.bg-success-subtle {
+    background-color: rgba(34, 197, 94, 0.18) !important;
+    color: #4ADE80 !important;
+    border: 1px solid rgba(74, 222, 128, 0.35) !important;
+}
+
+[data-theme="dark"] .badge.bg-warning-subtle,
+[data-bs-theme="dark"] .badge.bg-warning-subtle,
+body.dark-theme .badge.bg-warning-subtle,
+body.theme-dark .badge.bg-warning-subtle,
+html.dark-theme .badge.bg-warning-subtle {
+    background-color: rgba(245, 158, 11, 0.18) !important;
+    color: #FBBF24 !important;
+    border: 1px solid rgba(251, 191, 36, 0.35) !important;
+}
+
+[data-theme="dark"] .badge.bg-danger-subtle,
+[data-bs-theme="dark"] .badge.bg-danger-subtle,
+body.dark-theme .badge.bg-danger-subtle,
+body.theme-dark .badge.bg-danger-subtle,
+html.dark-theme .badge.bg-danger-subtle {
+    background-color: rgba(239, 68, 68, 0.18) !important;
+    color: #F87171 !important;
+    border: 1px solid rgba(248, 113, 113, 0.35) !important;
+}
+
+/* Global Avatar Icon Sizing & Theming (Replaces Inline Styles) */
+.avatar-icon-box-lg {
+    width: 64px !important;
+    height: 64px !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 28px !important;
+    flex-shrink: 0 !important;
+}
+
+.avatar-icon-box-md {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 16px !important;
+    flex-shrink: 0 !important;
+}
+
+.avatar-icon-box-sm {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 14px !important;
+    flex-shrink: 0 !important;
+}
+
+.avatar-icon-email {
+    background-color: rgba(56, 189, 248, 0.15) !important;
+    color: var(--accent-cyan, #38BDF8) !important;
+}
+
+.avatar-icon-sms,
+.avatar-icon-whatsapp {
+    background-color: rgba(34, 197, 94, 0.15) !important;
+    color: #22C55E !important;
+}
+
+.avatar-icon-db {
+    background-color: rgba(99, 102, 241, 0.15) !important;
+    color: #6366F1 !important;
+}
+
+/* Global Table Truncation Utilities (Replaces Inline style="max-width: ...") */
+.table-text-truncate-sm {
+    max-width: 140px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+}
+
+.table-text-truncate-md {
+    max-width: 220px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+}
+
+.table-text-truncate-lg {
+    max-width: 340px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
 }
