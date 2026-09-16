@@ -5,9 +5,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const themeIcon = themeToggle.querySelector('i');
     
-    // Check for saved theme preference or use system preference
-    const savedTheme = localStorage.getItem('theme') || 
-                      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    // Check for saved theme preference or default to light
+    const savedTheme = localStorage.getItem('theme') || 'light';
     
     // Apply theme to both html and body for maximum compatibility
     applyTheme(savedTheme);
