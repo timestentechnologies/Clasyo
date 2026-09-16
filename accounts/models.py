@@ -144,7 +144,7 @@ class User(AbstractUser):
     
     @property
     def is_school_admin(self):
-        return self.role == 'admin'
+        return self.role in ['admin', 'superadmin']
     
     @property
     def is_teacher(self):

@@ -33,8 +33,11 @@ class AppsHomeView(LoginRequiredMixin, TemplateView):
     template_name = 'core/apps_home.html'
     
     def dispatch(self, request, *args, **kwargs):
-        """Redirect super admins to their own dashboard"""
+        """Redirect super admins to their own dashboard unless viewing demo school"""
+        school_slug = kwargs.get('school_slug', '')
         if request.user.is_authenticated and request.user.role == 'superadmin':
+            if school_slug in ('demo-school', 'demo') or 'demo' in str(school_slug).lower():
+                return super().dispatch(request, *args, **kwargs)
             return redirect('superadmin:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
@@ -247,16 +250,22 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'core/dashboard.html'
     
     def dispatch(self, request, *args, **kwargs):
-        """Redirect super admins to their own dashboard"""
+        """Redirect super admins to their own dashboard unless viewing demo school"""
+        school_slug = kwargs.get('school_slug', '')
         if request.user.is_authenticated and request.user.role == 'superadmin':
+            if school_slug in ('demo-school', 'demo') or 'demo' in str(school_slug).lower():
+                return super().dispatch(request, *args, **kwargs)
             return redirect('superadmin:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_template_names(self):
         """Return different templates based on user role"""
         user = self.request.user
+        school_slug = self.kwargs.get('school_slug', '')
         
         if user.is_superadmin:
+            if school_slug in ('demo-school', 'demo') or 'demo' in str(school_slug).lower():
+                return ['core/admin_dashboard.html']
             return ['superadmin/dashboard.html']
         elif user.is_school_admin:
             return ['core/admin_dashboard.html']
@@ -2032,6 +2041,9 @@ class BillingView(LoginRequiredMixin, TemplateView):
     
     def dispatch(self, request, *args, **kwargs):
         """Allow expired users (any role) to reach billing, otherwise restrict to school admins"""
+        school_slug = kwargs.get('school_slug', '')
+        if school_slug in ('demo-school', 'demo') or 'demo' in str(school_slug).lower():
+            return redirect('core:dashboard', school_slug=school_slug)
         allow_expired_visit = str(request.GET.get('expired', '')).lower() in ('1', 'true', 'yes')
         if not request.user.is_school_admin and not allow_expired_visit:
             messages.error(request, "Access denied. This page is for school admins only.")

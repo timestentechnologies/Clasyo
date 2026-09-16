@@ -36,8 +36,10 @@ urlpatterns = [
     path('impersonate/<int:user_id>/', views.ImpersonateUserView.as_view(), name='impersonate_user'),
     path('stop-impersonation/', views.StopImpersonationView.as_view(), name='stop_impersonation'),
     
-    # Profile
+    # Profile & Demo Login
     path('profile/', views.SuperAdminProfileView.as_view(), name='profile'),
+    path('profile/login-as-demo-admin/', views.LoginAsDemoAdminView.as_view(), name='login_as_demo_admin'),
+    path('login-as-demo-admin/', views.LoginAsDemoAdminView.as_view(), name='login_as_demo_admin_direct'),
     
     # Payment Configurations
     path('payment-config/', views.PaymentConfigurationListView.as_view(), name='payment_config_list'),

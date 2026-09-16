@@ -34,17 +34,26 @@ class ImpersonationMiddleware:
                         request.is_impersonating = False
                         request.original_user = None
                     else:
-                        # Valid impersonation - Replace the current user with the impersonated user
                         impersonated_user = User.objects.get(pk=impersonated_user_id)
                         
-                        # Store the original admin user for reference
-                        request.original_user = original_user
-                        
-                        # Replace request.user with the impersonated user
-                        request.user = impersonated_user
-                        
-                        # Set a flag to indicate impersonation is active
-                        request.is_impersonating = True
+                        # Auto-clear any dummy demo admin impersonation
+                        if impersonated_user.email in ('school@demo.com', 'demo@school.com'):
+                            if 'impersonated_user_id' in request.session:
+                                del request.session['impersonated_user_id']
+                            if 'original_user_id' in request.session:
+                                del request.session['original_user_id']
+                            request.is_impersonating = False
+                            request.original_user = None
+                            request.user = original_user
+                        else:
+                            # Store the original admin user for reference
+                            request.original_user = original_user
+                            
+                            # Replace request.user with the impersonated user
+                            request.user = impersonated_user
+                            
+                            # Set a flag to indicate impersonation is active
+                            request.is_impersonating = True
                 except User.DoesNotExist:
                     # If user doesn't exist, clear the impersonation session
                     if 'impersonated_user_id' in request.session:

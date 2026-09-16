@@ -1237,6 +1237,63 @@ class StopImpersonationView(LoginRequiredMixin, View):
             return redirect('frontend:home')
 
 
+class LoginAsDemoAdminView(SuperAdminRequiredMixin, View):
+    """
+    Directly navigate to Demo School using the logged-in superadmin authentication.
+    Demo School uses free sample data with no separate admin or subscription accounts.
+    """
+    def get(self, request):
+        # 1. Clear any active impersonation so logged-in user's own credentials are used
+        if 'impersonated_user_id' in request.session:
+            del request.session['impersonated_user_id']
+        if 'original_user_id' in request.session:
+            del request.session['original_user_id']
+
+        # 2. Locate or create demo school
+        demo_school = School.objects.filter(slug='demo-school').first()
+        if not demo_school:
+            demo_school = School.objects.filter(name__icontains='demo').first()
+
+        if not demo_school:
+            demo_school = School.objects.create(
+                name='Demo School',
+                slug='demo-school',
+                email='demo@school.com',
+                phone='+1234567890',
+                address='123 Education Street',
+                city='Education City',
+                state='State',
+                country='Country',
+                postal_code='12345',
+                is_active=True,
+                is_trial=False,
+                is_verified=True,
+            )
+        else:
+            # Guarantee demo school is free, active, and never flagged as trial or expired
+            updated = False
+            if demo_school.is_trial:
+                demo_school.is_trial = False
+                updated = True
+            if demo_school.trial_end_date is not None:
+                demo_school.trial_end_date = None
+                updated = True
+            if not demo_school.is_active:
+                demo_school.is_active = True
+                updated = True
+            if updated:
+                demo_school.save(update_fields=['is_trial', 'trial_end_date', 'is_active'])
+
+        # 3. Clean any expired subscription records for demo school
+        try:
+            from subscriptions.models import Subscription
+            Subscription.objects.filter(school=demo_school).update(status='active', end_date=None)
+        except Exception:
+            pass
+
+        return redirect('core:dashboard', school_slug=demo_school.slug)
+
+
 class SuperAdminProfileView(SuperAdminRequiredMixin, TemplateView):
     """Superadmin profile view"""
     template_name = 'superadmin/profile.html'

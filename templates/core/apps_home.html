@@ -589,6 +589,21 @@
                                 <i class="fas fa-user me-2"></i> View Profile
                             </a>
                         </li>
+                        {% if user.role == 'superadmin' %}
+                        {% if school_slug == 'demo-school' or 'demo' in school_slug %}
+                        <li>
+                            <a class="dropdown-item py-2" href="{% url 'superadmin:dashboard' %}">
+                                <i class="fas fa-user-shield me-2 text-primary"></i> Super Admin Dashboard
+                            </a>
+                        </li>
+                        {% else %}
+                        <li>
+                            <a class="dropdown-item py-2" href="{% url 'superadmin:login_as_demo_admin' %}">
+                                <i class="fas fa-school me-2 text-primary"></i> Demo School (Sample Data)
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% endif %}
                         {% if user.role != 'superadmin' and user.role != 'parent' %}
                         <li>
                             <a class="dropdown-item py-2"

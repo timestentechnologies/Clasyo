@@ -48,6 +48,18 @@ class SubscriptionEnforcementMiddleware(MiddlewareMixin):
         user_role = getattr(user, 'role', '') or ''
         if getattr(user, 'is_superuser', False) or user_role == 'superadmin':
             return None
+
+        # If user is impersonated by a superadmin, bypass enforcement
+        orig_user_id = request.session.get('original_user_id')
+        if orig_user_id:
+            try:
+                from accounts.models import User
+                orig_u = User.objects.get(id=orig_user_id)
+                if orig_u.role == 'superadmin' or orig_u.is_superuser:
+                    return None
+            except Exception:
+                pass
+
         slug = None
         if view_kwargs and 'school_slug' in view_kwargs:
             slug = view_kwargs.get('school_slug')
@@ -59,10 +71,18 @@ class SubscriptionEnforcementMiddleware(MiddlewareMixin):
                 slug = parts[2]
         if not slug:
             return None
+
+        # Demo school is always free sample data - completely exempt from subscription and trial enforcement
+        if slug in ('demo-school', 'demo') or 'demo' in str(slug).lower():
+            return None
+
         if path.startswith(f'/school/{slug}/billing/') or path == f'/school/{slug}/billing/':
             return None
         school = School.objects.filter(slug=slug).first()
         if not school:
+            return None
+
+        if school.slug in ('demo-school', 'demo') or 'demo' in str(school.slug).lower():
             return None
         # If school is deactivated, treat as expired/suspended and redirect to billing
         if hasattr(school, 'is_active') and school.is_active is False:
