@@ -53,14 +53,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update the theme icon based on current theme
     function updateThemeIcon(theme) {
         if (!themeIcon) return;
+        const statusBadge = document.getElementById('themeStatusBadge');
         if (theme === 'light') {
             themeIcon.classList.remove('fa-sun');
             themeIcon.classList.add('fa-moon');
             themeToggle.setAttribute('title', 'Switch to Dark Mode');
+            if (statusBadge) statusBadge.textContent = 'Light';
         } else {
             themeIcon.classList.remove('fa-moon');
             themeIcon.classList.add('fa-sun');
             themeToggle.setAttribute('title', 'Switch to Light Mode');
+            if (statusBadge) statusBadge.textContent = 'Dark';
         }
     }
 });

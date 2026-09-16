@@ -424,7 +424,38 @@ class AdminUserListView(SuperAdminRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        return User.objects.filter(role='admin').order_by('-created_at')
+        queryset = User.objects.filter(role='admin').select_related('school').order_by('-created_at')
+        
+        search = self.request.GET.get('search', '').strip()
+        status = self.request.GET.get('status', '')
+        school_id = self.request.GET.get('school', '')
+        
+        if search:
+            queryset = queryset.filter(
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search) |
+                Q(email__icontains=search) |
+                Q(phone__icontains=search)
+            )
+        
+        if status == 'active':
+            queryset = queryset.filter(is_active=True)
+        elif status == 'inactive':
+            queryset = queryset.filter(is_active=False)
+        
+        if school_id:
+            if school_id == 'unlinked':
+                queryset = queryset.filter(school__isnull=True)
+            else:
+                queryset = queryset.filter(school_id=school_id)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['schools_list'] = School.objects.filter(is_active=True).order_by('name')
+        context['selected_school'] = self.request.GET.get('school', '')
+        return context
 
 
 class AdminUserCreateView(SuperAdminRequiredMixin, CreateView):

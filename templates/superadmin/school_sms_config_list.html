@@ -69,7 +69,9 @@
                         </div>
                     </td>
                     <td>
-                        {% if config.custom_sender_id %}
+                        {% if config.mobilesasa_sender_id %}
+                            <code>{{ config.mobilesasa_sender_id }}</code>
+                        {% elif config.custom_sender_id %}
                             <code>{{ config.custom_sender_id }}</code>
                         {% elif config.default_sender_id %}
                             <code>{{ config.default_sender_id }}</code>
@@ -90,9 +92,11 @@
                     </td>
                     <td>
                         <small class="text-muted">
-                            {% if config.provider == 'twilio' %}
+                            {% if config.provider == 'mobilesasa' %}
+                                MobileSasa API
+                            {% elif config.provider == 'twilio' %}
                                 Twilio API
-                            {% elif config.provider == 'africas_talking' %}
+                            {% elif config.provider == 'africas_talking' or config.provider == 'africastalking' %}
                                 Africa's Talking API
                             {% elif config.provider == 'infobip' %}
                                 Infobip API

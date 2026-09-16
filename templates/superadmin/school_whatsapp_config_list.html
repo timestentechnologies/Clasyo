@@ -62,7 +62,9 @@
                     <td>
                         <div class="d-flex align-items-center">
                             <div class="avatar-circle me-3" style="width: 36px; height: 36px; font-size: 16px; background: rgba(34, 197, 94, 0.1); color: #22c55e;">
-                                {% if config.provider == 'meta' %}
+                                {% if config.provider == 'mobilesasa' %}
+                                    <i class="fab fa-whatsapp text-info"></i>
+                                {% elif config.provider == 'meta' %}
                                     <i class="fab fa-facebook text-primary"></i>
                                 {% elif config.provider == 'twilio' %}
                                     <i class="fas fa-phone text-danger"></i>
@@ -80,7 +82,9 @@
                         </div>
                     </td>
                     <td>
-                        {% if config.custom_sender_phone %}
+                        {% if config.mobilesasa_sender_phone %}
+                            <code>{{ config.mobilesasa_sender_phone }}</code>
+                        {% elif config.custom_sender_phone %}
                             <code>{{ config.custom_sender_phone }}</code>
                         {% else %}
                             <span class="text-muted">Default</span>

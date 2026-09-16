@@ -116,6 +116,33 @@
 
                         <!-- Provider-specific fields -->
                         <div id="provider-fields">
+                            <!-- MobileSasa Fields -->
+                            <div id="mobilesasa-fields" class="provider-specific-fields" style="display: none;">
+                                <h6 class="mt-4 mb-3">MobileSasa Configuration</h6>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="{{ form.mobilesasa_api_token.id_for_label }}" class="form-label">API Token (Bearer) *</label>
+                                        {{ form.mobilesasa_api_token }}
+                                        <small class="form-text text-muted">Bearer token starting with mbs_...</small>
+                                        {% if form.mobilesasa_api_token.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.mobilesasa_api_token.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="{{ form.mobilesasa_sender_id.id_for_label }}" class="form-label">Sender ID</label>
+                                        {{ form.mobilesasa_sender_id }}
+                                        <small class="form-text text-muted">Approved alphanumeric Sender ID</small>
+                                        {% if form.mobilesasa_sender_id.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {{ form.mobilesasa_sender_id.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Twilio Fields -->
                             <div id="twilio-fields" class="provider-specific-fields" style="display: none;">
                                 <h6 class="mt-4 mb-3">Twilio Configuration</h6>
@@ -282,6 +309,16 @@
                     <h5 class="card-title mb-0">Configuration Help</h5>
                 </div>
                 <div class="card-body">
+                    <div id="mobilesasa-help" class="provider-help" style="display: none;">
+                        <h6>MobileSasa Configuration</h6>
+                        <p class="small text-muted">MobileSasa provides reliable SMS delivery across East Africa with fast routing and custom Sender IDs.</p>
+                        <ul class="small text-muted">
+                            <li>Sign up at mobilesasa.com</li>
+                            <li>Generate an API Token from your Developer/API settings</li>
+                            <li>Request and get an approved Sender ID for your school</li>
+                        </ul>
+                    </div>
+
                     <div id="twilio-help" class="provider-help" style="display: none;">
                         <h6>Twilio Configuration</h6>
                         <p class="small text-muted">Twilio provides global SMS delivery with detailed analytics.</p>

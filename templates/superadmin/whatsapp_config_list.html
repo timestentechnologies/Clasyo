@@ -55,7 +55,9 @@
                     <td>
                         <div class="d-flex align-items-center">
                             <div class="avatar-icon-box-sm avatar-icon-whatsapp me-3">
-                                {% if config.provider == 'meta' %}
+                                {% if config.provider == 'mobilesasa' %}
+                                    <i class="fab fa-whatsapp text-info"></i>
+                                {% elif config.provider == 'meta' %}
                                     <i class="fab fa-facebook text-primary"></i>
                                 {% elif config.provider == 'twilio' %}
                                     <i class="fas fa-phone text-danger"></i>
@@ -80,15 +82,15 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if config.default_sender_phone %}
-                            <span class="fw-semibold text-body">{{ config.default_sender_phone }}</span>
+                        {% if config.default_sender_phone or config.mobilesasa_sender_phone %}
+                            <span class="fw-semibold text-body">{{ config.mobilesasa_sender_phone|default:config.default_sender_phone }}</span>
                         {% else %}
                             <span class="text-muted">Not specified</span>
                         {% endif %}
                     </td>
                     <td>
                         <span class="small font-monospace text-muted">
-                            {{ config.meta_waba_id|default:config.twilio_account_sid|default:config.africastalking_username|default:"—" }}
+                            {{ config.mobilesasa_account_uuid|default:config.meta_waba_id|default:config.twilio_account_sid|default:config.africastalking_username|default:"—" }}
                         </span>
                     </td>
                     <td>{{ config.created_at|date:"M d, Y" }}</td>

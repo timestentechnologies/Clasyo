@@ -45,9 +45,6 @@
             
             <div class="search-input-actions">
                 <span id="pageFilterBadge" class="search-filter-badge d-none">0 on page</span>
-                <button type="button" id="clearSearchBtn" class="search-clear-btn d-none" title="Clear filter (Esc)">
-                    <i class="fas fa-times"></i>
-                </button>
             </div>
         </div>
 
@@ -56,16 +53,6 @@
     </form>
     
     <div class="navbar-actions">
-        <!-- Layout Switcher Button -->
-        <a href="{% url 'accounts:toggle_navigation_layout' %}" class="nav-icon-btn layout-toggle-btn" title="Switch to {% if navigation_layout == 'horizontal' %}Sidebar Layout{% else %}Horizontal Tab Layout{% endif %}">
-            <i class="fas {% if navigation_layout == 'horizontal' %}fa-table-columns{% else %}fa-bars-staggered{% endif %}"></i>
-        </a>
-
-        <!-- Theme Toggle Button -->
-        <button id="theme-toggle" class="nav-icon-btn" title="Toggle Theme">
-            <i class="fas fa-moon"></i>
-        </button>
-        
         {% if user.role != 'superadmin' and user.role != 'super_admin' %}
         <a href="/school/{{ school_slug }}/communication/notices/" class="nav-icon-btn" title="Notifications">
             <i class="fas fa-bell"></i>
@@ -82,29 +69,48 @@
         {% endif %}
         
         <div class="dropdown">
-            <div class="user-profile-nav" data-bs-toggle="dropdown" style="cursor: pointer;">
+            <div class="user-profile-nav avatar-only-nav cursor-pointer" data-bs-toggle="dropdown" title="{{ user.get_full_name|default:user.email }}">
                 <div class="user-avatar">{{ user.first_name.0|default:"U" }}{{ user.last_name.0|default:"" }}</div>
-                <div class="user-info">
-                    <h4>{{ user.get_full_name|default:user.email }}</h4>
-                    <p>{{ user.role|title }}</p>
-                </div>
-                <i class="fas fa-chevron-down"></i>
             </div>
-            <ul class="dropdown-menu dropdown-menu-end shadow-lg">
+            <ul class="dropdown-menu dropdown-menu-end shadow-lg user-profile-dropdown">
+                <!-- User Information Header -->
+                <li class="px-3 py-2 border-bottom">
+                    <div class="fw-bold text-truncate user-profile-dropdown-name">
+                        {{ user.get_full_name|default:user.email }}
+                    </div>
+                    <div class="small text-muted text-truncate user-profile-dropdown-role">
+                        {{ user.role|title }}
+                    </div>
+                </li>
+
+                <!-- Profile Link -->
                 <li>
-                  <a class="dropdown-item py-2" href="{% if user.role == 'superadmin' %}{% url 'superadmin:profile' %}{% elif school_slug %}{% url 'core:profile' school_slug=school_slug %}{% else %}{% url 'accounts:profile' %}{% endif %}">
+                  <a class="dropdown-item py-2 mt-1" href="{% if user.role == 'superadmin' %}{% url 'superadmin:profile' %}{% elif school_slug %}{% url 'core:profile' school_slug=school_slug %}{% else %}{% url 'accounts:profile' %}{% endif %}">
                     <i class="fas fa-user me-2"></i> View Profile
                   </a>
                 </li>
+
+                <!-- Theme Toggle Option -->
+                <li>
+                  <button type="button" id="theme-toggle" class="dropdown-item d-flex justify-content-between align-items-center py-2" title="Toggle Theme">
+                    <span>
+                        <i class="fas fa-moon me-2"></i> Theme
+                    </span>
+                    <span class="badge bg-secondary-subtle border text-muted user-profile-badge" id="themeStatusBadge">Dark</span>
+                  </button>
+                </li>
+
+                <!-- Navigation Layout Switcher Option -->
                 <li>
                   <a class="dropdown-item d-flex justify-content-between align-items-center py-2" href="{% url 'accounts:toggle_navigation_layout' %}">
                     <span>
                         <i class="fas {% if navigation_layout == 'horizontal' %}fa-table-columns{% else %}fa-bars-staggered{% endif %} me-2"></i>
                         Layout: {% if navigation_layout == 'horizontal' %}Tabs{% else %}Sidebar{% endif %}
                     </span>
-                    <span class="badge bg-primary-subtle text-primary border" style="font-size: 10px;">Switch</span>
+                    <span class="badge bg-primary-subtle text-primary border user-profile-badge">Switch</span>
                   </a>
                 </li>
+
                 {% if user.role != 'superadmin' and user.role != 'super_admin' %}
                 <li>
                   <a class="dropdown-item py-2" href="{% if school_slug %}{% url 'core:settings' school_slug=school_slug %}{% else %}#{% endif %}">
@@ -112,8 +118,8 @@
                   </a>
                 </li>
                 {% endif %}
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item py-2" href="{% url 'accounts:logout' %}"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li><a class="dropdown-item py-2 text-danger" href="{% url 'accounts:logout' %}"><i class="fas fa-sign-out-alt me-2 text-danger"></i> Logout</a></li>
             </ul>
         </div>
     </div>

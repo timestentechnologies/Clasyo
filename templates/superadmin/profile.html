@@ -94,7 +94,7 @@
     <div class="col-lg-4">
         <div class="modern-card text-center">
             <div class="mb-4">
-                <div class="avatar-circle bg-danger text-white mx-auto" style="width: 100px; height: 100px; font-size: 40px; line-height: 100px;">
+                <div class="avatar-circle bg-danger text-white mx-auto profile-avatar-lg">
                     {{ user.first_name.0|default:"S" }}{{ user.last_name.0|default:"A" }}
                 </div>
             </div>
@@ -115,35 +115,39 @@
         </div>
 
         <div class="modern-card mt-3" id="password">
-            <h6 class="mb-3"><i class="fas fa-key text-primary"></i> Change Password</h6>
+            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                <div class="avatar-circle profile-password-icon">
+                    <i class="fas fa-key"></i>
+                </div>
+                <h6 class="mb-0 fw-bold">Change Password</h6>
+            </div>
             <form method="post" action="{% url 'accounts:change_password' %}">
                 {% csrf_token %}
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">Current Password</label>
-                            <input type="password" name="old_password" class="form-control" required>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">New Password</label>
-                            <input type="password" name="new_password1" class="form-control" required>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">Confirm New Password</label>
-                            <input type="password" name="new_password2" class="form-control" required>
-                        </div>
-                    </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        Current Password <span class="text-danger">*</span>
+                    </label>
+                    <input type="password" name="old_password" class="form-control" required placeholder="Enter current password">
+                    <small class="text-muted">Required for verification</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        New Password <span class="text-danger">*</span>
+                    </label>
+                    <input type="password" name="new_password1" class="form-control" required placeholder="Enter new password">
+                    <small class="text-muted">At least 8 characters with letters, numbers & symbols</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        Confirm New Password <span class="text-danger">*</span>
+                    </label>
+                    <input type="password" name="new_password2" class="form-control" required placeholder="Re-enter new password">
                 </div>
                 <div class="d-flex justify-content-end">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save me-1"></i> Update Password
                     </button>
                 </div>
-                <small class="text-muted d-block mt-2">Minimum 8 characters. Use a mix of letters, numbers and symbols.</small>
             </form>
         </div>
 

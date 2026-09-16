@@ -15,7 +15,6 @@
         const input = document.getElementById('globalSearch');
         const dropdown = document.getElementById('globalSearchDropdown');
         const filterBadge = document.getElementById('pageFilterBadge');
-        const clearBtn = document.getElementById('clearSearchBtn');
 
         if (!form || !input) return;
 
@@ -147,9 +146,8 @@
                 }
             });
 
-            // Update match count badge and clear button
+            // Update match count badge
             if (cleanQuery) {
-                if (clearBtn) clearBtn.classList.remove('d-none');
                 if (filterBadge) {
                     if (totalRowsFound > 0) {
                         filterBadge.classList.remove('d-none');
@@ -162,7 +160,6 @@
                     }
                 }
             } else {
-                if (clearBtn) clearBtn.classList.add('d-none');
                 if (filterBadge) filterBadge.classList.add('d-none');
             }
 
@@ -177,14 +174,6 @@
             filterContentOnCurrentPage('');
             closeDropdown();
             input.focus();
-        }
-
-        if (clearBtn) {
-            clearBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                resetInPageFilter();
-            });
         }
 
         // -------------------------------------------------------------

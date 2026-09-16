@@ -6,6 +6,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 SMS_PROVIDER_CHOICES = [
+    ('mobilesasa', _('MobileSasa')),
     ('twilio', _('Twilio')),
     ('africastalking', _('Africa\'s Talking')),
     ('infobip', _('Infobip')),
@@ -22,6 +23,7 @@ EMAIL_PROVIDER_CHOICES = [
 ]
 
 WHATSAPP_PROVIDER_CHOICES = [
+    ('mobilesasa', _('MobileSasa WhatsApp')),
     ('meta', _('Meta WhatsApp Cloud API')),
     ('twilio', _('Twilio WhatsApp')),
     ('africastalking', _('Africa\'s Talking WhatsApp')),
@@ -142,6 +144,22 @@ class GlobalSMSConfiguration(models.Model):
         verbose_name=_('Nexmo From Number')
     )
     
+    # MobileSasa fields
+    mobilesasa_api_token = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name=_('MobileSasa API Token'),
+        help_text=_('Bearer token from MobileSasa dashboard (e.g. mbs_...)')
+    )
+    mobilesasa_sender_id = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name=_('MobileSasa Sender ID'),
+        help_text=_('Approved Sender ID from MobileSasa')
+    )
+    
     # Common settings
     default_sender_id = models.CharField(
         max_length=50, 
@@ -169,7 +187,12 @@ class GlobalSMSConfiguration(models.Model):
             'default_sender_id': self.default_sender_id,
         }
         
-        if self.provider == 'twilio':
+        if self.provider == 'mobilesasa':
+            config.update({
+                'api_token': self.mobilesasa_api_token,
+                'sender_id': self.mobilesasa_sender_id or self.default_sender_id,
+            })
+        elif self.provider == 'twilio':
             config.update({
                 'account_sid': self.twilio_account_sid,
                 'auth_token': self.twilio_auth_token,
@@ -615,15 +638,38 @@ class GlobalWhatsAppConfiguration(models.Model):
     infobip_sender_phone = models.CharField(
         max_length=50, 
         blank=True, 
-        null=True,
+        null=True, 
         verbose_name=_('Infobip Sender Phone Number')
+    )
+    
+    # MobileSasa WhatsApp fields
+    mobilesasa_api_token = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True, 
+        verbose_name=_('MobileSasa API Token'),
+        help_text=_('Bearer token from MobileSasa dashboard (e.g. mbs_...)')
+    )
+    mobilesasa_account_uuid = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True, 
+        verbose_name=_('MobileSasa WhatsApp Account UUID'),
+        help_text=_('UUID of the connected WhatsApp account in MobileSasa')
+    )
+    mobilesasa_sender_phone = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True, 
+        verbose_name=_('MobileSasa Sender Phone Number'),
+        help_text=_('Phone number registered on WhatsApp account')
     )
     
     # Common settings
     default_sender_phone = models.CharField(
         max_length=50, 
         blank=True, 
-        null=True,
+        null=True, 
         verbose_name=_('Default Sender Phone Number'),
         help_text=_('Default outgoing phone number for WhatsApp notifications')
     )
@@ -645,7 +691,13 @@ class GlobalWhatsAppConfiguration(models.Model):
             'is_active': self.is_active,
             'default_sender_phone': self.default_sender_phone,
         }
-        if self.provider == 'meta':
+        if self.provider == 'mobilesasa':
+            config.update({
+                'api_token': self.mobilesasa_api_token,
+                'account_uuid': self.mobilesasa_account_uuid,
+                'sender_phone': self.mobilesasa_sender_phone or self.default_sender_phone,
+            })
+        elif self.provider == 'meta':
             config.update({
                 'phone_number_id': self.meta_phone_number_id,
                 'waba_id': self.meta_waba_id,
@@ -1654,9 +1706,25 @@ class SchoolSMSConfiguration(models.Model):
     nexmo_from_number = models.CharField(
         max_length=20, 
         blank=True, 
-        null=True,
+        null=True, 
         verbose_name=_('Nexmo From Number'),
         help_text=_('Override global Nexmo From Number')
+    )
+    
+    # MobileSasa fields
+    mobilesasa_api_token = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True, 
+        verbose_name=_('MobileSasa API Token'),
+        help_text=_('Override global MobileSasa API Token')
+    )
+    mobilesasa_sender_id = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True, 
+        verbose_name=_('MobileSasa Sender ID'),
+        help_text=_('Override global MobileSasa Sender ID')
     )
     
     # School-specific settings
@@ -1705,7 +1773,12 @@ class SchoolSMSConfiguration(models.Model):
         }
         
         if not self.use_global_settings:
-            if self.provider == 'twilio':
+            if self.provider == 'mobilesasa':
+                config.update({
+                    'api_token': self.mobilesasa_api_token,
+                    'sender_id': self.mobilesasa_sender_id or self.custom_sender_id,
+                })
+            elif self.provider == 'twilio':
                 config.update({
                     'account_sid': self.twilio_account_sid,
                     'auth_token': self.twilio_auth_token,
@@ -2125,6 +2198,29 @@ class SchoolWhatsAppConfiguration(models.Model):
         help_text=_('Override global Infobip Sender Phone Number')
     )
     
+    # MobileSasa WhatsApp fields
+    mobilesasa_api_token = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True, 
+        verbose_name=_('MobileSasa API Token'),
+        help_text=_('Override global MobileSasa API Token')
+    )
+    mobilesasa_account_uuid = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True, 
+        verbose_name=_('MobileSasa WhatsApp Account UUID'),
+        help_text=_('Override global MobileSasa WhatsApp Account UUID')
+    )
+    mobilesasa_sender_phone = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True, 
+        verbose_name=_('MobileSasa Sender Phone Number'),
+        help_text=_('Override global MobileSasa Sender Phone Number')
+    )
+    
     # School-specific settings
     custom_sender_phone = models.CharField(
         max_length=50, 
@@ -2171,7 +2267,13 @@ class SchoolWhatsAppConfiguration(models.Model):
         }
         
         if not self.use_global_settings:
-            if self.provider == 'meta':
+            if self.provider == 'mobilesasa':
+                config.update({
+                    'api_token': self.mobilesasa_api_token,
+                    'account_uuid': self.mobilesasa_account_uuid,
+                    'sender_phone': self.mobilesasa_sender_phone or self.custom_sender_phone,
+                })
+            elif self.provider == 'meta':
                 config.update({
                     'phone_number_id': self.meta_phone_number_id,
                     'waba_id': self.meta_waba_id,

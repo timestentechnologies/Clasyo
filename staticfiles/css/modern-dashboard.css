@@ -745,39 +745,24 @@ body.dark-theme .search-filter-badge {
     background: rgba(56, 189, 248, 0.2) !important;
 }
 
-.search-clear-btn {
-    border: none !important;
-    background: transparent !important;
-    color: #64748B !important;
-    font-size: 13px !important;
-    width: 24px !important;
-    height: 24px !important;
-    border-radius: 50% !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    cursor: pointer !important;
-    padding: 0 !important;
-    transition: all 0.15s ease !important;
-    outline: none !important;
-    box-shadow: none !important;
-}
-
-.search-clear-btn:hover {
-    background: rgba(100, 116, 139, 0.15) !important;
-    color: var(--text-primary, #0F172A) !important;
-}
-
-[data-theme="dark"] .search-clear-btn,
-body.dark-theme .search-clear-btn,
-body.theme-dark .search-clear-btn {
-    color: #94A3B8 !important;
-}
-
-[data-theme="dark"] .search-clear-btn:hover,
-body.dark-theme .search-clear-btn:hover {
-    color: #F8FAFC !important;
-    background: rgba(255, 255, 255, 0.12) !important;
+/* Completely hide any search clear / cancel buttons across browsers */
+.search-clear-btn,
+#clearSearchBtn,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration,
+input[type="text"]::-webkit-search-cancel-button,
+input[type="text"]::-webkit-search-decoration,
+#globalSearch::-webkit-search-cancel-button,
+#globalSearch::-webkit-search-decoration {
+    display: none !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 
 /* Floating Results Dropdown: Clean, Simple, Detached */
@@ -1228,6 +1213,123 @@ body.theme-dark .table tbody tr:hover {
     background: var(--bg-light);
 }
 
+.user-profile-nav.avatar-only-nav {
+    padding: 2px !important;
+    gap: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 50% !important;
+}
+
+.user-profile-nav.avatar-only-nav:hover {
+    background: transparent !important;
+    opacity: 0.9;
+}
+
+.user-profile-nav.avatar-only-nav .user-avatar {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 50% !important;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.user-profile-nav.avatar-only-nav:hover .user-avatar {
+    transform: scale(1.05);
+}
+
+/* User Profile Dropdown Styling */
+.user-profile-dropdown {
+    min-width: 250px !important;
+}
+
+.user-profile-dropdown-name {
+    max-width: 220px !important;
+    color: var(--text-primary) !important;
+    font-size: 0.92rem !important;
+}
+
+.user-profile-dropdown-role {
+    max-width: 220px !important;
+    font-size: 0.78rem !important;
+}
+
+.user-profile-badge {
+    font-size: 10px !important;
+}
+
+/* Eliminate ALL focus/active outlines and box-shadow rings from dropdown links and buttons */
+.dropdown-menu,
+.dropdown-menu *,
+.dropdown-menu a,
+.dropdown-menu button,
+.dropdown-menu a:hover,
+.dropdown-menu a:focus,
+.dropdown-menu a:active,
+.dropdown-menu a:focus-visible,
+.dropdown-menu button:hover,
+.dropdown-menu button:focus,
+.dropdown-menu button:active,
+.dropdown-menu button:focus-visible,
+.dropdown-item,
+.dropdown-item:hover,
+.dropdown-item:focus,
+.dropdown-item:active,
+.dropdown-item:focus-visible,
+.dropdown-item:focus-within,
+.dropdown-item#theme-toggle,
+.dropdown-item#theme-toggle:focus,
+.dropdown-item#theme-toggle:active,
+.dropdown-item#theme-toggle:focus-visible,
+.user-profile-nav,
+.user-profile-nav:focus,
+.user-profile-nav:active,
+.user-profile-nav:focus-visible {
+    outline: none !important;
+    outline-width: 0 !important;
+    outline-style: none !important;
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    -moz-box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+.dropdown-item#theme-toggle,
+.dropdown-menu #theme-toggle {
+    width: 100% !important;
+    height: auto !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+    outline: none !important;
+    cursor: pointer !important;
+    text-align: left !important;
+    padding: 0.5rem 1rem !important;
+    color: var(--text-primary, #0F172A) !important;
+}
+
+.dropdown-item#theme-toggle:hover,
+.dropdown-menu #theme-toggle:hover {
+    background-color: var(--bg-light, rgba(2, 132, 199, 0.08)) !important;
+    color: var(--brand-primary, #0284C7) !important;
+    box-shadow: none !important;
+    outline: none !important;
+    transform: none !important;
+}
+
+[data-theme="dark"] .dropdown-item#theme-toggle,
+[data-theme="dark"] .dropdown-menu #theme-toggle {
+    background: transparent !important;
+    border: none !important;
+    color: #CBD5E1 !important;
+}
+
+[data-theme="dark"] .dropdown-item#theme-toggle:hover,
+[data-theme="dark"] .dropdown-menu #theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #38BDF8 !important;
+}
+
 .user-avatar {
     width: 40px;
     height: 40px;
@@ -1466,14 +1568,15 @@ body.theme-dark .table tbody tr:hover {
 .modern-table,
 .table {
     width: 100%;
-    border-collapse: separate;
+    border-collapse: collapse;
     border-spacing: 0;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-    background: var(--bg-white);
+    border-radius: 0 !important;
+    overflow: visible;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent;
     color: var(--text-primary);
-    margin-bottom: 1rem;
+    margin-bottom: 0 !important;
     /* Force table to respect theme colors */
     --bs-table-bg: transparent;
     --bs-table-color: var(--text-primary);
@@ -1662,32 +1765,34 @@ body.theme-dark .table tbody tr:hover {
 
 .modern-table thead th:first-child,
 .table thead th:first-child {
-    border-top-left-radius: 12px;
+    border-top-left-radius: 0 !important;
 }
 
 .modern-table thead th:last-child,
 .table thead th:last-child {
-    border-top-right-radius: 12px;
+    border-top-right-radius: 0 !important;
 }
 
 .modern-table tbody tr,
 .table tbody tr {
     transition: all 0.2s ease;
-    background: white;
+    background: transparent;
 }
 
 .modern-table tbody tr:hover,
 .table tbody tr:hover {
     background: var(--bg-light) !important;
-    transform: translateY(-1px);
+    transform: none;
 }
 
-.modern-table tbody tr:last-child td:first-child {
-    border-bottom-left-radius: 12px;
+.modern-table tbody tr:last-child td:first-child,
+.table tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 0 !important;
 }
 
-.modern-table tbody tr:last-child td:last-child {
-    border-bottom-right-radius: 12px;
+.modern-table tbody tr:last-child td:last-child,
+.table tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 0 !important;
 }
 
 .modern-table tbody td,
@@ -1701,15 +1806,20 @@ body.theme-dark .table tbody tr:hover {
 }
 
 .modern-table tbody tr:last-child td,
-.table tbody tr:last-child td {
-    border-bottom: none;
+.table tbody tr:last-child td,
+.modern-table tbody tr:last-child th,
+.table tbody tr:last-child th {
+    border-bottom: none !important;
+    border-bottom-width: 0 !important;
 }
 
-/* Table Wrapper for Shadow */
+/* Table Wrapper without Inner Outlines */
 .table-responsive {
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
+    border-radius: 0 !important;
+    overflow-x: auto;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
 }
 
 /* Modern Buttons */
@@ -1735,7 +1845,7 @@ body.theme-dark .table tbody tr:hover {
 .btn-primary-modern:hover,
 .btn.btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    box-shadow: none !important;
 }
 
 .btn-primary-modern,
@@ -1966,6 +2076,185 @@ label {
     display: block;
 }
 
+/* ==========================================================================
+   Global Seamless Blended Input Icons (No Inner Dividers, Unified 44px Field)
+   ========================================================================== */
+.input-icon-group,
+.search-input-group,
+.field-icon-group {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
+.input-icon-group .input-icon,
+.input-icon-group > i,
+.input-icon-group > svg,
+.search-input-group .input-icon,
+.search-input-group > i,
+.field-icon-group .input-icon,
+.field-icon-group > i {
+    position: absolute !important;
+    left: 14px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    color: var(--text-muted, #94A3B8) !important;
+    font-size: 14px !important;
+    pointer-events: none !important;
+    z-index: 5 !important;
+    transition: color 0.2s ease !important;
+}
+
+.input-icon-group .form-control,
+.search-input-group .form-control,
+.field-icon-group .form-control {
+    width: 100% !important;
+    padding-left: 40px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--border-light, #CBD5E1) !important;
+    background: var(--input-bg, #FFFFFF) !important;
+    color: var(--input-text, #0F172A) !important;
+    transition: all 0.3s ease !important;
+}
+
+.input-icon-group:focus-within .input-icon,
+.input-icon-group:focus-within > i,
+.input-icon-group:focus-within > svg,
+.search-input-group:focus-within .input-icon,
+.search-input-group:focus-within > i,
+.field-icon-group:focus-within .input-icon,
+.field-icon-group:focus-within > i {
+    color: var(--accent-cyan, #4DD0E1) !important;
+}
+
+.input-icon-group .form-control:focus,
+.search-input-group .form-control:focus,
+.field-icon-group .form-control:focus {
+    outline: none !important;
+    border-color: var(--accent-cyan, #4DD0E1) !important;
+    box-shadow: none !important;
+}
+
+/* Also auto-blend any Bootstrap .input-group where the first child is an icon */
+.input-group:has(> .input-group-text:first-child:has(i, svg)),
+.input-group:has(> .input-group-text:first-child > i),
+.input-group:has(> i:first-child) {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+
+.input-group:has(> .input-group-text:first-child:has(i, svg)) > .input-group-text:first-child,
+.input-group:has(> .input-group-text:first-child > i) > .input-group-text:first-child,
+.input-group > i:first-child {
+    position: absolute !important;
+    left: 14px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    z-index: 5 !important;
+    pointer-events: none !important;
+    color: var(--text-muted, #94A3B8) !important;
+    font-size: 14px !important;
+    line-height: 1 !important;
+    transition: color 0.2s ease !important;
+}
+
+.input-group:has(> .input-group-text:first-child:has(i, svg)) > .form-control,
+.input-group:has(> .input-group-text:first-child > i) > .form-control {
+    width: 100% !important;
+    padding-left: 40px !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--border-light, #CBD5E1) !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    box-shadow: none !important;
+}
+
+.input-group:has(> .input-group-text:first-child:has(i, svg)):focus-within > .input-group-text:first-child,
+.input-group:has(> .input-group-text:first-child:has(i, svg)):focus-within > .input-group-text:first-child i,
+.input-group:has(> .input-group-text:first-child > i):focus-within > .input-group-text:first-child,
+.input-group:has(> .input-group-text:first-child > i):focus-within > .input-group-text:first-child i {
+    color: var(--accent-cyan, #4DD0E1) !important;
+}
+
+.input-group:has(> .input-group-text:first-child:has(i, svg)) > .form-control:focus,
+.input-group:has(> .input-group-text:first-child > i) > .form-control:focus {
+    border-color: var(--accent-cyan, #4DD0E1) !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Dynamic Filter Form Standard Across System */
+.dynamic-filter-form {
+    align-items: flex-end;
+}
+
+.dynamic-filter-form .form-label,
+.dynamic-filter-form label {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.6px !important;
+    text-transform: uppercase !important;
+    color: var(--text-muted, #64748B) !important;
+    margin-bottom: 6px !important;
+}
+
+/* ==========================================================================
+   Zero-Border & Infield Input Suppression for Dropdowns (TomSelect, Select2)
+   ========================================================================== */
+.ts-control input,
+.ts-wrapper .ts-control input,
+.ts-wrapper.single .ts-control input,
+.ts-wrapper .ts-control > input,
+.select2-container .select2-selection input,
+.form-select input {
+    border: none !important;
+    border-width: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+}
+
+.ts-control input:focus,
+.ts-wrapper .ts-control input:focus,
+.ts-wrapper.single .ts-control input:focus,
+.ts-wrapper .ts-control > input:focus,
+[data-theme="dark"] .ts-control input,
+[data-theme="dark"] .ts-control input:focus,
+[data-theme="dark"] .ts-wrapper .ts-control input,
+[data-theme="dark"] .ts-wrapper .ts-control input:focus,
+.theme-dark .ts-control input,
+.theme-dark .ts-control input:focus,
+body.dark-theme .ts-control input,
+body.dark-theme .ts-control input:focus {
+    border: none !important;
+    border-width: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
 /* Dark Mode Form Inputs Across System (Modals & All Pages) */
 [data-theme="dark"] .form-control,
 [data-theme="dark"] .form-select,
@@ -2039,6 +2328,88 @@ body.dark-theme .form-control::placeholder,
 body.dark-theme textarea::placeholder {
     color: #94A3B8 !important;
     opacity: 1 !important;
+}
+
+/* ==========================================================================
+   Dark Mode Alert Standard (Sleek, Translucent, Accessible)
+   ========================================================================== */
+[data-theme="dark"] .alert,
+[data-bs-theme="dark"] .alert,
+.theme-dark .alert,
+.dark-theme .alert,
+body.dark-theme .alert,
+body.theme-dark .alert {
+    background-color: rgba(30, 41, 59, 0.95) !important;
+    border: 1px solid #334155 !important;
+    color: #F8FAFC !important;
+    border-radius: 12px !important;
+}
+
+[data-theme="dark"] .alert-info,
+[data-bs-theme="dark"] .alert-info,
+.theme-dark .alert-info,
+.dark-theme .alert-info,
+body.dark-theme .alert-info,
+body.theme-dark .alert-info {
+    background-color: rgba(14, 116, 144, 0.22) !important;
+    border: 1px solid rgba(56, 189, 248, 0.45) !important;
+    color: #E0F2FE !important;
+}
+
+[data-theme="dark"] .alert-info h1,
+[data-theme="dark"] .alert-info h2,
+[data-theme="dark"] .alert-info h3,
+[data-theme="dark"] .alert-info h4,
+[data-theme="dark"] .alert-info h5,
+[data-theme="dark"] .alert-info h6,
+[data-theme="dark"] .alert-info strong,
+[data-theme="dark"] .alert-info b,
+.theme-dark .alert-info h6,
+.theme-dark .alert-info strong {
+    color: #38BDF8 !important;
+}
+
+[data-theme="dark"] .alert-info .text-muted,
+[data-theme="dark"] .alert-info small,
+.theme-dark .alert-info .text-muted,
+.theme-dark .alert-info small {
+    color: #94A3B8 !important;
+}
+
+[data-theme="dark"] .alert-success,
+[data-bs-theme="dark"] .alert-success,
+.theme-dark .alert-success,
+body.dark-theme .alert-success {
+    background-color: rgba(22, 101, 52, 0.22) !important;
+    border: 1px solid rgba(34, 197, 94, 0.45) !important;
+    color: #DCFCE7 !important;
+}
+
+[data-theme="dark"] .alert-warning,
+[data-bs-theme="dark"] .alert-warning,
+.theme-dark .alert-warning,
+body.dark-theme .alert-warning {
+    background-color: rgba(133, 77, 14, 0.22) !important;
+    border: 1px solid rgba(250, 204, 21, 0.45) !important;
+    color: #FEF08A !important;
+}
+
+[data-theme="dark"] .alert-danger,
+[data-bs-theme="dark"] .alert-danger,
+.theme-dark .alert-danger,
+body.dark-theme .alert-danger {
+    background-color: rgba(153, 27, 27, 0.22) !important;
+    border: 1px solid rgba(248, 113, 113, 0.45) !important;
+    color: #FEE2E2 !important;
+}
+
+[data-theme="dark"] .alert-primary,
+[data-bs-theme="dark"] .alert-primary,
+.theme-dark .alert-primary,
+body.dark-theme .alert-primary {
+    background-color: rgba(3, 105, 161, 0.22) !important;
+    border: 1px solid rgba(56, 189, 248, 0.45) !important;
+    color: #E0F2FE !important;
 }
 
 [data-theme="dark"] select option,
@@ -2195,11 +2566,24 @@ textarea.form-control-modern {
     background-color: var(--bg-light) !important;
 }
 
-/* Table in Cards */
+/* Table in Cards - Zero Inner Outlines */
 .modern-card .table,
-.card .table {
-    margin-bottom: 0;
-    border-radius: 0;
+.card .table,
+.modern-card .modern-table,
+.card .modern-table {
+    margin-bottom: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+.modern-card .table-responsive,
+.card .table-responsive {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    margin-bottom: 0 !important;
 }
 
 .modern-card,
@@ -2556,7 +2940,7 @@ textarea.form-control-modern {
     transition: all 0.2s ease !important;
     cursor: pointer !important;
     white-space: nowrap !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+    box-shadow: none !important;
 }
 
 .smart-btn i,
@@ -2580,7 +2964,7 @@ textarea.form-control-modern {
     color: #ffffff !important;
     border-color: #0284c7 !important;
     transform: translateY(-1px) !important;
-    box-shadow: 0 3px 8px rgba(2, 132, 199, 0.25) !important;
+    box-shadow: none !important;
     text-decoration: none !important;
 }
 
@@ -2939,5 +3323,180 @@ body.dark-theme .color-picker-group .color-picker-swatch {
     background-color: transparent !important;
 }
 
+/* ==========================================================================
+   Universal Elimination of Button Glow Effects & Glowing Shadows System-wide
+   ========================================================================== */
+.btn,
+.btn-modern,
+.btn-primary,
+.btn-primary-modern,
+.btn-secondary,
+.btn-secondary-modern,
+.btn-success,
+.btn-success-modern,
+.btn-danger,
+.btn-danger-modern,
+.btn-warning,
+.btn-warning-modern,
+.btn-info,
+.btn-info-modern,
+.btn-light,
+.btn-dark,
+.btn-outline-primary,
+.btn-outline-secondary,
+.btn-outline-success,
+.btn-outline-danger,
+.btn-outline-warning,
+.btn-outline-info,
+.btn-outline-light,
+.btn-outline-dark,
+.smart-btn,
+.smart-btn-primary,
+.smart-btn-success,
+.smart-btn-info,
+.smart-btn-warning,
+.smart-btn-danger,
+.filter-btn,
+.filter-pill,
+.nav-icon-btn,
+#theme-toggle {
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+}
 
+.btn:hover,
+.btn:focus,
+.btn:active,
+.btn:focus-visible,
+.btn-modern:hover,
+.btn-modern:focus,
+.btn-modern:active,
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary-modern:hover,
+.btn-primary-modern:focus,
+.btn-primary-modern:active,
+.btn-secondary:hover,
+.btn-secondary:focus,
+.btn-secondary:active,
+.btn-success:hover,
+.btn-success:focus,
+.btn-success:active,
+.btn-danger:hover,
+.btn-danger:focus,
+.btn-danger:active,
+.btn-warning:hover,
+.btn-warning:focus,
+.btn-warning:active,
+.btn-info:hover,
+.btn-info:focus,
+.btn-info:active,
+.btn-outline-primary:hover,
+.btn-outline-primary:focus,
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus,
+.btn-outline-success:hover,
+.btn-outline-success:focus,
+.btn-outline-info:hover,
+.btn-outline-info:focus,
+.btn-outline-light:hover,
+.btn-outline-light:focus,
+.smart-btn:hover,
+.smart-btn:focus,
+.smart-btn:active,
+.filter-btn:hover,
+.filter-btn:focus,
+.filter-btn.active,
+.filter-pill:hover,
+.filter-pill:focus,
+.filter-pill.active,
+.nav-icon-btn:hover,
+.nav-icon-btn:focus,
+#theme-toggle:hover,
+#theme-toggle:focus {
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+}
 
+[data-theme="dark"] .btn,
+[data-theme="dark"] .btn:hover,
+[data-theme="dark"] .btn:focus,
+[data-theme="dark"] .btn:active,
+[data-theme="dark"] .btn-primary,
+[data-theme="dark"] .btn-primary:hover,
+[data-theme="dark"] .btn-primary:focus,
+[data-theme="dark"] .btn-primary:active,
+[data-bs-theme="dark"] .btn,
+[data-bs-theme="dark"] .btn:hover,
+[data-bs-theme="dark"] .btn:focus,
+[data-bs-theme="dark"] .btn:active,
+[data-bs-theme="dark"] .btn-primary,
+[data-bs-theme="dark"] .btn-primary:hover,
+.theme-dark .btn,
+.theme-dark .btn:hover,
+.theme-dark .btn:focus,
+.theme-dark .btn:active,
+.theme-dark .btn-primary,
+.theme-dark .btn-primary:hover,
+body.dark-theme .btn,
+body.dark-theme .btn:hover,
+body.dark-theme .btn-primary,
+body.dark-theme .btn-primary:hover {
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+}
+
+/* ==========================================================================
+   Profile Page: Avatar, Password Section, Toggle Button Utilities
+   ========================================================================== */
+
+/* Large profile avatar used on profile pages */
+.profile-avatar-lg {
+    width: 100px !important;
+    height: 100px !important;
+    font-size: 40px !important;
+    line-height: 100px !important;
+    margin: 0 auto 20px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Password section icon (small avatar-circle) */
+.profile-password-icon {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 13px !important;
+    background: rgba(56, 189, 248, 0.15) !important;
+    color: var(--accent-cyan, #38BDF8) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    flex-shrink: 0 !important;
+}
+
+[data-theme="dark"] .profile-password-icon,
+body.dark-theme .profile-password-icon {
+    background: rgba(56, 189, 248, 0.12) !important;
+    color: #38BDF8 !important;
+}
+
+/* Compact toggle button used on profile pages */
+.profile-toggle-btn {
+    font-size: 11px !important;
+    padding: 2px 8px !important;
+}
+
+/* Cursor utility class */
+.cursor-pointer {
+    cursor: pointer !important;
+}

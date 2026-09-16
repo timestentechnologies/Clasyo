@@ -97,7 +97,9 @@
                     <td>
                         <div class="d-flex align-items-center">
                             <div class="avatar-icon-box-sm bg-light-subtle me-3">
-                                {% if config.provider == 'twilio' %}
+                                {% if config.provider == 'mobilesasa' %}
+                                    <i class="fas fa-sms text-info"></i>
+                                {% elif config.provider == 'twilio' %}
                                     <i class="fas fa-phone text-primary"></i>
                                 {% elif config.provider == 'africastalking' %}
                                     <i class="fas fa-comments text-success"></i>
@@ -126,8 +128,8 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if config.default_sender_id %}
-                            <span class="fw-semibold text-body">{{ config.default_sender_id }}</span>
+                        {% if config.default_sender_id or config.mobilesasa_sender_id %}
+                            <span class="fw-semibold text-body">{{ config.mobilesasa_sender_id|default:config.default_sender_id }}</span>
                         {% else %}
                             <span class="text-muted">Not set</span>
                         {% endif %}
@@ -137,7 +139,7 @@
                     </td>
                     <td>
                         <span class="small font-monospace text-muted">
-                            {{ config.twilio_account_sid|default:config.africastalking_username|default:config.infobip_sender|default:"—" }}
+                            {{ config.mobilesasa_sender_id|default:config.twilio_account_sid|default:config.africastalking_username|default:config.infobip_sender|default:"—" }}
                         </span>
                     </td>
                     <td class="text-end">

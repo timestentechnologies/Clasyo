@@ -8,20 +8,64 @@
 
 {% block page_actions %}
 <a href="{% url 'superadmin:admin_create' %}" class="btn btn-primary">
-    <i class="fas fa-user-plus"></i> Add New Admin
+    <i class="fas fa-user-plus me-1"></i> Add New Admin
 </a>
 {% endblock %}
 
 {% block content %}
+
+            <!-- Modern Dynamic Filter Bar -->
+            <div class="modern-card mb-4 p-3 p-md-4">
+                <form method="get" id="adminsFilterForm" class="row g-3 dynamic-filter-form">
+                    <div class="col-12 col-md-3">
+                        <label for="status" class="form-label fw-semibold text-muted small text-uppercase">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="" {% if not request.GET.status %}selected{% endif %}>All Statuses</option>
+                            <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+                            <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label for="school" class="form-label fw-semibold text-muted small text-uppercase">School</label>
+                        <select class="form-select" id="school" name="school">
+                            <option value="" {% if not selected_school %}selected{% endif %}>All Schools</option>
+                            <option value="unlinked" {% if selected_school == 'unlinked' %}selected{% endif %}>Unlinked Admins</option>
+                            {% for s in schools_list %}
+                            <option value="{{ s.id }}" {% if selected_school == s.id|stringformat:"d" %}selected{% endif %}>{{ s.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-5">
+                        <label for="search" class="form-label fw-semibold text-muted small text-uppercase">Search</label>
+                        <div class="input-icon-group">
+                            <i class="fas fa-search input-icon"></i>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   placeholder="Search by name, email or phone..." 
+                                   value="{{ request.GET.search|default:'' }}" 
+                                   autocomplete="off">
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Table Header Counter & Info -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0 text-muted fw-semibold">
+                    <i class="fas fa-user-shield me-2 text-primary"></i>Admin Directory
+                </h6>
+                <span class="badge bg-light text-dark border px-3 py-2 fs-6 fw-normal d-inline-flex align-items-center gap-2">
+                    <i class="fas fa-user-shield text-primary"></i>
+                    <span>Total: <strong class="text-primary">{{ page_obj.paginator.count|default:admins.count }}</strong> administrators</span>
+                </span>
+            </div>
 
             <div class="modern-card">
                 <div class="table-responsive">
                     <table class="table modern-table">
                         <thead>
                             <tr>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Phone</th>
+                                <th>Admin</th>
+                                <th>Contact</th>
                                 <th>School</th>
                                 <th>Status</th>
                                 <th>Last Login</th>
@@ -33,22 +77,34 @@
                             {% for admin in admins %}
                             <tr>
                                 <td>
-                                    <strong>{{ admin.get_full_name }}</strong>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle bg-primary text-white me-2">
+                                            {{ admin.first_name.0|default:"A" }}{{ admin.last_name.0|default:"" }}
+                                        </div>
+                                        <div>
+                                            <strong>{{ admin.get_full_name }}</strong><br>
+                                            <small class="text-muted">ID: #{{ admin.id }}</small>
+                                        </div>
+                                    </div>
                                 </td>
-                                <td>{{ admin.email }}</td>
-                                <td>{{ admin.phone|default:"-" }}</td>
+                                <td>
+                                    <small class="d-block"><i class="fas fa-envelope text-muted me-1"></i> {{ admin.email }}</small>
+                                    {% if admin.phone %}<small class="d-block"><i class="fas fa-phone text-muted me-1"></i> {{ admin.phone }}</small>{% endif %}
+                                </td>
                                 <td>
                                     {% if admin.school %}
-                                        <span class="badge bg-info text-dark">{{ admin.school.name }}</span>
+                                        <a href="{% url 'superadmin:school_detail' admin.school.id %}" class="text-decoration-none">
+                                            <span class="badge bg-info-subtle text-info border">{{ admin.school.name }}</span>
+                                        </a>
                                     {% else %}
-                                        <span class="badge bg-warning text-dark">Unlinked</span>
+                                        <span class="badge bg-warning-subtle text-warning border">Unlinked</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if admin.is_active %}
-                                        <span class="badge bg-success">Active</span>
+                                        <span class="badge bg-success-subtle text-success border">Active</span>
                                     {% else %}
-                                        <span class="badge bg-danger">Inactive</span>
+                                        <span class="badge bg-danger-subtle text-danger border">Inactive</span>
                                     {% endif %}
                                 </td>
                                 <td>{{ admin.last_login|date:"M d, Y H:i"|default:"Never" }}</td>
@@ -62,10 +118,11 @@
                                         <a href="{% url 'superadmin:impersonate_user' admin.id %}" 
                                            class="btn btn-sm btn-outline-success" title="Login as this admin"
                                            onclick="return confirm('Are you sure you want to login as {{ admin.get_full_name }}?')">
-                                            <i class="fas fa-sign-in-alt"></i> Login As
+                                            <i class="fas fa-sign-in-alt"></i>
                                         </a>
                                         <a href="{% url 'superadmin:admin_delete' admin.id %}"
-                                           class="btn btn-sm btn-outline-danger" title="Delete Admin">
+                                           class="btn btn-sm btn-outline-danger" title="Delete Admin"
+                                           onclick="return confirm('Are you sure you want to delete {{ admin.get_full_name }}?')">
                                             <i class="fas fa-trash-alt"></i>
                                         </a>
                                     </div>
@@ -74,10 +131,10 @@
                             {% empty %}
                             <tr>
                                 <td colspan="7" class="text-center py-5">
-                                    <i class="fas fa-user-shield fa-3x text-muted mb-3"></i>
+                                    <i class="fas fa-user-shield fa-3x text-muted mb-3 d-block"></i>
                                     <p class="text-muted">No school administrators found.</p>
                                     <a href="{% url 'superadmin:admin_create' %}" class="btn btn-primary">
-                                        <i class="fas fa-user-plus"></i> Create First Admin
+                                        <i class="fas fa-user-plus me-1"></i> Create First Admin
                                     </a>
                                 </td>
                             </tr>
@@ -91,15 +148,15 @@
                     <nav>
                         <ul class="pagination">
                             {% if page_obj.has_previous %}
-                                <li class="page-item"><a class="page-link" href="?page=1">First</a></li>
-                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.school %}&school={{ request.GET.school }}{% endif %}">First</a></li>
+                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.school %}&school={{ request.GET.school }}{% endif %}">Previous</a></li>
                             {% endif %}
 
                             <li class="page-item active"><span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
 
                             {% if page_obj.has_next %}
-                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
-                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a></li>
+                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.school %}&school={{ request.GET.school }}{% endif %}">Next</a></li>
+                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.school %}&school={{ request.GET.school }}{% endif %}">Last</a></li>
                             {% endif %}
                         </ul>
                     </nav>
