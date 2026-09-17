@@ -1828,6 +1828,9 @@ class GlobalSettingsView(SuperAdminRequiredMixin, TemplateView):
         dark_accent_color = request.POST.get('dark_accent_color', '#4DD0E1').strip()
         dark_bg_color = request.POST.get('dark_bg_color', '#0F172A').strip()
         
+        icon_color = request.POST.get('icon_color', '#0284C7').strip()
+        dark_icon_color = request.POST.get('dark_icon_color', '#38BDF8').strip()
+        
         if primary_color:
             settings_obj.primary_color = primary_color
         if secondary_color:
@@ -1843,6 +1846,11 @@ class GlobalSettingsView(SuperAdminRequiredMixin, TemplateView):
             settings_obj.dark_accent_color = dark_accent_color
         if dark_bg_color:
             settings_obj.dark_bg_color = dark_bg_color
+            
+        if icon_color:
+            settings_obj.icon_color = icon_color
+        if dark_icon_color:
+            settings_obj.dark_icon_color = dark_icon_color
             
         settings_obj.save()
         messages.success(request, 'System theme & brand colors for Light & Dark modes updated successfully.')

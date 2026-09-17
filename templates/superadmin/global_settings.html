@@ -133,6 +133,38 @@
                             </div>
                         </div>
 
+                        <h6 class="fw-bold border-bottom pb-2 mb-3">
+                            <i class="fas fa-icons text-primary me-2"></i>System Icon Colors (Global Icons)
+                        </h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold color-label-clickable" onclick="openColorPicker('icon_color_picker')" title="Click to pick color">
+                                    <i class="fas fa-circle me-1 color-label-dot" id="dot_icon" style="color: {{ system_settings.icon_color|default:'#0284C7' }};"></i> Global Icon Color (Light Mode)
+                                </label>
+                                <div class="color-field-container">
+                                    <input type="text" name="icon_color" id="icon_color_text" class="form-control color-code-input" value="{{ system_settings.icon_color|default:'#0284C7' }}" oninput="syncColorFromText(this, 'icon_color_picker', 'dot_icon')" spellcheck="false" maxlength="7">
+                                    <button type="button" class="color-picker-trigger" onclick="openColorPicker('icon_color_picker')" title="Pick color">
+                                        <i class="fas fa-eye-dropper"></i>
+                                    </button>
+                                    <input type="color" id="icon_color_picker" class="color-picker-native-hidden" value="{{ system_settings.icon_color|default:'#0284C7' }}" oninput="syncColorFromPicker(this, 'icon_color_text', 'dot_icon')">
+                                </div>
+                                <small class="text-muted">Global color applied to icons throughout the system in light mode.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold color-label-clickable" onclick="openColorPicker('dark_icon_color_picker')" title="Click to pick color">
+                                    <i class="fas fa-circle me-1 color-label-dot" id="dot_dark_icon" style="color: {{ system_settings.dark_icon_color|default:'#38BDF8' }};"></i> Global Icon Color (Dark Mode)
+                                </label>
+                                <div class="color-field-container">
+                                    <input type="text" name="dark_icon_color" id="dark_icon_color_text" class="form-control color-code-input" value="{{ system_settings.dark_icon_color|default:'#38BDF8' }}" oninput="syncColorFromText(this, 'dark_icon_color_picker', 'dot_dark_icon')" spellcheck="false" maxlength="7">
+                                    <button type="button" class="color-picker-trigger" onclick="openColorPicker('dark_icon_color_picker')" title="Pick color">
+                                        <i class="fas fa-eye-dropper"></i>
+                                    </button>
+                                    <input type="color" id="dark_icon_color_picker" class="color-picker-native-hidden" value="{{ system_settings.dark_icon_color|default:'#38BDF8' }}" oninput="syncColorFromPicker(this, 'dark_icon_color_text', 'dot_dark_icon')">
+                                </div>
+                                <small class="text-muted">Global color applied to icons throughout the system in dark mode.</small>
+                            </div>
+                        </div>
+
                         <div class="mt-4 d-flex justify-content-end">
                             <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">
                                 <i class="fas fa-save me-2"></i>Save Theme Colors

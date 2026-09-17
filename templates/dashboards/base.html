@@ -43,6 +43,7 @@
             --dark-unified-bg: {{ system_settings.dark_bg_color|default:'#0F172A' }};
             --modal-header-bg: var(--brand-primary);
             --modal-header-text: #FFFFFF;
+            --system-icon-color: {{ system_settings.icon_color|default:'#0284C7' }};
         }
 
         [data-theme="dark"],
@@ -65,7 +66,39 @@
             --modal-bg: var(--dark-unified-bg);
             --modal-header-bg: var(--dark-unified-bg);
             --modal-header-text: #F8FAFC;
+            --system-icon-color: {{ system_settings.dark_icon_color|default:system_settings.icon_color|default:'#38BDF8' }};
         }
+
+        /* Global System Icon Colors */
+        i.fas, i.far, i.fal, i.fad, i.fa-solid, i.fa-regular, i.bi,
+        .card-title-modern i, .modern-card-header i,
+        .page-icon i, .nav-icon-btn i, .sidebar i {
+            color: var(--system-icon-color);
+        }
+
+        /* Contextual elements that should inherit their container/text color */
+        .btn i, button i, a.btn i, [type="button"] i, [type="submit"] i,
+        .badge i, .alert i,
+        .text-white i,
+        .text-light i,
+        .text-danger i,
+        .text-warning i,
+        .text-success i,
+        .text-info i,
+        .text-muted i,
+        .text-secondary i,
+        .color-label-dot,
+        .color-picker-trigger i {
+            color: inherit !important;
+        }
+
+        /* Semantic direct overrides */
+        i.text-danger { color: #ef4444 !important; }
+        i.text-warning { color: #f59e0b !important; }
+        i.text-success { color: #10b981 !important; }
+        i.text-info { color: #06b6d4 !important; }
+        i.text-white { color: #ffffff !important; }
+        i.text-muted { color: #64748b !important; }
     </style>
     {% block extra_css %}{% endblock %}
     <!-- Early theme apply: prevents flash of wrong theme on page load -->

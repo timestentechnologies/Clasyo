@@ -151,6 +151,10 @@ class SystemSetting(models.Model):
     dark_accent_color = models.CharField(_("Dark Mode Accent Color"), max_length=20, default='#4DD0E1', blank=True)
     dark_bg_color = models.CharField(_("Dark Mode Background Color"), max_length=20, default='#0F172A', blank=True)
 
+    # Icon Color Customization
+    icon_color = models.CharField(_("System Icon Color"), max_length=20, default='#0284C7', blank=True)
+    dark_icon_color = models.CharField(_("Dark Mode Icon Color"), max_length=20, default='#38BDF8', blank=True)
+
     default_navigation_layout = models.CharField(
         _("Default Navigation Layout"),
         max_length=20,
