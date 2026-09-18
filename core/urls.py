@@ -64,6 +64,8 @@ urlpatterns = [
     # Profile and Settings
     path('profile/', views.ProfileView.as_view(), name='profile'),
     path('profile/load-sample-data/', views.LoadSampleDataView.as_view(), name='load_sample_data'),
+    path('profile/clear-sample-data/', views.ClearSampleDataView.as_view(), name='clear_sample_data'),
+    path('profile/switch-to-my-database/', views.ClearSampleDataView.as_view(), name='switch_to_my_database'),
     path('search/', views.SearchView.as_view(), name='search'),
     path('api/search/', views.SchoolSearchApiView.as_view(), name='search_api'),
     

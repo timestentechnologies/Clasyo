@@ -767,3 +767,155 @@ def generate_all_sample_data_for_school(school, db_alias=None):
 
     logger.info(f"[SampleData] Successfully completed sample data generation for '{school.name}': {stats}")
     return stats
+
+
+def clear_all_sample_data_for_school(school, db_alias=None):
+    """
+    Safely purges only the generated sample/demo data from the school tenant database,
+    restoring it back to the school's real/clean database without affecting any
+    real user data or custom non-sample records.
+    """
+    if not db_alias:
+        db_alias = school.slug
+
+    from tenants.services import register_tenant_connection
+    register_tenant_connection(db_alias)
+
+    total_deleted = 0
+
+    # 1. Attendance
+    try:
+        from attendance.models import StudentAttendance, StaffAttendance
+        c1, _ = StudentAttendance.objects.using(db_alias).filter(is_sample_data=True).delete()
+        c2, _ = StaffAttendance.objects.using(db_alias).filter(is_sample_data=True).delete()
+        total_deleted += (c1 + c2)
+    except Exception as e:
+        logger.warning(f"Error clearing sample attendance: {e}")
+
+    # 2. Homework
+    try:
+        from homework.models import HomeworkSubmission, Homework
+        c1, _ = HomeworkSubmission.objects.using(db_alias).filter(is_sample_data=True).delete()
+        c2, _ = Homework.objects.using(db_alias).filter(is_sample_data=True).delete()
+        total_deleted += (c1 + c2)
+    except Exception as e:
+        logger.warning(f"Error clearing sample homework: {e}")
+
+    # 3. Examinations
+    try:
+        from examinations.models import ExamMark, ExamQuestion, ExamSubjectConfig, Exam
+        c1, _ = ExamMark.objects.using(db_alias).filter(is_sample_data=True).delete()
+        c2, _ = ExamQuestion.objects.using(db_alias).filter(is_sample_data=True).delete()
+        c3, _ = ExamSubjectConfig.objects.using(db_alias).filter(is_sample_data=True).delete()
+        c4, _ = Exam.objects.using(db_alias).filter(is_sample_data=True).delete()
+        total_deleted += (c1 + c2 + c3 + c4)
+    except Exception as e:
+        logger.warning(f"Error clearing sample exams: {e}")
+
+    # 4. Library
+    try:
+        from library.models import BookIssue, BookCopy, Book
+        c1, _ = BookIssue.objects.using(db_alias).filter(is_sample_data=True).delete()
+        c2, _ = BookCopy.objects.using(db_alias).filter(is_sample_data=True).delete()
+        c3, _ = Book.objects.using(db_alias).filter(is_sample_data=True).delete()
+        total_deleted += (c1 + c2 + c3)
+    except Exception as e:
+        logger.warning(f"Error clearing sample library: {e}")
+
+    # 5. Dormitory
+    try:
+        from dormitory.models import RoomAllocation, Room, Dormitory
+        c1, _ = RoomAllocation.objects.using(db_alias).filter(is_sample_data=True).delete()
+        c2, _ = Room.objects.using(db_alias).filter(is_sample_data=True).delete()
+        c3, _ = Dormitory.objects.using(db_alias).filter(is_sample_data=True).delete()
+        total_deleted += (c1 + c2 + c3)
+    except Exception as e:
+        logger.warning(f"Error clearing sample dormitory: {e}")
+
+    # 6. Leaves
+    try:
+        from leave_management.models import Leave
+        c1, _ = Leave.objects.using(db_alias).filter(is_sample_data=True).delete()
+        total_deleted += c1
+    except Exception as e:
+        logger.warning(f"Error clearing sample leaves: {e}")
+
+    # 7. Clubs
+    try:
+        from clubs.models import ClubMembership, ClubActivity, Club
+        c1, _ = ClubMembership.objects.using(db_alias).filter(is_sample_data=True).delete()
+        c2, _ = ClubActivity.objects.using(db_alias).filter(is_sample_data=True).delete()
+        c3, _ = Club.objects.using(db_alias).filter(is_sample_data=True).delete()
+        total_deleted += (c1 + c2 + c3)
+    except Exception as e:
+        logger.warning(f"Error clearing sample clubs: {e}")
+
+    # 8. Finance & Fees
+    try:
+        from fees.models import FeeCollection, FeeStructure
+        c1, _ = FeeCollection.objects.using(db_alias).filter(is_sample_data=True).delete()
+        c2, _ = FeeStructure.objects.using(db_alias).filter(is_sample_data=True).delete()
+        total_deleted += (c1 + c2)
+    except Exception as e:
+        logger.warning(f"Error clearing sample fees: {e}")
+
+    try:
+        from finance.models import Transaction
+        c1, _ = Transaction.objects.using(db_alias).filter(is_sample_data=True).delete()
+        total_deleted += c1
+    except Exception as e:
+        logger.warning(f"Error clearing sample transactions: {e}")
+
+    try:
+        from inventory.models import Expense
+        c1, _ = Expense.objects.using(db_alias).filter(is_sample_data=True).delete()
+        total_deleted += c1
+    except Exception as e:
+        logger.warning(f"Error clearing sample expenses: {e}")
+
+    # 9. Communication
+    try:
+        from communication.models import Notice
+        c1, _ = Notice.objects.using(db_alias).filter(title__icontains='Welcome to New Academic Term 2026').delete()
+        total_deleted += c1
+    except Exception as e:
+        logger.warning(f"Error clearing sample notices: {e}")
+
+    # 10. Transport
+    try:
+        from transport.models import RouteStop, Vehicle, Route
+        c1, _ = RouteStop.objects.using(db_alias).filter(is_sample_data=True).delete()
+        c2, _ = Vehicle.objects.using(db_alias).filter(vehicle_number='KAA 890B').delete()
+        c3, _ = Route.objects.using(db_alias).filter(title='North Metro Express Route').delete()
+        total_deleted += (c1 + c2 + c3)
+    except Exception as e:
+        logger.warning(f"Error clearing sample transport: {e}")
+
+    # 11. Students
+    try:
+        from students.models import Student
+        c1, _ = Student.objects.using(db_alias).filter(is_sample_data=True).delete()
+        total_deleted += c1
+    except Exception as e:
+        logger.warning(f"Error clearing sample students: {e}")
+
+    # 12. Teachers & Staff
+    try:
+        from human_resource.models import Teacher, Staff
+        c1, _ = Teacher.objects.using(db_alias).filter(is_sample_data=True).delete()
+        c2, _ = Staff.objects.using(db_alias).filter(is_sample_data=True).delete()
+        total_deleted += (c1 + c2)
+    except Exception as e:
+        logger.warning(f"Error clearing sample staff/teachers: {e}")
+
+    # 13. Demo Users
+    try:
+        from accounts.models import User
+        c1, _ = User.objects.using(db_alias).filter(is_sample_data=True, email__endswith='@demo.school').delete()
+        total_deleted += c1
+    except Exception as e:
+        logger.warning(f"Error clearing sample users: {e}")
+
+    logger.info(f"[SampleData] Finished clearing sample data for '{school.name}'. Total records removed: {total_deleted}")
+    return total_deleted
+

@@ -123,14 +123,22 @@
                 {% endif %}
             </div>
 
-            <form method="post" action="{% url 'core:load_sample_data' school_slug=school_slug %}" onsubmit="return confirm('Load comprehensive sample data into this school database? Existing non-sample data will not be affected.');">
-                {% csrf_token %}
-                <div class="d-flex justify-content-end">
+            <div class="d-flex flex-wrap justify-content-end gap-2">
+                {% if has_sample_data %}
+                <form method="post" action="{% url 'core:clear_sample_data' school_slug=school_slug %}" onsubmit="return confirm('Switch back to your live database? This will safely remove all sample demo records while leaving your user account and real data intact.');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="fas fa-database me-1"></i> Switch to My Database (Clear Demo Data)
+                    </button>
+                </form>
+                {% endif %}
+                <form method="post" action="{% url 'core:load_sample_data' school_slug=school_slug %}" onsubmit="return confirm('Load comprehensive sample data into this school database? Existing non-sample data will not be affected.');">
+                    {% csrf_token %}
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-cloud-download-alt me-1"></i> {% if has_sample_data %}Reload Sample Data{% else %}Load Sample Data{% endif %}
                     </button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
         
         <div class="modern-card mt-4" id="password">

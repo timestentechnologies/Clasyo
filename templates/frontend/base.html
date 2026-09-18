@@ -526,7 +526,8 @@
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         if (typeof TomSelect !== 'undefined') {
-            document.querySelectorAll('select:not(.no-tomselect):not([data-no-tomselect])').forEach(function(el) {
+            document.querySelectorAll('select:not(.no-tomselect):not([data-no-tomselect]):not(.flatpickr-monthDropdown-months)').forEach(function(el) {
+                if (el.closest('.flatpickr-calendar')) return;
                 if (!el.tomselect) {
                     try {
                         const firstOpt = el.options[0];

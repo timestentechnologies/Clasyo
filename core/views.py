@@ -1795,6 +1795,40 @@ class LoadSampleDataView(LoginRequiredMixin, View):
         return redirect('core:profile', school_slug=school.slug)
 
 
+class ClearSampleDataView(LoginRequiredMixin, View):
+    """View to switch back to clean live database by removing all sample demo data"""
+    def post(self, request, *args, **kwargs):
+        return self._clear_data(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        return self._clear_data(request, *args, **kwargs)
+
+    def _clear_data(self, request, *args, **kwargs):
+        from core.sample_data import clear_all_sample_data_for_school
+        school_slug = kwargs.get('school_slug', '')
+        school = get_current_school(request)
+
+        if not school and school_slug:
+            school = School.objects.filter(slug=school_slug).first()
+
+        if not school:
+            messages.error(request, "School tenant context not found.")
+            return redirect('/')
+
+        try:
+            removed = clear_all_sample_data_for_school(school, db_alias=school.slug)
+            messages.success(
+                request,
+                f"Switched back to your live database! Cleared {removed} sample demo records. Your school database is now in its clean live state."
+            )
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            messages.error(request, f"Failed to switch database: {str(e)}")
+
+        return redirect('core:profile', school_slug=school.slug)
+
+
 class SearchView(LoginRequiredMixin, TemplateView):
     """Global search view for school context"""
     template_name = 'core/search.html'

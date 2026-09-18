@@ -235,18 +235,65 @@
 
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
-// Initialize date picker
-flatpickr("#datePicker", {
-    dateFormat: "Y-m-d",
-    maxDate: "today",
-    defaultDate: "{{ selected_date|default:today }}"
-});
-
-// Store attendance data
+// Store attendance data and month picker
+let monthTomSelect = null;
 let attendanceData = {};
 
-// Load existing attendance data on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize date picker with TomSelect month dropdown
+    flatpickr("#datePicker", {
+        dateFormat: "Y-m-d",
+        maxDate: "today",
+        defaultDate: "{% if selected_date %}{% if selected_date.isoformat %}{{ selected_date|date:'Y-m-d' }}{% else %}{{ selected_date }}{% endif %}{% else %}{{ today|date:'Y-m-d' }}{% endif %}",
+        monthSelectorType: "dropdown",
+        onReady: function(selectedDates, dateStr, instance) {
+            const selectEl = instance.monthsDropdownContainer;
+            if (selectEl && typeof TomSelect !== 'undefined') {
+                selectEl.classList.add('no-tomselect');
+                monthTomSelect = new TomSelect(selectEl, {
+                    create: false,
+                    controlInput: null,
+                    dropdownClass: 'ts-dropdown flatpickr-month-ts-dropdown',
+                    dropdownParent: 'body',
+                    onChange: function(val) {
+                        const m = parseInt(val, 10);
+                        if (!isNaN(m) && instance.currentMonth !== m) {
+                            instance.changeMonth(m - instance.currentMonth);
+                        }
+                    }
+                });
+                if (monthTomSelect.dropdown) {
+                    monthTomSelect.dropdown.style.zIndex = '9999999';
+                    ['mousedown', 'pointerdown', 'click', 'touchstart'].forEach(function(evt) {
+                        monthTomSelect.dropdown.addEventListener(evt, function(e) {
+                            e.stopPropagation();
+                        });
+                    });
+                }
+            }
+        },
+        onMonthChange: function(selectedDates, dateStr, instance) {
+            if (monthTomSelect && monthTomSelect.getValue() !== instance.currentMonth.toString()) {
+                monthTomSelect.setValue(instance.currentMonth.toString(), true);
+            }
+        },
+        onYearChange: function(selectedDates, dateStr, instance) {
+            if (monthTomSelect && monthTomSelect.getValue() !== instance.currentMonth.toString()) {
+                monthTomSelect.setValue(instance.currentMonth.toString(), true);
+            }
+        },
+        onOpen: function(selectedDates, dateStr, instance) {
+            if (monthTomSelect) {
+                monthTomSelect.setValue(instance.currentMonth.toString(), true);
+            }
+        },
+        onClose: function(selectedDates, dateStr, instance) {
+            if (monthTomSelect) {
+                monthTomSelect.close();
+            }
+        }
+    });
+
     // Load existing attendance from data attributes
     const existingAttendanceElement = document.getElementById('existing-attendance-data');
     if (existingAttendanceElement) {

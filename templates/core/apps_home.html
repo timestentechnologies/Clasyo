@@ -598,9 +598,26 @@
                         </li>
                         {% else %}
                         <li>
-                            <a class="dropdown-item py-2" href="{% url 'superadmin:login_as_demo_admin' %}">
-                                <i class="fas fa-school me-2 text-primary"></i> Demo School (Sample Data)
+                            <a class="dropdown-item py-2" href="{% url 'superadmin:login_as_demo_admin' %}" target="_blank" rel="noopener noreferrer">
+                                <i class="fas fa-school me-2 text-primary"></i> Demo School (Sample Data) <i class="fas fa-external-link-alt ms-1 text-muted small"></i>
                             </a>
+                        </li>
+                        {% endif %}
+                        {% elif school_slug and user.role in 'admin,school_admin' %}
+                        {% if has_sample_data %}
+                        <li>
+                            <a class="dropdown-item py-2 text-warning fw-semibold" href="{% url 'core:switch_to_my_database' school_slug=school_slug %}" onclick="return confirm('Switch back to your live database? This will clear all sample demo data while preserving your account.');">
+                                <i class="fas fa-database me-2 text-warning"></i> Switch to My Database (Exit Demo)
+                            </a>
+                        </li>
+                        {% else %}
+                        <li>
+                            <form method="post" action="{% url 'core:load_sample_data' school_slug=school_slug %}" onsubmit="return confirm('Load demo sample data into your school account? You can switch back to your clean live database anytime.');">
+                                {% csrf_token %}
+                                <button type="submit" class="dropdown-item py-2 text-primary fw-semibold">
+                                    <i class="fas fa-magic me-2 text-primary"></i> Load Demo Data (Try Features)
+                                </button>
+                            </form>
                         </li>
                         {% endif %}
                         {% endif %}
