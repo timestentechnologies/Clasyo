@@ -53,6 +53,10 @@ class TenantDatabaseRouter:
         # Master-only apps always read from 'default'
         if app_label in MASTER_ONLY_APPS:
             return 'default'
+
+        # SystemSetting is strictly global master branding and configurations
+        if app_label == 'core' and getattr(model._meta, 'model_name', None) == 'systemsetting':
+            return 'default'
             
         # If tenant context is active, route tenant models to tenant DB
         tenant_db = get_current_tenant_db()
@@ -66,6 +70,10 @@ class TenantDatabaseRouter:
         
         # Master-only apps always write to 'default'
         if app_label in MASTER_ONLY_APPS:
+            return 'default'
+
+        # SystemSetting is strictly global master branding and configurations
+        if app_label == 'core' and getattr(model._meta, 'model_name', None) == 'systemsetting':
             return 'default'
             
         # If tenant context is active, route tenant models to tenant DB

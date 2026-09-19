@@ -14,6 +14,7 @@ urlpatterns = [
     # Sections
     path('sections/', views.SectionListView.as_view(), name='section_list'),
     path('sections/add/', views.SectionCreateView.as_view(), name='section_create'),
+    path('sections/<int:pk>/edit/', views.SectionUpdateView.as_view(), name='section_update'),
     path('sections/<int:pk>/delete/', views.SectionDeleteView.as_view(), name='section_delete'),
     
     # Subjects

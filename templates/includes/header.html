@@ -8,7 +8,7 @@
 
     {% if navigation_layout == 'horizontal' %}
     <div class="horizontal-brand d-none d-lg-flex align-items-center me-2">
-        {% if user.role == 'superadmin' %}
+        {% if user.role == 'superadmin' and not school_slug %}
             <img src="{% static 'images/erpupdated.png' %}" alt="Logo" class="horizontal-logo me-2" style="height: 34px; width: auto; object-fit: contain;">
             <span class="horizontal-brand-title fw-bold" style="font-size: 1.05rem; color: var(--text-primary); white-space: nowrap;">Clasyo ERP</span>
         {% else %}
@@ -25,20 +25,20 @@
     {% include 'includes/horizontal_navbar.html' %}
     {% endif %}
 
-    <form action="{% if user.role == 'superadmin' or user.role == 'super_admin' %}{% url 'superadmin:search' %}{% else %}{% if school_slug %}/school/{{ school_slug }}/search/{% else %}#{% endif %}{% endif %}" 
+    <form action="{% if user.role == 'superadmin' and not school_slug %}{% url 'superadmin:search' %}{% else %}{% if school_slug %}/school/{{ school_slug }}/search/{% else %}#{% endif %}{% endif %}" 
           method="get" 
           class="search-bar {% if navigation_layout == 'horizontal' %}search-bar-combined ms-auto{% endif %}" 
           id="headerSearchForm" 
           autocomplete="off"
-          data-user-role="{{ user.role }}" 
+          data-user-role="{% if user.role == 'superadmin' and school_slug %}admin{% else %}{{ user.role }}{% endif %}" 
           data-school-slug="{{ school_slug|default:'' }}" 
-          data-search-api="{% if user.role == 'superadmin' or user.role == 'super_admin' %}{% url 'superadmin:search_api' %}{% else %}{% if school_slug %}/school/{{ school_slug }}/api/search/{% else %}#{% endif %}{% endif %}">
+          data-search-api="{% if user.role == 'superadmin' and not school_slug %}{% url 'superadmin:search_api' %}{% else %}{% if school_slug %}/school/{{ school_slug }}/api/search/{% else %}#{% endif %}{% endif %}">
         
         <div class="search-input-wrapper">
             <i class="fas fa-search search-icon"></i>
             <input type="text" 
                    name="q" 
-                   placeholder="{% if user.role == 'superadmin' or user.role == 'super_admin' %}Search pages, schools, backups, or filter this page...{% else %}Search students, staff, pages, or filter this page...{% endif %}" 
+                   placeholder="{% if user.role == 'superadmin' and not school_slug %}Search pages, schools, backups, or filter this page...{% else %}Search students, staff, pages, or filter this page...{% endif %}" 
                    id="globalSearch" 
                    autocomplete="off"
                    spellcheck="false">
@@ -78,14 +78,19 @@
                     <div class="fw-bold text-truncate user-profile-dropdown-name">
                         {{ user.get_full_name|default:user.email }}
                     </div>
-                    <div class="small text-muted text-truncate user-profile-dropdown-role">
-                        {{ user.role|title }}
+                    <div class="small text-muted text-truncate user-profile-dropdown-email">
+                        {{ user.email }}
+                    </div>
+                    <div class="mt-1">
+                        <span class="badge user-profile-dropdown-role" style="background: rgba(59, 130, 246, 0.15); color: var(--brand-primary, #3b82f6); border: 1px solid rgba(59, 130, 246, 0.3);">
+                            {% if school_slug and user.role == 'superadmin' %}School Admin{% else %}{{ user.get_role_display|default:user.role }}{% endif %}
+                        </span>
                     </div>
                 </li>
 
-                <!-- Profile Link -->
+                <!-- Profile Link: Open demo/school profile when in school context -->
                 <li>
-                  <a class="dropdown-item py-2 mt-1" href="{% if user.role == 'superadmin' %}{% url 'superadmin:profile' %}{% elif school_slug %}{% url 'core:profile' school_slug=school_slug %}{% else %}{% url 'accounts:profile' %}{% endif %}">
+                  <a class="dropdown-item py-2 mt-1" href="{% if school_slug %}{% url 'core:profile' school_slug=school_slug %}{% elif user.role == 'superadmin' %}{% url 'superadmin:profile' %}{% else %}{% url 'accounts:profile' %}{% endif %}">
                     <i class="fas fa-user me-2"></i> View Profile
                   </a>
                 </li>
@@ -104,21 +109,18 @@
                   </a>
                 </li>
                 {% endif %}
-                {% elif school_slug and user.role in 'admin,school_admin' %}
+                {% elif school_slug and school_slug != 'demo-school' %}
                 {% if has_sample_data %}
                 <li>
-                  <a class="dropdown-item py-2 text-warning fw-semibold" href="{% url 'core:switch_to_my_database' school_slug=school_slug %}" onclick="return confirm('Switch back to your live database? This will remove all sample demo records while keeping your user account active and clean.');">
+                  <a class="dropdown-item py-2 text-warning fw-semibold cursor-pointer" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#exitSampleDataModal">
                     <i class="fas fa-database me-2 text-warning"></i> Switch to My Database (Exit Demo)
                   </a>
                 </li>
                 {% else %}
                 <li>
-                  <form method="post" action="{% url 'core:load_sample_data' school_slug=school_slug %}" onsubmit="return confirm('Load demo sample data into your school account? You can switch back to your clean live database anytime.');">
-                    {% csrf_token %}
-                    <button type="submit" class="dropdown-item py-2 text-primary fw-semibold">
-                      <i class="fas fa-magic me-2 text-primary"></i> Load Demo Data (Try Features)
-                    </button>
-                  </form>
+                  <a class="dropdown-item py-2 text-primary fw-semibold cursor-pointer" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#loadSampleDataModal">
+                    <i class="fas fa-magic me-2 text-primary"></i> Switch to Sample Demo Database
+                  </a>
                 </li>
                 {% endif %}
                 {% endif %}
@@ -157,3 +159,5 @@
         </div>
     </div>
 </nav>
+
+{% include 'includes/sample_data_modals.html' %}

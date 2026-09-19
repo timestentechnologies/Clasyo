@@ -10,22 +10,16 @@
 {% block page_icon %}credit-card{% endblock %}
 {% block page_subtitle %}{{ config.get_gateway_display }} ({{ config.get_environment_display }}) - {{ school.name }}{% endblock %}
 
-{% block page_actions %}
-<div class="btn-group" role="group">
-    <a href="{% url 'superadmin:school_payment_config_list' school_slug=school.slug %}" class="btn btn-outline-secondary">
-        <i class="fas fa-arrow-left me-2"></i>Back to List
-    </a>
-    <a href="{% url 'superadmin:school_payment_config_update' school_slug=school.slug pk=config.pk %}" class="btn btn-primary">
-        <i class="fas fa-edit me-2"></i>Edit Configuration
-    </a>
-</div>
-{% endblock %}
+{% block page_actions %}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <!-- Smart Actions Bar -->
     <div class="smart-actions-bar">
         <div class="smart-actions-group">
+            <a href="{% url 'superadmin:school_payment_config_list' school_slug=school.slug %}" class="smart-btn smart-btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
             <a href="{% url 'superadmin:school_payment_config_update' school_slug=school.slug pk=config.pk %}" class="smart-btn smart-btn-primary">
                 <i class="fas fa-edit"></i> Edit Configuration
             </a>

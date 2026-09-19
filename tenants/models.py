@@ -87,6 +87,12 @@ class School(models.Model):
     def is_subscription_active(self):
         """Check if subscription is active"""
         from django.utils import timezone
+        if self.slug in ('demo-school', 'demo') or 'demo' in str(self.slug).lower():
+            if not self.is_active:
+                return False
+            if self.subscription_end_date:
+                return timezone.now().date() <= self.subscription_end_date
+            return True
         if self.is_trial and self.trial_end_date:
             return timezone.now().date() <= self.trial_end_date
         if self.subscription_end_date:

@@ -2,8 +2,8 @@
 <!-- Horizontal Navigation Bar (Combined Header) -->
 <div class="horizontal-nav-combined d-none d-lg-flex align-items-center" id="horizontalNavbar">
     <ul class="horizontal-nav-tabs">
-            <!-- Apps Link (Non-Superadmin) -->
-            {% if user.role != 'superadmin' %}
+            <!-- Apps Link -->
+            {% if school_slug or user.role != 'superadmin' %}
             <li class="nav-tab-item {% if '/apps/' in request.path %}active{% endif %}">
                 <a href="{% if school_slug %}{% url 'core:apps_home' school_slug=school_slug %}{% else %}#{% endif %}" class="nav-tab-link">
                     <i class="fas fa-th-large"></i>
@@ -14,13 +14,13 @@
 
             <!-- Dashboard Link (All Users) -->
             <li class="nav-tab-item {% if 'dashboard' in request.path and '/apps/' not in request.path %}active{% endif %}">
-                <a href="{% if user.role == 'superadmin' %}{% url 'superadmin:dashboard' %}{% elif school_slug %}{% url 'core:dashboard' school_slug=school_slug %}{% else %}#{% endif %}" class="nav-tab-link">
+                <a href="{% if user.role == 'superadmin' and not school_slug %}{% url 'superadmin:dashboard' %}{% elif school_slug %}{% url 'core:dashboard' school_slug=school_slug %}{% else %}#{% endif %}" class="nav-tab-link">
                     <i class="fas fa-tachometer-alt"></i>
                     <span>Dashboard</span>
                 </a>
             </li>
 
-            {% if user.role == 'superadmin' %}
+            {% if user.role == 'superadmin' and not school_slug %}
             {# ========================================= #}
             {# ===       SUPER ADMIN HORIZONTAL TABS === #}
             {# ========================================= #}
@@ -89,7 +89,7 @@
             {# ========================================= #}
             {# ===      ADMIN & TEACHER TABS         === #}
             {# ========================================= #}
-            {% if user.role in 'admin,teacher' %}
+            {% if user.role in 'admin,teacher' or user.role == 'superadmin' %}
             <li class="nav-tab-item dropdown {% if '/students/' in request.path or '/teachers/' in request.path or '/classes/' in request.path or '/subjects/' in request.path or '/routine/' in request.path or '/attendance/' in request.path or '/lesson-plan/' in request.path or '/homework/' in request.path or '/examinations/' in request.path or '/online-exam/' in request.path or '/grades/' in request.path or '/library/' in request.path or '/clubs/' in request.path or '/academic-years/' in request.path %}active{% endif %}">
                 <a href="javascript:void(0)" class="nav-tab-link" role="button">
                     <i class="fas fa-graduation-cap"></i>
@@ -99,7 +99,7 @@
                 <ul class="modern-dropdown-menu dropdown-menu-columns">
                     <li><a class="dropdown-item" href="/school/{{ school_slug }}/students/"><i class="fas fa-user-graduate me-2"></i>Students</a></li>
                     <li><a class="dropdown-item" href="/school/{{ school_slug }}/hr/teachers/"><i class="fas fa-chalkboard-teacher me-2"></i>Teachers</a></li>
-                    {% if user.role == 'admin' %}
+                    {% if user.role == 'admin' or user.role == 'superadmin' %}
                     <li><a class="dropdown-item" href="/school/{{ school_slug }}/students/parents/"><i class="fas fa-users me-2"></i>Parents</a></li>
                     {% endif %}
                     <li><a class="dropdown-item" href="/school/{{ school_slug }}/academics/classes/"><i class="fas fa-chalkboard me-2"></i>Classes</a></li>
@@ -121,7 +121,7 @@
             {# ========================================= #}
             {# ===        HR & STAFF TABS            === #}
             {# ========================================= #}
-            {% if user.role == 'admin' or user.role == 'accountant' %}
+            {% if user.role in 'admin,superadmin' or user.role == 'accountant' %}
             <li class="nav-tab-item dropdown {% if '/staff/' in request.path or '/departments/' in request.path or '/designations/' in request.path or '/leave/' in request.path %}active{% endif %}">
                 <a href="javascript:void(0)" class="nav-tab-link" role="button">
                     <i class="fas fa-user-tie"></i>
@@ -270,7 +270,7 @@
             {# ========================================= #}
             {# ===        COMMUNICATION TABS         === #}
             {# ========================================= #}
-            {% if user.role != 'superadmin' %}
+            {% if user.role != 'superadmin' or school_slug %}
             <li class="nav-tab-item dropdown {% if '/communication/' in request.path or '/calendar/' in request.path or '/events/' in request.path %}active{% endif %}">
                 <a href="javascript:void(0)" class="nav-tab-link" role="button">
                     <i class="fas fa-comments"></i>
@@ -282,7 +282,7 @@
                     <li><a class="dropdown-item" href="/school/{{ school_slug }}/communication/notices/"><i class="fas fa-bell me-2"></i>Notices</a></li>
                     <li><a class="dropdown-item" href="/school/{{ school_slug }}/calendar/"><i class="fas fa-calendar-alt me-2"></i>Calendar</a></li>
                     <li><a class="dropdown-item" href="/school/{{ school_slug }}/events/"><i class="fas fa-calendar-day me-2"></i>Events</a></li>
-                    {% if user.role in 'admin,teacher' %}
+                    {% if user.role in 'admin,teacher' or user.role == 'superadmin' %}
                     <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#calculatorModal"><i class="fas fa-calculator me-2"></i>Calculator</a></li>
                     {% endif %}
                 </ul>
@@ -292,7 +292,7 @@
             {# ========================================= #}
             {# ===        SETTINGS & ADMIN TABS      === #}
             {# ========================================= #}
-            {% if user.role == 'admin' %}
+            {% if user.role in 'admin,superadmin' %}
             <li class="nav-tab-item dropdown {% if '/settings/' in request.path or '/billing/' in request.path or '/payment-config/' in request.path or '/backups/' in request.path %}active{% endif %}">
                 <a href="javascript:void(0)" class="nav-tab-link" role="button">
                     <i class="fas fa-cog"></i>

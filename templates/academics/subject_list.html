@@ -8,14 +8,72 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSubjectModal">
-        <i class="fas fa-plus"></i> Add Subject
+    <button class="btn btn-primary" onclick="openSubjectForm('create')">
+        <i class="fas fa-plus me-1"></i> Add Subject
     </button>
     <a class="btn btn-outline-info" href="{% url 'academics:class_subjects' school_slug=school_slug %}">
-        <i class="fas fa-link"></i> Link Subjects to Classes
+        <i class="fas fa-link me-1"></i> Link Subjects to Classes
     </a>
 </div>
 
+<!-- Shared In-Page Single Form Panel -->
+<div class="form-panel-view d-none" id="subjectFormPanel">
+    <div class="form-header-bar">
+        <div class="form-header-title-group">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('subjectListCard', 'subjectFormPanel', 'list')">
+                <i class="fas fa-arrow-left me-1"></i> Back to List
+            </button>
+            <h5 class="mb-0 fw-bold form-title-text" data-create-title="Add Subject" data-edit-title="Edit Subject">Add Subject</h5>
+            <span class="form-mode-badge mode-create">New</span>
+        </div>
+        <div class="form-header-actions">
+            <button type="button" class="btn btn-sm btn-light" onclick="toggleInPageFormView('subjectListCard', 'subjectFormPanel', 'list')">Cancel</button>
+            <button type="button" class="btn btn-sm btn-primary form-submit-btn" onclick="submitSubjectForm()">
+                <i class="fas fa-save me-1"></i> Save Subject
+            </button>
+        </div>
+    </div>
+    <div class="form-card-body">
+        <form id="subjectForm">
+            {% csrf_token %}
+            <input type="hidden" id="subject_id" name="id">
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Subject Name *</label>
+                    <input type="text" name="name" id="subject_name" class="form-control" required placeholder="e.g., Mathematics">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Subject Code *</label>
+                    <input type="text" name="code" id="subject_code" class="form-control" required placeholder="e.g., MATH101">
+                </div>
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Subject Type *</label>
+                    <select name="subject_type" id="subject_type" class="form-select" required>
+                        <option value="theory">Theory</option>
+                        <option value="practical">Practical</option>
+                        <option value="both">Both</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Credits</label>
+                    <input type="number" name="credits" id="subject_credits" class="form-control" step="0.5" value="1">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Description</label>
+                <textarea name="description" id="subject_description" class="form-control" rows="3" placeholder="Subject outline and objectives..."></textarea>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" name="is_active" class="form-check-input" id="subject_is_active" checked>
+                <label class="form-check-label fw-semibold" for="subject_is_active">Active</label>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="subjectListCard">
 <!-- Dynamic Search and Filters -->
 <div class="row mb-3">
     <div class="col-md-12">
@@ -64,7 +122,15 @@
                 <td>{{ subject.credits|default:"-" }}</td>
                 <td>{{ subject.description|default:"No description"|truncatewords:8 }}</td>
                 <td>
-                    <button class="btn btn-sm btn-primary" onclick="editSubject(event, {{ subject.pk }})">
+                    <button class="btn btn-sm btn-primary" onclick="openSubjectForm('edit', {
+                        id: '{{ subject.pk }}',
+                        name: '{{ subject.name|escapejs }}',
+                        code: '{{ subject.code|escapejs }}',
+                        type: '{{ subject.subject_type|escapejs }}',
+                        credits: '{{ subject.credits|default:'1' }}',
+                        description: '{{ subject.description|default:''|escapejs }}',
+                        is_active: {{ subject.is_active|yesno:'true,false' }}
+                    })">
                         <i class="fas fa-edit"></i>
                     </button>
                     <button class="btn btn-sm btn-danger" onclick="deleteSubject({{ subject.pk }}, '{{ subject.name }}')">
@@ -84,54 +150,6 @@
         </table>
     </div>
 </div>
-
-<!-- Add Subject Modal -->
-<div class="modal fade" id="addSubjectModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
-                <h5 class="modal-title"><i class="fas fa-plus"></i> Add Subject</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="subjectAddForm">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label class="form-label">Subject Name *</label>
-                        <input type="text" name="name" class="form-control" required placeholder="e.g., Mathematics">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Subject Code *</label>
-                        <input type="text" name="code" class="form-control" required placeholder="e.g., MATH101">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Type</label>
-                        <select name="subject_type" class="form-control">
-                            <option value="theory">Theory</option>
-                            <option value="practical">Practical</option>
-                            <option value="both">Both</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Credits</label>
-                        <input type="number" name="credits" class="form-control" step="0.5" value="1">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea name="description" class="form-control" rows="2"></textarea>
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" name="is_active" class="form-check-input" id="is_active" checked>
-                        <label class="form-check-label" for="is_active">Active</label>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitAddSubject()">Save Subject</button>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Delete Subject Confirmation Modal -->
@@ -154,62 +172,38 @@
     </div>
 </div>
 
-<!-- Edit Subject Modal -->
-<div class="modal fade" id="editSubjectModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
-                <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Subject</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="subjectEditForm">
-                    {% csrf_token %}
-                    <input type="hidden" id="edit_subject_id">
-                    <div class="mb-3">
-                        <label class="form-label">Subject Name *</label>
-                        <input type="text" id="edit_subject_name" name="name" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Subject Code *</label>
-                        <input type="text" id="edit_subject_code" name="code" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Subject Type *</label>
-                        <select id="edit_subject_type" name="subject_type" class="form-control" required>
-                            <option value="theory">Theory</option>
-                            <option value="practical">Practical</option>
-                            <option value="both">Theory + Practical</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Credits</label>
-                        <input type="number" id="edit_credits" name="credits" class="form-control" value="1">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea id="edit_description" name="description" class="form-control" rows="2"></textarea>
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" id="edit_is_active" name="is_active" class="form-check-input" checked>
-                        <label class="form-check-label" for="edit_is_active">Active</label>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitEditSubject()">Update Subject</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
-function submitAddSubject() {
-    const form = document.getElementById('subjectAddForm');
-    const formData = new FormData(form);
+function openSubjectForm(mode, data) {
+    const form = document.getElementById('subjectForm');
+    if (form) form.reset();
+    document.getElementById('subject_id').value = '';
     
-    fetch(window.location.pathname + 'add/', {
+    if (mode === 'create' || !data) {
+        document.getElementById('subject_is_active').checked = true;
+        toggleInPageFormView('subjectListCard', 'subjectFormPanel', 'create');
+        return;
+    }
+    
+    document.getElementById('subject_id').value = data.id || '';
+    document.getElementById('subject_name').value = data.name || '';
+    document.getElementById('subject_code').value = data.code || '';
+    document.getElementById('subject_type').value = data.type || 'theory';
+    document.getElementById('subject_credits').value = data.credits || '1';
+    document.getElementById('subject_description').value = data.description || '';
+    document.getElementById('subject_is_active').checked = !!data.is_active;
+    
+    toggleInPageFormView('subjectListCard', 'subjectFormPanel', 'edit');
+}
+
+function submitSubjectForm() {
+    const form = document.getElementById('subjectForm');
+    const formData = new FormData(form);
+    const id = document.getElementById('subject_id').value;
+    const url = id 
+        ? (window.location.pathname + id + '/edit/')
+        : (window.location.pathname + 'add/');
+        
+    fetch(url, {
         method: 'POST',
         body: formData,
         headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
@@ -217,56 +211,15 @@ function submitAddSubject() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showSuccessAndReload('Subject added successfully!');
+            form.reset();
+            toggleInPageFormView('subjectListCard', 'subjectFormPanel', 'list');
+            showSuccessAndReload(id ? 'Subject updated successfully!' : 'Subject added successfully!');
         } else {
-            showError(data.error || 'Failed to add subject');
+            showError(data.error || 'Failed to save subject');
         }
     })
     .catch(error => {
-        showError('Error adding subject: ' + error.message);
-    });
-}
-
-function editSubject(event, id) {
-    // Get data from the table row
-    const row = event.target.closest('tr');
-    const name = row.querySelector('td:nth-child(1)').textContent.trim();
-    const code = row.querySelector('td:nth-child(2) .badge').textContent.trim();
-    const type = row.querySelector('td:nth-child(3) .badge').textContent.trim().toLowerCase();
-    const credits = row.querySelector('td:nth-child(4)').textContent.trim();
-    const description = row.querySelector('td:nth-child(5)').textContent.trim();
-    
-    document.getElementById('edit_subject_id').value = id;
-    document.getElementById('edit_subject_name').value = name;
-    document.getElementById('edit_subject_code').value = code;
-    document.getElementById('edit_subject_type').value = type;
-    document.getElementById('edit_credits').value = credits === '-' ? '1' : credits;
-    document.getElementById('edit_description').value = description === 'No description' ? '' : description;
-    document.getElementById('edit_is_active').checked = true;
-    
-    new bootstrap.Modal(document.getElementById('editSubjectModal')).show();
-}
-
-function submitEditSubject() {
-    const form = document.getElementById('subjectEditForm');
-    const formData = new FormData(form);
-    const id = document.getElementById('edit_subject_id').value;
-    
-    fetch(window.location.pathname + id + '/edit/', {
-        method: 'POST',
-        body: formData,
-        headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showSuccessAndReload('Subject updated successfully!');
-        } else {
-            showError(data.error || 'Failed to update subject');
-        }
-    })
-    .catch(error => {
-        showError('Error updating subject: ' + error.message);
+        showError('Error saving subject: ' + error.message);
     });
 }
 

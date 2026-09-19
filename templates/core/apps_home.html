@@ -21,530 +21,55 @@
     <!-- Bootstrap 5 CSS for modal styling -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=6.1">
+    <link rel="stylesheet" href="{% static 'css/apps-home.css' %}?v=1.5">
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        /* Theme Variables */
-        :root {
-            /* Light Theme */
-            --light-bg: #f5f7fa;
-            --light-card-bg: #ffffff;
-            --light-text: #2d3748;
-            --light-text-secondary: #4a5568;
-            --light-border: #e2e8f0;
-            --light-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-
-            /* Dark Theme */
-            --dark-bg: linear-gradient(135deg, #1a1f3a 0%, #2a3042 100%);
-            --dark-card-bg: rgba(42, 48, 66, 0.6);
-            --dark-text: #ffffff;
-            --dark-text-secondary: rgba(255, 255, 255, 0.7);
-            --dark-border: rgba(255, 255, 255, 0.1);
-            --dark-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-
-            /* Common */
-            --primary: #4dd0e1;
-            --primary-hover: #26c6da;
-            --transition: all 0.3s ease;
-        }
-
-        /* Base Styles */
-        html,
-        body {
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-            margin: 0;
-            padding: 0;
-            transition: var(--transition);
-        }
-
-        body {
-            background:
-                linear-gradient(111deg, transparent 10%, rgba(77, 208, 225, 0.09) 10%, rgba(77, 208, 225, 0.09) 45%, transparent 45%),
-                linear-gradient(111deg, transparent 48%, rgba(37, 41, 63, 0.3) 48%, rgba(26, 31, 58, 0.3) 78%, transparent 78%),
-                linear-gradient(111deg, transparent 82%, rgba(255, 153, 0, 0.108) 82%, rgba(255, 152, 0, 0.06) 110%, transparent 110%),
-                var(--dark-bg);
-            background-attachment: fixed;
-            color: var(--dark-text);
-            min-height: 100vh;
-        }
-
-        /* Light Theme */
+    <!-- Early theme apply: prevents flash of wrong theme on page load -->
+    <script>
+        (function() {
+            var saved = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', saved);
+            document.documentElement.setAttribute('data-bs-theme', saved);
+            if (saved === 'dark') {
+                document.documentElement.classList.add('theme-dark', 'dark-theme');
+                document.documentElement.classList.remove('theme-light', 'light-theme');
+            } else {
+                document.documentElement.classList.remove('theme-dark', 'dark-theme');
+                document.documentElement.classList.add('theme-light', 'light-theme');
+            }
+        })();
+    </script>
+    <style id="custom-theme-variables">
+        :root,
         [data-theme="light"],
-        [data-theme="light"] body {
-            background:
-                linear-gradient(111deg, transparent 10%, rgba(77, 208, 225, 0.06) 10%, rgba(77, 208, 225, 0.06) 45%, transparent 45%),
-                linear-gradient(111deg, transparent 48%, rgba(0, 31, 63, 0.04) 48%, rgba(0, 31, 63, 0.04) 78%, transparent 78%),
-                linear-gradient(111deg, transparent 82%, rgba(255, 153, 0, 0.073) 82%, rgba(255, 152, 0, 0.05) 110%, transparent 110%),
-                #f8fafc !important;
-            background-attachment: fixed !important;
-            color: var(--light-text);
+        [data-bs-theme="light"],
+        html.theme-light,
+        html[data-theme="light"],
+        body.theme-light,
+        body.light-theme,
+        body[data-theme="light"] {
+            --brand-primary: {{ system_settings.primary_color|default:'#0284C7' }};
+            --primary-navy: {{ system_settings.primary_color|default:'#0284C7' }};
+            --brand-secondary: {{ system_settings.secondary_color|default:'#475569' }};
+            --brand-accent: {{ system_settings.accent_color|default:'#38BDF8' }};
+            --system-icon-color: {{ system_settings.icon_color|default:'#0284C7' }};
         }
 
-        /* Seamless Header Styles */
-        .apps-header {
-            background: transparent !important;
-            border-bottom: none !important;
-            box-shadow: none !important;
-            padding: 1.25rem 2rem 0.5rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            transition: all 0.3s ease;
-        }
-
-        .header-content {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1.5rem;
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-
-        .header-search,
-        .header-content .search-box {
-            flex: 1;
-            max-width: 420px;
-            margin: 0 1rem;
-        }
-
-        .user-header-controls {
-            display: flex;
-            align-items: center;
-            gap: 0.85rem;
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-        }
-
-        .user-avatar-link {
-            text-decoration: none;
-            display: inline-block;
-            outline: none;
-        }
-
-        .user-avatar {
-            width: 42px;
-            height: 42px;
-            background: linear-gradient(135deg, #4dd0e1 0%, #26c6da 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 0.95rem;
-            color: #FFFFFF;
-            box-shadow: 0 3px 10px rgba(77, 208, 225, 0.35);
-            transition: all 0.25s ease;
-            cursor: pointer;
-        }
-
-        .user-avatar-link:hover .user-avatar,
-        .user-avatar:hover {
-            transform: scale(1.08);
-            box-shadow: 0 5px 15px rgba(77, 208, 225, 0.5);
-        }
-
-        .logout-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.45rem 1rem;
-            border-radius: 20px !important;
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.25s ease !important;
-            background: rgba(255, 255, 255, 0.08) !important;
-            color: rgba(255, 255, 255, 0.85) !important;
-            border: 1px solid rgba(255, 255, 255, 0.15) !important;
-            box-shadow: none !important;
-        }
-
-        .logout-btn:hover {
-            background: rgba(239, 68, 68, 0.2) !important;
-            color: #FF6B6B !important;
-            border-color: rgba(239, 68, 68, 0.4) !important;
-            transform: translateY(-1px);
-        }
-
-        [data-theme="light"] .logout-btn,
-        body.theme-light .logout-btn {
-            background: #F1F5F9 !important;
-            color: #475569 !important;
-            border: 1px solid #E2E8F0 !important;
-        }
-
-        [data-theme="light"] .logout-btn:hover,
-        body.theme-light .logout-btn:hover {
-            background: #FEE2E2 !important;
-            color: #EF4444 !important;
-            border-color: #FCA5A5 !important;
-        }
-
-        .header-content {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 2rem;
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-
-        .school-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .school-logo {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, #4dd0e1 0%, #26c6da 100%);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            color: #fff;
-        }
-
-        .school-logo img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 12px;
-        }
-
-        .school-name h2 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .school-name p {
-            font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.7);
-            margin: 0;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-        }
-
-        .user-avatar {
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, #4dd0e1 0%, #26c6da 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 0.875rem;
-        }
-
-        /* Floating Theme Toggle */
-        .theme-toggle {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            z-index: 1000;
-        }
-
-        .theme-btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #4dd0e1 0%, #26c6da 100%);
-            border: none;
-            color: white;
-            font-size: 1.25rem;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .theme-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-        }
-
-        .theme-btn:active {
-            transform: translateY(1px);
-        }
-
-        .theme-btn i {
-            transition: all 0.3s ease;
-        }
-
-        /* Filter Section & Buttons */
-        .filter-section {
-            max-width: 1400px;
-            margin: 5.5rem auto 5rem !important;
-            padding: 0 2rem;
-            width: 100%;
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            text-align: center;
-        }
-
-        .search-box {
-            position: relative;
-            display: flex;
-            align-items: center;
-            width: 100%;
-        }
-
-        .search-box::before {
-            display: none !important;
-            content: none !important;
-        }
-
-        .search-box i {
-            position: absolute;
-            left: 1.25rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #4DD0E1 !important;
-            font-size: 1.1rem;
-            z-index: 5;
-            pointer-events: none;
-        }
-
-        .search-box input {
-            width: 100%;
-            padding: 0.65rem 1.25rem 0.65rem 3.25rem !important;
-            font-size: 0.95rem;
-            border-radius: 12px !important;
-            transition: all 0.25s ease-in-out;
-            outline: none !important;
-            box-sizing: border-box;
-            background-color: rgba(255, 255, 255, 0.08) !important;
-            border: 1px solid rgba(255, 255, 255, 0.15) !important;
-            color: #FFFFFF !important;
-        }
-
-        .search-box input:focus {
-            background-color: rgba(255, 255, 255, 0.12) !important;
-            border-color: #4DD0E1 !important;
-            box-shadow: 0 0 0 3px rgba(77, 208, 225, 0.25) !important;
-        }
-
-        .search-box input::placeholder {
-            color: rgba(255, 255, 255, 0.5) !important;
-        }
-
-        [data-theme="light"] .search-box input {
-            background-color: #FFFFFF !important;
-            border: 1px solid #E2E8F0 !important;
-            color: #1E293B !important;
-        }
-
-        [data-theme="light"] .search-box input:focus {
-            border-color: #4DD0E1 !important;
-            box-shadow: 0 0 0 3px rgba(77, 208, 225, 0.2) !important;
-        }
-
-        [data-theme="light"] .search-box input::placeholder {
-            color: #94A3B8 !important;
-        }
-
-        .filter-buttons {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-            border: none !important;
-            background: transparent !important;
-            box-shadow: none !important;
-            padding: 0 !important;
-            margin: 0 auto !important;
-        }
-
-        .filter-btn {
-            -webkit-appearance: none !important;
-            appearance: none !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            padding: 0.5rem 1.25rem !important;
-            font-size: 0.875rem !important;
-            font-weight: 500 !important;
-            border-radius: 25px !important;
-            cursor: pointer !important;
-            transition: all 0.25s ease-in-out !important;
-            outline: none !important;
-            text-decoration: none !important;
-            white-space: nowrap !important;
-            background-color: rgba(255, 255, 255, 0.08) !important;
-            color: rgba(255, 255, 255, 0.8) !important;
-            border: 1px solid rgba(255, 255, 255, 0.12) !important;
-            box-shadow: none !important;
-        }
-
-        .filter-btn:hover {
-            background-color: rgba(255, 255, 255, 0.16) !important;
-            color: #FFFFFF !important;
-            border-color: rgba(255, 255, 255, 0.25) !important;
-            transform: translateY(-1px) !important;
-        }
-
-        .filter-btn.active {
-            background-color: #4DD0E1 !important;
-            color: #0F172A !important;
-            border-color: #4DD0E1 !important;
-            font-weight: 600 !important;
-            box-shadow: 0 4px 12px rgba(77, 208, 225, 0.35) !important;
-        }
-
-        [data-theme="light"] .filter-btn {
-            background-color: #F1F5F9 !important;
-            color: #64748B !important;
-            border: 1px solid #E2E8F0 !important;
-        }
-
-        [data-theme="light"] .filter-btn:hover {
-            background-color: #E2E8F0 !important;
-            color: #334155 !important;
-        }
-
-        [data-theme="light"] .filter-btn.active {
-            background-color: #4DD0E1 !important;
-            color: #FFFFFF !important;
-            border-color: #4DD0E1 !important;
-        }
-
-        .apps-container {
-            padding: 1rem 2rem 4rem !important;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .apps-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .app-card {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 0.5rem;
-            text-decoration: none;
-            transition: var(--transition);
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            min-height: auto;
-        }
-
-        .app-card:hover {
-            transform: none;
-        }
-
-        /* Light theme hover */
-        [data-theme="light"] .app-card:hover {
-            background: transparent !important;
-        }
-
-        /* Dark theme hover */
-        [data-theme="dark"] .app-card:hover {
-            background: transparent !important;
-        }
-
-        /* Text color on hover */
-        [data-theme="light"] .app-card:hover .app-name {
-            color: #2d3748 !important;
-        }
-
-        [data-theme="dark"] .app-card:hover .app-name {
-            color: #ffffff !important;
-        }
-
-        .app-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 0.75rem;
-            background: #39b7d4;
-            box-shadow: 0 8px 18px rgba(57, 183, 212, 0.22);
-            transition: all 0.3s ease;
-        }
-
-        .app-card:hover .app-icon {
-            transform: scale(1.1);
-            background: #2faecc;
-            box-shadow: 0 10px 22px rgba(57, 183, 212, 0.28);
-        }
-
-        .app-icon i {
-            font-size: 22px;
-            color: transparent;
-            background: linear-gradient(180deg, #ffffff 0%, #ffffff 55%, #ffd54f 56%, #ffb300 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            transition: all 0.3s ease;
-        }
-
-        .app-name {
-            color: var(--dark-text);
-            font-size: 13px;
-            font-weight: 500;
-            text-align: center;
-            margin: 0.5rem 0 0;
-            transition: var(--transition);
-        }
-
-        @media (max-width: 768px) {
-            .filter-section {
-                margin: 2.5rem auto 2rem !important;
-            }
-
-            .apps-grid {
-                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-                gap: 1rem;
-            }
-
-            .header-content {
-                flex-direction: column;
-            }
-        }
-
-        /* Remove blue outline on modal input fields on apps home page */
-        #calcDisplay:focus,
-        #aiPrompt:focus {
-            outline: none !important;
-            border-color: rgba(95, 226, 243, 0.8) !important;
-            box-shadow: 0 0 0 2px rgba(95, 226, 243, 0.5) !important;
+        [data-theme="dark"],
+        [data-bs-theme="dark"],
+        html.theme-dark,
+        html[data-theme="dark"],
+        body.theme-dark,
+        body.dark-theme,
+        body[data-theme="dark"] {
+            --brand-primary: {{ system_settings.dark_primary_color|default:system_settings.accent_color|default:'#38BDF8' }};
+            --primary-navy: {{ system_settings.dark_primary_color|default:system_settings.accent_color|default:'#38BDF8' }};
+            --brand-secondary: {{ system_settings.dark_secondary_color|default:system_settings.secondary_color|default:'#818CF8' }};
+            --brand-accent: {{ system_settings.dark_accent_color|default:system_settings.accent_color|default:'#4DD0E1' }};
+            --system-icon-color: {{ system_settings.dark_icon_color|default:system_settings.icon_color|default:'#38BDF8' }};
+            --dark-unified-bg: {{ system_settings.dark_bg_color|default:'#0F172A' }};
+            --dark-bg: linear-gradient(135deg, {{ system_settings.dark_bg_color|default:'#0F172A' }} 0%, #1e293b 100%);
         }
     </style>
 </head>
@@ -572,23 +97,32 @@
 
             <div class="user-header-controls">
                 <div class="dropdown">
-                    <a href="{% if user.role == 'superadmin' %}{% url 'superadmin:profile' %}{% elif school_slug %}{% url 'core:profile' school_slug=school_slug %}{% else %}{% url 'accounts:profile' %}{% endif %}"
-                        class="user-avatar-link" id="userProfileDropdown" data-bs-toggle="dropdown"
-                        aria-expanded="false" title="{{ user.get_full_name|default:user.email }}">
-                        <div class="user-avatar">{{ user.first_name.0|upper }}{{ user.last_name.0|upper }}</div>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-lg" aria-labelledby="userProfileDropdown">
+                    <div class="user-avatar-link cursor-pointer" id="userProfileDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="{{ user.get_full_name|default:user.email }}" style="cursor: pointer;">
+                        <div class="user-avatar">{{ user.first_name.0|default:"U" }}{{ user.last_name.0|default:"" }}</div>
+                    </div>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg user-profile-dropdown" aria-labelledby="userProfileDropdown">
+                        <!-- User Information Header -->
                         <li class="px-3 py-2 border-bottom">
-                            <div class="fw-semibold text-truncate" style="max-width: 180px;">{{
-                                user.get_full_name|default:user.email }}</div>
-                            <div class="text-muted small">{{ user.role|title }}</div>
+                            <div class="fw-bold text-truncate user-profile-dropdown-name" style="max-width: 210px;">
+                                {{ user.get_full_name|default:user.email }}
+                            </div>
+                            <div class="small text-muted text-truncate user-profile-dropdown-email" style="max-width: 210px;">
+                                {{ user.email }}
+                            </div>
+                            <div class="mt-1">
+                                <span class="badge user-profile-dropdown-role" style="background: rgba(59, 130, 246, 0.15); color: var(--brand-primary, #3b82f6); border: 1px solid rgba(59, 130, 246, 0.3); font-size: 0.72rem;">
+                                    {% if school_slug and user.role == 'superadmin' %}School Admin{% else %}{{ user.get_role_display|default:user.role }}{% endif %}
+                                </span>
+                            </div>
                         </li>
+
+                        <!-- Profile Link: Open demo/school profile when in school context -->
                         <li>
-                            <a class="dropdown-item py-2 mt-1"
-                                href="{% if user.role == 'superadmin' %}{% url 'superadmin:profile' %}{% elif school_slug %}{% url 'core:profile' school_slug=school_slug %}{% else %}{% url 'accounts:profile' %}{% endif %}">
+                            <a class="dropdown-item py-2 mt-1" href="{% if school_slug %}{% url 'core:profile' school_slug=school_slug %}{% elif user.role == 'superadmin' %}{% url 'superadmin:profile' %}{% else %}{% url 'accounts:profile' %}{% endif %}">
                                 <i class="fas fa-user me-2"></i> View Profile
                             </a>
                         </li>
+
                         {% if user.role == 'superadmin' %}
                         {% if school_slug == 'demo-school' or 'demo' in school_slug %}
                         <li>
@@ -603,38 +137,54 @@
                             </a>
                         </li>
                         {% endif %}
-                        {% elif school_slug and user.role in 'admin,school_admin' %}
+                        {% elif school_slug and school_slug != 'demo-school' %}
                         {% if has_sample_data %}
                         <li>
-                            <a class="dropdown-item py-2 text-warning fw-semibold" href="{% url 'core:switch_to_my_database' school_slug=school_slug %}" onclick="return confirm('Switch back to your live database? This will clear all sample demo data while preserving your account.');">
+                            <a class="dropdown-item py-2 text-warning fw-semibold cursor-pointer" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#exitSampleDataModal">
                                 <i class="fas fa-database me-2 text-warning"></i> Switch to My Database (Exit Demo)
                             </a>
                         </li>
                         {% else %}
                         <li>
-                            <form method="post" action="{% url 'core:load_sample_data' school_slug=school_slug %}" onsubmit="return confirm('Load demo sample data into your school account? You can switch back to your clean live database anytime.');">
-                                {% csrf_token %}
-                                <button type="submit" class="dropdown-item py-2 text-primary fw-semibold">
-                                    <i class="fas fa-magic me-2 text-primary"></i> Load Demo Data (Try Features)
-                                </button>
-                            </form>
+                            <a class="dropdown-item py-2 text-primary fw-semibold cursor-pointer" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#loadSampleDataModal">
+                                <i class="fas fa-magic me-2 text-primary"></i> Switch to Sample Demo Database
+                            </a>
                         </li>
                         {% endif %}
                         {% endif %}
+
+                        <!-- Theme Toggle Option (Standard dropdown option matching dashboard) -->
+                        <li>
+                            <button type="button" id="theme-toggle" class="dropdown-item d-flex justify-content-between align-items-center py-2" title="Toggle Theme">
+                                <span>
+                                    <i class="fas fa-moon me-2"></i> Theme
+                                </span>
+                                <span class="badge bg-secondary-subtle border text-muted user-profile-badge" id="themeStatusBadge">Dark</span>
+                            </button>
+                        </li>
+
+                        <!-- Navigation Layout Switcher Option -->
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center py-2" href="{% url 'accounts:toggle_navigation_layout' %}">
+                                <span>
+                                    <i class="fas {% if navigation_layout == 'horizontal' %}fa-table-columns{% else %}fa-bars-staggered{% endif %} me-2"></i>
+                                    Layout: {% if navigation_layout == 'horizontal' %}Tabs{% else %}Sidebar{% endif %}
+                                </span>
+                                <span class="badge bg-primary-subtle text-primary border user-profile-badge">Switch</span>
+                            </a>
+                        </li>
+
                         {% if user.role != 'superadmin' and user.role != 'parent' %}
                         <li>
-                            <a class="dropdown-item py-2"
-                                href="{% if school_slug %}{% url 'core:settings' school_slug=school_slug %}{% else %}#{% endif %}">
+                            <a class="dropdown-item py-2" href="{% if school_slug %}{% url 'core:settings' school_slug=school_slug %}{% else %}#{% endif %}">
                                 <i class="fas fa-cog me-2"></i> Settings
                             </a>
                         </li>
                         {% endif %}
+                        <li><hr class="dropdown-divider my-1"></li>
                         <li>
-                            <hr class="dropdown-divider">
-                        </li>
-                        <li>
-                            <a class="dropdown-item py-2" href="{% url 'accounts:logout' %}">
-                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            <a class="dropdown-item py-2 text-danger" href="{% url 'accounts:logout' %}">
+                                <i class="fas fa-sign-out-alt me-2 text-danger"></i> Logout
                             </a>
                         </li>
                     </ul>
@@ -676,7 +226,7 @@
                 <p class="app-name">AI Assistant</p>
             </a>
             {% endif %}
-            {% if user.role != 'superadmin' and user.role != 'parent' %}
+            {% if user.role != 'parent' %}
             <a href="#" class="app-card" data-name="calculator" data-category="operations" data-bs-toggle="modal"
                 data-bs-target="#calculatorModal">
                 <div class="app-icon"><i class="fas fa-calculator"></i></div>
@@ -688,13 +238,13 @@
                 <div class="app-icon"><i class="fas fa-tachometer-alt"></i></div>
                 <p class="app-name">Dashboard</p>
             </a>
-            {% if user.role in 'admin,teacher' %}
+            {% if is_admin_view or user.role in 'admin,teacher,superadmin' %}
             <a href="/school/{{ school_slug }}/students/" class="app-card" data-name="students"
                 data-category="academic">
                 <div class="app-icon"><i class="fas fa-user-graduate"></i></div>
                 <p class="app-name">Students</p>
             </a>
-            {% if user.role == 'admin' %}
+            {% if is_admin_view or user.role in 'admin,superadmin' %}
             <a href="/school/{{ school_slug }}/students/parents/" class="app-card" data-name="parents"
                 data-category="academic">
                 <div class="app-icon"><i class="fas fa-users"></i></div>
@@ -742,7 +292,7 @@
                 <p class="app-name">Academic Years</p>
             </a>
             {% endif %}
-            {% if user.role == 'admin' %}
+            {% if is_admin_view or user.role in 'admin,superadmin' %}
             <a href="/school/{{ school_slug }}/hr/teachers/" class="app-card" data-name="teachers"
                 data-category="administration">
                 <div class="app-icon"><i class="fas fa-chalkboard-teacher"></i></div>
@@ -847,7 +397,7 @@
                 <p class="app-name">Reports</p>
             </a>
             {% endif %}
-            {% if user.role in 'admin,teacher' %}
+            {% if is_admin_view or user.role in 'admin,teacher,superadmin' %}
             <a href="/school/{{ school_slug }}/attendance/mark/" class="app-card" data-name="attendance"
                 data-category="academic">
                 <div class="app-icon"><i class="fas fa-check-circle"></i></div>
@@ -878,7 +428,7 @@
                 <p class="app-name">Online Exams</p>
             </a>
             {% endif %}
-            {% if user.role in 'admin,teacher,student' %}
+            {% if is_admin_view or user.role in 'admin,teacher,student,superadmin' %}
             <a href="/school/{{ school_slug }}/communication/notices/" class="app-card" data-name="notices"
                 data-category="communication">
                 <div class="app-icon"><i class="fas fa-bell"></i></div>
@@ -1018,53 +568,64 @@
     {% include 'ai/chat_modal.html' %}
     {% endif %}
     {% include 'includes/calculator_modal.html' %}
+    {% include 'includes/sample_data_modals.html' %}
 
     <script>
         // Apply theme attributes to document and body
         function applyTheme(theme) {
-            if (typeof window.applyTheme === 'function') {
-                window.applyTheme(theme);
+            const html = document.documentElement;
+            const body = document.body;
+
+            html.setAttribute('data-theme', theme);
+            html.setAttribute('data-bs-theme', theme);
+            body.setAttribute('data-theme', theme);
+            body.setAttribute('data-bs-theme', theme);
+
+            if (theme === 'dark') {
+                html.classList.remove('theme-light', 'light-theme');
+                body.classList.remove('theme-light', 'light-theme');
+                html.classList.add('theme-dark', 'dark-theme');
+                body.classList.add('theme-dark', 'dark-theme');
             } else {
-                document.documentElement.setAttribute('data-theme', theme);
-                document.documentElement.setAttribute('data-bs-theme', theme);
-                document.body.setAttribute('data-theme', theme);
-                document.body.setAttribute('data-bs-theme', theme);
-                if (theme === 'dark') {
-                    document.documentElement.classList.add('theme-dark');
-                    document.body.classList.add('dark-theme');
-                    document.documentElement.classList.remove('theme-light');
-                    document.body.classList.remove('theme-light');
-                } else {
-                    document.documentElement.classList.add('theme-light');
-                    document.body.classList.add('theme-light');
-                    document.documentElement.classList.remove('theme-dark');
-                    document.body.classList.remove('dark-theme');
+                html.classList.remove('theme-dark', 'dark-theme');
+                body.classList.remove('theme-dark', 'dark-theme');
+                html.classList.add('theme-light', 'light-theme');
+                body.classList.add('theme-light', 'light-theme');
+            }
+
+            updateThemeUI(theme);
+            window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: theme } }));
+        }
+
+        // Update floating icon and dropdown badge & icon
+        function updateThemeUI(theme) {
+            const floatingIcon = document.getElementById('theme-icon');
+            if (floatingIcon) {
+                floatingIcon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+
+            const dropdownToggle = document.getElementById('theme-toggle');
+            if (dropdownToggle) {
+                const icon = dropdownToggle.querySelector('i');
+                if (icon) {
+                    icon.className = theme === 'dark' ? 'fas fa-sun me-2' : 'fas fa-moon me-2';
                 }
             }
-            updateThemeIcon(theme);
-        }
 
-        function initTheme() {
-            const currentTheme = localStorage.getItem('theme') || 'dark';
-            applyTheme(currentTheme);
-        }
-
-        // Update theme icon based on current theme
-        function updateThemeIcon(theme) {
-            const icon = document.getElementById('theme-icon');
-            if (!icon) return;
-            if (theme === 'dark') {
-                icon.className = 'fas fa-moon';
-                icon.style.transform = 'rotate(0deg)';
-            } else {
-                icon.className = 'fas fa-sun';
-                icon.style.transform = 'rotate(360deg)';
+            const statusBadge = document.getElementById('themeStatusBadge');
+            if (statusBadge) {
+                statusBadge.textContent = theme === 'dark' ? 'Dark' : 'Light';
             }
         }
 
         // Toggle theme function
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        function toggleTheme(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            const currentTheme = document.documentElement.getAttribute('data-theme') ||
+                                 (document.documentElement.classList.contains('theme-dark') ? 'dark' : 'light');
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
 
             localStorage.setItem('theme', newTheme);
@@ -1073,23 +634,31 @@
 
         // Initialize theme on page load
         document.addEventListener('DOMContentLoaded', function () {
-            initTheme();
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
 
-            // Add click event to theme toggle button
+            // Add click event to floating toggle button
             const btn = document.getElementById('theme-toggle-btn');
             if (btn) {
                 btn.addEventListener('click', toggleTheme);
+            }
+
+            // Add click event to profile dropdown theme toggle
+            const dropdownToggle = document.getElementById('theme-toggle');
+            if (dropdownToggle) {
+                dropdownToggle.addEventListener('click', toggleTheme);
             }
         });
 
         // Search functionality
         document.getElementById('appSearch').addEventListener('input', function (e) {
-            const search = e.target.value.toLowerCase();
+            const search = (e.target.value || '').toLowerCase().trim();
             const cards = document.querySelectorAll('.app-card');
             cards.forEach(card => {
-                const name = card.getAttribute('data-name');
-                const text = card.querySelector('.app-name').textContent.toLowerCase();
-                card.style.display = (name.includes(search) || text.includes(search)) ? 'flex' : 'none';
+                const name = (card.getAttribute('data-name') || '').toLowerCase();
+                const textElem = card.querySelector('.app-name');
+                const text = textElem ? textElem.textContent.toLowerCase() : '';
+                card.style.display = (!search || name.includes(search) || text.includes(search)) ? 'flex' : 'none';
             });
         });
 
@@ -1119,6 +688,7 @@
             });
         });
     </script>
+    {% include 'includes/sample_data_modals.html' %}
 </body>
 
 </html>

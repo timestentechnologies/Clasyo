@@ -14,11 +14,115 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#addClassModal">
-        <i class="fas fa-plus-circle"></i> Add New Class
+    <button class="btn btn-primary btn-lg" onclick="openClassForm('create')">
+        <i class="fas fa-plus-circle me-1"></i> Add New Class
     </button>
 </div>
 
+<!-- Shared In-Page Single Form Panel -->
+<div class="form-panel-view d-none" id="classFormPanel">
+    <div class="form-header-bar">
+        <div class="form-header-title-group">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('classListCard', 'classFormPanel', 'list')">
+                <i class="fas fa-arrow-left me-1"></i> Back to List
+            </button>
+            <h5 class="mb-0 fw-bold form-title-text" data-create-title="Add New Class" data-edit-title="Edit Class">Add New Class</h5>
+            <span class="form-mode-badge mode-create">New</span>
+        </div>
+        <div class="form-header-actions">
+            <button type="button" class="btn btn-sm btn-light" onclick="toggleInPageFormView('classListCard', 'classFormPanel', 'list')">Cancel</button>
+            <button type="button" class="btn btn-sm btn-primary form-submit-btn" onclick="submitClassForm()">
+                <i class="fas fa-save me-1"></i> Save Class
+            </button>
+        </div>
+    </div>
+    <div class="form-card-body">
+        <div class="alert alert-info">
+            {% if school and school.institution_type == 'tvet_college' %}
+                <i class="fas fa-info-circle"></i> <strong>What is a Class/Programme?</strong>
+                A class represents a programme level or year (e.g., Diploma in ICT - Year 1). You can add
+                <strong>Groups</strong> (sections) such as Group A or Group B to divide students into smaller cohorts.
+            {% else %}
+                <i class="fas fa-info-circle"></i> <strong>What is a Class?</strong>
+                A class represents a grade level. You can add <strong>Sections</strong> (like A, B, C) to divide
+                students into smaller groups.
+            {% endif %}
+        </div>
+        
+        <form id="classForm">
+            {% csrf_token %}
+            <input type="hidden" id="class_id" name="class_id">
+            
+            <!-- Class Information -->
+            <div class="border-start border-primary border-4 ps-3 mb-4">
+                <h6 class="text-primary fw-bold mb-3"><i class="fas fa-school"></i> Class Information</h6>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Class Name *</label>
+                        <input type="text" id="class_name" name="name" class="form-control" required
+                               placeholder="{% if school and school.institution_type == 'tvet_college' %}e.g., Diploma in ICT - Year 1, Certificate in Business - Level 4{% else %}e.g., Grade 10, Year 8{% endif %}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Numeric Name</label>
+                        <input type="number" id="class_numeric_name" name="numeric_name" class="form-control"
+                               placeholder="{% if school and school.institution_type == 'tvet_college' %}e.g., 1 for Year 1, 2 for Year 2{% else %}e.g., 10, 8{% endif %}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Education Level</label>
+                        <select id="class_education_level" name="education_level" class="form-select">
+                            {% for value,label in education_level_choices %}
+                            <option value="{{ value }}"{% if value == 'unspecified' %} selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Display Order</label>
+                        <input type="number" id="class_order" name="order" class="form-control" value="0">
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check form-switch mt-4">
+                            <input type="checkbox" name="is_active" class="form-check-input" id="class_is_active" checked>
+                            <label class="form-check-label fw-semibold" for="class_is_active">Active</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Description</label>
+                        <textarea id="class_description" name="description" class="form-control" rows="2" placeholder="Optional description"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sections -->
+            <div class="border-start border-success border-4 ps-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-success fw-bold mb-0"><i class="fas fa-users"></i> Sections (Optional)</h6>
+                    <button type="button" class="btn btn-success btn-sm" onclick="addSectionRow()">
+                        <i class="fas fa-plus"></i> Add Section
+                    </button>
+                </div>
+                
+                <div class="alert alert-info py-2 small">
+                    {% if school and school.institution_type == 'tvet_college' %}
+                        <i class="fas fa-question-circle"></i>
+                        Groups/sections divide a programme cohort into smaller groups (e.g., Diploma ICT Year 1 - Group A, Group B).
+                        Click "Add Section" to create them.
+                    {% else %}
+                        <i class="fas fa-question-circle"></i>
+                        Sections divide a class into groups (e.g., Grade 10-A, Grade 10-B). Click "Add Section" to create them.
+                    {% endif %}
+                </div>
+                
+                <div id="sectionsContainer">
+                    <div class="text-center py-3 text-muted">
+                        <small><i class="fas fa-users opacity-25"></i> No sections yet. Click "Add Section" above.</small>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="classListCard">
 <!-- Dynamic Search and Filters -->
 <div class="row mb-3">
     <div class="col-md-12">
@@ -59,34 +163,31 @@
             </thead>
             <tbody>
             {% for class in classes %}
-            <tr data-name="{{ class.name|lower }}" data-description="{{ class.description|lower }}" data-level="{{ class.education_level|lower }}" data-status="{% if class.is_active %}active{% else %}inactive{% endif %}">
+            <tr data-name="{{ class.name|lower }}" data-description="{{ class.description|default:''|lower }}" data-level="{{ class.education_level }}" data-status="{% if class.is_active %}active{% else %}inactive{% endif %}">
                 <td>
-                    <strong><i class="fas fa-school text-primary me-2"></i>{{ class.name }}</strong>
-                    <div class="mt-1">
-                        <span class="badge bg-light text-muted">
-                            <i class="fas fa-layer-group me-1"></i>{{ class.get_education_level_display }}
-                        </span>
-                    </div>
+                    <strong>{{ class.name }}</strong>
+                    {% if class.numeric_name %}
+                    <span class="badge bg-secondary ms-1">{{ class.numeric_name }}</span>
+                    {% endif %}
+                    {% if class.education_level and class.education_level != 'unspecified' %}
+                    <br><small class="badge bg-info mt-1">{{ class.get_education_level_display }}</small>
+                    {% endif %}
                 </td>
                 <td>
-                    {% if class.sections.count > 0 %}
-                        <span class="badge bg-info me-1">{{ class.sections.count }} Sections</span>
-                        {% for section in class.sections.all|slice:":3" %}
-                            <div class="mb-1">
-                                <span class="badge bg-secondary">{{ section.name }}</span>
-                                {% if section.class_teacher %}
-                                    <small class="text-muted ms-1">
-                                        <i class="fas fa-user-tie"></i> {{ section.class_teacher.get_full_name }}
-                                    </small>
-                                {% else %}
-                                    <small class="text-muted ms-1">
-                                        <i class="fas fa-user-slash"></i> No teacher
-                                    </small>
-                                {% endif %}
-                            </div>
+                    {% if class.sections.all %}
+                        {% for section in class.sections.all %}
+                        <span class="badge bg-light text-dark border me-1 mb-1">
+                            {{ section.name }}
+                            {% if section.class_teacher %}
+                            <small class="text-muted">({{ section.class_teacher.get_full_name|default:section.class_teacher.username }})</small>
+                            {% endif %}
+                            {% if section.max_students %}
+                            <span class="badge bg-secondary">{{ section.max_students }}</span>
+                            {% endif %}
+                        </span>
                         {% endfor %}
-                        {% if class.sections.count > 3 %}
-                            <span class="badge bg-light text-dark">+{{ class.sections.count|add:"-3" }} more</span>
+                        {% if class.sections.count > 1 %}
+                        <br><small class="text-muted">{{ class.sections.count }} sections total</small>
                         {% endif %}
                     {% else %}
                         <span class="text-muted"><i class="fas fa-info-circle"></i> No sections</span>
@@ -99,7 +200,7 @@
                     </span>
                 </td>
                 <td>
-                    <button class="btn btn-sm btn-primary" onclick="editClass(event, {{ class.pk }})">
+                    <button class="btn btn-sm btn-primary" onclick="openClassForm('edit', {{ class.pk }})">
                         <i class="fas fa-edit"></i> Edit
                     </button>
                     <button class="btn btn-sm btn-danger" onclick="deleteClass({{ class.pk }}, '{{ class.name }}')">
@@ -119,180 +220,6 @@
         </table>
     </div>
 </div>
-
-<!-- Add Class Modal -->
-<div class="modal fade" id="addClassModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
-                <h5 class="modal-title"><i class="fas fa-plus-circle"></i> Add New Class</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info">
-                    {% if school and school.institution_type == 'tvet_college' %}
-                        <i class="fas fa-info-circle"></i> <strong>What is a Class/Programme?</strong>
-                        A class represents a programme level or year (e.g., Diploma in ICT - Year 1). You can add
-                        <strong>Groups</strong> (sections) such as Group A or Group B to divide students into smaller cohorts.
-                    {% else %}
-                        <i class="fas fa-info-circle"></i> <strong>What is a Class?</strong>
-                        A class represents a grade level. You can add <strong>Sections</strong> (like A, B, C) to divide
-                        students into smaller groups.
-                    {% endif %}
-                </div>
-                
-                <form id="classAddForm">
-                    {% csrf_token %}
-                    
-                    <!-- Class Information -->
-                    <div class="border-start border-primary border-4 ps-3 mb-4">
-                        <h6 class="text-primary fw-bold mb-3"><i class="fas fa-school"></i> Class Information</h6>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Class Name *</label>
-                                <input type="text" name="name" class="form-control" required
-                                       placeholder="{% if school and school.institution_type == 'tvet_college' %}e.g., Diploma in ICT - Year 1, Certificate in Business - Level 4{% else %}e.g., Grade 10, Year 8{% endif %}">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Numeric Name *</label>
-                                <input type="number" name="numeric_name" class="form-control"
-                                       placeholder="{% if school and school.institution_type == 'tvet_college' %}e.g., 1 for Year 1, 2 for Year 2{% else %}e.g., 10, 8{% endif %}">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Education Level</label>
-                                <select name="education_level" class="form-select">
-                                    {% for value,label in education_level_choices %}
-                                    <option value="{{ value }}"{% if value == 'unspecified' %} selected{% endif %}>{{ label }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Display Order</label>
-                                <input type="number" name="order" class="form-control" value="0">
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-check form-switch mt-4">
-                                    <input type="checkbox" name="is_active" class="form-check-input" id="is_active_add" checked>
-                                    <label class="form-check-label fw-semibold" for="is_active_add">Active</label>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Description</label>
-                                <textarea name="description" class="form-control" rows="2" placeholder="Optional description"></textarea>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Sections -->
-                    <div class="border-start border-success border-4 ps-3">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="text-success fw-bold mb-0"><i class="fas fa-users"></i> Sections (Optional)</h6>
-                            <button type="button" class="btn btn-success btn-sm" onclick="addSectionAdd()">
-                                <i class="fas fa-plus"></i> Add Section
-                            </button>
-                        </div>
-                        
-                        <div class="alert alert-info py-2 small">
-                            {% if school and school.institution_type == 'tvet_college' %}
-                                <i class="fas fa-question-circle"></i>
-                                Groups/sections divide a programme cohort into smaller groups (e.g., Diploma ICT Year 1 - Group A, Group B).
-                                Click "Add Section" to create them.
-                            {% else %}
-                                <i class="fas fa-question-circle"></i>
-                                Sections divide a class into groups (e.g., Grade 10-A, Grade 10-B). Click "Add Section" to create them.
-                            {% endif %}
-                        </div>
-                        
-                        <div id="sectionsAddContainer">
-                            <div class="text-center py-3 text-muted">
-                                <small><i class="fas fa-users opacity-25"></i> No sections yet. Click "Add Section" above.</small>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary btn-lg px-4" onclick="submitAddClass()">
-                    <i class="fas fa-save"></i> Save Class
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Class Modal -->
-<div class="modal fade" id="editClassModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
-                <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Class</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="classEditForm">
-                    {% csrf_token %}
-                    <input type="hidden" id="edit_class_id" name="class_id">
-                    
-                    <!-- Class Information -->
-                    <div class="border-start border-primary border-4 ps-3 mb-4">
-                        <h6 class="text-primary fw-bold mb-3"><i class="fas fa-school"></i> Class Information</h6>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Class Name *</label>
-                                <input type="text" id="edit_name" name="name" class="form-control" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Numeric Name</label>
-                                <input type="number" id="edit_numeric_name" name="numeric_name" class="form-control">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Education Level</label>
-                                <select id="edit_education_level" name="education_level" class="form-select">
-                                    {% for value,label in education_level_choices %}
-                                    <option value="{{ value }}">{{ label }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Display Order</label>
-                                <input type="number" id="edit_order" name="order" class="form-control">
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-check form-switch mt-4">
-                                    <input type="checkbox" id="edit_is_active" name="is_active" class="form-check-input">
-                                    <label class="form-check-label fw-semibold" for="edit_is_active">Active</label>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Description</label>
-                                <textarea id="edit_description" name="description" class="form-control" rows="2"></textarea>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Sections -->
-                    <div class="border-start border-success border-4 ps-3">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="text-success fw-bold mb-0"><i class="fas fa-users"></i> Sections</h6>
-                            <button type="button" class="btn btn-success btn-sm" onclick="addSectionEdit()">
-                                <i class="fas fa-plus"></i> Add Section
-                            </button>
-                        </div>
-                        <div id="sectionsEditContainer">
-                            <!-- Sections will be loaded here -->
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary btn-lg px-4" onclick="submitEditClass()">
-                    <i class="fas fa-save"></i> Update Class
-                </button>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Delete Confirmation Modal -->
@@ -381,9 +308,10 @@ function populateTeacherDropdown(selectElement, teachers, selectedTeacherId = nu
     });
 }
 
-function addSectionAdd() {
-    const container = document.getElementById('sectionsAddContainer');
+function addSectionRow(name = '', capacity = '40', teacherId = null) {
+    const container = document.getElementById('sectionsContainer');
     const template = document.getElementById('sectionTemplate');
+    if (!container || !template) return;
     
     // Remove empty state
     const emptyState = container.querySelector('.text-center');
@@ -391,36 +319,21 @@ function addSectionAdd() {
     
     const clone = template.content.cloneNode(true);
     const input = clone.querySelector('input[name="sections[]"]');
+    const capInput = clone.querySelector('input[name="section_capacity[]"]');
     
-    // Auto-suggest letter
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const count = container.querySelectorAll('.section-card').length;
-    if (count < 26) {
-        input.value = letters[count];
+    if (name) {
+        input.value = name;
+    } else {
+        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const count = container.querySelectorAll('.section-card').length;
+        if (count < 26) {
+            input.value = letters[count];
+        }
     }
+    if (capacity) capInput.value = capacity;
     
     // Load teachers into dropdown
-    loadTeachersIntoDropdown(clone.querySelector('select[name="section_teacher[]"]'));
-    
-    container.appendChild(clone);
-}
-
-function addSectionEdit() {
-    const container = document.getElementById('sectionsEditContainer');
-    const template = document.getElementById('sectionTemplate');
-    
-    const clone = template.content.cloneNode(true);
-    const input = clone.querySelector('input[name="sections[]"]');
-    
-    // Auto-suggest letter
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const count = container.querySelectorAll('.section-card').length;
-    if (count < 26) {
-        input.value = letters[count];
-    }
-    
-    // Load teachers into dropdown
-    loadTeachersIntoDropdown(clone.querySelector('select[name="section_teacher[]"]'));
+    loadTeachersIntoDropdown(clone.querySelector('select[name="section_teacher[]"]'), teacherId);
     
     container.appendChild(clone);
 }
@@ -428,86 +341,69 @@ function addSectionEdit() {
 function removeSection(btn) {
     const card = btn.closest('.section-card');
     card.style.animation = 'slideOut 0.3s ease';
-    setTimeout(() => card.remove(), 300);
+    setTimeout(() => {
+        card.remove();
+        const container = document.getElementById('sectionsContainer');
+        if (container && container.querySelectorAll('.section-card').length === 0) {
+            container.innerHTML = '<div class="text-center py-3 text-muted"><small><i class="fas fa-users opacity-25"></i> No sections yet. Click "Add Section" above.</small></div>';
+        }
+    }, 300);
 }
 
-function submitAddClass() {
-    const form = document.getElementById('classAddForm');
-    const formData = new FormData(form);
+function openClassForm(mode, id) {
+    const form = document.getElementById('classForm');
+    if (form) form.reset();
+    document.getElementById('class_id').value = '';
+    const container = document.getElementById('sectionsContainer');
+    if (container) {
+        container.innerHTML = '<div class="text-center py-3 text-muted"><small><i class="fas fa-users opacity-25"></i> No sections yet. Click "Add Section" above.</small></div>';
+    }
     
-    fetch(window.location.pathname + 'add/', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showSuccessAndReload('Class added successfully!');
-        } else {
-            showError(data.error || 'Failed to add class');
-        }
-    })
-    .catch(error => {
-        showError('Error: ' + error.message);
-        console.error(error);
-    });
-}
-
-function editClass(event, id) {
-    // Fetch class details with sections
+    if (mode === 'create' || !id) {
+        toggleInPageFormView('classListCard', 'classFormPanel', 'create');
+        return;
+    }
+    
+    // Edit mode
     fetch(`/school/{{ school_slug }}/academics/classes/${id}/`)
         .then(response => response.json())
         .then(data => {
-            document.getElementById('edit_class_id').value = id;
-            document.getElementById('edit_name').value = data.name;
-            document.getElementById('edit_numeric_name').value = data.numeric_name || '';
-            document.getElementById('edit_description').value = data.description || '';
-            document.getElementById('edit_order').value = data.order || 0;
-            document.getElementById('edit_is_active').checked = data.is_active;
-            if (document.getElementById('edit_education_level')) {
-                document.getElementById('edit_education_level').value = data.education_level || 'unspecified';
+            document.getElementById('class_id').value = id;
+            document.getElementById('class_name').value = data.name || '';
+            document.getElementById('class_numeric_name').value = data.numeric_name || '';
+            document.getElementById('class_description').value = data.description || '';
+            document.getElementById('class_order').value = data.order || 0;
+            document.getElementById('class_is_active').checked = !!data.is_active;
+            if (document.getElementById('class_education_level')) {
+                document.getElementById('class_education_level').value = data.education_level || 'unspecified';
             }
             
-            // Load sections
-            const container = document.getElementById('sectionsEditContainer');
-            container.innerHTML = '';
-            
-            if (data.sections && data.sections.length > 0) {
-                data.sections.forEach(section => {
-                    const template = document.getElementById('sectionTemplate');
-                    const clone = template.content.cloneNode(true);
-                    clone.querySelector('input[name="sections[]"]').value = section.name;
-                    clone.querySelector('input[name="section_capacity[]"]').value = section.max_students;
-                    
-                    // Load teachers and set selected teacher
-                    const teacherSelect = clone.querySelector('select[name="section_teacher[]"]');
-                    loadTeachersIntoDropdown(teacherSelect, section.class_teacher_id);
-                    
-                    container.appendChild(clone);
-                });
+            if (container) {
+                container.innerHTML = '';
+                if (data.sections && data.sections.length > 0) {
+                    data.sections.forEach(section => {
+                        addSectionRow(section.name, section.max_students, section.class_teacher_id);
+                    });
+                } else {
+                    container.innerHTML = '<div class="text-center py-3 text-muted"><small><i class="fas fa-users opacity-25"></i> No sections yet. Click "Add Section" above.</small></div>';
+                }
             }
-            
-            new bootstrap.Modal(document.getElementById('editClassModal')).show();
+            toggleInPageFormView('classListCard', 'classFormPanel', 'edit');
         })
-        .catch(error => {
-            // Fallback to basic edit
-            const row = event.target.closest('tr');
-            document.getElementById('edit_class_id').value = id;
-            document.getElementById('edit_name').value = row.querySelector('td:nth-child(1) strong').textContent.trim();
-            new bootstrap.Modal(document.getElementById('editClassModal')).show();
+        .catch(err => {
+            showError('Failed to load class details: ' + err.message);
         });
 }
 
-function submitEditClass() {
-    const form = document.getElementById('classEditForm');
+function submitClassForm() {
+    const form = document.getElementById('classForm');
     const formData = new FormData(form);
-    const id = document.getElementById('edit_class_id').value;
+    const id = document.getElementById('class_id').value;
+    const url = id 
+        ? (window.location.pathname + id + '/edit/')
+        : (window.location.pathname + 'add/');
     
-    fetch(window.location.pathname + id + '/edit/', {
+    fetch(url, {
         method: 'POST',
         body: formData,
         headers: {
@@ -518,9 +414,11 @@ function submitEditClass() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showSuccessAndReload('Class updated successfully!');
+            form.reset();
+            toggleInPageFormView('classListCard', 'classFormPanel', 'list');
+            showSuccessAndReload(id ? 'Class updated successfully!' : 'Class added successfully!');
         } else {
-            showError(data.error || 'Failed to update class');
+            showError(data.error || 'Failed to save class');
         }
     })
     .catch(error => {

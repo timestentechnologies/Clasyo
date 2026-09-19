@@ -30,7 +30,8 @@ from .forms import (
     PaymentConfigurationForm, SchoolPaymentConfigurationForm,
     GlobalEmailConfigurationForm, GlobalSMSConfigurationForm,
     GlobalDatabaseConfigurationForm, GlobalWhatsAppConfigurationForm,
-    SchoolWhatsAppConfigurationForm,
+    SchoolWhatsAppConfigurationForm, SchoolSMSConfigurationForm,
+    SchoolEmailConfigurationForm,
 )
 from .ai_forms import GlobalAIConfigurationForm, SchoolAIConfigurationForm
 from tenants.models import School
@@ -1284,12 +1285,17 @@ class LoginAsDemoAdminView(SuperAdminRequiredMixin, View):
             if updated:
                 demo_school.save(update_fields=['is_trial', 'trial_end_date', 'is_active'])
 
-        # 3. Clean any expired subscription records for demo school
+        # 3. Ensure demo database is migrated and populated with sample data
         try:
-            from subscriptions.models import Subscription
-            Subscription.objects.filter(school=demo_school).update(status='active', end_date=None)
-        except Exception:
-            pass
+            from tenants.services import register_tenant_connection, ensure_school_database
+            from students.models import Student
+            from core.sample_data import generate_all_sample_data_for_school
+            register_tenant_connection(demo_school.slug)
+            ensure_school_database(demo_school)
+            if Student.objects.using(demo_school.slug).count() == 0:
+                generate_all_sample_data_for_school(demo_school, db_alias=demo_school.slug)
+        except Exception as err:
+            logger.warning(f"Could not auto-seed demo database: {err}")
 
         return redirect('core:dashboard', school_slug=demo_school.slug)
 
@@ -2518,26 +2524,20 @@ class SchoolSMSConfigurationListView(LoginRequiredMixin, ListView):
 class SchoolSMSConfigurationCreateView(LoginRequiredMixin, CreateView):
     """Create a new SMS configuration for a school"""
     model = SchoolSMSConfiguration
+    form_class = SchoolSMSConfigurationForm
     template_name = 'superadmin/school_sms_config_form.html'
-    fields = '__all__'
     
     def get_success_url(self):
         return reverse_lazy('superadmin:school_sms_config_list', kwargs={'school_slug': self.object.school.slug})
     
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        
-        # Filter school based on user role
-        if self.request.user.role == 'admin':
-            form.fields['school'].queryset = School.objects.filter(is_active=True)
-            form.fields['school'].initial = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
-            form.fields['school'].widget = forms.HiddenInput()
-        elif self.request.user.role == 'superadmin':
-            form.fields['school'].queryset = School.objects.all()
-        
-        return form
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school'] = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+        return context
     
     def form_valid(self, form):
+        school = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+        form.instance.school = school
         messages.success(self.request, 'SMS configuration created successfully.')
         return super().form_valid(form)
 
@@ -2545,8 +2545,8 @@ class SchoolSMSConfigurationCreateView(LoginRequiredMixin, CreateView):
 class SchoolSMSConfigurationUpdateView(LoginRequiredMixin, UpdateView):
     """Update a SMS configuration for a school"""
     model = SchoolSMSConfiguration
+    form_class = SchoolSMSConfigurationForm
     template_name = 'superadmin/school_sms_config_form.html'
-    fields = '__all__'
     
     def get_success_url(self):
         return reverse_lazy('superadmin:school_sms_config_list', kwargs={'school_slug': self.object.school.slug})
@@ -2624,26 +2624,20 @@ class SchoolEmailConfigurationListView(LoginRequiredMixin, ListView):
 class SchoolEmailConfigurationCreateView(LoginRequiredMixin, CreateView):
     """Create a new email configuration for a school"""
     model = SchoolEmailConfiguration
+    form_class = SchoolEmailConfigurationForm
     template_name = 'superadmin/school_email_config_form.html'
-    fields = '__all__'
     
     def get_success_url(self):
         return reverse_lazy('superadmin:school_email_config_list', kwargs={'school_slug': self.object.school.slug})
     
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        
-        # Filter school based on user role
-        if self.request.user.role == 'admin':
-            form.fields['school'].queryset = School.objects.filter(is_active=True)
-            form.fields['school'].initial = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
-            form.fields['school'].widget = forms.HiddenInput()
-        elif self.request.user.role == 'superadmin':
-            form.fields['school'].queryset = School.objects.all()
-        
-        return form
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['school'] = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+        return context
     
     def form_valid(self, form):
+        school = get_object_or_404(School, slug=self.kwargs.get('school_slug'))
+        form.instance.school = school
         messages.success(self.request, 'Email configuration created successfully.')
         return super().form_valid(form)
 
@@ -2651,8 +2645,8 @@ class SchoolEmailConfigurationCreateView(LoginRequiredMixin, CreateView):
 class SchoolEmailConfigurationUpdateView(LoginRequiredMixin, UpdateView):
     """Update an email configuration for a school"""
     model = SchoolEmailConfiguration
+    form_class = SchoolEmailConfigurationForm
     template_name = 'superadmin/school_email_config_form.html'
-    fields = '__all__'
     
     def get_success_url(self):
         return reverse_lazy('superadmin:school_email_config_list', kwargs={'school_slug': self.object.school.slug})

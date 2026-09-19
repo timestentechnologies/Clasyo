@@ -570,21 +570,17 @@ class Invoice(models.Model):
             # Generate unique invoice number
             year = timezone.now().year
             month = timezone.now().month
-            last_invoice = Invoice.objects.filter(
-                invoice_date__year=year,
-                invoice_date__month=month
-            ).order_by('-invoice_number').first()
-            
-            if last_invoice:
+            prefix = f"INV-{year}{month:02d}-"
+            matching = Invoice.objects.filter(invoice_number__startswith=prefix).values_list('invoice_number', flat=True)
+            max_seq = 0
+            for inv_no in matching:
                 try:
-                    last_num = int(last_invoice.invoice_number.split('-')[-1])
-                    new_num = last_num + 1
+                    seq = int(inv_no.split('-')[-1])
+                    if seq > max_seq:
+                        max_seq = seq
                 except (ValueError, IndexError):
-                    new_num = 1
-            else:
-                new_num = 1
-            
-            self.invoice_number = f"INV-{year}{month:02d}-{new_num:04d}"
+                    pass
+            self.invoice_number = f"{prefix}{max_seq + 1:04d}"
         
         # Calculate total if not set
         if self.total_amount == 0 and self.amount > 0:

@@ -1,0 +1,92 @@
+{% load static %}
+<!-- Load Sample Data Modal -->
+<div class="modal fade" id="loadSampleDataModal" tabindex="-1" aria-labelledby="loadSampleDataModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+      <div class="modal-header border-bottom pb-3 pt-3" style="background: rgba(2, 132, 199, 0.08);">
+        <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="loadSampleDataModalLabel">
+          <i class="fas fa-magic text-primary"></i>
+          <span>Switch to Sample Demo Database</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body py-4 px-4">
+        <p class="text-body mb-3">
+          Explore Clasyo with realistic sample data pre-populated across all modules:
+        </p>
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <div class="p-2 border rounded-3 bg-light-subtle d-flex align-items-center gap-2 small">
+              <i class="fas fa-user-graduate text-primary"></i>
+              <span>Students & Classes</span>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="p-2 border rounded-3 bg-light-subtle d-flex align-items-center gap-2 small">
+              <i class="fas fa-chalkboard-teacher text-info"></i>
+              <span>Teachers & Staff</span>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="p-2 border rounded-3 bg-light-subtle d-flex align-items-center gap-2 small">
+              <i class="fas fa-file-invoice-dollar text-success"></i>
+              <span>Fees & Invoices</span>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="p-2 border rounded-3 bg-light-subtle d-flex align-items-center gap-2 small">
+              <i class="fas fa-book-reader text-warning"></i>
+              <span>Exams & Library</span>
+            </div>
+          </div>
+        </div>
+        <div class="alert alert-info py-2 px-3 mb-0 small d-flex align-items-start gap-2 border-0" style="background: rgba(2, 132, 199, 0.1); border-radius: 10px;">
+          <i class="fas fa-info-circle mt-1 text-primary"></i>
+          <div>Your administrator credentials and school settings are untouched. You can switch back to your clean live database anytime.</div>
+        </div>
+      </div>
+      <div class="modal-footer border-top pt-2 pb-3 px-4">
+        <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+        <a href="{% if school_slug %}{% url 'core:load_sample_data' school_slug=school_slug %}{% elif school %}{% url 'core:load_sample_data' school_slug=school.slug %}{% else %}#{% endif %}" 
+           id="confirmLoadSampleDataBtn"
+           class="btn btn-primary rounded-pill px-4 fw-semibold d-inline-flex align-items-center gap-2"
+           onclick="this.classList.add('disabled'); this.innerHTML='<span class=\'spinner-border spinner-border-sm\' role=\'status\'></span> Loading Data...';">
+          <i class="fas fa-check"></i> Load Demo Data
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Exit Sample Data Modal -->
+<div class="modal fade" id="exitSampleDataModal" tabindex="-1" aria-labelledby="exitSampleDataModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+      <div class="modal-header border-bottom pb-3 pt-3" style="background: rgba(245, 158, 11, 0.1);">
+        <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="exitSampleDataModalLabel">
+          <i class="fas fa-database text-warning"></i>
+          <span>Switch Back to Live Database</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body py-4 px-4">
+        <p class="text-body mb-3">
+          Are you sure you want to switch back to your clean live database?
+        </p>
+        <div class="alert alert-warning py-2 px-3 mb-0 small d-flex align-items-start gap-2 border-0" style="background: rgba(245, 158, 11, 0.12); border-radius: 10px;">
+          <i class="fas fa-exclamation-triangle mt-1 text-warning"></i>
+          <div>This will safely remove all generated sample demo records from your database while keeping your user account active and clean.</div>
+        </div>
+      </div>
+      <div class="modal-footer border-top pt-2 pb-3 px-4">
+        <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+        <a href="{% if school_slug %}{% url 'core:switch_to_my_database' school_slug=school_slug %}{% elif school %}{% url 'core:switch_to_my_database' school_slug=school.slug %}{% else %}#{% endif %}" 
+           id="confirmExitSampleDataBtn"
+           class="btn btn-warning text-dark rounded-pill px-4 fw-semibold d-inline-flex align-items-center gap-2"
+           onclick="this.classList.add('disabled'); this.innerHTML='<span class=\'spinner-border spinner-border-sm\' role=\'status\'></span> Clearing Demo Data...';">
+          <i class="fas fa-trash-alt"></i> Exit Demo & Clean Database
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

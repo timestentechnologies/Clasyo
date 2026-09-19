@@ -2,363 +2,347 @@
 {% load static %}
 
 {% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Email Configuration - {{ school.name }}{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit Email Configuration{% else %}Add Email Configuration{% endif %}{% endblock %}
+{% block page_icon %}envelope{% endblock %}
+{% block page_subtitle %}Configure email settings for {{ school.name }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h1 class="h3 mb-0">{% if form.instance.pk %}Edit{% else %}Add{% endif %} Email Configuration</h1>
-                    <p class="text-muted mb-0">Configure email settings for {{ school.name }}</p>
+<div class="row g-4">
+    <!-- Main Form Panel -->
+    <div class="col-lg-8">
+        <div class="form-panel-view mb-4">
+            <div class="form-header-bar">
+                <div class="form-header-title-group">
+                    <h5 class="mb-0 fw-bold form-title-text">
+                        <i class="fas fa-envelope text-primary me-2"></i> Email Configuration Details
+                    </h5>
                 </div>
-                <div>
-                    <a href="{% url 'superadmin:school_email_config_list' school_slug=school.slug %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-2"></i>Back to Configurations
+                <div class="form-header-actions">
+                    <a href="{% url 'superadmin:school_email_config_list' school_slug=school.slug %}" class="btn btn-sm btn-secondary">
+                        Cancel
                     </a>
+                    <button type="submit" form="emailConfigForm" class="btn btn-sm btn-primary">
+                        <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Configuration{% else %}Save Configuration{% endif %}
+                    </button>
                 </div>
+            </div>
+
+            <div class="form-card-body">
+                <form method="post" id="emailConfigForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger mb-4">
+                        {% for error in form.non_field_errors %}
+                            <p class="mb-0"><i class="fas fa-exclamation-circle me-2"></i>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Basic Settings -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <label for="{{ form.provider.id_for_label }}" class="form-label fw-semibold">Email Provider <span class="text-danger">*</span></label>
+                            {{ form.provider }}
+                            {% if form.provider.errors %}
+                                <div class="invalid-feedback d-block mt-1">
+                                    {{ form.provider.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- From Email Settings -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="{{ form.from_email.id_for_label }}" class="form-label fw-semibold">From Email</label>
+                            {{ form.from_email }}
+                            <div class="form-text text-muted">Sender email address (e.g. notifications@school.com)</div>
+                            {% if form.from_email.errors %}
+                                <div class="invalid-feedback d-block mt-1">
+                                    {{ form.from_email.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.from_name.id_for_label }}" class="form-label fw-semibold">From Name</label>
+                            {{ form.from_name }}
+                            <div class="form-text text-muted">Sender display name (e.g. {{ school.name }})</div>
+                            {% if form.from_name.errors %}
+                                <div class="invalid-feedback d-block mt-1">
+                                    {{ form.from_name.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Usage Limits -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="{{ form.daily_limit.id_for_label }}" class="form-label fw-semibold">Daily Email Limit</label>
+                            {{ form.daily_limit }}
+                            <div class="form-text text-muted">Maximum emails per day (0 = unlimited)</div>
+                            {% if form.daily_limit.errors %}
+                                <div class="invalid-feedback d-block mt-1">
+                                    {{ form.daily_limit.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.monthly_limit.id_for_label }}" class="form-label fw-semibold">Monthly Email Limit</label>
+                            {{ form.monthly_limit }}
+                            <div class="form-text text-muted">Maximum emails per month (0 = unlimited)</div>
+                            {% if form.monthly_limit.errors %}
+                                <div class="invalid-feedback d-block mt-1">
+                                    {{ form.monthly_limit.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Provider-specific fields -->
+                    <div id="provider-fields">
+                        <!-- SMTP Fields -->
+                        <div id="smtp-fields" class="provider-specific-fields" style="display: none;">
+                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                                <i class="fas fa-server me-2"></i>SMTP Configuration
+                            </h6>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="{{ form.smtp_host.id_for_label }}" class="form-label fw-semibold">SMTP Host *</label>
+                                    {{ form.smtp_host }}
+                                    {% if form.smtp_host.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.smtp_host.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="{{ form.smtp_port.id_for_label }}" class="form-label fw-semibold">Port *</label>
+                                    {{ form.smtp_port }}
+                                    {% if form.smtp_port.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.smtp_port.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-3 d-flex flex-column justify-content-center">
+                                    <label class="form-label fw-semibold mb-2">Security</label>
+                                    <div class="d-flex gap-3">
+                                        <div class="form-check">
+                                            {{ form.smtp_use_tls }}
+                                            <label class="form-check-label" for="{{ form.smtp_use_tls.id_for_label }}">TLS</label>
+                                        </div>
+                                        <div class="form-check">
+                                            {{ form.smtp_use_ssl }}
+                                            <label class="form-check-label" for="{{ form.smtp_use_ssl.id_for_label }}">SSL</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="{{ form.smtp_username.id_for_label }}" class="form-label fw-semibold">Username</label>
+                                    {{ form.smtp_username }}
+                                    {% if form.smtp_username.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.smtp_username.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.smtp_password.id_for_label }}" class="form-label fw-semibold">Password</label>
+                                    {{ form.smtp_password }}
+                                    {% if form.smtp_password.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.smtp_password.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SendGrid Fields -->
+                        <div id="sendgrid-fields" class="provider-specific-fields" style="display: none;">
+                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                                <i class="fas fa-server me-2"></i>SendGrid Configuration
+                            </h6>
+                            <div class="row g-3 mb-3">
+                                <div class="col-12">
+                                    <label for="{{ form.sendgrid_api_key.id_for_label }}" class="form-label fw-semibold">API Key *</label>
+                                    {{ form.sendgrid_api_key }}
+                                    <div class="form-text text-muted">SendGrid API key with Mail Send permissions</div>
+                                    {% if form.sendgrid_api_key.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.sendgrid_api_key.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mailgun Fields -->
+                        <div id="mailgun-fields" class="provider-specific-fields" style="display: none;">
+                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                                <i class="fas fa-server me-2"></i>Mailgun Configuration
+                            </h6>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="{{ form.mailgun_api_key.id_for_label }}" class="form-label fw-semibold">API Key *</label>
+                                    {{ form.mailgun_api_key }}
+                                    {% if form.mailgun_api_key.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.mailgun_api_key.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.mailgun_domain.id_for_label }}" class="form-label fw-semibold">Domain *</label>
+                                    {{ form.mailgun_domain }}
+                                    {% if form.mailgun_domain.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.mailgun_domain.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Amazon SES Fields -->
+                        <div id="ses-fields" class="provider-specific-fields" style="display: none;">
+                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                                <i class="fas fa-server me-2"></i>Amazon SES Configuration
+                            </h6>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <label for="{{ form.ses_access_key_id.id_for_label }}" class="form-label fw-semibold">Access Key ID *</label>
+                                    {{ form.ses_access_key_id }}
+                                    {% if form.ses_access_key_id.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.ses_access_key_id.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="{{ form.ses_secret_access_key.id_for_label }}" class="form-label fw-semibold">Secret Access Key *</label>
+                                    {{ form.ses_secret_access_key }}
+                                    {% if form.ses_secret_access_key.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.ses_secret_access_key.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="{{ form.ses_region_name.id_for_label }}" class="form-label fw-semibold">Region</label>
+                                    {{ form.ses_region_name }}
+                                    {% if form.ses_region_name.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.ses_region_name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Postmark Fields -->
+                        <div id="postmark-fields" class="provider-specific-fields" style="display: none;">
+                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                                <i class="fas fa-server me-2"></i>Postmark Configuration
+                            </h6>
+                            <div class="row g-3 mb-3">
+                                <div class="col-12">
+                                    <label for="{{ form.postmark_server_token.id_for_label }}" class="form-label fw-semibold">Server Token *</label>
+                                    {{ form.postmark_server_token }}
+                                    {% if form.postmark_server_token.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.postmark_server_token.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Toggles at bottom -->
+                    <div class="d-flex flex-wrap gap-4 pt-3 mt-3 border-top">
+                        <div class="form-check form-switch mb-0">
+                            {{ form.is_active }}
+                            <label class="form-check-label ms-2" for="{{ form.is_active.id_for_label }}">Enable this configuration</label>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            {{ form.use_global_settings }}
+                            <label class="form-check-label ms-2" for="{{ form.use_global_settings.id_for_label }}">Use global settings as fallback</label>
+                        </div>
+                    </div>
+
+                    <!-- Hidden school field if present -->
+                    {% if form.school %}{{ form.school }}{% endif %}
+
+                </form>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Email Configuration Details</h5>
+    <!-- Side Instructions Panel -->
+    <div class="col-lg-4">
+        <!-- Configuration Help Card -->
+        <div class="form-panel-view mb-4">
+            <div class="form-header-bar">
+                <div class="form-header-title-group">
+                    <h6 class="mb-0 fw-bold form-title-text">
+                        <i class="fas fa-info-circle text-primary me-2"></i> Configuration Help
+                    </h6>
                 </div>
-                <div class="card-body">
-                    <form method="post" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        
-                        <!-- Basic Settings -->
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="{{ form.provider.id_for_label }}" class="form-label">Email Provider *</label>
-                                {{ form.provider }}
-                                {% if form.provider.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {{ form.provider.errors.0 }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6">
-                                <label for="{{ form.is_active.id_for_label }}" class="form-label">Status</label>
-                                <div class="form-check mt-2">
-                                    {{ form.is_active }}
-                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
-                                        Enable this configuration
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
+            </div>
+            <div class="form-card-body">
+                <div id="smtp-help" class="provider-help" style="display: none;">
+                    <h6 class="fw-bold mb-2">SMTP Setup</h6>
+                    <p class="small text-muted mb-2">Configure custom mail server or Google Workspace SMTP.</p>
+                    <ul class="small text-muted ps-3 mb-0">
+                        <li>Host: e.g. <code>smtp.gmail.com</code></li>
+                        <li>Port: 587 (TLS) or 465 (SSL)</li>
+                        <li>Use an App Password if 2-Step Verification is active</li>
+                    </ul>
+                </div>
 
-                        <!-- Global Settings Override -->
-                        <div class="row mb-3">
-                            <div class="col-12">
-                                <div class="form-check">
-                                    {{ form.use_global_settings }}
-                                    <label class="form-check-label" for="{{ form.use_global_settings.id_for_label }}">
-                                        Use global settings as fallback
-                                    </label>
-                                    <small class="form-text text-muted">If checked, global settings will be used when local settings are not available</small>
-                                </div>
-                            </div>
-                        </div>
+                <div id="sendgrid-help" class="provider-help" style="display: none;">
+                    <h6 class="fw-bold mb-2">SendGrid Setup</h6>
+                    <p class="small text-muted mb-2">High-deliverability cloud transactional email.</p>
+                    <ul class="small text-muted ps-3 mb-0">
+                        <li>Create an API Key with "Full Access" or "Mail Send"</li>
+                        <li>Verify Single Sender or Domain Authentication in SendGrid</li>
+                    </ul>
+                </div>
 
-                        <!-- From Email Settings -->
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="{{ form.custom_from_email.id_for_label }}" class="form-label">Custom From Email</label>
-                                {{ form.custom_from_email }}
-                                <small class="form-text text-muted">Overrides the default from email address</small>
-                                {% if form.custom_from_email.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {{ form.custom_from_email.errors.0 }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6">
-                                <label for="{{ form.custom_from_name.id_for_label }}" class="form-label">Custom From Name</label>
-                                {{ form.custom_from_name }}
-                                <small class="form-text text-muted">Overrides the default from name</small>
-                                {% if form.custom_from_name.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {{ form.custom_from_name.errors.0 }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
+                <div id="mailgun-help" class="provider-help" style="display: none;">
+                    <h6 class="fw-bold mb-2">Mailgun Setup</h6>
+                    <p class="small text-muted mb-2">Developer-friendly email API service.</p>
+                    <ul class="small text-muted ps-3 mb-0">
+                        <li>Copy Primary Account API Key from Mailgun settings</li>
+                        <li>Use your verified sending domain (e.g. <code>mg.school.com</code>)</li>
+                    </ul>
+                </div>
 
-                        <!-- Usage Limits -->
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="{{ form.daily_email_limit.id_for_label }}" class="form-label">Daily Email Limit</label>
-                                {{ form.daily_email_limit }}
-                                <small class="form-text text-muted">Maximum emails per day (0 = unlimited)</small>
-                                {% if form.daily_email_limit.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {{ form.daily_email_limit.errors.0 }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6">
-                                <label for="{{ form.monthly_email_limit.id_for_label }}" class="form-label">Monthly Email Limit</label>
-                                {{ form.monthly_email_limit }}
-                                <small class="form-text text-muted">Maximum emails per month (0 = unlimited)</small>
-                                {% if form.monthly_email_limit.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {{ form.monthly_email_limit.errors.0 }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
+                <div id="ses-help" class="provider-help" style="display: none;">
+                    <h6 class="fw-bold mb-2">Amazon SES Setup</h6>
+                    <p class="small text-muted mb-2">AWS Simple Email Service for institutional scale.</p>
+                    <ul class="small text-muted ps-3 mb-0">
+                        <li>Create an IAM user with <code>ses:SendEmail</code> policy</li>
+                        <li>Verify sending domain identity in AWS SES Console</li>
+                    </ul>
+                </div>
 
-                        <!-- Provider-specific fields -->
-                        <div id="provider-fields">
-                            <!-- SMTP Fields -->
-                            <div id="smtp-fields" class="provider-specific-fields" style="display: none;">
-                                <h6 class="mt-4 mb-3">SMTP Configuration</h6>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="{{ form.smtp_host.id_for_label }}" class="form-label">SMTP Host *</label>
-                                        {{ form.smtp_host }}
-                                        {% if form.smtp_host.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.smtp_host.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label for="{{ form.smtp_port.id_for_label }}" class="form-label">Port *</label>
-                                        {{ form.smtp_port }}
-                                        {% if form.smtp_port.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.smtp_port.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label for="{{ form.smtp_security.id_for_label }}" class="form-label">Security</label>
-                                        {{ form.smtp_security }}
-                                        {% if form.smtp_security.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.smtp_security.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="{{ form.smtp_username.id_for_label }}" class="form-label">Username</label>
-                                        {{ form.smtp_username }}
-                                        {% if form.smtp_username.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.smtp_username.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="{{ form.smtp_password.id_for_label }}" class="form-label">Password</label>
-                                        {{ form.smtp_password }}
-                                        {% if form.smtp_password.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.smtp_password.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
+                <div id="postmark-help" class="provider-help" style="display: none;">
+                    <h6 class="fw-bold mb-2">Postmark Setup</h6>
+                    <p class="small text-muted mb-2">Fast transactional email service.</p>
+                    <ul class="small text-muted ps-3 mb-0">
+                        <li>Copy Server API Token from your Postmark Server</li>
+                        <li>Verify sender email address or domain DKIM records</li>
+                    </ul>
+                </div>
 
-                            <!-- SendGrid Fields -->
-                            <div id="sendgrid-fields" class="provider-specific-fields" style="display: none;">
-                                <h6 class="mt-4 mb-3">SendGrid Configuration</h6>
-                                <div class="row mb-3">
-                                    <div class="col-12">
-                                        <label for="{{ form.sendgrid_api_key.id_for_label }}" class="form-label">API Key *</label>
-                                        {{ form.sendgrid_api_key }}
-                                        {% if form.sendgrid_api_key.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.sendgrid_api_key.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Mailgun Fields -->
-                            <div id="mailgun-fields" class="provider-specific-fields" style="display: none;">
-                                <h6 class="mt-4 mb-3">Mailgun Configuration</h6>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="{{ form.mailgun_api_key.id_for_label }}" class="form-label">API Key *</label>
-                                        {{ form.mailgun_api_key }}
-                                        {% if form.mailgun_api_key.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.mailgun_api_key.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="{{ form.mailgun_domain.id_for_label }}" class="form-label">Domain *</label>
-                                        {{ form.mailgun_domain }}
-                                        {% if form.mailgun_domain.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.mailgun_domain.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Amazon SES Fields -->
-                            <div id="ses-fields" class="provider-specific-fields" style="display: none;">
-                                <h6 class="mt-4 mb-3">Amazon SES Configuration</h6>
-                                <div class="row mb-3">
-                                    <div class="col-md-4">
-                                        <label for="{{ form.ses_access_key.id_for_label }}" class="form-label">Access Key *</label>
-                                        {{ form.ses_access_key }}
-                                        {% if form.ses_access_key.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.ses_access_key.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="{{ form.ses_secret_key.id_for_label }}" class="form-label">Secret Key *</label>
-                                        {{ form.ses_secret_key }}
-                                        {% if form.ses_secret_key.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.ses_secret_key.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="{{ form.ses_region.id_for_label }}" class="form-label">Region</label>
-                                        {{ form.ses_region }}
-                                        {% if form.ses_region.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.ses_region.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Postmark Fields -->
-                            <div id="postmark-fields" class="provider-specific-fields" style="display: none;">
-                                <h6 class="mt-4 mb-3">Postmark Configuration</h6>
-                                <div class="row mb-3">
-                                    <div class="col-12">
-                                        <label for="{{ form.postmark_server_token.id_for_label }}" class="form-label">Server Token *</label>
-                                        {{ form.postmark_server_token }}
-                                        {% if form.postmark_server_token.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.postmark_server_token.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Hidden school field -->
-                        {{ form.school }}
-
-                        <div class="d-flex justify-content-between mt-4">
-                            <a href="{% url 'superadmin:school_email_config_list' school_slug=school.slug %}" class="btn btn-secondary">
-                                Cancel
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                {% if form.instance.pk %}
-                                    <i class="fas fa-save me-2"></i>Update Configuration
-                                {% else %}
-                                    <i class="fas fa-plus me-2"></i>Create Configuration
-                                {% endif %}
-                            </button>
-                        </div>
-                    </form>
+                <div id="default-help" class="provider-help">
+                    <p class="small text-muted mb-0">
+                        <i class="fas fa-hand-pointer text-primary me-1"></i> Select an Email Provider on the left to see provider-specific setup instructions.
+                    </p>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Configuration Help</h5>
-                </div>
-                <div class="card-body">
-                    <div id="smtp-help" class="provider-help" style="display: none;">
-                        <h6>SMTP Configuration</h6>
-                        <p class="small text-muted">Configure your SMTP server for email delivery.</p>
-                        <ul class="small text-muted">
-                            <li>Host: SMTP server address (e.g., smtp.gmail.com)</li>
-                            <li>Port: Usually 587 (TLS) or 465 (SSL)</li>
-                            <li>Security: Choose TLS, SSL, or None</li>
-                            <li>Username/Password: Your SMTP credentials</li>
-                        </ul>
-                    </div>
-
-                    <div id="sendgrid-help" class="provider-help" style="display: none;">
-                        <h6>SendGrid Configuration</h6>
-                        <p class="small text-muted">SendGrid is a cloud-based email service.</p>
-                        <ul class="small text-muted">
-                            <li>Get API Key from SendGrid dashboard</li>
-                            <li>Ensure sender is verified in SendGrid</li>
-                            <li>API Key should have "Mail Send" permissions</li>
-                        </ul>
-                    </div>
-
-                    <div id="mailgun-help" class="provider-help" style="display: none;">
-                        <h6>Mailgun Configuration</h6>
-                        <p class="small text-muted">Mailgun provides developer-friendly email APIs.</p>
-                        <ul class="small text-muted">
-                            <li>Get API Key from Mailgun control panel</li>
-                            <li>Domain must be verified in Mailgun</li>
-                            <li>Use sandbox domain for testing</li>
-                        </ul>
-                    </div>
-
-                    <div id="ses-help" class="provider-help" style="display: none;">
-                        <h6>Amazon SES Configuration</h6>
-                        <p class="small text-muted">AWS Simple Email Service for scalable delivery.</p>
-                        <ul class="small text-muted">
-                            <li>Create IAM user with SES permissions</li>
-                            <li>Verify your sending domain in SES</li>
-                            <li>Move out of sandbox mode for production</li>
-                        </ul>
-                    </div>
-
-                    <div id="postmark-help" class="provider-help" style="display: none;">
-                        <h6>Postmark Configuration</h6>
-                        <p class="small text-muted">Postmark offers fast and reliable email delivery.</p>
-                        <ul class="small text-muted">
-                            <li>Get Server Token from Postmark dashboard</li>
-                            <li>Verify sender signatures</li>
-                            <li>Monitor delivery statistics</li>
-                        </ul>
-                    </div>
-
-                    <div id="default-help" class="provider-help">
-                        <p class="small text-muted">Select an email provider to see configuration help.</p>
-                    </div>
+        <!-- Best Practices Card -->
+        <div class="form-panel-view mb-4">
+            <div class="form-header-bar">
+                <div class="form-header-title-group">
+                    <h6 class="mb-0 fw-bold form-title-text">
+                        <i class="fas fa-shield-alt text-primary me-2"></i> Email Best Practices
+                    </h6>
                 </div>
             </div>
-
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Best Practices</h5>
-                </div>
-                <div class="card-body">
-                    <ul class="small text-muted">
-                        <li>Always use secure connections (TLS/SSL)</li>
-                        <li>Test configuration before enabling</li>
-                        <li>Set reasonable usage limits</li>
-                        <li>Monitor email delivery rates</li>
-                        <li>Keep API credentials secure</li>
-                        <li>Use custom from email for branding</li>
-                    </ul>
-                </div>
+            <div class="form-card-body">
+                <ul class="small text-muted ps-3 mb-0">
+                    <li class="mb-1">Always use encrypted connections (TLS/SSL)</li>
+                    <li class="mb-1">Verify SPF and DKIM records on your school domain to prevent emails from landing in spam</li>
+                    <li class="mb-1">Set realistic daily limits to safeguard sender reputation</li>
+                    <li>Ensure <code>From Email</code> matches the authenticated sending domain</li>
+                </ul>
             </div>
         </div>
     </div>
@@ -370,6 +354,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const useGlobalCheckbox = document.getElementById('{{ form.use_global_settings.id_for_label }}');
     
     function toggleProviderFields() {
+        if (!providerSelect) return;
         const selectedProvider = providerSelect.value;
         
         // Hide all provider-specific fields
@@ -383,21 +368,31 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Show selected provider fields
-        const selectedFields = document.getElementById(selectedProvider + '-fields');
-        if (selectedFields) {
-            selectedFields.style.display = 'block';
-        }
-        
-        // Show selected provider help
-        const selectedHelp = document.getElementById(selectedProvider + '-help');
-        if (selectedHelp) {
-            selectedHelp.style.display = 'block';
+        if (selectedProvider) {
+            const selectedFields = document.getElementById(selectedProvider + '-fields');
+            if (selectedFields) {
+                selectedFields.style.display = 'block';
+            }
+            
+            // Show selected provider help
+            const selectedHelp = document.getElementById(selectedProvider + '-help');
+            if (selectedHelp) {
+                selectedHelp.style.display = 'block';
+            } else {
+                const defaultHelp = document.getElementById('default-help');
+                if (defaultHelp) defaultHelp.style.display = 'block';
+            }
+        } else {
+            const defaultHelp = document.getElementById('default-help');
+            if (defaultHelp) defaultHelp.style.display = 'block';
         }
     }
     
     function toggleGlobalSettings() {
+        if (!useGlobalCheckbox) return;
         const useGlobal = useGlobalCheckbox.checked;
         const providerFields = document.getElementById('provider-fields');
+        if (!providerFields) return;
         
         if (useGlobal) {
             providerFields.style.opacity = '0.6';
@@ -417,9 +412,12 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleGlobalSettings();
     
     // Event listeners
-    providerSelect.addEventListener('change', toggleProviderFields);
-    useGlobalCheckbox.addEventListener('change', toggleGlobalSettings);
+    if (providerSelect) {
+        providerSelect.addEventListener('change', toggleProviderFields);
+    }
+    if (useGlobalCheckbox) {
+        useGlobalCheckbox.addEventListener('change', toggleGlobalSettings);
+    }
 });
 </script>
-
 {% endblock %}

@@ -72,17 +72,22 @@ class SubscriptionEnforcementMiddleware(MiddlewareMixin):
         if not slug:
             return None
 
-        # Demo school is always free sample data - completely exempt from subscription and trial enforcement
+        # Demo school never expires by default, but respects superadmin configuration if explicitly set
         if slug in ('demo-school', 'demo') or 'demo' in str(slug).lower():
+            demo_obj = School.objects.filter(slug=slug).first()
+            if demo_obj:
+                if hasattr(demo_obj, 'is_active') and demo_obj.is_active is False:
+                    billing_url = reverse('core:billing', kwargs={'school_slug': slug})
+                    return redirect(f"{billing_url}?expired=1&reason=subscription")
+                if demo_obj.subscription_end_date and demo_obj.subscription_end_date < timezone.now().date():
+                    billing_url = reverse('core:billing', kwargs={'school_slug': slug})
+                    return redirect(f"{billing_url}?expired=1&reason=subscription")
             return None
 
         if path.startswith(f'/school/{slug}/billing/') or path == f'/school/{slug}/billing/':
             return None
         school = School.objects.filter(slug=slug).first()
         if not school:
-            return None
-
-        if school.slug in ('demo-school', 'demo') or 'demo' in str(school.slug).lower():
             return None
         # If school is deactivated, treat as expired/suspended and redirect to billing
         if hasattr(school, 'is_active') and school.is_active is False:

@@ -6,82 +6,87 @@
 {% block page_title %}Calendar{% endblock %}
 {% block page_subtitle %}Academic and School Events Calendar{% endblock %}
 {% block page_actions %}
-<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEventModal">
-    <i class="fas fa-plus"></i> Add Event
+<button class="btn btn-primary" onclick="toggleInPageFormView('calendarViewCard', 'eventFormPanel', 'create')">
+    <i class="fas fa-plus me-1"></i> Add Event
 </button>
 {% endblock %}
 
 {% block content %}
-<div class="modern-card">
-    <div id="calendar"></div>
-</div>
-
-<!-- Add Event Modal -->
-<div class="modal fade" id="addEventModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-calendar-plus"></i> Add Event</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- Shared In-Page Single Form Panel -->
+<div class="form-panel-view d-none" id="eventFormPanel">
+    <div class="form-header-bar">
+        <div class="form-header-title-group">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('calendarViewCard', 'eventFormPanel', 'list')">
+                <i class="fas fa-arrow-left me-1"></i> Back to Calendar
+            </button>
+            <h5 class="mb-0 fw-bold form-title-text" data-create-title="Add Event" data-edit-title="Edit Event">Add Event</h5>
+            <span class="form-mode-badge mode-create">New</span>
+        </div>
+        <div class="form-header-actions">
+            <button type="button" class="btn btn-sm btn-light" onclick="toggleInPageFormView('calendarViewCard', 'eventFormPanel', 'list')">Cancel</button>
+            <button type="button" class="btn btn-sm btn-primary form-submit-btn" onclick="submitEvent()">
+                <i class="fas fa-save me-1"></i> Save Event
+            </button>
+        </div>
+    </div>
+    <div class="form-card-body">
+        <form id="addEventForm">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="title" class="form-label fw-semibold">Event Title *</label>
+                <input type="text" class="form-control" id="title" name="title" required placeholder="e.g. Science Fair / Sports Day">
             </div>
-            <div class="modal-body">
-                <form id="addEventForm">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="title" class="form-label">Event Title</label>
-                        <input type="text" class="form-control" id="title" name="title" required>
+            <div class="mb-3">
+                <label for="event_type" class="form-label fw-semibold">Event Type *</label>
+                <select class="form-select" id="event_type" name="event_type" required>
+                    <option value="holiday">Holiday</option>
+                    <option value="exam">Examination</option>
+                    <option value="meeting">Meeting</option>
+                    <option value="event">School Event</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="start_date" class="form-label fw-semibold">Start Date &amp; Time *</label>
+                <div class="row g-2">
+                    <div class="col-7 col-md-8">
+                        <input type="date" class="form-control" id="start_date" name="start_date" required>
                     </div>
-                    <div class="mb-3">
-                        <label for="event_type" class="form-label">Event Type</label>
-                        <select class="form-select" id="event_type" name="event_type" required>
-                            <option value="holiday">Holiday</option>
-                            <option value="exam">Examination</option>
-                            <option value="meeting">Meeting</option>
-                            <option value="event">School Event</option>
-                            <option value="other">Other</option>
-                        </select>
+                    <div class="col-5 col-md-4">
+                        <input type="time" class="form-control" id="start_time" name="start_time">
                     </div>
-                    <div class="mb-3">
-                        <label for="start_date" class="form-label">Start Date &amp; Time</label>
-                        <div class="row g-2">
-                            <div class="col-7 col-md-8">
-                                <input type="date" class="form-control" id="start_date" name="start_date" required>
-                            </div>
-                            <div class="col-5 col-md-4">
-                                <input type="time" class="form-control" id="start_time" name="start_time">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="end_date" class="form-label">End Date &amp; Time</label>
-                        <div class="row g-2">
-                            <div class="col-7 col-md-8">
-                                <input type="date" class="form-control" id="end_date" name="end_date" required>
-                            </div>
-                            <div class="col-5 col-md-4">
-                                <input type="time" class="form-control" id="end_time" name="end_time">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="location" class="form-label">Location</label>
-                        <input type="text" class="form-control" id="location" name="location">
-                    </div>
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-                    </div>
-                </form>
-                <div id="selected-date-events" class="mt-3" style="display: none;">
-                    <h6 class="mb-2">Events on <span id="selected-date-label"></span></h6>
-                    <ul id="selected-date-events-list" class="list-unstyled small mb-0"></ul>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitEvent()">Add Event</button>
+            <div class="mb-3">
+                <label for="end_date" class="form-label fw-semibold">End Date &amp; Time *</label>
+                <div class="row g-2">
+                    <div class="col-7 col-md-8">
+                        <input type="date" class="form-control" id="end_date" name="end_date" required>
+                    </div>
+                    <div class="col-5 col-md-4">
+                        <input type="time" class="form-control" id="end_time" name="end_time">
+                    </div>
+                </div>
             </div>
+            <div class="mb-3">
+                <label for="location" class="form-label fw-semibold">Location</label>
+                <input type="text" class="form-control" id="location" name="location" placeholder="e.g. School Auditorium / Sports Field">
+            </div>
+            <div class="mb-3">
+                <label for="description" class="form-label fw-semibold">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="3" placeholder="Additional details about the event..."></textarea>
+            </div>
+        </form>
+        <div id="selected-date-events" class="mt-3" style="display: none;">
+            <h6 class="mb-2">Events on <span id="selected-date-label"></span></h6>
+            <ul id="selected-date-events-list" class="list-unstyled small mb-0"></ul>
         </div>
+    </div>
+</div>
+
+<div id="calendarViewCard">
+    <div class="modern-card">
+        <div id="calendar"></div>
     </div>
 </div>
 
@@ -102,6 +107,8 @@ function submitEvent() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            form.reset();
+            toggleInPageFormView('calendarViewCard', 'eventFormPanel', 'list');
             showSuccessAndReload('Event created successfully!');
         } else {
             showError(data.error || 'Failed to create event');
@@ -327,15 +334,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function showAddEventModal() {
-        const modalEl = document.getElementById('addEventModal');
-        if (!modalEl) return;
-
-        if (window.bootstrap && window.bootstrap.Modal) {
-            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-            modal.show();
-        } else if (typeof $ !== 'undefined' && typeof $(modalEl).modal === 'function') {
-            $(modalEl).modal('show');
-        }
+        toggleInPageFormView('calendarViewCard', 'eventFormPanel', 'create');
     }
 
     window.currentMonth = currentMonth;

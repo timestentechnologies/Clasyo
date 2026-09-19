@@ -1,0 +1,592 @@
+/* apps-home.css - Global Styles for School Apps Launcher */
+
+:root {
+    --primary: var(--brand-primary, #0284C7);
+    --primary-hover: var(--brand-accent, #38BDF8);
+    --system-icon-color: #0284C7;
+    --system-icon: var(--system-icon-color, var(--brand-primary, #0284C7));
+    --dark-bg: linear-gradient(135deg, #1a1f3a 0%, #2a3042 100%);
+    --dark-text: #ffffff;
+    --dark-text-secondary: rgba(255, 255, 255, 0.7);
+    --light-bg: #f8fafc;
+    --light-text: #0f172a;
+    --light-text-secondary: #475569;
+    --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dark"],
+[data-bs-theme="dark"],
+html.theme-dark,
+html[data-theme="dark"],
+body.theme-dark,
+body.dark-theme,
+body[data-theme="dark"] {
+    --primary: var(--brand-primary, #38BDF8);
+    --primary-hover: var(--brand-accent, #4DD0E1);
+    --system-icon: var(--system-icon-color, #38BDF8);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Base Styles & Original Geometric Striped Background */
+html,
+body {
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    transition: var(--transition);
+}
+
+body {
+    background:
+        linear-gradient(111deg, transparent 10%, rgba(77, 208, 225, 0.09) 10%, rgba(77, 208, 225, 0.09) 45%, transparent 45%),
+        linear-gradient(111deg, transparent 48%, rgba(37, 41, 63, 0.3) 48%, rgba(26, 31, 58, 0.3) 78%, transparent 78%),
+        linear-gradient(111deg, transparent 82%, rgba(255, 153, 0, 0.108) 82%, rgba(255, 152, 0, 0.06) 110%, transparent 110%),
+        var(--dark-bg);
+    background-attachment: fixed;
+    color: var(--dark-text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Light Theme Background & Text (Diagonal geometric stripes) */
+[data-theme="light"],
+[data-theme="light"] body,
+[data-bs-theme="light"] body,
+html.theme-light,
+html[data-theme="light"],
+html[data-theme="light"] body,
+html[data-bs-theme="light"] body,
+body.theme-light,
+body.light-theme,
+body[data-theme="light"] {
+    background:
+        linear-gradient(111deg, transparent 10%, rgba(77, 208, 225, 0.06) 10%, rgba(77, 208, 225, 0.06) 45%, transparent 45%),
+        linear-gradient(111deg, transparent 48%, rgba(0, 31, 63, 0.04) 48%, rgba(0, 31, 63, 0.04) 78%, transparent 78%),
+        linear-gradient(111deg, transparent 82%, rgba(255, 153, 0, 0.073) 82%, rgba(255, 152, 0, 0.05) 110%, transparent 110%),
+        #f8fafc !important;
+    background-color: #f8fafc !important;
+    background-attachment: fixed !important;
+    color: var(--light-text) !important;
+}
+
+/* Dark Theme Background & Text (Exact same diagonal geometric stripes style as light theme) */
+[data-theme="dark"],
+[data-theme="dark"] body,
+[data-bs-theme="dark"] body,
+html.theme-dark,
+html[data-theme="dark"],
+html[data-theme="dark"] body,
+html[data-bs-theme="dark"] body,
+body.theme-dark,
+body.dark-theme,
+body[data-theme="dark"] {
+    background:
+        linear-gradient(111deg, transparent 10%, rgba(77, 208, 225, 0.09) 10%, rgba(77, 208, 225, 0.09) 45%, transparent 45%),
+        linear-gradient(111deg, transparent 48%, rgba(255, 255, 255, 0.035) 48%, rgba(255, 255, 255, 0.035) 78%, transparent 78%),
+        linear-gradient(111deg, transparent 82%, rgba(255, 153, 0, 0.09) 82%, rgba(255, 152, 0, 0.05) 110%, transparent 110%),
+        var(--dark-unified-bg, #0F172A) !important;
+    background-color: var(--dark-unified-bg, #0F172A) !important;
+    background-attachment: fixed !important;
+    color: var(--dark-text, #ffffff) !important;
+}
+
+/* Header Styles */
+.apps-header {
+    background: transparent !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+    padding: 1.25rem 2rem 0.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    transition: all 0.3s ease;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    max-width: 1440px;
+    margin: 0 auto;
+}
+
+.school-info {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.school-logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent !important;
+    flex-shrink: 0;
+}
+
+.school-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 10px;
+}
+
+.school-name h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0;
+    color: #ffffff;
+    line-height: 1.25;
+}
+
+.school-name p {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+    font-weight: 500;
+}
+
+[data-theme="light"] .school-name h2,
+body.theme-light .school-name h2 {
+    color: #0f172a !important;
+}
+
+[data-theme="light"] .school-name p,
+body.theme-light .school-name p {
+    color: #64748b !important;
+}
+
+/* Search Box */
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+.search-box i {
+    position: absolute;
+    left: 1.15rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--system-icon-color, var(--primary, #0284C7)) !important;
+    font-size: 0.95rem;
+    pointer-events: none;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 0.65rem 1.25rem 0.65rem 3rem !important;
+    font-size: 0.95rem;
+    border-radius: 20px !important;
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+    transition: var(--transition);
+    outline: none !important;
+}
+
+.search-box input:focus {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    border-color: var(--primary, #0284C7) !important;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.25) !important;
+}
+
+.search-box input::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+[data-theme="light"] .search-box input,
+body.theme-light .search-box input {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #0f172a !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme="light"] .search-box input:focus,
+body.theme-light .search-box input:focus {
+    border-color: var(--primary, #0284C7) !important;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2) !important;
+}
+
+[data-theme="light"] .search-box input::placeholder,
+body.theme-light .search-box input::placeholder {
+    color: #94a3b8 !important;
+}
+
+/* User Profile & Dropdown */
+.user-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    background: var(--primary, #0284C7);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.user-avatar:hover {
+    transform: scale(1.06);
+}
+
+.user-profile-dropdown {
+    border-radius: 12px !important;
+    padding: 0.5rem !important;
+    min-width: 250px !important;
+    z-index: 1050 !important;
+    background: #1e293b !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    color: #f1f5f9 !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
+}
+
+.user-profile-dropdown .dropdown-item {
+    color: #e2e8f0 !important;
+    border-radius: 8px;
+    font-size: 0.875rem;
+}
+
+.user-profile-dropdown .dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+}
+
+.user-profile-dropdown .dropdown-divider {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="light"] .user-profile-dropdown,
+body.theme-light .user-profile-dropdown {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .user-profile-dropdown .dropdown-item,
+body.theme-light .user-profile-dropdown .dropdown-item {
+    color: #334155 !important;
+}
+
+[data-theme="light"] .user-profile-dropdown .dropdown-item:hover,
+body.theme-light .user-profile-dropdown .dropdown-item:hover {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+[data-theme="light"] .user-profile-dropdown .dropdown-divider,
+body.theme-light .user-profile-dropdown .dropdown-divider {
+    border-color: #e2e8f0 !important;
+}
+
+/* Category Filter Buttons */
+.filter-section {
+    max-width: 1440px;
+    margin: 2.5rem auto 2rem !important;
+    padding: 0 2rem;
+    width: 100%;
+    text-align: center;
+}
+
+.filter-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0.45rem 1.25rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    border-radius: 25px !important;
+    cursor: pointer !important;
+    transition: var(--transition) !important;
+    outline: none !important;
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: none !important;
+}
+
+.filter-btn:hover {
+    background-color: rgba(255, 255, 255, 0.16) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+    transform: translateY(-1px) !important;
+}
+
+.filter-btn.active {
+    background-color: var(--primary, #0284C7) !important;
+    color: #ffffff !important;
+    border-color: var(--primary, #0284C7) !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35) !important;
+}
+
+[data-theme="light"] .filter-btn,
+body.theme-light .filter-btn {
+    background-color: rgba(255, 255, 255, 0.8) !important;
+    color: #64748b !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme="light"] .filter-btn:hover,
+body.theme-light .filter-btn:hover {
+    background-color: #ffffff !important;
+    color: #334155 !important;
+    border-color: #cbd5e1 !important;
+}
+
+[data-theme="light"] .filter-btn.active,
+body.theme-light .filter-btn.active {
+    background-color: var(--primary, #0284C7) !important;
+    color: #ffffff !important;
+    border-color: var(--primary, #0284C7) !important;
+}
+
+/* Apps Grid & Cards (NO OUTER BOX) */
+.apps-container {
+    padding: 0 2rem 4rem !important;
+    max-width: 1440px;
+    margin: 0 auto;
+    width: 100%;
+    flex: 1;
+}
+
+.apps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+    gap: 1.75rem 1rem;
+}
+
+/* The app-card itself is clean without an outer box */
+.app-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0.5rem;
+    text-decoration: none !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    min-height: auto;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.app-card:hover {
+    transform: translateY(-3px);
+}
+
+/* Small Inner Box for the App Icon */
+.app-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.65rem;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: var(--transition);
+}
+
+/* Light Theme Small Inner Box */
+[data-theme="light"] .app-icon,
+body.theme-light .app-icon,
+body.light-theme .app-icon,
+body[data-theme="light"] .app-icon,
+html[data-theme="light"] .app-icon {
+    background: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Dark Theme Small Inner Box */
+[data-theme="dark"] .app-icon,
+body.theme-dark .app-icon,
+body.dark-theme .app-icon,
+body[data-theme="dark"] .app-icon,
+html[data-theme="dark"] .app-icon {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Ensure App Icons strictly use the configured System Icon Color */
+.app-icon i,
+.app-card .app-icon i {
+    font-size: 24px;
+    color: var(--system-icon-color, var(--primary, #0284C7)) !important;
+    transition: var(--transition);
+}
+
+[data-theme="dark"] .app-icon i,
+[data-theme="dark"] .app-card .app-icon i,
+body.theme-dark .app-icon i,
+body.dark-theme .app-icon i,
+body[data-theme="dark"] .app-icon i,
+html[data-theme="dark"] .app-icon i {
+    color: var(--system-icon-color, #38BDF8) !important;
+}
+
+/* Hover on app-card highlights the small inner box */
+.app-card:hover .app-icon {
+    transform: translateY(-2px) scale(1.08);
+    background: var(--primary, #0284C7) !important;
+    border-color: var(--primary, #0284C7) !important;
+    box-shadow: 0 6px 18px rgba(2, 132, 199, 0.4) !important;
+}
+
+.app-card:hover .app-icon i {
+    color: #ffffff !important;
+}
+
+/* App Name / Label */
+.app-name {
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+    margin: 0;
+    line-height: 1.3;
+    transition: color 0.2s ease;
+    color: #f1f5f9 !important;
+}
+
+[data-theme="light"] .app-name,
+body.theme-light .app-name,
+html[data-theme="light"] .app-name {
+    color: #0f172a !important;
+    font-weight: 600 !important;
+}
+
+.app-card:hover .app-name {
+    color: var(--primary, #0284C7) !important;
+}
+
+/* Floating Theme Toggle */
+.theme-toggle {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 1000;
+}
+
+.theme-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    color: var(--system-icon-color, var(--primary, #0284C7)) !important;
+    font-size: 1.15rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.theme-btn:hover {
+    transform: translateY(-2px) scale(1.08);
+    background: rgba(2, 132, 199, 0.18) !important;
+    border-color: var(--primary, #0284C7) !important;
+    box-shadow: 0 4px 15px rgba(2, 132, 199, 0.25) !important;
+}
+
+[data-theme="light"] .theme-btn,
+body.theme-light .theme-btn {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid #e2e8f0 !important;
+    color: var(--system-icon-color, var(--primary, #0284C7)) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .theme-btn:hover,
+body.theme-light .theme-btn:hover {
+    background: rgba(2, 132, 199, 0.1) !important;
+    border-color: var(--primary, #0284C7) !important;
+}
+
+@media (max-width: 768px) {
+    .apps-header {
+        padding: 0.75rem 1rem;
+    }
+
+    .header-content {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .search-box {
+        max-width: 100%;
+    }
+
+    .filter-section {
+        padding: 0 1rem;
+        margin: 1.5rem auto 1.25rem !important;
+    }
+
+    .apps-container {
+        padding: 0 1rem 3rem !important;
+    }
+
+    .apps-grid {
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 1.25rem 0.5rem;
+    }
+
+    .app-icon {
+        width: 48px;
+        height: 48px;
+    }
+
+    .app-icon i {
+        font-size: 24px;
+    }
+}
+
+#calcDisplay:focus,
+#aiPrompt:focus {
+    outline: none !important;
+    border-color: var(--primary, #0284C7) !important;
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.3) !important;
+}

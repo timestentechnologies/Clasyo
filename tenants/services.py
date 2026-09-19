@@ -63,6 +63,15 @@ def provision_school_database(school) -> bool:
     except Exception as e:
         logger.warning(f"[Tenants] Error cloning School into tenant database {db_alias}: {e}")
 
+    # 5. Copy superadmin user records into tenant DB so platform administrators can access tenant portals
+    try:
+        from accounts.models import User
+        for sa in User.objects.using('default').filter(role='superadmin'):
+            if not User.objects.using(db_alias).filter(pk=sa.pk).exists():
+                sa.save(using=db_alias)
+    except Exception as e:
+        logger.warning(f"[Tenants] Error cloning superadmin users into {db_alias}: {e}")
+
     return True
 
 

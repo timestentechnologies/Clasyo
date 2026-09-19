@@ -427,6 +427,25 @@ class SectionCreateView(LoginRequiredMixin, CreateView):
             return JsonResponse({'success': False, 'error': str(e)})
 
 
+class SectionUpdateView(LoginRequiredMixin, UpdateView):
+    model = Section
+    fields = ['class_name', 'name', 'max_students', 'class_teacher', 'room', 'is_active']
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            section = self.get_object()
+            if request.POST.get('class_name'):
+                section.class_name_id = request.POST.get('class_name')
+            section.name = request.POST.get('name')
+            section.max_students = request.POST.get('max_students') or None
+            section.room = request.POST.get('room', '')
+            section.is_active = request.POST.get('is_active') == 'on'
+            section.save()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+
 class SectionDeleteView(LoginRequiredMixin, DeleteView):
     model = Section
     

@@ -8,26 +8,17 @@
 {% block page_subtitle %}Configure AI provider and API keys for {{ form.instance.school.name }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <a href="{% url 'core:settings' school_slug=form.instance.school.slug %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-2"></i>Back to Settings
-                    </a>
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="form-panel-view mb-4">
+            <div class="form-header-bar">
+                <div class="form-header-title-group">
+                    <h5 class="mb-0 fw-bold form-title-text">
+                        <i class="fas fa-robot text-primary me-2"></i> AI Provider & Settings
+                    </h5>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">General Settings</h5>
-                </div>
-                <div class="card-body">
+            <div class="form-card-body">
                     <form method="post" action="{% url 'superadmin:school_admin_ai_config' school_slug=form.instance.school.slug %}">
                         {% csrf_token %}
 

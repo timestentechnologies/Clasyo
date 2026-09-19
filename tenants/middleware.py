@@ -22,26 +22,29 @@ class TenantMiddleware(MiddlewareMixin):
             request.school = None
             return None
 
-        # 2. Resolve tenant by subdomain
-        host = request.get_host().split(':')[0]
-        parts = host.split('.')
         school = None
-        
-        if len(parts) > 2 or (len(parts) == 2 and parts[0] not in ['localhost', '127']):
-            subdomain = parts[0]
+
+        # 2. Resolve tenant from URL (e.g., /school/demo-school/)
+        path_parts = request.path.strip('/').split('/')
+        if len(path_parts) >= 2 and path_parts[0] == 'school':
+            slug = path_parts[1]
             try:
-                school = School.objects.using('default').get(slug=subdomain, is_active=True)
+                school = School.objects.using('default').get(slug=slug, is_active=True)
             except School.DoesNotExist:
                 school = None
-        else:
-            # 3. Resolve tenant from URL (e.g., /school/demo-school/)
-            path_parts = request.path.strip('/').split('/')
-            if len(path_parts) >= 2 and path_parts[0] == 'school':
-                slug = path_parts[1]
-                try:
-                    school = School.objects.using('default').get(slug=slug, is_active=True)
-                except School.DoesNotExist:
-                    school = None
+
+        # 3. Fallback: Resolve tenant by subdomain (e.g. tenant.domain.com) if not IP or localhost
+        if not school:
+            host = request.get_host().split(':')[0]
+            is_ip_or_local = host.replace('.', '').isdigit() or host in ('localhost', '127.0.0.1')
+            if not is_ip_or_local:
+                parts = host.split('.')
+                if len(parts) > 2:
+                    subdomain = parts[0]
+                    try:
+                        school = School.objects.using('default').get(slug=subdomain, is_active=True)
+                    except School.DoesNotExist:
+                        school = None
 
         request.tenant = school
         request.school = school

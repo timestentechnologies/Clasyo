@@ -418,6 +418,85 @@ class ProfileView(LoginRequiredMixin, DetailView):
         context['school_slug'] = school_slug
         return context
 
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        school_slug = getattr(request, 'school_slug', '')
+        if not school_slug and request.META.get('HTTP_REFERER'):
+            referer = request.META.get('HTTP_REFERER', '')
+            if '/school/' in referer:
+                parts = referer.split('/school/')
+                if len(parts) > 1:
+                    slug_part = parts[1].split('/')[0]
+                    if slug_part:
+                        school_slug = slug_part
+        
+        # 1. Update personal details
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        phone = request.POST.get('phone', '').strip()
+        nav_layout = request.POST.get('navigation_layout', '')
+        
+        if first_name:
+            user.first_name = first_name
+        if last_name:
+            user.last_name = last_name
+        user.phone = phone
+        if nav_layout in ['', 'sidebar', 'horizontal']:
+            user.navigation_layout = nav_layout
+            
+        if 'avatar' in request.FILES:
+            user.avatar = request.FILES['avatar']
+            
+        # 2. Check password change if any password field is entered
+        old_password = request.POST.get('old_password', '').strip()
+        new_password1 = request.POST.get('new_password1', '').strip()
+        new_password2 = request.POST.get('new_password2', '').strip()
+        
+        password_changed = False
+        if old_password or new_password1 or new_password2:
+            if not old_password:
+                messages.error(request, 'Please enter your current password to set a new password.')
+                if school_slug:
+                    return redirect('core:profile', school_slug=school_slug)
+                return redirect('accounts:profile')
+            if not user.check_password(old_password):
+                messages.error(request, 'Current password is incorrect.')
+                if school_slug:
+                    return redirect('core:profile', school_slug=school_slug)
+                return redirect('accounts:profile')
+            if not new_password1:
+                messages.error(request, 'Please enter a new password.')
+                if school_slug:
+                    return redirect('core:profile', school_slug=school_slug)
+                return redirect('accounts:profile')
+            if new_password1 != new_password2:
+                messages.error(request, 'New passwords do not match.')
+                if school_slug:
+                    return redirect('core:profile', school_slug=school_slug)
+                return redirect('accounts:profile')
+            if len(new_password1) < 8:
+                messages.error(request, 'New password must be at least 8 characters long.')
+                if school_slug:
+                    return redirect('core:profile', school_slug=school_slug)
+                return redirect('accounts:profile')
+            
+            user.set_password(new_password1)
+            password_changed = True
+            
+        try:
+            user.save()
+            if password_changed:
+                update_session_auth_hash(request, user)
+                messages.success(request, 'Profile and password updated successfully!')
+            else:
+                messages.success(request, 'Profile updated successfully!')
+        except Exception as e:
+            messages.error(request, f'Error updating profile: {str(e)}')
+            
+        if school_slug:
+            return redirect('core:profile', school_slug=school_slug)
+        return redirect('accounts:profile')
+
 
 class ProfileEditView(LoginRequiredMixin, UpdateView):
     """Edit user profile"""

@@ -112,6 +112,12 @@
                                 <td>{{ school.created_on|date:"M d, Y" }}</td>
                                 <td>
                                     <div class="btn-group" role="group">
+                                        {% if school.slug == 'demo-school' or 'demo' in school.slug %}
+                                        <a href="{% url 'superadmin:login_as_demo_admin' %}" 
+                                           class="btn btn-sm btn-outline-success" title="Open Demo School in New Tab" target="_blank" rel="noopener noreferrer">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </a>
+                                        {% endif %}
                                         <a href="{% url 'superadmin:school_detail' school.id %}" 
                                            class="btn btn-sm btn-outline-primary" title="View">
                                             <i class="fas fa-eye"></i>

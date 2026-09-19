@@ -6,29 +6,20 @@
 {% block extra_css %}{% endblock %}
 {% block page_title %}{{ school.name }}{% endblock %}
 {% block page_icon %}school{% endblock %}
-{% block page_subtitle %}School Details and Statistics{% endblock %}
+{% block page_subtitle %}School Details & Subscription{% endblock %}
 
-{% block page_actions %}
-<div class="btn-group" role="group">
-    <a href="{% url 'superadmin:schools' %}" class="btn btn-secondary">
-        <i class="fas fa-arrow-left"></i> Back to Schools
-    </a>
-    <a href="{% url 'superadmin:school_edit' school.id %}" class="btn btn-primary">
-        <i class="fas fa-edit"></i> Edit School
-    </a>
-</div>
-{% endblock %}
+{% block page_actions %}{% endblock %}
 
 {% block content %}
 
 <!-- Smart Actions Bar -->
 <div class="smart-actions-bar">
     <div class="smart-actions-group">
+        <a href="{% url 'superadmin:schools' %}" class="smart-btn smart-btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Schools
+        </a>
         <a href="{% url 'superadmin:school_edit' school.id %}" class="smart-btn smart-btn-primary">
             <i class="fas fa-edit"></i> Edit School Details
-        </a>
-        <a href="{% url 'core:dashboard' school.slug %}" class="smart-btn smart-btn-success" target="_blank">
-            <i class="fas fa-external-link-alt"></i> View School Dashboard
         </a>
         <a href="{% url 'superadmin:school_delete' school.id %}" class="smart-btn smart-btn-danger" onclick="return confirm('Are you sure you want to delete this school?')">
             <i class="fas fa-trash-alt"></i> Delete School
@@ -36,161 +27,181 @@
     </div>
 </div>
 
-<div class="row">
-                <!-- School Information -->
-                <div class="col-lg-8">
-                    <div class="modern-card mb-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h4><i class="fas fa-info-circle text-primary"></i> School Information</h4>
-                            {% if school.is_active %}
-                                <span class="badge bg-success">Active</span>
-                            {% else %}
-                                <span class="badge bg-danger">Inactive</span>
-                            {% endif %}
-                            {% if school.is_trial %}
-                                <span class="badge bg-warning text-dark">Trial Mode</span>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="text-muted small">School Name</label>
-                                <p class="fw-bold mb-3">{{ school.name }}</p>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="text-muted small">Slug (URL)</label>
-                                <p class="mb-3"><code>{{ school.slug }}</code></p>
-                            </div>
-                        </div>
+<!-- Global Standard Page Tabs (Matching Horizontal Navigation Style) -->
+<div class="page-tabs-bar mb-4">
+    <ul class="page-nav-tabs nav" id="schoolDetailTabs" role="tablist">
+        <li class="page-tab-item" role="presentation">
+            <button class="page-tab-link active" id="tab-info-link" data-bs-toggle="tab"
+                data-bs-target="#tab-info-pane" type="button" role="tab" aria-controls="tab-info-pane"
+                aria-selected="true">
+                <i class="fas fa-info-circle"></i>
+                <span>School Information</span>
+            </button>
+        </li>
+        <li class="page-tab-item" role="presentation">
+            <button class="page-tab-link" id="tab-subscription-link" data-bs-toggle="tab"
+                data-bs-target="#tab-subscription-pane" type="button" role="tab" aria-controls="tab-subscription-pane"
+                aria-selected="false">
+                <i class="fas fa-credit-card"></i>
+                <span>Subscription & Limits</span>
+            </button>
+        </li>
+    </ul>
+</div>
 
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="text-muted small">Email</label>
-                                <p class="mb-3"><i class="fas fa-envelope text-muted me-2"></i>{{ school.email }}</p>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="text-muted small">Phone</label>
-                                <p class="mb-3"><i class="fas fa-phone text-muted me-2"></i>{{ school.phone|default:"-" }}</p>
-                            </div>
-                        </div>
+<!-- Tabbed Content Panes -->
+<div class="tab-content" id="schoolDetailTabsContent">
 
-                        <div class="row mb-3">
-                            <div class="col-12">
-                                <label class="text-muted small">Address</label>
-                                <p class="mb-3">
-                                    <i class="fas fa-map-marker-alt text-muted me-2"></i>
-                                    {{ school.address|default:"-" }}
-                                    {% if school.city or school.state %}
-                                        <br><span class="ms-4">{{ school.city }}{% if school.city and school.state %}, {% endif %}{{ school.state }} {{ school.postal_code }}</span>
-                                    {% endif %}
-                                    {% if school.country %}
-                                        <br><span class="ms-4">{{ school.country }}</span>
-                                    {% endif %}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="text-muted small">Website</label>
-                                <p class="mb-3">
-                                    {% if school.website %}
-                                        <a href="{{ school.website }}" target="_blank"><i class="fas fa-globe text-muted me-2"></i>{{ school.website }}</a>
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </p>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="text-muted small">Created Date</label>
-                                <p class="mb-3"><i class="fas fa-calendar text-muted me-2"></i>{{ school.created_on|date:"F d, Y" }}</p>
-                            </div>
-                        </div>
-
-                        {% if school.is_trial %}
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle"></i> 
-                            <strong>Trial Period:</strong> 
-                            {% if school.trial_end_date %}
-                                Expires on {{ school.trial_end_date|date:"F d, Y" }}
-                            {% else %}
-                                No end date set
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Subscription Information -->
-                    <div class="modern-card">
-                        <h4 class="mb-3"><i class="fas fa-credit-card text-success"></i> Subscription & Limits</h4>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
-                                    <div>
-                                        <small class="text-muted">Subscription Plan</small>
-                                        <h5 class="mb-0">{{ school.subscription_plan.name|default:"No Plan" }}</h5>
-                                    </div>
-                                    <i class="fas fa-box fa-2x text-primary"></i>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
-                                    <div>
-                                        <small class="text-muted">Max Students</small>
-                                        <h5 class="mb-0">{{ school.max_students|default:"Unlimited" }}</h5>
-                                    </div>
-                                    <i class="fas fa-user-graduate fa-2x text-info"></i>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
-                                    <div>
-                                        <small class="text-muted">Max Teachers</small>
-                                        <h5 class="mb-0">{{ school.max_teachers|default:"Unlimited" }}</h5>
-                                    </div>
-                                    <i class="fas fa-chalkboard-teacher fa-2x text-warning"></i>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
-                                    <div>
-                                        <small class="text-muted">Max Staff</small>
-                                        <h5 class="mb-0">{{ school.max_staff|default:"Unlimited" }}</h5>
-                                    </div>
-                                    <i class="fas fa-users fa-2x text-danger"></i>
-                                </div>
-                            </div>
-                        </div>
+    <!-- ================================================================= -->
+    <!-- TAB PANE 1: School Information                                     -->
+    <!-- ================================================================= -->
+    <div class="tab-pane fade show active" id="tab-info-pane" role="tabpanel" aria-labelledby="tab-info-link">
+        <div class="modern-card mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom flex-wrap gap-3">
+                <div>
+                    <h4 class="mb-1 fw-bold">{{ school.name }}</h4>
+                    <div class="text-muted small">
+                        URL Slug: <span class="fw-semibold text-primary font-monospace">{{ school.slug }}</span>
                     </div>
                 </div>
+                <div class="d-flex align-items-center gap-2">
+                    {% if school.is_active %}
+                        <span class="badge bg-success px-3 py-2">Active</span>
+                    {% else %}
+                        <span class="badge bg-danger px-3 py-2">Inactive</span>
+                    {% endif %}
+                    {% if school.is_trial %}
+                        <span class="badge bg-warning text-dark px-3 py-2">Trial Mode</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="row g-3">
+                <div class="col-md-6 col-lg-4">
+                    <div class="detail-info-block">
+                        <span class="detail-label">School Name</span>
+                        <p class="detail-value text-truncate mb-0">{{ school.name }}</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="detail-info-block">
+                        <span class="detail-label">URL Slug</span>
+                        <p class="detail-value text-truncate mb-0 font-monospace text-primary">{{ school.slug }}</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="detail-info-block">
+                        <span class="detail-label">Email Address</span>
+                        <p class="detail-value text-truncate mb-0">
+                            {% if school.email %}
+                                <a href="mailto:{{ school.email }}" class="text-decoration-none">{{ school.email }}</a>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="detail-info-block">
+                        <span class="detail-label">Phone Number</span>
+                        <p class="detail-value mb-0">
+                            {% if school.phone %}
+                                <a href="tel:{{ school.phone }}" class="text-decoration-none">{{ school.phone }}</a>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="detail-info-block">
+                        <span class="detail-label">Website</span>
+                        <p class="detail-value text-truncate mb-0">
+                            {% if school.website %}
+                                <a href="{{ school.website }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
+                                    {{ school.website }} <i class="fas fa-external-link-alt small ms-1"></i>
+                                </a>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="detail-info-block">
+                        <span class="detail-label">Registration Date</span>
+                        <p class="detail-value mb-0">{{ school.created_on|date:"F d, Y" }}</p>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="detail-info-block">
+                        <span class="detail-label">Campus Address</span>
+                        <p class="detail-value mb-0">
+                            {{ school.address|default:"-" }}
+                            {% if school.city or school.state %}
+                                , {{ school.city }}{% if school.city and school.state %}, {% endif %}{{ school.state }} {{ school.postal_code }}
+                            {% endif %}
+                            {% if school.country %}
+                                , {{ school.country }}
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
 
-                <!-- Quick Actions & Stats -->
-                <div class="col-lg-4">
+            {% if school.is_trial %}
+            <div class="alert alert-warning mt-3 mb-0">
+                <i class="fas fa-exclamation-triangle me-2"></i> 
+                <strong>Trial Period:</strong> 
+                {% if school.trial_end_date %}
+                    Expires on {{ school.trial_end_date|date:"F d, Y" }}
+                {% else %}
+                    No end date set
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
 
-                    <div class="modern-card">
-                        <h4 class="mb-3"><i class="fas fa-cog text-secondary"></i> Settings</h4>
-                        <div class="list-group list-group-flush">
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <span><i class="fas fa-toggle-on text-success"></i> Active Status</span>
-                                {% if school.is_active %}
-                                    <span class="badge bg-success">Enabled</span>
-                                {% else %}
-                                    <span class="badge bg-danger">Disabled</span>
-                                {% endif %}
-                            </div>
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <span><i class="fas fa-vial text-warning"></i> Trial Mode</span>
-                                {% if school.is_trial %}
-                                    <span class="badge bg-warning text-dark">Active</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">Inactive</span>
-                                {% endif %}
-                            </div>
-                        </div>
+    <!-- ================================================================= -->
+    <!-- TAB PANE 2: Subscription & Limits                                  -->
+    <!-- ================================================================= -->
+    <div class="tab-pane fade" id="tab-subscription-pane" role="tabpanel" aria-labelledby="tab-subscription-link">
+        <div class="modern-card mb-4">
+            <div class="mb-4 pb-3 border-bottom">
+                <h4 class="mb-1 fw-bold">Subscription & Tier Limits</h4>
+                <small class="text-muted">Assigned plan and maximum capacity allotments</small>
+            </div>
+            
+            <div class="row g-3">
+                <div class="col-md-6 col-lg-3">
+                    <div class="detail-info-block">
+                        <span class="detail-label">Plan</span>
+                        <h5 class="detail-value mb-0">{{ school.subscription_plan.name|default:"No Plan" }}</h5>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="detail-info-block">
+                        <span class="detail-label">Max Students</span>
+                        <h5 class="detail-value mb-0">{{ school.max_students|default:"Unlimited" }}</h5>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="detail-info-block">
+                        <span class="detail-label">Max Teachers</span>
+                        <h5 class="detail-value mb-0">{{ school.max_teachers|default:"Unlimited" }}</h5>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="detail-info-block">
+                        <span class="detail-label">Max Staff</span>
+                        <h5 class="detail-value mb-0">{{ school.max_staff|default:"Unlimited" }}</h5>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+
+</div>
 
 {% endblock %}

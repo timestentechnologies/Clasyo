@@ -5,7 +5,18 @@ from decimal import Decimal
 from django.utils import timezone
 from django.core.management import call_command
 
+from django.db import transaction
+
 logger = logging.getLogger(__name__)
+
+_PASSWORD_HASH_CACHE = {}
+
+
+def get_cached_hash(password: str) -> str:
+    if password not in _PASSWORD_HASH_CACHE:
+        from django.contrib.auth.hashers import make_password
+        _PASSWORD_HASH_CACHE[password] = make_password(password)
+    return _PASSWORD_HASH_CACHE[password]
 
 
 def generate_all_sample_data_for_school(school, db_alias=None):
@@ -17,9 +28,16 @@ def generate_all_sample_data_for_school(school, db_alias=None):
         db_alias = school.slug
 
     from tenants.services import register_tenant_connection, ensure_school_database
+    from tenants.threadlocals import set_current_tenant_db, get_current_tenant_db
     register_tenant_connection(db_alias)
     ensure_school_database(school)
+    set_current_tenant_db(db_alias)
 
+    with transaction.atomic(using=db_alias):
+        return _generate_all_sample_data_internal(school, db_alias)
+
+
+def _generate_all_sample_data_internal(school, db_alias):
     # Import models dynamically
     from tenants.models import School
     from accounts.models import User
@@ -36,18 +54,41 @@ def generate_all_sample_data_for_school(school, db_alias=None):
     from leave_management.models import LeaveType, Leave
     from clubs.models import Club, ClubMembership, ClubActivity
     from attendance.models import StudentAttendance, StaffAttendance
-    from homework.models import Homework, HomeworkSubmission
     from communication.models import Notice
     from transport.models import Route, Vehicle, RouteStop
 
     logger.info(f"[SampleData] Starting sample data generation for school '{school.name}' on DB '{db_alias}'...")
 
-    # Ensure School record exists in tenant DB
+    # Ensure School record exists in tenant DB with active subscription
+    from subscriptions.models import SubscriptionPlan, Subscription, Payment, Invoice
     school_obj = School.objects.using(db_alias).filter(pk=school.pk).first()
     if not school_obj:
         school_obj = School.objects.using('default').get(pk=school.pk)
-        school_obj.subscription_plan = None
-        school_obj.save(using=db_alias)
+
+    plan_obj = SubscriptionPlan.objects.using(db_alias).filter(id=3).first() or SubscriptionPlan.objects.using(db_alias).first()
+    school_obj.subscription_plan = plan_obj
+    school_obj.subscription_start_date = date(2026, 1, 1)
+    school_obj.subscription_end_date = date(2027, 12, 31)
+    school_obj.is_trial = False
+    school_obj.is_active = True
+    school_obj.save(using=db_alias)
+
+    if plan_obj:
+        sub_obj, _ = Subscription.objects.using(db_alias).get_or_create(
+            school=school_obj,
+            plan=plan_obj,
+            defaults={
+                'start_date': date(2026, 1, 1),
+                'end_date': date(2027, 12, 31),
+                'status': 'active',
+                'is_trial': False,
+                'auto_renew': True,
+            }
+        )
+        sub_obj.status = 'active'
+        sub_obj.start_date = date(2026, 1, 1)
+        sub_obj.end_date = date(2027, 12, 31)
+        sub_obj.save(using=db_alias)
 
     stats = {}
 
@@ -73,7 +114,7 @@ def generate_all_sample_data_for_school(school, db_alias=None):
     for h_name, color in house_colors:
         h, _ = House.objects.using(db_alias).get_or_create(
             name=h_name,
-            defaults={'color_code': color, 'description': f'The prestigious {h_name}'}
+            defaults={'color': color, 'description': f'The prestigious {h_name}'}
         )
         houses.append(h)
 
@@ -199,7 +240,7 @@ def generate_all_sample_data_for_school(school, db_alias=None):
             }
         )
         if u_created:
-            user.set_password('teacher123')
+            user.password = get_cached_hash('teacher123')
             user.save(using=db_alias)
 
         dept = next((d for d in created_depts if d.code == d_code), created_depts[0])
@@ -269,7 +310,7 @@ def generate_all_sample_data_for_school(school, db_alias=None):
             }
         )
         if u_created:
-            st_user.set_password('staff123')
+            st_user.password = get_cached_hash('staff123')
             st_user.save(using=db_alias)
 
         dept = next((d for d in created_depts if d.code == d_code), created_depts[-1])
@@ -329,7 +370,7 @@ def generate_all_sample_data_for_school(school, db_alias=None):
             }
         )
         if u_created:
-            p_user.set_password('parent123')
+            p_user.password = get_cached_hash('parent123')
             p_user.save(using=db_alias)
         created_parents.append(p_user)
 
@@ -378,7 +419,7 @@ def generate_all_sample_data_for_school(school, db_alias=None):
             }
         )
         if u_created:
-            s_user.set_password('student123')
+            s_user.password = get_cached_hash('student123')
             s_user.save(using=db_alias)
 
         assigned_class = created_classes[(i-1) % len(created_classes)]
@@ -701,7 +742,7 @@ def generate_all_sample_data_for_school(school, db_alias=None):
     )
 
     ClubMembership.objects.using(db_alias).get_or_create(
-        student=created_students[0],
+        student=created_students[0].user,
         club=club_obj,
         defaults={
             'status': 'active',
@@ -732,13 +773,10 @@ def generate_all_sample_data_for_school(school, db_alias=None):
     Notice.objects.using(db_alias).get_or_create(
         title='Welcome to New Academic Term 2026',
         defaults={
-            'school': school_obj,
             'content': 'We welcome all students, parents, and faculty staff to the new academic term!',
-            'notice_date': date.today() - timedelta(days=5),
-            'publish_date': date.today() - timedelta(days=5),
-            'is_published': True,
-            'posted_by': created_staff[0].user,
-            'target_audience': 'all'
+            'target_audience': 'all',
+            'priority': 'normal',
+            'created_by': created_staff[0].user
         }
     )
 
@@ -746,12 +784,14 @@ def generate_all_sample_data_for_school(school, db_alias=None):
     # 16. TRANSPORT & ROUTES
     # -------------------------------------------------------------
     route_obj, _ = Route.objects.using(db_alias).get_or_create(
-        title='North Metro Express Route',
+        name='North Metro Express Route',
         defaults={
             'school': school_obj,
-            'route_fare': Decimal('150.00'),
+            'route_number': 'R-01',
+            'fare': Decimal('150.00'),
             'start_place': 'North Terminal Station',
-            'end_place': 'Main School Gate'
+            'end_place': 'Main School Gate',
+            'is_active': True
         }
     )
 
@@ -760,10 +800,113 @@ def generate_all_sample_data_for_school(school, db_alias=None):
         defaults={
             'school': school_obj,
             'vehicle_model': 'Toyota Coaster 35-Seater',
-            'driver_name': 'Robert Driver',
-            'driver_phone': '+1555998877'
+            'vehicle_type': 'bus',
+            'capacity': 35,
+            'route': route_obj,
+            'is_active': True
         }
     )
+
+    # -------------------------------------------------------------
+    # 17. ATTENDANCE (Students & Staff)
+    # -------------------------------------------------------------
+    try:
+        from attendance.models import StudentAttendance, StaffAttendance
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        for stu in created_students[:10]:
+            StudentAttendance.objects.using(db_alias).get_or_create(
+                student=stu,
+                date=today,
+                defaults={
+                    'school': school_obj,
+                    'class_name': stu.current_class,
+                    'section': stu.section,
+                    'status': 'present',
+                    'marked_by': created_teachers[0].user
+                }
+            )
+            StudentAttendance.objects.using(db_alias).get_or_create(
+                student=stu,
+                date=yesterday,
+                defaults={
+                    'school': school_obj,
+                    'class_name': stu.current_class,
+                    'section': stu.section,
+                    'status': 'present',
+                    'marked_by': created_teachers[0].user
+                }
+            )
+
+        for tch in created_teachers[:3]:
+            StaffAttendance.objects.using(db_alias).get_or_create(
+                staff=tch.user,
+                date=today,
+                defaults={
+                    'school': school_obj,
+                    'status': 'present'
+                }
+            )
+    except Exception as e:
+        logger.warning(f"Error seeding sample attendance: {e}")
+
+    # -------------------------------------------------------------
+    # 18. HOMEWORK
+    # -------------------------------------------------------------
+    try:
+        from homework.models import HomeworkAssignment
+        HomeworkAssignment.objects.using(db_alias).get_or_create(
+            title='Algebra & Linear Equations Practice 1',
+            class_ref=created_classes[0],
+            subject=created_subjects[0],
+            academic_year=academic_year,
+            defaults={
+                'description': 'Solve exercises 1 through 10 on page 42 of the Algebra textbook.',
+                'instructions': 'Show all calculation steps clearly. Due next Monday.',
+                'status': 'published',
+                'is_published': True,
+                'submission_type': 'both',
+                'assigned_date': timezone.now().date(),
+                'due_date': timezone.now() + timedelta(days=5),
+                'points': Decimal('20.00'),
+                'created_by': created_teachers[0].user
+            }
+        )
+    except Exception as e:
+        logger.warning(f"Error seeding sample homework: {e}")
+
+    # -------------------------------------------------------------
+    # 19. CALENDAR EVENTS
+    # -------------------------------------------------------------
+    try:
+        from core.models import CalendarEvent
+        events_data = [
+            ('Annual Science & Robotics Exhibition', 'Showcase of student STEM inventions and engineering projects.', 'event', 3, 'Main Assembly Hall'),
+            ('Term 1 Parents-Teachers Conference', 'Comprehensive review of academic progress with parents and guardians.', 'meeting', 7, 'School Auditorium & Classrooms'),
+            ('Inter-House Athletics Championship', 'Annual sports competitions across houses: track, football, and relays.', 'event', 12, 'School Sports Complex'),
+            ('Midterm Examination Week', 'Standardized mid-term examinations for all grades.', 'exam', 18, 'All Classrooms'),
+            ('National Public Holiday', 'School closed in celebration of the national public holiday.', 'holiday', 25, 'Campus-wide'),
+        ]
+        now = timezone.now()
+        for title, desc, ev_type, days_offset, loc in events_data:
+            start_dt = now + timedelta(days=days_offset, hours=9)
+            end_dt = start_dt + timedelta(hours=4)
+            CalendarEvent.objects.using(db_alias).get_or_create(
+                title=title,
+                defaults={
+                    'description': desc,
+                    'event_type': ev_type,
+                    'start_date': start_dt,
+                    'end_date': end_dt,
+                    'all_day': False,
+                    'location': loc,
+                    'is_public': True,
+                    'created_by': created_staff[0].user
+                }
+            )
+        stats['events'] = len(events_data)
+    except Exception as e:
+        logger.warning(f"Error seeding sample calendar events: {e}")
 
     logger.info(f"[SampleData] Successfully completed sample data generation for '{school.name}': {stats}")
     return stats
@@ -783,139 +926,247 @@ def clear_all_sample_data_for_school(school, db_alias=None):
 
     total_deleted = 0
 
-    # 1. Attendance
-    try:
-        from attendance.models import StudentAttendance, StaffAttendance
-        c1, _ = StudentAttendance.objects.using(db_alias).filter(is_sample_data=True).delete()
-        c2, _ = StaffAttendance.objects.using(db_alias).filter(is_sample_data=True).delete()
-        total_deleted += (c1 + c2)
-    except Exception as e:
-        logger.warning(f"Error clearing sample attendance: {e}")
+    with transaction.atomic(using=db_alias):
+        # 1. Attendance
+        try:
+            from attendance.models import StudentAttendance, StaffAttendance
+            c1 = StudentAttendance.objects.using(db_alias).filter(school=school).delete()[0]
+            c2 = StaffAttendance.objects.using(db_alias).filter(school=school).delete()[0]
+            total_deleted += (c1 + c2)
+        except Exception as e:
+            logger.warning(f"Error clearing sample attendance: {e}")
 
-    # 2. Homework
-    try:
-        from homework.models import HomeworkSubmission, Homework
-        c1, _ = HomeworkSubmission.objects.using(db_alias).filter(is_sample_data=True).delete()
-        c2, _ = Homework.objects.using(db_alias).filter(is_sample_data=True).delete()
-        total_deleted += (c1 + c2)
-    except Exception as e:
-        logger.warning(f"Error clearing sample homework: {e}")
+        # 2. Homework
+        try:
+            from homework.models import HomeworkSubmission, HomeworkAssignment
+            c1 = HomeworkSubmission.objects.using(db_alias).all().delete()[0]
+            c2 = HomeworkAssignment.objects.using(db_alias).filter(title__icontains='Algebra & Linear Equations Practice').delete()[0]
+            total_deleted += (c1 + c2)
+        except Exception as e:
+            logger.warning(f"Error clearing sample homework: {e}")
 
-    # 3. Examinations
-    try:
-        from examinations.models import ExamMark, ExamQuestion, ExamSubjectConfig, Exam
-        c1, _ = ExamMark.objects.using(db_alias).filter(is_sample_data=True).delete()
-        c2, _ = ExamQuestion.objects.using(db_alias).filter(is_sample_data=True).delete()
-        c3, _ = ExamSubjectConfig.objects.using(db_alias).filter(is_sample_data=True).delete()
-        c4, _ = Exam.objects.using(db_alias).filter(is_sample_data=True).delete()
-        total_deleted += (c1 + c2 + c3 + c4)
-    except Exception as e:
-        logger.warning(f"Error clearing sample exams: {e}")
+        # 3. Examinations
+        try:
+            from examinations.models import ExamMark, ExamQuestion, ExamSubjectConfig, Exam
+            c1 = ExamMark.objects.using(db_alias).all().delete()[0]
+            c2 = ExamQuestion.objects.using(db_alias).all().delete()[0]
+            c3 = ExamSubjectConfig.objects.using(db_alias).all().delete()[0]
+            c4 = Exam.objects.using(db_alias).filter(is_sample_data=True).delete()[0]
+            total_deleted += (c1 + c2 + c3 + c4)
+        except Exception as e:
+            logger.warning(f"Error clearing sample exams: {e}")
 
-    # 4. Library
-    try:
-        from library.models import BookIssue, BookCopy, Book
-        c1, _ = BookIssue.objects.using(db_alias).filter(is_sample_data=True).delete()
-        c2, _ = BookCopy.objects.using(db_alias).filter(is_sample_data=True).delete()
-        c3, _ = Book.objects.using(db_alias).filter(is_sample_data=True).delete()
-        total_deleted += (c1 + c2 + c3)
-    except Exception as e:
-        logger.warning(f"Error clearing sample library: {e}")
+        # 4. Library
+        try:
+            from library.models import BookIssue, BookCopy, Book
+            c1 = BookIssue.objects.using(db_alias).all().delete()[0]
+            c2 = BookCopy.objects.using(db_alias).all().delete()[0]
+            c3 = Book.objects.using(db_alias).filter(is_sample_data=True).delete()[0]
+            total_deleted += (c1 + c2 + c3)
+        except Exception as e:
+            logger.warning(f"Error clearing sample library: {e}")
 
-    # 5. Dormitory
-    try:
-        from dormitory.models import RoomAllocation, Room, Dormitory
-        c1, _ = RoomAllocation.objects.using(db_alias).filter(is_sample_data=True).delete()
-        c2, _ = Room.objects.using(db_alias).filter(is_sample_data=True).delete()
-        c3, _ = Dormitory.objects.using(db_alias).filter(is_sample_data=True).delete()
-        total_deleted += (c1 + c2 + c3)
-    except Exception as e:
-        logger.warning(f"Error clearing sample dormitory: {e}")
+        # 5. Dormitory
+        try:
+            from dormitory.models import RoomAllocation, Room, Dormitory
+            c1 = RoomAllocation.objects.using(db_alias).all().delete()[0]
+            c2 = Room.objects.using(db_alias).filter(room_number='101').delete()[0]
+            c3 = Dormitory.objects.using(db_alias).filter(is_sample_data=True).delete()[0]
+            total_deleted += (c1 + c2 + c3)
+        except Exception as e:
+            logger.warning(f"Error clearing sample dormitory: {e}")
 
-    # 6. Leaves
-    try:
-        from leave_management.models import Leave
-        c1, _ = Leave.objects.using(db_alias).filter(is_sample_data=True).delete()
-        total_deleted += c1
-    except Exception as e:
-        logger.warning(f"Error clearing sample leaves: {e}")
+        # 6. Leaves
+        try:
+            from leave_management.models import Leave
+            c1 = Leave.objects.using(db_alias).filter(is_sample_data=True).delete()[0]
+            total_deleted += c1
+        except Exception as e:
+            logger.warning(f"Error clearing sample leaves: {e}")
 
-    # 7. Clubs
-    try:
-        from clubs.models import ClubMembership, ClubActivity, Club
-        c1, _ = ClubMembership.objects.using(db_alias).filter(is_sample_data=True).delete()
-        c2, _ = ClubActivity.objects.using(db_alias).filter(is_sample_data=True).delete()
-        c3, _ = Club.objects.using(db_alias).filter(is_sample_data=True).delete()
-        total_deleted += (c1 + c2 + c3)
-    except Exception as e:
-        logger.warning(f"Error clearing sample clubs: {e}")
+        # 7. Clubs
+        try:
+            from clubs.models import ClubMembership, ClubActivity, Club
+            c1 = ClubMembership.objects.using(db_alias).all().delete()[0]
+            c2 = ClubActivity.objects.using(db_alias).all().delete()[0]
+            c3 = Club.objects.using(db_alias).filter(is_sample_data=True).delete()[0]
+            total_deleted += (c1 + c2 + c3)
+        except Exception as e:
+            logger.warning(f"Error clearing sample clubs: {e}")
 
-    # 8. Finance & Fees
-    try:
-        from fees.models import FeeCollection, FeeStructure
-        c1, _ = FeeCollection.objects.using(db_alias).filter(is_sample_data=True).delete()
-        c2, _ = FeeStructure.objects.using(db_alias).filter(is_sample_data=True).delete()
-        total_deleted += (c1 + c2)
-    except Exception as e:
-        logger.warning(f"Error clearing sample fees: {e}")
+        # 8. Finance & Fees
+        try:
+            from fees.models import FeeCollection, FeeStructure
+            c1 = FeeCollection.objects.using(db_alias).filter(is_sample_data=True).delete()[0]
+            c2 = FeeStructure.objects.using(db_alias).filter(is_sample_data=True).delete()[0]
+            total_deleted += (c1 + c2)
+        except Exception as e:
+            logger.warning(f"Error clearing sample fees: {e}")
 
-    try:
-        from finance.models import Transaction
-        c1, _ = Transaction.objects.using(db_alias).filter(is_sample_data=True).delete()
-        total_deleted += c1
-    except Exception as e:
-        logger.warning(f"Error clearing sample transactions: {e}")
+        try:
+            from inventory.models import Expense
+            c1 = Expense.objects.using(db_alias).filter(is_sample_data=True).delete()[0]
+            total_deleted += c1
+        except Exception as e:
+            logger.warning(f"Error clearing sample expenses: {e}")
 
-    try:
-        from inventory.models import Expense
-        c1, _ = Expense.objects.using(db_alias).filter(is_sample_data=True).delete()
-        total_deleted += c1
-    except Exception as e:
-        logger.warning(f"Error clearing sample expenses: {e}")
+        # 9. Communication & Calendar
+        try:
+            from communication.models import Notice
+            from core.models import CalendarEvent
+            c1 = Notice.objects.using(db_alias).filter(title__icontains='Welcome to New Academic Term 2026').delete()[0]
+            c2 = CalendarEvent.objects.using(db_alias).filter(title__in=[
+                'Annual Science & Robotics Exhibition',
+                'Term 1 Parents-Teachers Conference',
+                'Inter-House Athletics Championship',
+                'Midterm Examination Week',
+                'National Public Holiday'
+            ]).delete()[0]
+            total_deleted += (c1 + c2)
+        except Exception as e:
+            logger.warning(f"Error clearing sample notices/events: {e}")
 
-    # 9. Communication
-    try:
-        from communication.models import Notice
-        c1, _ = Notice.objects.using(db_alias).filter(title__icontains='Welcome to New Academic Term 2026').delete()
-        total_deleted += c1
-    except Exception as e:
-        logger.warning(f"Error clearing sample notices: {e}")
+        # 10. Transport
+        try:
+            from transport.models import RouteStop, Vehicle, Route
+            c1 = RouteStop.objects.using(db_alias).all().delete()[0]
+            c2 = Vehicle.objects.using(db_alias).filter(vehicle_number='KAA 890B').delete()[0]
+            c3 = Route.objects.using(db_alias).filter(name='North Metro Express Route').delete()[0]
+            total_deleted += (c1 + c2 + c3)
+        except Exception as e:
+            logger.warning(f"Error clearing sample transport: {e}")
 
-    # 10. Transport
-    try:
-        from transport.models import RouteStop, Vehicle, Route
-        c1, _ = RouteStop.objects.using(db_alias).filter(is_sample_data=True).delete()
-        c2, _ = Vehicle.objects.using(db_alias).filter(vehicle_number='KAA 890B').delete()
-        c3, _ = Route.objects.using(db_alias).filter(title='North Metro Express Route').delete()
-        total_deleted += (c1 + c2 + c3)
-    except Exception as e:
-        logger.warning(f"Error clearing sample transport: {e}")
+        # 11. Students (un-mark is_sample_data first so model delete protection does not raise ValidationError)
+        try:
+            from students.models import Student
+            Student.objects.using(db_alias).filter(is_sample_data=True).update(is_sample_data=False)
+            c1 = Student.objects.using(db_alias).filter(admission_number__startswith='ADM-2026-').delete()[0]
+            total_deleted += c1
+        except Exception as e:
+            logger.warning(f"Error clearing sample students: {e}")
 
-    # 11. Students
-    try:
-        from students.models import Student
-        c1, _ = Student.objects.using(db_alias).filter(is_sample_data=True).delete()
-        total_deleted += c1
-    except Exception as e:
-        logger.warning(f"Error clearing sample students: {e}")
+        # 12. Teachers & Staff
+        try:
+            from human_resource.models import Teacher, Staff
+            Teacher.objects.using(db_alias).filter(is_sample_data=True).update(is_sample_data=False)
+            Staff.objects.using(db_alias).filter(is_sample_data=True).update(is_sample_data=False)
+            c1 = Teacher.objects.using(db_alias).filter(employee_id__startswith='EMP-T10').delete()[0]
+            c2 = Staff.objects.using(db_alias).filter(employee_id__startswith='EMP-S10').delete()[0]
+            total_deleted += (c1 + c2)
+        except Exception as e:
+            logger.warning(f"Error clearing sample staff/teachers: {e}")
 
-    # 12. Teachers & Staff
-    try:
-        from human_resource.models import Teacher, Staff
-        c1, _ = Teacher.objects.using(db_alias).filter(is_sample_data=True).delete()
-        c2, _ = Staff.objects.using(db_alias).filter(is_sample_data=True).delete()
-        total_deleted += (c1 + c2)
-    except Exception as e:
-        logger.warning(f"Error clearing sample staff/teachers: {e}")
+        # 13. Demo Users
+        try:
+            from django.db import connections
+            with connections[db_alias].cursor() as cur:
+                cur.execute('''
+                    CREATE TABLE IF NOT EXISTS account_emailaddress (
+                        id integer primary key autoincrement,
+                        email varchar(254) not null,
+                        verified bool not null default 0,
+                        [primary] bool not null default 0,
+                        user_id bigint not null
+                    )
+                ''')
+        except Exception:
+            pass
 
-    # 13. Demo Users
-    try:
-        from accounts.models import User
-        c1, _ = User.objects.using(db_alias).filter(is_sample_data=True, email__endswith='@demo.school').delete()
-        total_deleted += c1
-    except Exception as e:
-        logger.warning(f"Error clearing sample users: {e}")
+        try:
+            from accounts.models import User
+            User.objects.using(db_alias).filter(is_sample_data=True).update(is_sample_data=False)
+            c1 = User.objects.using(db_alias).filter(email__endswith='@demo.school').delete()[0]
+            total_deleted += c1
+        except Exception as e:
+            logger.warning(f"Error clearing sample users: {e}")
 
     logger.info(f"[SampleData] Finished clearing sample data for '{school.name}'. Total records removed: {total_deleted}")
     return total_deleted
+
+
+def wipe_and_reseed_demo_school(school=None):
+    """
+    Completely erases all existing operational and legacy data in the demo-school database,
+    ensures all migrations are up to date, and regenerates a full, comprehensive suite of
+    pristine sample demo records.
+    """
+    from tenants.models import School
+    from tenants.services import register_tenant_connection, ensure_school_database
+    from tenants.threadlocals import set_current_tenant_db, get_current_tenant_db
+
+    if not school:
+        school = School.objects.using('default').filter(slug='demo-school').first()
+    if not school:
+        logger.error("[DemoReset] demo-school tenant not found in master database.")
+        return {}
+
+    db_alias = school.slug
+    register_tenant_connection(db_alias)
+    ensure_school_database(school)
+
+    prev_db = get_current_tenant_db()
+    set_current_tenant_db(db_alias)
+
+    logger.info(f"[DemoReset] Wiping all existing data in '{db_alias}' database...")
+
+    try:
+        from attendance.models import StudentAttendance, StaffAttendance
+        from homework.models import HomeworkSubmission, HomeworkAssignment
+        from examinations.models import ExamMark, ExamQuestion, ExamSubjectConfig, Exam, Grade
+        from library.models import BookIssue, BookCopy, Book, Author, Publisher, BookCategory
+        from dormitory.models import RoomAllocation, Room, Dormitory
+        from leave_management.models import Leave, LeaveType
+        from clubs.models import ClubMembership, ClubActivity, Club
+        from fees.models import FeeCollection, FeeStructure
+        from finance.models import Transaction, Account
+        from inventory.models import Expense, StaffPayment, Item, ItemCategory, Supplier
+        from communication.models import Notice, Message
+        from transport.models import RouteStop, Vehicle, Route
+        from students.models import Student, StudentCategory
+        from human_resource.models import Teacher, Staff, Department, Designation
+        from academics.models import ClassRoutine, AssignedSubject, Section, Class, Subject, House
+        from core.models import AcademicYear, Session
+        from accounts.models import User
+
+        models_to_clear = [
+            StudentAttendance, StaffAttendance,
+            HomeworkSubmission, HomeworkAssignment,
+            ExamMark, ExamQuestion, ExamSubjectConfig, Exam, Grade,
+            BookIssue, BookCopy, Book, Author, Publisher, BookCategory,
+            RoomAllocation, Room, Dormitory,
+            Leave, LeaveType,
+            ClubMembership, ClubActivity, Club,
+            FeeCollection, FeeStructure,
+            Transaction,
+            StaffPayment, Expense, Item, ItemCategory, Supplier,
+            Notice, Message,
+            RouteStop, Vehicle, Route,
+            Student, StudentCategory,
+            Teacher, Staff,
+            ClassRoutine, AssignedSubject, Section, Class, Subject, House,
+            Department, Designation,
+            Session, AcademicYear,
+        ]
+
+        for m in models_to_clear:
+            try:
+                if hasattr(m, 'is_sample_data'):
+                    m.objects.using(db_alias).filter(is_sample_data=True).update(is_sample_data=False)
+                m.objects.using(db_alias).all().delete()
+            except Exception as e:
+                logger.warning(f"[DemoReset] Error clearing {m.__name__}: {e}")
+
+        # Delete non-superadmin users in demo-school
+        try:
+            User.objects.using(db_alias).filter(is_sample_data=True).update(is_sample_data=False)
+            User.objects.using(db_alias).exclude(role='superadmin').delete()
+        except Exception as e:
+            logger.warning(f"[DemoReset] Error clearing users in {db_alias}: {e}")
+
+    finally:
+        set_current_tenant_db(prev_db)
+
+    # Now generate the clean, full sample data
+    return generate_all_sample_data_for_school(school, db_alias=db_alias)
+
 

@@ -4,7 +4,8 @@ from .models import (
     GlobalAIConfiguration, SchoolAIConfiguration,
     GlobalEmailConfiguration, GlobalSMSConfiguration,
     GlobalDatabaseConfiguration, GlobalWhatsAppConfiguration,
-    SchoolWhatsAppConfiguration,
+    SchoolWhatsAppConfiguration, SchoolSMSConfiguration,
+    SchoolEmailConfiguration,
 )
 
 
@@ -162,8 +163,9 @@ class SchoolPaymentConfigurationForm(forms.ModelForm):
             'payment_instructions'
         ]
         widgets = {
-            'gateway': forms.Select(attrs={'class': 'form-control'}),
-            'environment': forms.Select(attrs={'class': 'form-control'}),
+            'gateway': forms.Select(attrs={'class': 'form-select'}),
+            'environment': forms.Select(attrs={'class': 'form-select'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'mpesa_consumer_key': forms.TextInput(attrs={'class': 'form-control'}),
             'mpesa_consumer_secret': forms.PasswordInput(attrs={'class': 'form-control'}),
             'mpesa_passkey': forms.PasswordInput(attrs={'class': 'form-control'}),
@@ -186,6 +188,19 @@ class SchoolPaymentConfigurationForm(forms.ModelForm):
             'bank_branch': forms.TextInput(attrs={'class': 'form-control'}),
             'payment_instructions': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            widget = field.widget
+            if isinstance(widget, forms.CheckboxInput):
+                widget.attrs['class'] = 'form-check-input'
+            elif isinstance(widget, forms.Select):
+                widget.attrs['class'] = 'form-select'
+            else:
+                current_cls = widget.attrs.get('class', '')
+                if 'form-control' not in current_cls:
+                    widget.attrs['class'] = (current_cls + ' form-control').strip()
     
     def clean(self):
         cleaned_data = super().clean()
@@ -506,4 +521,87 @@ class SchoolWhatsAppConfigurationForm(forms.ModelForm):
         }
 
 
+class SchoolSMSConfigurationForm(forms.ModelForm):
+    """Form for creating and editing School-specific SMS configuration"""
+    class Meta:
+        model = SchoolSMSConfiguration
+        exclude = ['school']
+        widgets = {
+            'provider': forms.Select(attrs={'class': 'form-select'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'use_global_settings': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'custom_sender_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. SCHOOLSMS'}),
+            'default_sender_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. SCHOOLNAME'}),
+            'daily_sms_limit': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0 for unlimited'}),
+            'monthly_sms_limit': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0 for unlimited'}),
+            'mobilesasa_api_token': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': 'mbs_...'}),
+            'mobilesasa_sender_id': forms.TextInput(attrs={'class': 'form-control'}),
+            'twilio_account_sid': forms.TextInput(attrs={'class': 'form-control'}),
+            'twilio_auth_token': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
+            'twilio_phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+1234567890'}),
+            'africastalking_username': forms.TextInput(attrs={'class': 'form-control'}),
+            'africastalking_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
+            'africastalking_sender_id': forms.TextInput(attrs={'class': 'form-control'}),
+            'infobip_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
+            'infobip_base_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://api.infobip.com'}),
+            'infobip_sender': forms.TextInput(attrs={'class': 'form-control'}),
+            'clickatell_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
+            'clickatell_base_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://platform.clickatell.com'}),
+            'nexmo_api_key': forms.TextInput(attrs={'class': 'form-control'}),
+            'nexmo_api_secret': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
+        }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            widget = field.widget
+            if isinstance(widget, forms.CheckboxInput):
+                widget.attrs['class'] = 'form-check-input'
+            elif isinstance(widget, forms.Select):
+                widget.attrs['class'] = 'form-select'
+            else:
+                current_cls = widget.attrs.get('class', '')
+                if 'form-control' not in current_cls:
+                    widget.attrs['class'] = (current_cls + ' form-control').strip()
+
+
+class SchoolEmailConfigurationForm(forms.ModelForm):
+    """Form for creating and editing School-specific Email configuration"""
+    class Meta:
+        model = SchoolEmailConfiguration
+        exclude = ['school']
+        widgets = {
+            'provider': forms.Select(attrs={'class': 'form-select'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'use_global_settings': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'from_email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'noreply@school.com'}),
+            'from_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'School Name'}),
+            'daily_limit': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0 for unlimited'}),
+            'monthly_limit': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0 for unlimited'}),
+            'smtp_host': forms.TextInput(attrs={'class': 'form-control'}),
+            'smtp_port': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '587'}),
+            'smtp_username': forms.TextInput(attrs={'class': 'form-control'}),
+            'smtp_password': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
+            'smtp_use_tls': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'smtp_use_ssl': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'sendgrid_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
+            'mailgun_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
+            'mailgun_domain': forms.TextInput(attrs={'class': 'form-control'}),
+            'ses_access_key_id': forms.TextInput(attrs={'class': 'form-control'}),
+            'ses_secret_access_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
+            'ses_region_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'us-east-1'}),
+            'postmark_server_token': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            widget = field.widget
+            if isinstance(widget, forms.CheckboxInput):
+                widget.attrs['class'] = 'form-check-input'
+            elif isinstance(widget, forms.Select):
+                widget.attrs['class'] = 'form-select'
+            else:
+                current_cls = widget.attrs.get('class', '')
+                if 'form-control' not in current_cls:
+                    widget.attrs['class'] = (current_cls + ' form-control').strip()

@@ -77,13 +77,18 @@ function initializeTheme() {
         });
     }
 
-    // Update the theme icon
+    // Update the theme icon and badge
     function updateThemeIcon(iconType) {
         const themeIcon = document.getElementById('theme-icon');
-        if (!themeIcon) return;
-        
-        themeIcon.className = iconType === 'sun' ? 'fas fa-sun' : 'fas fa-moon';
-        themeIcon.title = iconType === 'sun' ? 'Switch to Dark Mode' : 'Switch to Light Mode';
+        if (themeIcon) {
+            themeIcon.className = iconType === 'sun' ? 'fas fa-sun' : 'fas fa-moon';
+            themeIcon.title = iconType === 'sun' ? 'Switch to Dark Mode' : 'Switch to Light Mode';
+        }
+
+        const statusBadge = document.getElementById('themeStatusBadge');
+        if (statusBadge) {
+            statusBadge.textContent = iconType === 'moon' ? 'Dark' : 'Light';
+        }
     }
 
     // Check for saved theme preference or default to light
@@ -97,13 +102,32 @@ function initializeTheme() {
         themeToggle.checked = initialTheme === 'dark';
     }
 
-    // Toggle theme when switch is clicked
+    // Toggle theme when switch or button is clicked
     if (themeToggle) {
-        themeToggle.addEventListener('change', function() {
-            const newTheme = this.checked ? 'dark' : 'light';
-            localStorage.setItem('theme', newTheme);
-            applyTheme(newTheme);
-        });
+        const toggleHandler = function(e) {
+            if (e && (e.type === 'click' || themeToggle.tagName === 'BUTTON')) {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 
+                                     (document.documentElement.classList.contains('theme-dark') ? 'dark' : 'light');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                localStorage.setItem('theme', newTheme);
+                applyTheme(newTheme);
+            } else if (themeToggle.type === 'checkbox') {
+                const newTheme = themeToggle.checked ? 'dark' : 'light';
+                localStorage.setItem('theme', newTheme);
+                applyTheme(newTheme);
+            }
+        };
+
+        if (themeToggle.tagName === 'BUTTON') {
+            themeToggle.addEventListener('click', toggleHandler);
+        } else {
+            themeToggle.addEventListener('change', toggleHandler);
+            themeToggle.addEventListener('click', toggleHandler);
+        }
     }
 
     // Listen for system theme changes (only if no explicit theme is set)

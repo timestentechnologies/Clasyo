@@ -8,7 +8,7 @@
 <div class="modern-sidebar" id="sidebar">
     <div class="sidebar-brand">
         <div class="brand-logo" style="background: transparent !important; padding: 0 !important;">
-            {% if user.role == 'superadmin' %}
+            {% if user.role == 'superadmin' and not school_slug %}
                 <img src="{% static 'images/erpupdated.png' %}" alt="School Logo" class="school-logo" style="background: transparent !important;">
             {% else %}
                 {% if school and school.logo %}
@@ -19,7 +19,7 @@
             {% endif %}
         </div>
         <div class="brand-text">
-            {% if user.role == 'superadmin' %}
+            {% if user.role == 'superadmin' and not school_slug %}
                 <h3>Clasyo ERP System</h3>
                 <p>Super Admin Panel</p>
             {% else %}
@@ -37,8 +37,8 @@
     </div>
 
     <ul class="sidebar-menu">
-        <!-- Apps Link (Non-Superadmin) -->
-        {% if user.role != 'superadmin' %}
+        <!-- Apps Link -->
+        {% if school_slug or user.role != 'superadmin' %}
         <li class="{% if '/apps/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'core:apps_home' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-th-large"></i>
             <span>Apps</span>
@@ -46,12 +46,12 @@
         {% endif %}
         
         <!-- Dashboard (All Users) -->
-        <li class="{% if 'dashboard' in request.path and '/apps/' not in request.path %}active{% endif %}"><a href="{% if user.role == 'superadmin' %}{% url 'superadmin:dashboard' %}{% elif school_slug %}{% url 'core:dashboard' school_slug=school_slug %}{% else %}#{% endif %}">
+        <li class="{% if 'dashboard' in request.path and '/apps/' not in request.path %}active{% endif %}"><a href="{% if user.role == 'superadmin' and not school_slug %}{% url 'superadmin:dashboard' %}{% elif school_slug %}{% url 'core:dashboard' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-tachometer-alt"></i>
             <span>Dashboard</span>
         </a></li>
 
-        {% if user.role == 'superadmin' %}
+        {% if user.role == 'superadmin' and not school_slug %}
         {# ========================================= #}
         {# ===       SUPER ADMIN MENU           === #}
         {# ========================================= #}
@@ -172,14 +172,14 @@
         {# ===         ADMIN & TEACHER          === #}
         {# ========================================= #}
         
-        {% if user.role in 'admin,teacher' %}
+        {% if user.role in 'admin,teacher' or user.role == 'superadmin' %}
         <div class="menu-section-title">Academic</div>
         
         <li class="{% if '/todos/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'core:todos' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-tasks"></i>
             <span>To Do</span>
         </a></li>
-        {% if user.role != 'superadmin' and user.role != 'parent' %}
+        {% if user.role != 'parent' %}
         <li>
         <a href="#" data-bs-toggle="modal" data-bs-target="#calculatorModal">
             <i class="fas fa-calculator"></i><span>Calculator</span>
@@ -196,7 +196,7 @@
             <span>Teachers</span>
         </a></li>
 
-        {% if user.role == 'admin' %}
+        {% if user.role == 'admin' or user.role == 'superadmin' %}
         <li class="{% if '/students/parents/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/students/parents/">
             <i class="fas fa-users"></i>
             <span>Parents</span>
@@ -268,7 +268,7 @@
         {# ===         ADMIN ONLY SECTIONS      === #}
         {# ========================================= #}
         
-        {% if user.role == 'admin' or user.role == 'accountant' %}
+        {% if user.role in 'admin,superadmin' or user.role == 'accountant' %}
         <div class="menu-section-title">Human Resource</div>
         
         <li class="{% if '/staff/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/hr/staff/">
@@ -399,7 +399,7 @@
             <span>Audit Logs</span>
         </a></li>
 
-        {% if user.role == 'admin' %}
+        {% if user.role == 'admin' or user.role == 'superadmin' %}
         <li class="{% if '/backups/' in request.path %}active{% endif %}">
             <a href="{% if school_slug %}{% url 'core:school_backups' school_slug=school_slug %}{% else %}#{% endif %}">
                 <i class="fas fa-database"></i>
@@ -569,11 +569,18 @@
         <div class="menu-section-title">Account</div>
 
        <li class="{% if '/profile/' in request.path %}active{% endif %}">
-        <a href="{% if user.role == 'superadmin' %}{% url 'superadmin:profile' %}{% elif school_slug %}{% url 'core:profile' school_slug=school_slug %}{% else %}#{% endif %}">
+        <a href="{% if user.role == 'superadmin' and not school_slug %}{% url 'superadmin:profile' %}{% elif school_slug %}{% url 'core:profile' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fas fa-user"></i>
             <span>Profile</span>
         </a>
         </li>
+
+        {% if user.role == 'superadmin' and school_slug %}
+        <li><a href="{% url 'superadmin:dashboard' %}" class="text-primary fw-semibold">
+            <i class="fas fa-shield-alt text-primary"></i>
+            <span>Super Admin Panel</span>
+        </a></li>
+        {% endif %}
 
         <li><a href="{% url 'accounts:logout' %}">
             <i class="fas fa-sign-out-alt"></i>

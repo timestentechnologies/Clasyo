@@ -36,7 +36,7 @@ class AppsHomeView(LoginRequiredMixin, TemplateView):
         """Redirect super admins to their own dashboard unless viewing demo school"""
         school_slug = kwargs.get('school_slug', '')
         if request.user.is_authenticated and request.user.role == 'superadmin':
-            if school_slug in ('demo-school', 'demo') or 'demo' in str(school_slug).lower():
+            if school_slug:
                 return super().dispatch(request, *args, **kwargs)
             return redirect('superadmin:dashboard')
         return super().dispatch(request, *args, **kwargs)
@@ -53,6 +53,13 @@ class AppsHomeView(LoginRequiredMixin, TemplateView):
             context['school'] = school
         except School.DoesNotExist:
             context['school'] = None
+
+        user = self.request.user
+        is_admin_view = user.is_authenticated and (user.role in ['admin', 'superadmin'] or getattr(user, 'is_school_admin', False))
+        context['is_admin_view'] = is_admin_view
+        
+        nav_layout = getattr(user, 'navigation_layout', '') or 'sidebar'
+        context['navigation_layout'] = nav_layout
         
         # Subscription banner on Apps Home
         try:
@@ -253,7 +260,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         """Redirect super admins to their own dashboard unless viewing demo school"""
         school_slug = kwargs.get('school_slug', '')
         if request.user.is_authenticated and request.user.role == 'superadmin':
-            if school_slug in ('demo-school', 'demo') or 'demo' in str(school_slug).lower():
+            if school_slug:
                 return super().dispatch(request, *args, **kwargs)
             return redirect('superadmin:dashboard')
         return super().dispatch(request, *args, **kwargs)
@@ -264,7 +271,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         school_slug = self.kwargs.get('school_slug', '')
         
         if user.is_superadmin:
-            if school_slug in ('demo-school', 'demo') or 'demo' in str(school_slug).lower():
+            if school_slug:
                 return ['core/admin_dashboard.html']
             return ['superadmin/dashboard.html']
         elif user.is_school_admin:
@@ -1720,52 +1727,97 @@ class EventsView(LoginRequiredMixin, ListView):
 
 
 class ProfileView(LoginRequiredMixin, TemplateView):
-    """User profile view"""
+    """User profile view with inline editing and password management"""
     template_name = 'core/profile.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         school_slug = self.kwargs.get('school_slug', '')
         context['school_slug'] = school_slug
-        
-        school = get_current_school(self.request)
-        db_alias = school.slug if school else 'default'
-        
-        from students.models import Student
-        from human_resource.models import Teacher, Staff
-        from fees.models import FeeCollection
-        from inventory.models import Expense
-        from library.models import Book
-        from dormitory.models import Dormitory
-        from examinations.models import Exam
-        from leave_management.models import Leave
-        from clubs.models import Club
-
-        try:
-            sample_stats = {
-                'students': Student.objects.using(db_alias).filter(is_sample_data=True).count(),
-                'teachers': Teacher.objects.using(db_alias).filter(is_sample_data=True).count(),
-                'staff': Staff.objects.using(db_alias).filter(is_sample_data=True).count(),
-                'invoices': FeeCollection.objects.using(db_alias).filter(is_sample_data=True).count(),
-                'expenses': Expense.objects.using(db_alias).filter(is_sample_data=True).count(),
-                'books': Book.objects.using(db_alias).filter(is_sample_data=True).count(),
-                'dormitories': Dormitory.objects.using(db_alias).filter(is_sample_data=True).count(),
-                'exams': Exam.objects.using(db_alias).filter(is_sample_data=True).count(),
-                'leaves': Leave.objects.using(db_alias).filter(is_sample_data=True).count(),
-                'clubs': Club.objects.using(db_alias).filter(is_sample_data=True).count(),
-            }
-            context['sample_stats'] = sample_stats
-            context['has_sample_data'] = any(v > 0 for v in sample_stats.values())
-        except Exception:
-            context['sample_stats'] = {}
-            context['has_sample_data'] = False
-
         return context
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        school_slug = kwargs.get('school_slug', '') or getattr(request, 'school_slug', '')
+        
+        # 1. Update personal details
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        phone = request.POST.get('phone', '').strip()
+        nav_layout = request.POST.get('navigation_layout', '')
+        
+        if first_name:
+            user.first_name = first_name
+        if last_name:
+            user.last_name = last_name
+        user.phone = phone
+        if nav_layout in ['', 'sidebar', 'horizontal']:
+            user.navigation_layout = nav_layout
+            
+        if 'avatar' in request.FILES:
+            user.avatar = request.FILES['avatar']
+            
+        # 2. Check password change if any password field is entered
+        old_password = request.POST.get('old_password', '').strip()
+        new_password1 = request.POST.get('new_password1', '').strip()
+        new_password2 = request.POST.get('new_password2', '').strip()
+        
+        password_changed = False
+        if old_password or new_password1 or new_password2:
+            if not old_password:
+                messages.error(request, 'Please enter your current password to set a new password.')
+                if school_slug:
+                    return redirect('core:profile', school_slug=school_slug)
+                return redirect('accounts:profile')
+            if not user.check_password(old_password):
+                messages.error(request, 'Current password is incorrect.')
+                if school_slug:
+                    return redirect('core:profile', school_slug=school_slug)
+                return redirect('accounts:profile')
+            if not new_password1:
+                messages.error(request, 'Please enter a new password.')
+                if school_slug:
+                    return redirect('core:profile', school_slug=school_slug)
+                return redirect('accounts:profile')
+            if new_password1 != new_password2:
+                messages.error(request, 'New passwords do not match.')
+                if school_slug:
+                    return redirect('core:profile', school_slug=school_slug)
+                return redirect('accounts:profile')
+            if len(new_password1) < 8:
+                messages.error(request, 'New password must be at least 8 characters long.')
+                if school_slug:
+                    return redirect('core:profile', school_slug=school_slug)
+                return redirect('accounts:profile')
+            
+            user.set_password(new_password1)
+            password_changed = True
+            
+        try:
+            user.save()
+            if password_changed:
+                from django.contrib.auth import update_session_auth_hash
+                update_session_auth_hash(request, user)
+                messages.success(request, 'Profile and password updated successfully!')
+            else:
+                messages.success(request, 'Profile updated successfully!')
+        except Exception as e:
+            messages.error(request, f'Error updating profile: {str(e)}')
+            
+        if school_slug:
+            return redirect('core:profile', school_slug=school_slug)
+        return redirect('accounts:profile')
 
 
 class LoadSampleDataView(LoginRequiredMixin, View):
     """View to load sample demo database for current school tenant"""
     def post(self, request, *args, **kwargs):
+        return self._load_data(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        return self._load_data(request, *args, **kwargs)
+
+    def _load_data(self, request, *args, **kwargs):
         from core.sample_data import generate_all_sample_data_for_school
         school_slug = kwargs.get('school_slug', '')
         school = get_current_school(request)
@@ -1781,18 +1833,20 @@ class LoadSampleDataView(LoginRequiredMixin, View):
             stats = generate_all_sample_data_for_school(school, db_alias=school.slug)
             messages.success(
                 request,
-                f"Sample data successfully loaded! Created: "
+                f"Switched to Sample Demo Database! Loaded "
                 f"{stats.get('students', 0)} Students, {stats.get('teachers', 0)} Teachers, "
-                f"{stats.get('staff', 0)} Staff, {stats.get('parents', 0)} Parents, "
-                f"{stats.get('invoices', 0)} Invoices, {stats.get('expenses', 0)} Expenses, "
-                f"{stats.get('books', 0)} Books, and interlinked records across all modules."
+                f"{stats.get('staff', 0)} Staff, {stats.get('invoices', 0)} Invoices, "
+                f"and interlinked sample data across all modules. You can switch back to your clean live database anytime."
             )
         except Exception as e:
             import traceback
             traceback.print_exc()
             messages.error(request, f"Failed to load sample data: {str(e)}")
 
-        return redirect('core:profile', school_slug=school.slug)
+        next_url = request.META.get('HTTP_REFERER')
+        if next_url and not any(x in next_url for x in ('load-sample-data', 'switch-to-my-database')):
+            return redirect(next_url)
+        return redirect('core:dashboard', school_slug=school.slug)
 
 
 class ClearSampleDataView(LoginRequiredMixin, View):
@@ -1826,7 +1880,10 @@ class ClearSampleDataView(LoginRequiredMixin, View):
             traceback.print_exc()
             messages.error(request, f"Failed to switch database: {str(e)}")
 
-        return redirect('core:profile', school_slug=school.slug)
+        next_url = request.META.get('HTTP_REFERER')
+        if next_url and not any(x in next_url for x in ('load-sample-data', 'switch-to-my-database')):
+            return redirect(next_url)
+        return redirect('core:dashboard', school_slug=school.slug)
 
 
 class SearchView(LoginRequiredMixin, TemplateView):
@@ -2075,11 +2132,11 @@ class BillingView(LoginRequiredMixin, TemplateView):
     
     def dispatch(self, request, *args, **kwargs):
         """Allow expired users (any role) to reach billing, otherwise restrict to school admins"""
-        school_slug = kwargs.get('school_slug', '')
-        if school_slug in ('demo-school', 'demo') or 'demo' in str(school_slug).lower():
-            return redirect('core:dashboard', school_slug=school_slug)
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
         allow_expired_visit = str(request.GET.get('expired', '')).lower() in ('1', 'true', 'yes')
-        if not request.user.is_school_admin and not allow_expired_visit:
+        is_admin = getattr(request.user, 'is_school_admin', False) or getattr(request.user, 'role', '') in ('admin', 'superadmin')
+        if not is_admin and not allow_expired_visit:
             messages.error(request, "Access denied. This page is for school admins only.")
             return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
         return super().dispatch(request, *args, **kwargs)
@@ -2435,6 +2492,21 @@ class BillingView(LoginRequiredMixin, TemplateView):
                             p.save(update_fields=['amount'])
                     except Exception:
                         pass
+                    # Attach display properties so billing history displays plan name instead of generic 'Payment'
+                    p.plan_name = sub.plan.name if sub.plan else 'Subscription'
+                    p.billing_type = sub.plan.name if sub.plan else 'Subscription'
+                    try:
+                        from subscriptions.models import Invoice as _Inv
+                        inv_match = _Inv.objects.filter(subscription=sub).first()
+                        if inv_match:
+                            p.invoice_number = inv_match.invoice_number
+                            if hasattr(inv_match, 'get_invoice_type_display'):
+                                p.billing_type = inv_match.get_invoice_type_display()
+                    except Exception:
+                        pass
+                    if not getattr(p, 'invoice_number', None):
+                        p.invoice_number = getattr(p, 'invoice_number_ref', None) or getattr(p, 'transaction_id', None)
+                    p.invoice_date = getattr(p, 'payment_date', None) or getattr(p, 'approved_at', None) or getattr(p, 'created_at', None)
                     payments.append(p)
                 
                 # Add subscription to history

@@ -2,413 +2,374 @@
 {% load static %}
 
 {% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} SMS Configuration - {{ school.name }}{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit SMS Configuration{% else %}Add SMS Configuration{% endif %}{% endblock %}
+{% block page_icon %}sms{% endblock %}
+{% block page_subtitle %}Configure SMS settings for {{ school.name }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h1 class="h3 mb-0">{% if form.instance.pk %}Edit{% else %}Add{% endif %} SMS Configuration</h1>
-                    <p class="text-muted mb-0">Configure SMS settings for {{ school.name }}</p>
+<div class="row g-4">
+    <!-- Main Form Panel -->
+    <div class="col-lg-8">
+        <div class="form-panel-view mb-4">
+            <div class="form-header-bar">
+                <div class="form-header-title-group">
+                    <h5 class="mb-0 fw-bold form-title-text">
+                        <i class="fas fa-sms text-primary me-2"></i> SMS Configuration Details
+                    </h5>
                 </div>
-                <div>
-                    <a href="{% url 'superadmin:school_sms_config_list' school_slug=school.slug %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-2"></i>Back to Configurations
+                <div class="form-header-actions">
+                    <a href="{% url 'superadmin:school_sms_config_list' school_slug=school.slug %}" class="btn btn-sm btn-secondary">
+                        Cancel
                     </a>
+                    <button type="submit" form="smsConfigForm" class="btn btn-sm btn-primary">
+                        <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Configuration{% else %}Save Configuration{% endif %}
+                    </button>
                 </div>
+            </div>
+
+            <div class="form-card-body">
+                <form method="post" id="smsConfigForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger mb-4">
+                        {% for error in form.non_field_errors %}
+                            <p class="mb-0"><i class="fas fa-exclamation-circle me-2"></i>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Provider Selection -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <label for="{{ form.provider.id_for_label }}" class="form-label fw-semibold">SMS Provider <span class="text-danger">*</span></label>
+                            {{ form.provider }}
+                            {% if form.provider.errors %}
+                                <div class="invalid-feedback d-block mt-1">{{ form.provider.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Usage Limits -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="{{ form.daily_sms_limit.id_for_label }}" class="form-label fw-semibold">Daily SMS Limit</label>
+                            {{ form.daily_sms_limit }}
+                            <div class="form-text text-muted">Maximum SMS per day (0 = unlimited)</div>
+                            {% if form.daily_sms_limit.errors %}
+                                <div class="invalid-feedback d-block mt-1">{{ form.daily_sms_limit.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.monthly_sms_limit.id_for_label }}" class="form-label fw-semibold">Monthly SMS Limit</label>
+                            {{ form.monthly_sms_limit }}
+                            <div class="form-text text-muted">Maximum SMS per month (0 = unlimited)</div>
+                            {% if form.monthly_sms_limit.errors %}
+                                <div class="invalid-feedback d-block mt-1">{{ form.monthly_sms_limit.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Provider-specific fields -->
+                    <div id="provider-fields">
+                        <!-- MobileSasa Fields -->
+                        <div id="mobilesasa-fields" class="provider-specific-fields" style="display: none;">
+                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                                <i class="fas fa-server me-2"></i>MobileSasa Configuration
+                            </h6>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="{{ form.mobilesasa_api_token.id_for_label }}" class="form-label fw-semibold">API Token (Bearer) <span class="text-danger">*</span></label>
+                                    {{ form.mobilesasa_api_token }}
+                                    <div class="form-text text-muted">Bearer token starting with mbs_...</div>
+                                    {% if form.mobilesasa_api_token.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.mobilesasa_api_token.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.mobilesasa_sender_id.id_for_label }}" class="form-label fw-semibold">Sender ID</label>
+                                    {{ form.mobilesasa_sender_id }}
+                                    <div class="form-text text-muted">Approved alphanumeric Sender ID</div>
+                                    {% if form.mobilesasa_sender_id.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.mobilesasa_sender_id.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Twilio Fields -->
+                        <div id="twilio-fields" class="provider-specific-fields" style="display: none;">
+                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                                <i class="fas fa-server me-2"></i>Twilio Configuration
+                            </h6>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="{{ form.twilio_account_sid.id_for_label }}" class="form-label fw-semibold">Account SID <span class="text-danger">*</span></label>
+                                    {{ form.twilio_account_sid }}
+                                    {% if form.twilio_account_sid.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.twilio_account_sid.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.twilio_auth_token.id_for_label }}" class="form-label fw-semibold">Auth Token <span class="text-danger">*</span></label>
+                                    {{ form.twilio_auth_token }}
+                                    {% if form.twilio_auth_token.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.twilio_auth_token.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.twilio_phone_number.id_for_label }}" class="form-label fw-semibold">Twilio Phone Number <span class="text-danger">*</span></label>
+                                    {{ form.twilio_phone_number }}
+                                    <div class="form-text text-muted">Format: +1234567890</div>
+                                    {% if form.twilio_phone_number.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.twilio_phone_number.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Africa's Talking Fields -->
+                        <div id="africas_talking-fields" class="provider-specific-fields" style="display: none;">
+                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                                <i class="fas fa-server me-2"></i>Africa's Talking Configuration
+                            </h6>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="{{ form.africastalking_api_key.id_for_label }}" class="form-label fw-semibold">API Key <span class="text-danger">*</span></label>
+                                    {{ form.africastalking_api_key }}
+                                    {% if form.africastalking_api_key.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.africastalking_api_key.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.africastalking_username.id_for_label }}" class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+                                    {{ form.africastalking_username }}
+                                    {% if form.africastalking_username.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.africastalking_username.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.africastalking_sender_id.id_for_label }}" class="form-label fw-semibold">Sender ID</label>
+                                    {{ form.africastalking_sender_id }}
+                                    {% if form.africastalking_sender_id.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.africastalking_sender_id.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Infobip Fields -->
+                        <div id="infobip-fields" class="provider-specific-fields" style="display: none;">
+                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                                <i class="fas fa-server me-2"></i>Infobip Configuration
+                            </h6>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="{{ form.infobip_api_key.id_for_label }}" class="form-label fw-semibold">API Key <span class="text-danger">*</span></label>
+                                    {{ form.infobip_api_key }}
+                                    {% if form.infobip_api_key.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.infobip_api_key.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.infobip_base_url.id_for_label }}" class="form-label fw-semibold">Base URL</label>
+                                    {{ form.infobip_base_url }}
+                                    <div class="form-text text-muted">Default: https://api.infobip.com</div>
+                                    {% if form.infobip_base_url.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.infobip_base_url.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.infobip_sender.id_for_label }}" class="form-label fw-semibold">Sender Name/Number</label>
+                                    {{ form.infobip_sender }}
+                                    {% if form.infobip_sender.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.infobip_sender.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Clickatell Fields -->
+                        <div id="clickatell-fields" class="provider-specific-fields" style="display: none;">
+                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                                <i class="fas fa-server me-2"></i>Clickatell Configuration
+                            </h6>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="{{ form.clickatell_api_key.id_for_label }}" class="form-label fw-semibold">API Key <span class="text-danger">*</span></label>
+                                    {{ form.clickatell_api_key }}
+                                    {% if form.clickatell_api_key.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.clickatell_api_key.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.clickatell_base_url.id_for_label }}" class="form-label fw-semibold">Base URL</label>
+                                    {{ form.clickatell_base_url }}
+                                    <div class="form-text text-muted">Default: https://platform.clickatell.com</div>
+                                    {% if form.clickatell_base_url.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.clickatell_base_url.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Nexmo / Vonage Fields -->
+                        <div id="nexmo-fields" class="provider-specific-fields" style="display: none;">
+                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                                <i class="fas fa-server me-2"></i>Vonage (Nexmo) Configuration
+                            </h6>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="{{ form.nexmo_api_key.id_for_label }}" class="form-label fw-semibold">API Key <span class="text-danger">*</span></label>
+                                    {{ form.nexmo_api_key }}
+                                    {% if form.nexmo_api_key.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.nexmo_api_key.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.nexmo_api_secret.id_for_label }}" class="form-label fw-semibold">API Secret <span class="text-danger">*</span></label>
+                                    {{ form.nexmo_api_secret }}
+                                    {% if form.nexmo_api_secret.errors %}
+                                        <div class="invalid-feedback d-block mt-1">{{ form.nexmo_api_secret.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Toggles: Status & Global Settings (at bottom, compact) -->
+                    <div class="d-flex flex-wrap gap-4 pt-3 mt-3 border-top">
+                        <div class="form-check form-switch mb-0">
+                            {{ form.is_active }}
+                            <label class="form-check-label ms-2" for="{{ form.is_active.id_for_label }}">Enable this configuration</label>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            {{ form.use_global_settings }}
+                            <label class="form-check-label ms-2" for="{{ form.use_global_settings.id_for_label }}">Use global settings as fallback</label>
+                        </div>
+                    </div>
+
+                    <!-- Hidden school field if present -->
+                    {% if form.school %}{{ form.school }}{% endif %}
+
+                </form>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">SMS Configuration Details</h5>
+    <!-- Side Instructions Panel -->
+    <div class="col-lg-4">
+        <!-- Configuration Guide Card -->
+        <div class="form-panel-view mb-4">
+            <div class="form-header-bar">
+                <div class="form-header-title-group">
+                    <h6 class="mb-0 fw-bold form-title-text">
+                        <i class="fas fa-info-circle text-primary me-2"></i> Configuration Help
+                    </h6>
                 </div>
-                <div class="card-body">
-                    <form method="post" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        
-                        <!-- Basic Settings -->
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="{{ form.provider.id_for_label }}" class="form-label">SMS Provider *</label>
-                                {{ form.provider }}
-                                {% if form.provider.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {{ form.provider.errors.0 }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6">
-                                <label for="{{ form.is_active.id_for_label }}" class="form-label">Status</label>
-                                <div class="form-check mt-2">
-                                    {{ form.is_active }}
-                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
-                                        Enable this configuration
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
+            </div>
+            <div class="form-card-body">
+                <div id="mobilesasa-help" class="provider-help" style="display: none;">
+                    <h6 class="fw-bold mb-2">MobileSasa Instructions</h6>
+                    <p class="small text-muted mb-2">MobileSasa provides high-speed SMS delivery across East Africa with approved Sender IDs.</p>
+                    <ul class="small text-muted ps-3 mb-0">
+                        <li>Register an account at <code>mobilesasa.com</code></li>
+                        <li>Generate an API Token from your Developer portal</li>
+                        <li>Request and register an approved alphanumeric Sender ID</li>
+                    </ul>
+                </div>
 
-                        <!-- Global Settings Override -->
-                        <div class="row mb-3">
-                            <div class="col-12">
-                                <div class="form-check">
-                                    {{ form.use_global_settings }}
-                                    <label class="form-check-label" for="{{ form.use_global_settings.id_for_label }}">
-                                        Use global settings as fallback
-                                    </label>
-                                    <small class="form-text text-muted">If checked, global settings will be used when local settings are not available</small>
-                                </div>
-                            </div>
-                        </div>
+                <div id="twilio-help" class="provider-help" style="display: none;">
+                    <h6 class="fw-bold mb-2">Twilio Instructions</h6>
+                    <p class="small text-muted mb-2">Twilio provides worldwide SMS infrastructure with real-time delivery logs.</p>
+                    <ul class="small text-muted ps-3 mb-0">
+                        <li>Retrieve Account SID and Auth Token from the Twilio Console</li>
+                        <li>Use your active Twilio phone number in E.164 format (e.g. <code>+1234567890</code>)</li>
+                        <li>Ensure outbound SMS permissions are enabled for destination countries</li>
+                    </ul>
+                </div>
 
-                        <!-- Sender ID Settings -->
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="{{ form.custom_sender_id.id_for_label }}" class="form-label">Custom Sender ID</label>
-                                {{ form.custom_sender_id }}
-                                <small class="form-text text-muted">Overrides the default sender ID (max 11 characters, alphanumeric)</small>
-                                {% if form.custom_sender_id.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {{ form.custom_sender_id.errors.0 }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6">
-                                <label for="{{ form.default_sender_id.id_for_label }}" class="form-label">Default Sender ID</label>
-                                {{ form.default_sender_id }}
-                                <small class="form-text text-muted">Fallback sender ID when custom is not set</small>
-                                {% if form.default_sender_id.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {{ form.default_sender_id.errors.0 }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
+                <div id="africas_talking-help" class="provider-help" style="display: none;">
+                    <h6 class="fw-bold mb-2">Africa's Talking Instructions</h6>
+                    <p class="small text-muted mb-2">Direct telco connections optimized for African educational institutions.</p>
+                    <ul class="small text-muted ps-3 mb-0">
+                        <li>Obtain your API Key and Username from <code>africastalking.com</code></li>
+                        <li>Configure custom Alphanumeric Sender ID on your dashboard</li>
+                        <li>Top up your account balance for active SMS sending</li>
+                    </ul>
+                </div>
 
-                        <!-- Usage Limits -->
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="{{ form.daily_sms_limit.id_for_label }}" class="form-label">Daily SMS Limit</label>
-                                {{ form.daily_sms_limit }}
-                                <small class="form-text text-muted">Maximum SMS per day (0 = unlimited)</small>
-                                {% if form.daily_sms_limit.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {{ form.daily_sms_limit.errors.0 }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6">
-                                <label for="{{ form.monthly_sms_limit.id_for_label }}" class="form-label">Monthly SMS Limit</label>
-                                {{ form.monthly_sms_limit }}
-                                <small class="form-text text-muted">Maximum SMS per month (0 = unlimited)</small>
-                                {% if form.monthly_sms_limit.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {{ form.monthly_sms_limit.errors.0 }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
+                <div id="infobip-help" class="provider-help" style="display: none;">
+                    <h6 class="fw-bold mb-2">Infobip Instructions</h6>
+                    <p class="small text-muted mb-2">Global cloud communication with dedicated carrier routes.</p>
+                    <ul class="small text-muted ps-3 mb-0">
+                        <li>Copy API Key and custom Base URL from your Infobip account</li>
+                        <li>Set the registered sender name or numeric sender ID</li>
+                    </ul>
+                </div>
 
-                        <!-- Provider-specific fields -->
-                        <div id="provider-fields">
-                            <!-- MobileSasa Fields -->
-                            <div id="mobilesasa-fields" class="provider-specific-fields" style="display: none;">
-                                <h6 class="mt-4 mb-3">MobileSasa Configuration</h6>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="{{ form.mobilesasa_api_token.id_for_label }}" class="form-label">API Token (Bearer) *</label>
-                                        {{ form.mobilesasa_api_token }}
-                                        <small class="form-text text-muted">Bearer token starting with mbs_...</small>
-                                        {% if form.mobilesasa_api_token.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.mobilesasa_api_token.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="{{ form.mobilesasa_sender_id.id_for_label }}" class="form-label">Sender ID</label>
-                                        {{ form.mobilesasa_sender_id }}
-                                        <small class="form-text text-muted">Approved alphanumeric Sender ID</small>
-                                        {% if form.mobilesasa_sender_id.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.mobilesasa_sender_id.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
+                <div id="clickatell-help" class="provider-help" style="display: none;">
+                    <h6 class="fw-bold mb-2">Clickatell Instructions</h6>
+                    <p class="small text-muted mb-2">Enterprise-grade SMS delivery platform.</p>
+                    <ul class="small text-muted ps-3 mb-0">
+                        <li>Generate API Key from Clickatell portal</li>
+                        <li>Use default base URL: <code>https://platform.clickatell.com</code></li>
+                    </ul>
+                </div>
 
-                            <!-- Twilio Fields -->
-                            <div id="twilio-fields" class="provider-specific-fields" style="display: none;">
-                                <h6 class="mt-4 mb-3">Twilio Configuration</h6>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="{{ form.twilio_account_sid.id_for_label }}" class="form-label">Account SID *</label>
-                                        {{ form.twilio_account_sid }}
-                                        {% if form.twilio_account_sid.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.twilio_account_sid.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="{{ form.twilio_auth_token.id_for_label }}" class="form-label">Auth Token *</label>
-                                        {{ form.twilio_auth_token }}
-                                        {% if form.twilio_auth_token.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.twilio_auth_token.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="{{ form.twilio_phone_number.id_for_label }}" class="form-label">Twilio Phone Number *</label>
-                                        {{ form.twilio_phone_number }}
-                                        <small class="form-text text-muted">Format: +1234567890</small>
-                                        {% if form.twilio_phone_number.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.twilio_phone_number.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
+                <div id="nexmo-help" class="provider-help" style="display: none;">
+                    <h6 class="fw-bold mb-2">Vonage (Nexmo) Instructions</h6>
+                    <p class="small text-muted mb-2">Global messaging API by Vonage.</p>
+                    <ul class="small text-muted ps-3 mb-0">
+                        <li>Copy API Key and API Secret from Vonage dashboard</li>
+                        <li>Ensure account has adequate credit balance</li>
+                    </ul>
+                </div>
 
-                            <!-- Africa's Talking Fields -->
-                            <div id="africas_talking-fields" class="provider-specific-fields" style="display: none;">
-                                <h6 class="mt-4 mb-3">Africa's Talking Configuration</h6>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="{{ form.africas_talking_api_key.id_for_label }}" class="form-label">API Key *</label>
-                                        {{ form.africas_talking_api_key }}
-                                        {% if form.africas_talking_api_key.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.africas_talking_api_key.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="{{ form.africas_talking_username.id_for_label }}" class="form-label">Username *</label>
-                                        {{ form.africas_talking_username }}
-                                        {% if form.africas_talking_username.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.africas_talking_username.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Infobip Fields -->
-                            <div id="infobip-fields" class="provider-specific-fields" style="display: none;">
-                                <h6 class="mt-4 mb-3">Infobip Configuration</h6>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="{{ form.infobip_api_key.id_for_label }}" class="form-label">API Key *</label>
-                                        {{ form.infobip_api_key }}
-                                        {% if form.infobip_api_key.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.infobip_api_key.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="{{ form.infobip_base_url.id_for_label }}" class="form-label">Base URL</label>
-                                        {{ form.infobip_base_url }}
-                                        <small class="form-text text-muted">Default: https://api.infobip.com</small>
-                                        {% if form.infobip_base_url.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.infobip_base_url.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Clickatell Fields -->
-                            <div id="clickatell-fields" class="provider-specific-fields" style="display: none;">
-                                <h6 class="mt-4 mb-3">Clickatell Configuration</h6>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="{{ form.clickatell_api_key.id_for_label }}" class="form-label">API Key *</label>
-                                        {{ form.clickatell_api_key }}
-                                        {% if form.clickatell_api_key.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.clickatell_api_key.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="{{ form.clickatell_base_url.id_for_label }}" class="form-label">Base URL</label>
-                                        {{ form.clickatell_base_url }}
-                                        <small class="form-text text-muted">Default: https://platform.clickatell.com</small>
-                                        {% if form.clickatell_base_url.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.clickatell_base_url.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Nexmo Fields -->
-                            <div id="nexmo-fields" class="provider-specific-fields" style="display: none;">
-                                <h6 class="mt-4 mb-3">Vonage (Nexmo) Configuration</h6>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="{{ form.nexmo_api_key.id_for_label }}" class="form-label">API Key *</label>
-                                        {{ form.nexmo_api_key }}
-                                        {% if form.nexmo_api_key.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.nexmo_api_key.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="{{ form.nexmo_api_secret.id_for_label }}" class="form-label">API Secret *</label>
-                                        {{ form.nexmo_api_secret }}
-                                        {% if form.nexmo_api_secret.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {{ form.nexmo_api_secret.errors.0 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Hidden school field -->
-                        {{ form.school }}
-
-                        <div class="d-flex justify-content-between mt-4">
-                            <a href="{% url 'superadmin:school_sms_config_list' school_slug=school.slug %}" class="btn btn-secondary">
-                                Cancel
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                {% if form.instance.pk %}
-                                    <i class="fas fa-save me-2"></i>Update Configuration
-                                {% else %}
-                                    <i class="fas fa-plus me-2"></i>Create Configuration
-                                {% endif %}
-                            </button>
-                        </div>
-                    </form>
+                <div id="default-help" class="provider-help">
+                    <p class="small text-muted mb-0">
+                        <i class="fas fa-hand-pointer text-primary me-1"></i> Select an SMS Provider on the left to see specific configuration instructions and guidelines.
+                    </p>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Configuration Help</h5>
-                </div>
-                <div class="card-body">
-                    <div id="mobilesasa-help" class="provider-help" style="display: none;">
-                        <h6>MobileSasa Configuration</h6>
-                        <p class="small text-muted">MobileSasa provides reliable SMS delivery across East Africa with fast routing and custom Sender IDs.</p>
-                        <ul class="small text-muted">
-                            <li>Sign up at mobilesasa.com</li>
-                            <li>Generate an API Token from your Developer/API settings</li>
-                            <li>Request and get an approved Sender ID for your school</li>
-                        </ul>
-                    </div>
-
-                    <div id="twilio-help" class="provider-help" style="display: none;">
-                        <h6>Twilio Configuration</h6>
-                        <p class="small text-muted">Twilio provides global SMS delivery with detailed analytics.</p>
-                        <ul class="small text-muted">
-                            <li>Get Account SID and Auth Token from Twilio Console</li>
-                            <li>Purchase a Twilio phone number for sending SMS</li>
-                            <li>Ensure your account has SMS capabilities</li>
-                            <li>Format phone numbers with country code (+1234567890)</li>
-                        </ul>
-                    </div>
-
-                    <div id="africas_talking-help" class="provider-help" style="display: none;">
-                        <h6>Africa's Talking Configuration</h6>
-                        <p class="small text-muted">Africa's Talking specializes in African market SMS delivery.</p>
-                        <ul class="small text-muted">
-                            <li>Sign up at africastalking.com</li>
-                            <li>Get API Key from your dashboard</li>
-                            <li>Username is typically your app username</li>
-                            <li>Supports local payment methods in Africa</li>
-                        </ul>
-                    </div>
-
-                    <div id="infobip-help" class="provider-help" style="display: none;">
-                        <h6>Infobip Configuration</h6>
-                        <p class="small text-muted">Infobip offers omnichannel communication with advanced routing.</p>
-                        <ul class="small text-muted">
-                            <li>Create account at infobip.com</li>
-                            <li>Get API Key from your portal</li>
-                            <li>Default base URL: https://api.infobip.com</li>
-                            <li>Supports advanced message personalization</li>
-                        </ul>
-                    </div>
-
-                    <div id="clickatell-help" class="provider-help" style="display: none;">
-                        <h6>Clickatell Configuration</h6>
-                        <p class="small text-muted">Clickatell provides enterprise-grade SMS solutions.</p>
-                        <ul class="small text-muted">
-                            <li>Register at platform.clickatell.com</li>
-                            <li>Generate API Key from your account</li>
-                            <li>Default base URL: https://platform.clickatell.com</li>
-                            <li>Offers compliance and reporting features</li>
-                        </ul>
-                    </div>
-
-                    <div id="nexmo-help" class="provider-help" style="display: none;">
-                        <h6>Vonage (Nexmo) Configuration</h6>
-                        <p class="small text-muted">Vonage (formerly Nexmo) provides cloud communication APIs.</p>
-                        <ul class="small text-muted">
-                            <li>Create account at vonage.com</li>
-                            <li>Get API Key and API Secret from dashboard</li>
-                            <li>Supports virtual numbers for sending</li>
-                            <li>Offers voice and messaging APIs</li>
-                        </ul>
-                    </div>
-
-                    <div id="default-help" class="provider-help">
-                        <p class="small text-muted">Select an SMS provider to see configuration help.</p>
-                    </div>
+        <!-- Sender ID Guidelines -->
+        <div class="form-panel-view mb-4">
+            <div class="form-header-bar">
+                <div class="form-header-title-group">
+                    <h6 class="mb-0 fw-bold form-title-text">
+                        <i class="fas fa-id-badge text-primary me-2"></i> Sender ID Guidelines
+                    </h6>
                 </div>
             </div>
+            <div class="form-card-body">
+                <ul class="small text-muted ps-3 mb-0">
+                    <li class="mb-1"><strong>Alphanumeric:</strong> Maximum 11 characters (A-Z, 0-9)</li>
+                    <li class="mb-1"><strong>Numeric:</strong> Maximum 15 digits</li>
+                    <li class="mb-1"><strong>No spaces:</strong> Use underscores or no spaces</li>
+                    <li class="mb-1"><strong>Brand recognition:</strong> Use your official school name or acronym</li>
+                    <li><strong>Regulations:</strong> Ensure your sender ID is formally approved by telecom regulators</li>
+                </ul>
+            </div>
+        </div>
 
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Best Practices</h5>
-                </div>
-                <div class="card-body">
-                    <ul class="small text-muted">
-                        <li>Keep API credentials secure and private</li>
-                        <li>Test with small volumes first</li>
-                        <li>Set reasonable usage limits to control costs</li>
-                        <li>Use recognizable sender IDs (max 11 chars)</li>
-                        <li>Monitor delivery rates and failed messages</li>
-                        <li>Have backup SMS providers configured</li>
-                    </ul>
+        <!-- Best Practices -->
+        <div class="form-panel-view mb-4">
+            <div class="form-header-bar">
+                <div class="form-header-title-group">
+                    <h6 class="mb-0 fw-bold form-title-text">
+                        <i class="fas fa-shield-alt text-primary me-2"></i> Best Practices
+                    </h6>
                 </div>
             </div>
-
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Sender ID Guidelines</h5>
-                </div>
-                <div class="card-body">
-                    <ul class="small text-muted">
-                        <li><strong>Alphanumeric:</strong> Max 11 characters (A-Z, 0-9)</li>
-                        <li><strong>Numeric:</strong> Max 15 digits</li>
-                        <li><strong>No spaces:</strong> Use underscores or no spaces</li>
-                        <li><strong>Brand recognition:</strong> Use your school name</li>
-                        <li><strong>Country-specific:</strong> Some countries have restrictions</li>
-                    </ul>
-                </div>
+            <div class="form-card-body">
+                <ul class="small text-muted ps-3 mb-0">
+                    <li class="mb-1">Keep API keys and tokens strictly confidential</li>
+                    <li class="mb-1">Send a single test message before sending bulk notices</li>
+                    <li class="mb-1">Set daily and monthly SMS limits to avoid unexpected carrier billing</li>
+                    <li>Monitor notification delivery logs in the communication module</li>
+                </ul>
             </div>
         </div>
     </div>
@@ -417,59 +378,49 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const providerSelect = document.getElementById('{{ form.provider.id_for_label }}');
-    const useGlobalCheckbox = document.getElementById('{{ form.use_global_settings.id_for_label }}');
-    
+
     function toggleProviderFields() {
+        if (!providerSelect) return;
         const selectedProvider = providerSelect.value;
-        
+
         // Hide all provider-specific fields
-        document.querySelectorAll('.provider-specific-fields').forEach(field => {
+        document.querySelectorAll('.provider-specific-fields').forEach(function(field) {
             field.style.display = 'none';
         });
-        
+
         // Hide all help sections
-        document.querySelectorAll('.provider-help').forEach(help => {
+        document.querySelectorAll('.provider-help').forEach(function(help) {
             help.style.display = 'none';
         });
-        
+
         // Show selected provider fields
-        const selectedFields = document.getElementById(selectedProvider + '-fields');
-        if (selectedFields) {
-            selectedFields.style.display = 'block';
-        }
-        
-        // Show selected provider help
-        const selectedHelp = document.getElementById(selectedProvider + '-help');
-        if (selectedHelp) {
-            selectedHelp.style.display = 'block';
-        }
-    }
-    
-    function toggleGlobalSettings() {
-        const useGlobal = useGlobalCheckbox.checked;
-        const providerFields = document.getElementById('provider-fields');
-        
-        if (useGlobal) {
-            providerFields.style.opacity = '0.6';
-            providerFields.querySelectorAll('input, select').forEach(field => {
-                field.disabled = true;
-            });
+        if (selectedProvider) {
+            const selectedFields = document.getElementById(selectedProvider + '-fields');
+            if (selectedFields) {
+                selectedFields.style.display = 'block';
+            }
+
+            // Show selected provider help
+            const selectedHelp = document.getElementById(selectedProvider + '-help');
+            if (selectedHelp) {
+                selectedHelp.style.display = 'block';
+            } else {
+                const defaultHelp = document.getElementById('default-help');
+                if (defaultHelp) defaultHelp.style.display = 'block';
+            }
         } else {
-            providerFields.style.opacity = '1';
-            providerFields.querySelectorAll('input, select').forEach(field => {
-                field.disabled = false;
-            });
+            const defaultHelp = document.getElementById('default-help');
+            if (defaultHelp) defaultHelp.style.display = 'block';
         }
     }
-    
+
     // Initialize
     toggleProviderFields();
-    toggleGlobalSettings();
-    
+
     // Event listeners
-    providerSelect.addEventListener('change', toggleProviderFields);
-    useGlobalCheckbox.addEventListener('change', toggleGlobalSettings);
+    if (providerSelect) {
+        providerSelect.addEventListener('change', toggleProviderFields);
+    }
 });
 </script>
-
 {% endblock %}

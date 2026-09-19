@@ -234,9 +234,13 @@ class SystemSetting(models.Model):
     
     @classmethod
     def get_settings(cls):
-        """Get or create system settings"""
-        obj, created = cls.objects.get_or_create(pk=1)
-        return obj
+        """Get or create system settings from global master database"""
+        try:
+            obj, _ = cls.objects.using('default').get_or_create(pk=1)
+            return obj
+        except Exception:
+            obj, _ = cls.objects.get_or_create(pk=1)
+            return obj
 
 
 class Notification(models.Model):
