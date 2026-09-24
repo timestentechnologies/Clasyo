@@ -141,21 +141,24 @@ class HeroContent(models.Model):
     secondary_btn_text = models.CharField(max_length=60, default="Sign In")
     secondary_btn_url = models.CharField(max_length=255, default="#loginModal", help_text="URL or modal target like #loginModal")
     
-    bg_type = models.CharField(max_length=20, choices=BG_TYPE_CHOICES, default='gradient')
+    bg_type = models.CharField(max_length=20, choices=BG_TYPE_CHOICES, default='gradient', blank=True)
     bg_image = models.ImageField(upload_to='frontend/hero/', null=True, blank=True)
-    bg_color = models.CharField(max_length=30, default="#0f172a", help_text="Hex code or CSS color")
+    bg_color = models.CharField(max_length=30, default="#0f172a", blank=True, help_text="Hex code or CSS color")
     bg_gradient = models.CharField(
         max_length=255, 
         default="linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #164e63 100%)",
+        blank=True,
         help_text="Custom CSS gradient string"
     )
     overlay_color = models.CharField(
         max_length=30,
         default="#0f172a",
+        blank=True,
         help_text="Hex overlay color code e.g. #0f172a or #000000"
     )
     overlay_opacity = models.FloatField(
         default=0.85, 
+        blank=True,
         help_text="Overlay darkness from 0.0 (transparent) to 1.0 (solid)"
     )
     min_height = models.CharField(

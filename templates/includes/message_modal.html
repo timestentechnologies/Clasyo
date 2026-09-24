@@ -1,19 +1,108 @@
-<!-- Success/Error Message Modal - Global Component -->
-<div class="modal fade" id="messageModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header" id="messageModalHeader">
-                <h5 class="modal-title" id="messageModalTitle">
-                    <i class="fas fa-info-circle me-2" id="messageModalIcon"></i>
-                    <span id="messageModalTitleText">Message</span>
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+<!-- Success/Error/Warning Message Modal - Global Component -->
+<style>
+/* Global System Message Popup Modal */
+.system-msg-modal-content {
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* Light Mode Defaults */
+:root, [data-theme="light"], body:not(.dark-theme) {
+    --sys-msg-modal-bg: #ffffff;
+    --sys-msg-modal-text: #0f172a;
+    --sys-msg-modal-subtext: #334155;
+    --sys-msg-modal-border: rgba(0, 0, 0, 0.1);
+}
+
+/* Dark Mode Overrides */
+[data-theme="dark"], [data-bs-theme="dark"], .theme-dark, .dark-theme, body.dark-theme {
+    --sys-msg-modal-bg: #151d30;
+    --sys-msg-modal-text: #f8fafc;
+    --sys-msg-modal-subtext: #cbd5e1;
+    --sys-msg-modal-border: rgba(255, 255, 255, 0.12);
+}
+
+.system-msg-modal-content {
+    background-color: var(--sys-msg-modal-bg) !important;
+    color: var(--sys-msg-modal-text) !important;
+    border: 1px solid var(--sys-msg-modal-border) !important;
+}
+
+.system-msg-modal-content .modal-body {
+    color: var(--sys-msg-modal-subtext) !important;
+    font-size: 0.98rem;
+    line-height: 1.6;
+}
+
+.system-msg-modal-header {
+    border-bottom: none !important;
+    color: #ffffff !important;
+}
+
+.system-msg-modal-header .modal-title {
+    color: #ffffff !important;
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em;
+}
+
+.system-msg-icon-box {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.22);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+
+/* Theme Gradients */
+.system-msg-header.msg-theme-success,
+#messageModalHeader.msg-theme-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+}
+
+.system-msg-header.msg-theme-error,
+.system-msg-header.msg-theme-danger,
+#messageModalHeader.msg-theme-error,
+#messageModalHeader.msg-theme-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+}
+
+.system-msg-header.msg-theme-warning,
+#messageModalHeader.msg-theme-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+}
+
+.system-msg-header.msg-theme-info,
+#messageModalHeader.msg-theme-info {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+}
+</style>
+
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalTitleText" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+        <div class="modal-content system-msg-modal-content border-0 shadow-lg">
+            <div class="modal-header system-msg-modal-header py-3 px-4 border-0 d-flex align-items-center justify-content-between" id="messageModalHeader" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="system-msg-icon-box" id="messageModalIconWrap">
+                        <i class="fas fa-check-circle" id="messageModalIcon"></i>
+                    </div>
+                    <h5 class="modal-title mb-0" id="messageModalTitle">
+                        <span id="messageModalTitleText">Success</span>
+                    </h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" id="messageModalCloseBtn"></button>
             </div>
-            <div class="modal-body" id="messageModalBody">
-                <p class="mb-0">Operation completed successfully!</p>
+            <div class="modal-body py-4 px-4" id="messageModalBody">
+                <p class="mb-0" id="messageModalText">Operation completed successfully!</p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="messageModalBtn">OK</button>
+            <div class="modal-footer border-0 pt-0 pb-3 px-4 d-flex justify-content-end">
+                <button type="button" class="btn btn-success px-4 fw-semibold shadow-sm" data-bs-dismiss="modal" id="messageModalBtn" style="min-width: 100px; border-radius: 8px;">OK</button>
             </div>
         </div>
     </div>

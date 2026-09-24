@@ -137,7 +137,7 @@
                             </a>
                         </li>
                         {% endif %}
-                        {% elif school_slug and school_slug != 'demo-school' %}
+                        {% elif school_slug or has_sample_data %}
                         {% if has_sample_data %}
                         <li>
                             <a class="dropdown-item py-2 text-warning fw-semibold cursor-pointer" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#exitSampleDataModal">
@@ -192,6 +192,13 @@
             </div>
         </div>
     </header>
+    {% if messages %}
+    <div id="django-messages-container" class="d-none" aria-hidden="true">
+        {% for message in messages %}
+        <div class="django-sys-message" data-tags="{{ message.tags }}" data-message="{{ message|escape }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
     <div class="filter-section">
         {% if show_subscription_banner %}
         <div class="alert alert-warning d-flex align-items-center mb-3" role="alert"
@@ -688,7 +695,8 @@
             });
         });
     </script>
-    {% include 'includes/sample_data_modals.html' %}
+    {% include 'includes/message_modal.html' %}
+    <script src="{% static 'js/global-messages.js' %}?v=12.0"></script>
 </body>
 
 </html>

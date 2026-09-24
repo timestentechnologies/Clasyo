@@ -273,10 +273,38 @@ class HeroContentForm(forms.ModelForm):
             'bg_color': forms.TextInput(attrs={'class': 'form-control', 'type': 'color'}),
             'bg_gradient': forms.TextInput(attrs={'class': 'form-control'}),
             'overlay_color': forms.TextInput(attrs={'class': 'form-control', 'type': 'color'}),
-            'overlay_opacity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.05', 'min': '0', 'max': '1'}),
+            'overlay_opacity': forms.NumberInput(attrs={
+                'type': 'range',
+                'class': 'form-range',
+                'step': '0.01',
+                'min': '0',
+                'max': '1',
+                'id': 'hero_overlay_opacity',
+                'style': 'border: none !important; background: transparent !important; box-shadow: none !important; outline: none !important; padding: 0 !important;',
+                'oninput': "var el = document.getElementById('hero_opacity_val'); if (el) el.innerText = parseFloat(this.value).toFixed(2);"
+            }),
             'min_height': forms.Select(attrs={'class': 'form-select'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        optional_fields = ['bg_type', 'bg_image', 'bg_color', 'bg_gradient', 'overlay_color', 'overlay_opacity', 'primary_btn_url', 'secondary_btn_url', 'subtitle']
+        for f in optional_fields:
+            if f in self.fields:
+                self.fields[f].required = False
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not cleaned_data.get('bg_type'):
+            cleaned_data['bg_type'] = 'gradient'
+        if not cleaned_data.get('bg_color'):
+            cleaned_data['bg_color'] = '#0f172a'
+        if not cleaned_data.get('overlay_color'):
+            cleaned_data['overlay_color'] = '#0f172a'
+        if cleaned_data.get('overlay_opacity') is None:
+            cleaned_data['overlay_opacity'] = 0.85
+        return cleaned_data
 
 
 class FloatingParallaxElementForm(forms.ModelForm):
@@ -300,7 +328,16 @@ class FloatingParallaxElementForm(forms.ModelForm):
             'position_bottom': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 15% or auto'}),
             'position_right': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 15% or auto'}),
             'font_size': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 3rem or 45px'}),
-            'opacity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.05', 'min': '0.01', 'max': '1'}),
+            'opacity': forms.NumberInput(attrs={
+                'type': 'range',
+                'class': 'form-range',
+                'step': '0.01',
+                'min': '0.01',
+                'max': '1',
+                'id': 'floating_opacity',
+                'style': 'border: none !important; background: transparent !important; box-shadow: none !important; outline: none !important; padding: 0 !important;',
+                'oninput': "var el = document.getElementById('floating_opacity_val'); if (el) el.innerText = parseFloat(this.value).toFixed(2);"
+            }),
             'animation_type': forms.Select(attrs={'class': 'form-select'}),
             'animation_duration': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 18s'}),
             'animation_delay': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 0s'}),
@@ -369,7 +406,16 @@ class ParallaxSectionForm(forms.ModelForm):
             'secondary_btn_url': forms.TextInput(attrs={'class': 'form-control'}),
             'bg_image': forms.FileInput(attrs={'class': 'form-control'}),
             'bg_color': forms.TextInput(attrs={'class': 'form-control', 'type': 'color'}),
-            'overlay_opacity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.05', 'min': '0', 'max': '1'}),
+            'overlay_opacity': forms.NumberInput(attrs={
+                'type': 'range',
+                'class': 'form-range',
+                'step': '0.01',
+                'min': '0',
+                'max': '1',
+                'id': 'parallax_overlay_opacity',
+                'style': 'border: none !important; background: transparent !important; box-shadow: none !important; outline: none !important; padding: 0 !important;',
+                'oninput': "var el = document.getElementById('p_edit_opacity_val'); if (el) el.innerText = parseFloat(this.value).toFixed(2);"
+            }),
             'scroll_effect': forms.Select(attrs={'class': 'form-select'}),
             'order': forms.NumberInput(attrs={'class': 'form-control'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),

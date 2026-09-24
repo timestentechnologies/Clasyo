@@ -51,8 +51,26 @@ class TenantMiddleware(MiddlewareMixin):
 
         # 4. Attach active tenant database
         if school:
-            register_tenant_connection(school.slug)
-            set_current_tenant_db(school.slug)
+            use_demo_db = bool(getattr(request, 'session', {}).get('use_demo_database', False))
+            if use_demo_db:
+                register_tenant_connection('demo-school')
+                demo_school = School.objects.using('default').filter(slug='demo-school').first()
+                if demo_school:
+                    request.tenant = demo_school
+                    request.school = demo_school
+                set_current_tenant_db('demo-school')
+            else:
+                register_tenant_connection(school.slug)
+                set_current_tenant_db(school.slug)
+                # Auto-heal: Ensure real school DB is completely free of any demo records
+                if school.slug != 'demo-school':
+                    try:
+                        from accounts.models import User
+                        if User.objects.using(school.slug).filter(email__endswith='@demo.school').exists():
+                            from core.sample_data import clear_all_sample_data_for_school
+                            clear_all_sample_data_for_school(school, db_alias=school.slug)
+                    except Exception:
+                        pass
         else:
             clear_current_tenant_db()
 
@@ -61,19 +79,27 @@ class TenantMiddleware(MiddlewareMixin):
     def process_view(self, request, view_func, view_args, view_kwargs):
         # Enforce that authenticated non-superadmin users access only their own school slug
         user = getattr(request, 'user', None)
+        use_demo_db = bool(getattr(request, 'session', {}).get('use_demo_database', False))
         if user and getattr(user, 'is_authenticated', False) and request.path.startswith('/school/'):
             path_parts = request.path.strip('/').split('/')
             if len(path_parts) >= 2:
                 slug = path_parts[1]
                 user_school = getattr(user, 'school', None)
                 if user_school and getattr(user, 'role', None) != 'superadmin' and slug != user_school.slug:
-                    full_path = request.get_full_path()
-                    return redirect(full_path.replace(f'/school/{slug}/', f'/school/{user_school.slug}/', 1))
+                    if not (slug == 'demo-school' and use_demo_db):
+                        full_path = request.get_full_path()
+                        return redirect(full_path.replace(f'/school/{slug}/', f'/school/{user_school.slug}/', 1))
 
         # If user is in their school context, ensure their database is ready
         if request.school:
-            ensure_school_database(request.school)
-            set_current_tenant_db(request.school.slug)
+            if use_demo_db:
+                demo_school = School.objects.using('default').filter(slug='demo-school').first()
+                if demo_school:
+                    ensure_school_database(demo_school)
+                set_current_tenant_db('demo-school')
+            else:
+                ensure_school_database(request.school)
+                set_current_tenant_db(request.school.slug)
 
         return None
 

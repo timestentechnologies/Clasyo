@@ -1,3 +1,4 @@
+import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import View, ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
 from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
@@ -10,6 +11,8 @@ from django.db.models import Q
 from django.http import HttpResponseForbidden, JsonResponse
 from .models import User, Role, Permission, UserLoginLog
 from .forms import LoginForm, UserRegistrationForm, ProfileEditForm, ChangePasswordForm, UserForm, RoleForm, PermissionForm
+
+logger = logging.getLogger(__name__)
 
 
 def csrf_failure(request, reason=""):
@@ -109,10 +112,8 @@ class LoginView(View):
                     next_url = request.GET.get('next') or request.POST.get('next')
                     
                     if user.role == 'superadmin':
-                        messages.success(request, f'Welcome back, {user.get_full_name()}!')
                         redirect_target = reverse_lazy('superadmin:dashboard')
                     elif next_url and next_url.startswith('/'):
-                        messages.success(request, f'Welcome back, {user.get_full_name()}!')
                         redirect_target = next_url
                     else:
                         from tenants.models import School
@@ -123,7 +124,15 @@ class LoginView(View):
                         
                         if school:
                             ensure_school_database(school)
-                            messages.success(request, f'Welcome back, {user.get_full_name()}!')
+                            # Ensure tenant database is in clean live state (no lingering sample data)
+                            if school.slug != 'demo-school':
+                                try:
+                                    from students.models import Student
+                                    from core.sample_data import clear_all_sample_data_for_school
+                                    if Student.objects.using(school.slug).filter(is_sample_data=True).exists():
+                                        clear_all_sample_data_for_school(school, db_alias=school.slug)
+                                except Exception as e:
+                                    logger.warning(f"Error checking/clearing sample data on login: {e}")
                             redirect_target = reverse_lazy('core:apps_home', kwargs={'school_slug': school.slug})
                         else:
                             messages.warning(request, f'Welcome {user.get_full_name()}! No school associated with your account. Please contact administrator.')
@@ -161,9 +170,26 @@ class LoginView(View):
 class LogoutView(LoginRequiredMixin, View):
     """User logout view"""
     def get(self, request):
+        user = request.user
+        school = getattr(user, 'school', None)
+        if not school:
+            from core.utils import get_current_school
+            school = get_current_school(request)
+
+        # If user was in a school with sample demo data loaded, auto-clear on logout
+        # so user is never left on the sample database when logging in again
+        if school and school.slug != 'demo-school':
+            try:
+                from students.models import Student
+                from core.sample_data import clear_all_sample_data_for_school
+                if Student.objects.using(school.slug).filter(is_sample_data=True).exists():
+                    clear_all_sample_data_for_school(school, db_alias=school.slug)
+            except Exception as e:
+                logger.warning(f"Could not clear sample data on logout: {e}")
+
         # Update logout time in login log
         last_log = UserLoginLog.objects.filter(
-            user=request.user,
+            user=user,
             logout_time__isnull=True
         ).order_by('-login_time').first()
         
@@ -180,10 +206,9 @@ class LogoutView(LoginRequiredMixin, View):
         
         logout(request)
         
-        # Clear any existing messages to prevent piling up (e.g. Welcome back)
+        # Clear any existing messages so nothing lingers or pops up on the home page
         clear_messages(request)
         
-        messages.success(request, 'You have been logged out successfully.')
         return redirect('frontend:home')
 
 
@@ -228,7 +253,6 @@ class SocialLoginCompleteView(LoginRequiredMixin, View):
 
         # Super admin: always go to superadmin dashboard
         if user.role == 'superadmin':
-            messages.success(request, f'Welcome back, {user.get_full_name()}!')
             return redirect('superadmin:dashboard')
 
         # For other roles, redirect to user's linked school; fallback to first active school
@@ -238,7 +262,6 @@ class SocialLoginCompleteView(LoginRequiredMixin, View):
             school = School.objects.filter(is_active=True).first()
 
         if school:
-            messages.success(request, f'Welcome back, {user.get_full_name()}!')
             return redirect('core:apps_home', school_slug=school.slug)
 
         # No school associated

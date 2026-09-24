@@ -440,22 +440,9 @@ function submitExport() {
     bootstrap.Modal.getInstance(document.getElementById('exportModal')).hide();
     
     // Show success message
-    const successAlert = document.createElement('div');
-    successAlert.className = 'alert alert-success alert-dismissible fade show position-fixed';
-    successAlert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-    successAlert.innerHTML = `
-        <i class="fas fa-check-circle me-2"></i>
-        <strong>Success!</strong> Timetable exported successfully as ${format.toUpperCase()}.
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    document.body.appendChild(successAlert);
-    
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-        if (successAlert.parentNode) {
-            successAlert.parentNode.removeChild(successAlert);
-        }
-    }, 5000);
+    if (typeof showSuccess === 'function') {
+        showSuccess(`Timetable exported successfully as ${format.toUpperCase()}.`);
+    }
 }
 
 function submitAddRoutine() {

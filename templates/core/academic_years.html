@@ -191,42 +191,7 @@
     </div>
 </div>
 
-<!-- Success/Error Modal -->
-<div class="modal fade" id="messageModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header" id="messageModalHeader" style="background: linear-gradient(180deg, #1E3A5F 0%, #2C5282 100%); color: white;">
-                <h5 class="modal-title" id="messageModalTitle">Success</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="messageModalBody">
-                Operation completed successfully!
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
-let currentYearId = null;
-
-function showMessage(title, message, isSuccess = true) {
-    const modal = new bootstrap.Modal(document.getElementById('messageModal'));
-    document.getElementById('messageModalTitle').textContent = title;
-    document.getElementById('messageModalBody').innerHTML = message;
-    
-    const header = document.getElementById('messageModalHeader');
-    if (isSuccess) {
-        header.style.background = 'linear-gradient(180deg, #4CAF50 0%, #45a049 100%)';
-    } else {
-        header.style.background = 'linear-gradient(180deg, #f44336 0%, #da190b 100%)';
-    }
-    
-    modal.show();
-}
-
 function submitYearForm() {
     const form = document.getElementById('yearForm');
     const formData = new FormData(form);
@@ -273,12 +238,6 @@ function editYear(id) {
         .catch(error => {
             showMessage('Error', 'Failed to load year data: ' + error.message, false);
         });
-}
-        }
-    })
-    .catch(error => {
-        showMessage('Error', 'Failed to update: ' + error.message, false);
-    });
 }
 
 function deleteYear(id) {

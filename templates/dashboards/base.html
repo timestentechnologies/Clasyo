@@ -23,10 +23,60 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=28.0">
-    <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}?v=37.0">
-    <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=14.0">
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=35.0">
+    <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}?v=45.0">
+    <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=25.0">
     <style id="custom-theme-variables">
+        /* Universal Range Slider Box/Border Removal */
+        input[type="range"],
+        .form-range,
+        [data-theme="dark"] input[type="range"],
+        [data-theme="dark"] .form-range,
+        [data-bs-theme="dark"] input[type="range"],
+        [data-bs-theme="dark"] .form-range,
+        .theme-dark input[type="range"],
+        .theme-dark .form-range,
+        .dark-theme input[type="range"],
+        .dark-theme .form-range,
+        body.dark-theme input[type="range"],
+        body.dark-theme .form-range,
+        body.theme-dark input[type="range"],
+        body.theme-dark .form-range,
+        body input[type="range"],
+        body .form-range {
+            border: none !important;
+            border-width: 0 !important;
+            outline: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            background-color: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            -webkit-appearance: none !important;
+            appearance: none !important;
+        }
+
+        input[type="range"]:focus,
+        .form-range:focus,
+        [data-theme="dark"] input[type="range"]:focus,
+        [data-theme="dark"] .form-range:focus,
+        [data-bs-theme="dark"] input[type="range"]:focus,
+        [data-bs-theme="dark"] .form-range:focus,
+        .theme-dark input[type="range"]:focus,
+        .theme-dark .form-range:focus,
+        .dark-theme input[type="range"]:focus,
+        .dark-theme .form-range:focus,
+        body.dark-theme input[type="range"]:focus,
+        body.dark-theme .form-range:focus,
+        body.theme-dark input[type="range"]:focus,
+        body.theme-dark .form-range:focus {
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            background-color: transparent !important;
+        }
         :root {
             --brand-primary: {{ system_settings.primary_color|default:'#0284C7' }};
             --primary-navy: {{ system_settings.primary_color|default:'#0284C7' }};
@@ -185,12 +235,12 @@
         <!-- Content Container -->
         <div class="content-container">
             {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show modern-card" style="animation: fadeInUp 0.5s;">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
+                <!-- System Messages (Displayed via Global Popup Modal) -->
+                <div id="django-messages-container" class="d-none" aria-hidden="true">
+                    {% for message in messages %}
+                        <div class="django-sys-message" data-tags="{{ message.tags }}" data-text="{{ message|escapejs }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
             {% endif %}
             
             {% block page_header %}
@@ -232,7 +282,7 @@
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{% static 'js/global-messages.js' %}"></script>
+    <script src="{% static 'js/global-messages.js' %}?v=12.0"></script>
     <!-- PWA Installation -->
     <script src="{% static 'js/pwa-install.js' %}?v=10.0" defer></script>
 
@@ -387,8 +437,11 @@
 
             // Reset form fields
             const form = formEl.querySelector('form');
-            if (form) form.reset();
-            const idInput = formEl.querySelector('input[name="id"], input[name="pk"], input[name="object_id"], input[name="staff_id"], input[name="student_id"], input[name="teacher_id"]');
+            if (form) {
+                form.reset();
+                form.querySelectorAll('input[type="range"]').forEach(r => r.dispatchEvent(new Event('input')));
+            }
+            const idInput = formEl.querySelector('input[name="id"], input[name="pk"], input[name="object_id"], input[name$="_id"], input[name="staff_id"], input[name="student_id"], input[name="teacher_id"]');
             if (idInput) idInput.value = '';
         } else if (mode === 'edit') {
             if (titleEl) titleEl.textContent = titleEl.dataset.editTitle || 'Edit Record';
@@ -403,6 +456,9 @@
                             field.checked = Boolean(data[key]);
                         } else {
                             field.value = data[key];
+                            if (field.type === 'range') {
+                                field.dispatchEvent(new Event('input'));
+                            }
                         }
                     }
                 });

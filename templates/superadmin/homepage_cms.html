@@ -9,6 +9,39 @@
 
 
 {% block content %}
+<style>
+/* Absolute zero boxing, border, or background on range sliders */
+input[type="range"],
+.form-range,
+.cms-card input[type="range"],
+.cms-card .form-range,
+[data-theme="dark"] input[type="range"],
+[data-theme="dark"] .form-range,
+.modal input[type="range"],
+.modal .form-range {
+    border: none !important;
+    border-width: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+}
+input[type="range"]:focus,
+.form-range:focus,
+[data-theme="dark"] input[type="range"]:focus,
+[data-theme="dark"] .form-range:focus {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+}
+</style>
 <div class="container-fluid px-0">
 
     <!-- Navigation Tabs -->
@@ -100,6 +133,33 @@
                         </div>
 
                         <!-- Background Customization -->
+                        <div class="col-12 mt-3 pt-2 border-top">
+                            <h6 class="fw-bold text-dark mb-1"><i class="fas fa-palette me-2 text-primary"></i>Background & Overlay Styling</h6>
+                            <small class="text-muted">Choose your hero styling mode and color palette</small>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Background Type</label>
+                            {{ hero_form.bg_type }}
+                            <small class="text-muted">Choose gradient, solid color, or image</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Solid Background Color</label>
+                            {{ hero_form.bg_color }}
+                            <small class="text-muted">Used when Background Type is "Solid Color"</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Overlay Color</label>
+                            {{ hero_form.overlay_color }}
+                            <small class="text-muted">Color of dark tint layer</small>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Custom CSS Gradient</label>
+                            {{ hero_form.bg_gradient }}
+                            <small class="text-muted">Used when Background Type is "Gradient" (e.g. <code>linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #164e63 100%)</code>)</small>
+                        </div>
+
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Upload Background Image</label>
                             {{ hero_form.bg_image }}
@@ -112,14 +172,23 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Overlay Darkness / Opacity (0.0 to 1.0)</label>
+                            <label class="form-label fw-semibold d-flex justify-content-between align-items-center">
+                                <span>Overlay Darkness / Opacity</span>
+                                <span class="badge bg-primary px-2 py-1" id="hero_opacity_val">{{ hero.overlay_opacity|default:'0.85'|floatformat:2 }}</span>
+                            </label>
                             {{ hero_form.overlay_opacity }}
+                            <div class="d-flex justify-content-between text-muted" style="font-size: 0.72rem; margin-top: -2px;">
+                                <span>0.00 (Transparent)</span>
+                                <span>0.50</span>
+                                <span>1.00 (Solid)</span>
+                            </div>
                         </div>
 
                         <div class="col-12">
-                            <div class="form-check form-switch mt-2">
+                            <label class="form-label fw-semibold">Hero Status</label>
+                            <div class="form-check form-switch pt-1">
                                 {{ hero_form.is_active }}
-                                <label class="form-check-label fw-semibold ms-2">Enable Hero Section on Homepage</label>
+                                <label class="form-check-label fw-semibold" for="{{ hero_form.is_active.id_for_label }}">Enable Hero Section on Homepage</label>
                             </div>
                         </div>
 
@@ -156,20 +225,20 @@
     <div class="form-panel-view {% if not edit_floating %}d-none{% endif %} mb-4" id="floatingFormPanel">
         <div class="form-header-bar">
             <div class="form-header-title-group">
-                <a href="?tab=floating" class="btn btn-sm btn-outline-secondary">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeFloatingForm()">
                     <i class="fas fa-arrow-left me-1"></i> Back to List
-                </a>
-                <h5 class="mb-0 fw-bold form-title-text">
-                    {% if edit_floating %}Editing Floating Icon: {{ edit_floating.title|default:edit_floating.icon }}{% else %}Add Floating Parallax Icon{% endif %}
+                </button>
+                <h5 class="mb-0 fw-bold form-title-text" data-create-title="Add Floating Parallax Icon" data-edit-title="Edit Floating Parallax Icon">
+                    {% if edit_floating %}Edit Floating Parallax Icon: {{ edit_floating.title|default:edit_floating.icon }}{% else %}Add Floating Parallax Icon{% endif %}
                 </h5>
                 <span class="form-mode-badge {% if edit_floating %}mode-edit{% else %}mode-create{% endif %}">
                     {% if edit_floating %}Edit{% else %}New{% endif %}
                 </span>
             </div>
             <div class="form-header-actions">
-                <a href="?tab=floating" class="btn btn-sm btn-light">Cancel</a>
+                <button type="button" class="btn btn-sm btn-light" onclick="closeFloatingForm()">Cancel</button>
                 <button type="submit" form="floatingCmsForm" class="btn btn-sm btn-primary form-submit-btn">
-                    <i class="fas fa-save me-1"></i> Save Floating Icon
+                    <i class="fas fa-save me-1"></i> {% if edit_floating %}Update Floating Icon{% else %}Save Floating Icon{% endif %}
                 </button>
             </div>
         </div>
@@ -178,176 +247,290 @@
                 {% csrf_token %}
                 <input type="hidden" name="action" value="save_floating_element">
                 <input type="hidden" name="tab" value="floating">
-                {% if edit_floating %}
-                <input type="hidden" name="floating_id" value="{{ edit_floating.id }}">
+                <input type="hidden" name="floating_id" id="floating_id" value="{{ edit_floating.id|default:'' }}">
+
                 <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Title / Reference Label</label>
-                        {{ floating_form.title }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">FontAwesome Icon Class</label>
-                        {{ floating_form.icon }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Appears In (Target Section)</label>
-                        {{ floating_form.section_target }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Position Location Preset</label>
-                        {{ floating_form.preset_position }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Top Position</label>
-                        {{ floating_form.position_top }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Left Position</label>
-                        {{ floating_form.position_left }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Bottom Position</label>
-                        {{ floating_form.position_bottom }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Right Position</label>
-                        {{ floating_form.position_right }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Icon Font Size</label>
-                        {{ floating_form.font_size }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Opacity (0.05 to 1.0)</label>
-                        {{ floating_form.opacity }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Animation Style</label>
-                        {{ floating_form.animation_type }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Duration Speed</label>
-                        {{ floating_form.animation_duration }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Delay Offset</label>
-                        {{ floating_form.animation_delay }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Display Order</label>
-                        {{ floating_form.order }}
-                    </div>
-                    <div class="col-md-6 d-flex align-items-center mt-4">
-                        <div class="form-check form-switch">
-                            {{ floating_form.is_active }}
-                            <label class="form-check-label ms-2 fw-semibold">Is Active</label>
-                        </div>
-                    </div>
-                </div>
-                {% else %}
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Title / Reference Label</label>
-                        <input type="text" class="form-control" name="title" placeholder="e.g. Graduation Cap">
+                        <input type="text" class="form-control" name="title" id="floating_title" value="{{ edit_floating.title|default:'' }}" placeholder="e.g. Graduation Cap">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">FontAwesome Class</label>
-                        <input type="text" class="form-control" name="icon" value="fas fa-graduation-cap" required>
+                        <input type="text" class="form-control" name="icon" id="floating_icon" value="{{ edit_floating.icon|default:'fas fa-graduation-cap' }}" required>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Appears In (Target Section)</label>
-                        <select class="form-select" name="section_target">
-                            <option value="hero">Hero Section (Top of Page)</option>
-                            <option value="parallax">Parallax Showcase Banners</option>
-                            <option value="all">All Hero & Parallax Sections</option>
+                        <select class="form-select" name="section_target" id="floating_section_target">
+                            <option value="hero" {% if edit_floating.section_target == 'hero' %}selected{% endif %}>Hero Section (Top of Page)</option>
+                            <option value="parallax" {% if edit_floating.section_target == 'parallax' %}selected{% endif %}>Parallax Showcase Banners</option>
+                            <option value="all" {% if edit_floating.section_target == 'all' %}selected{% endif %}>All Hero & Parallax Sections</option>
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Location Preset</label>
-                        <select class="form-select" name="preset_position">
-                            <option value="custom">Custom Coordinates</option>
-                            <option value="top_left">Top Left Corner</option>
-                            <option value="top_right">Top Right Corner</option>
-                            <option value="center_left">Center Left</option>
-                            <option value="center_right">Center Right</option>
-                            <option value="bottom_left">Bottom Left Corner</option>
-                            <option value="bottom_right">Bottom Right Corner</option>
+                        <select class="form-select" name="preset_position" id="floating_preset_position">
+                            <option value="custom" {% if edit_floating.preset_position == 'custom' or not edit_floating %}selected{% endif %}>Custom Coordinates</option>
+                            <option value="top_left" {% if edit_floating.preset_position == 'top_left' %}selected{% endif %}>Top Left Corner</option>
+                            <option value="top_right" {% if edit_floating.preset_position == 'top_right' %}selected{% endif %}>Top Right Corner</option>
+                            <option value="center_left" {% if edit_floating.preset_position == 'center_left' %}selected{% endif %}>Center Left</option>
+                            <option value="center_right" {% if edit_floating.preset_position == 'center_right' %}selected{% endif %}>Center Right</option>
+                            <option value="bottom_left" {% if edit_floating.preset_position == 'bottom_left' %}selected{% endif %}>Bottom Left Corner</option>
+                            <option value="bottom_right" {% if edit_floating.preset_position == 'bottom_right' %}selected{% endif %}>Bottom Right Corner</option>
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Top Position</label>
-                        <input type="text" class="form-control" name="position_top" value="15%">
+                        <input type="text" class="form-control" name="position_top" id="floating_position_top" value="{{ edit_floating.position_top|default:'15%' }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Left Position</label>
-                        <input type="text" class="form-control" name="position_left" value="10%">
+                        <input type="text" class="form-control" name="position_left" id="floating_position_left" value="{{ edit_floating.position_left|default:'10%' }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Bottom Position</label>
-                        <input type="text" class="form-control" name="position_bottom" value="auto">
+                        <input type="text" class="form-control" name="position_bottom" id="floating_position_bottom" value="{{ edit_floating.position_bottom|default:'auto' }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Right Position</label>
-                        <input type="text" class="form-control" name="position_right" value="auto">
+                        <input type="text" class="form-control" name="position_right" id="floating_position_right" value="{{ edit_floating.position_right|default:'auto' }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Font Size</label>
-                        <input type="text" class="form-control" name="font_size" value="3rem" required>
+                        <input type="text" class="form-control" name="font_size" id="floating_font_size" value="{{ edit_floating.font_size|default:'3rem' }}" required>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold">Opacity (0.05-1.0)</label>
-                        <input type="number" step="0.05" min="0.01" max="1" class="form-control" name="opacity" value="0.15">
+                        <label class="form-label fw-semibold d-flex justify-content-between align-items-center">
+                            <span>Opacity</span>
+                            <span class="badge bg-primary px-2 py-1" id="floating_opacity_val">{{ edit_floating.opacity|default:'0.15'|floatformat:2 }}</span>
+                        </label>
+                        <input type="range" step="0.01" min="0.01" max="1" class="form-range" name="opacity" id="floating_opacity" value="{{ edit_floating.opacity|default:'0.15' }}" oninput="document.getElementById('floating_opacity_val').innerText = parseFloat(this.value).toFixed(2)" style="border: none !important; background: transparent !important; box-shadow: none !important; outline: none !important; padding: 0 !important;">
+                        <div class="d-flex justify-content-between text-muted" style="font-size: 0.72rem; margin-top: -2px;">
+                            <span>0.01 (Subtle)</span>
+                            <span>0.50</span>
+                            <span>1.00 (Opaque)</span>
+                        </div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Animation Style</label>
-                        <select class="form-select" name="animation_type">
-                            <option value="float">Float Up & Down (Smooth)</option>
-                            <option value="pulse">Pulse / Scale Glow</option>
-                            <option value="rotate">Slow Rotation</option>
-                            <option value="parallax">Scroll Parallax Shift</option>
+                        <select class="form-select" name="animation_type" id="floating_animation_type">
+                            <option value="float" {% if edit_floating.animation_type == 'float' or not edit_floating %}selected{% endif %}>Float Up & Down (Smooth)</option>
+                            <option value="pulse" {% if edit_floating.animation_type == 'pulse' %}selected{% endif %}>Pulse / Scale Glow</option>
+                            <option value="rotate" {% if edit_floating.animation_type == 'rotate' %}selected{% endif %}>Slow Rotation</option>
+                            <option value="parallax" {% if edit_floating.animation_type == 'parallax' %}selected{% endif %}>Scroll Parallax Shift</option>
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Duration Speed</label>
-                        <input type="text" class="form-control" name="animation_duration" value="18s">
+                        <input type="text" class="form-control" name="animation_duration" id="floating_animation_duration" value="{{ edit_floating.animation_duration|default:'18s' }}">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Delay Offset</label>
-                        <input type="text" class="form-control" name="animation_delay" value="0s">
+                        <input type="text" class="form-control" name="animation_delay" id="floating_animation_delay" value="{{ edit_floating.animation_delay|default:'0s' }}">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Display Order</label>
-                        <input type="number" class="form-control" name="order" value="{{ floating_elements.count|add:1 }}">
+                        <input type="number" class="form-control" name="order" id="floating_order" value="{{ edit_floating.order|default:floating_elements.count|add:1 }}">
                     </div>
-                    <div class="col-md-4 d-flex align-items-center mt-4">
-                        <div class="form-check form-switch">
-                            <input type="checkbox" class="form-check-input" name="is_active" checked id="float_active_new">
-                            <label class="form-check-label fw-semibold" for="float_active_new">Active</label>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Status</label>
+                        <div class="form-check form-switch pt-2">
+                            <input type="checkbox" class="form-check-input" name="is_active" {% if edit_floating %}{% if edit_floating.is_active %}checked{% endif %}{% else %}checked{% endif %} id="floating_is_active">
+                            <label class="form-check-label fw-semibold" for="floating_is_active">Active</label>
                         </div>
                     </div>
                 </div>
-                {% endif %}
             </form>
         </div>
     </div>
 
-    <div class="row" id="floatingListCard">
+    <div class="row {% if edit_floating %}d-none{% endif %}" id="floatingListCard">
         <div class="col-12 mb-3 d-flex justify-content-between align-items-center">
             <h5 class="fw-bold mb-0 text-dark">Floating Parallax Icons & Elements</h5>
-            <button type="button" class="btn btn-primary" onclick="toggleInPageFormView('floatingListCard', 'floatingFormPanel', 'create')">
+            <button type="button" class="btn btn-primary" onclick="openCreateFloating()">
                 <i class="fas fa-plus me-1"></i> Add Floating Icon
             </button>
         </div>
+
+        <div class="col-12">
+            <div class="cms-card p-0 overflow-hidden">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="cms-col-w80">#</th>
+                                <th>Icon Preview</th>
+                                <th>Title / Label</th>
+                                <th>Target Section</th>
+                                <th>Animation</th>
+                                <th>Position</th>
+                                <th>Status</th>
+                                <th class="text-end cms-col-actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for elem in floating_elements %}
+                            <tr>
+                                <td class="fw-bold fs-6">{{ elem.order|default:forloop.counter }}</td>
+                                <td>
+                                    <div class="d-inline-flex align-items-center justify-content-center bg-dark text-white rounded p-2" style="width: 42px; height: 42px;">
+                                        <i class="{{ elem.icon }} fs-5"></i>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-dark">{{ elem.title|default:elem.icon }}</span>
+                                    <small class="text-muted d-block font-monospace">{{ elem.icon }}</small>
+                                </td>
+                                <td>
+                                    {% if elem.section_target == 'hero' %}
+                                    <span class="badge bg-primary">Hero Section</span>
+                                    {% elif elem.section_target == 'parallax' %}
+                                    <span class="badge bg-info">Parallax Banner</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">All Sections</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border text-capitalize">{{ elem.animation_type|default:'float' }}</span>
+                                    <small class="text-muted ms-1">({{ elem.animation_duration|default:'18s' }})</small>
+                                </td>
+                                <td>
+                                    <small class="text-muted">Top: {{ elem.position_top|default:'auto' }} | Left: {{ elem.position_left|default:'auto' }}</small>
+                                </td>
+                                <td>
+                                    {% if elem.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Hidden</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex align-items-center justify-content-end gap-2">
+                                        <button type="button" class="btn-action-icon btn-action-edit" title="Edit Floating Element"
+                                                onclick="editFloatingElement({
+                                                    floating_id: '{{ elem.id }}',
+                                                    title: '{{ elem.title|default:''|escapejs }}',
+                                                    icon: '{{ elem.icon|escapejs }}',
+                                                    section_target: '{{ elem.section_target }}',
+                                                    preset_position: '{{ elem.preset_position }}',
+                                                    position_top: '{{ elem.position_top }}',
+                                                    position_left: '{{ elem.position_left }}',
+                                                    position_bottom: '{{ elem.position_bottom }}',
+                                                    position_right: '{{ elem.position_right }}',
+                                                    font_size: '{{ elem.font_size }}',
+                                                    opacity: '{{ elem.opacity }}',
+                                                    animation_type: '{{ elem.animation_type }}',
+                                                    animation_duration: '{{ elem.animation_duration }}',
+                                                    animation_delay: '{{ elem.animation_delay }}',
+                                                    order: '{{ elem.order }}',
+                                                    is_active: {{ elem.is_active|yesno:'true,false' }}
+                                                })">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form method="post" class="m-0 p-0 d-inline-flex" onsubmit="return confirm('Delete this floating element?');">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="delete_floating_element">
+                                            <input type="hidden" name="floating_id" value="{{ elem.id }}">
+                                            <button type="submit" class="btn-action-icon btn-action-delete" title="Delete Floating Element">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-muted">No floating parallax icons configured. Click "+ Add Floating Icon" to create one.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
     {% endif %}
 
     <!-- =========================================================================
          TAB 3: HOW IT WORKS STEPPER
          ========================================================================= -->
     {% if active_tab == 'process' %}
-    <div class="row">
+    <!-- Shared In-Page Form Panel for How It Works Step -->
+    <div class="form-panel-view {% if not edit_step %}d-none{% endif %} mb-4" id="stepFormPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeStepForm()">
+                    <i class="fas fa-arrow-left me-1"></i> Back to List
+                </button>
+                <h5 class="mb-0 fw-bold form-title-text" data-create-title="Add New Process Step" data-edit-title="Edit Process Step">
+                    {% if edit_step %}Edit Process Step: {{ edit_step.title }}{% else %}Add New Process Step{% endif %}
+                </h5>
+                <span class="form-mode-badge {% if edit_step %}mode-edit{% else %}mode-create{% endif %}">
+                    {% if edit_step %}Edit{% else %}New{% endif %}
+                </span>
+            </div>
+            <div class="form-header-actions">
+                <button type="button" class="btn btn-sm btn-light" onclick="closeStepForm()">Cancel</button>
+                <button type="submit" form="stepCmsForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> {% if edit_step %}Update Step{% else %}Save Step{% endif %}
+                </button>
+            </div>
+        </div>
+        <div class="form-card-body">
+            <form method="post" id="stepCmsForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_step">
+                <input type="hidden" name="tab" value="process">
+                <input type="hidden" name="step_id" id="step_id" value="{{ edit_step.id|default:'' }}">
+
+                <div class="row g-3">
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Step Number</label>
+                        <input type="number" class="form-control" name="step_number" id="step_number" value="{{ edit_step.step_number|default:process_steps.count|add:1 }}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Phase Tag</label>
+                        <input type="text" class="form-control" name="phase_tag" id="step_phase_tag" value="{{ edit_step.phase_tag|default:'PHASE '|add:process_steps.count|add:1 }}" placeholder="e.g. PHASE 1" required>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold">Step Title</label>
+                        <input type="text" class="form-control" name="title" id="step_title" value="{{ edit_step.title|default:'' }}" placeholder="e.g. Discovery & Setup" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Accent Color</label>
+                        <input type="color" class="form-control" name="accent_color" id="step_accent_color" value="{{ edit_step.accent_color|default:'#f59e0b' }}">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Subtitle (Optional)</label>
+                        <input type="text" class="form-control" name="subtitle" id="step_subtitle" value="{{ edit_step.subtitle|default:'' }}" placeholder="e.g. Quick configuration & onboarding">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Detailed Description</label>
+                        <textarea class="form-control" name="description" id="step_description" rows="3" required placeholder="Describe what happens in this step...">{{ edit_step.description|default:'' }}</textarea>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">FontAwesome Icon Class</label>
+                        <input type="text" class="form-control" name="icon" id="step_icon" value="{{ edit_step.icon|default:'fas fa-school' }}" placeholder="e.g. fas fa-school">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Display Order</label>
+                        <input type="number" class="form-control" name="order" id="step_order" value="{{ edit_step.order|default:process_steps.count|add:1 }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Status</label>
+                        <div class="form-check form-switch pt-2">
+                            <input type="checkbox" class="form-check-input" name="is_active" id="step_is_active" {% if edit_step %}{% if edit_step.is_active %}checked{% endif %}{% else %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold" for="step_is_active">Active</label>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row {% if edit_step %}d-none{% endif %}" id="stepListCard">
         <div class="col-12 mb-3 d-flex justify-content-between align-items-center">
             <h5 class="fw-bold mb-0 text-dark">How It Works Stepper Steps</h5>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#stepModal">
+            <button type="button" class="btn btn-primary" onclick="openCreateStep()">
                 <i class="fas fa-plus me-1"></i> Add New Step
             </button>
         </div>
@@ -393,9 +576,21 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="d-flex align-items-center justify-content-end gap-2">
-                                        <a href="?tab=process&edit_step={{ step.id }}" class="btn-action-icon btn-action-edit" title="Edit Step">
+                                        <button type="button" class="btn-action-icon btn-action-edit" title="Edit Step"
+                                                onclick="editProcessStep({
+                                                    step_id: '{{ step.id }}',
+                                                    step_number: '{{ step.step_number }}',
+                                                    phase_tag: '{{ step.phase_tag|escapejs }}',
+                                                    title: '{{ step.title|escapejs }}',
+                                                    subtitle: '{{ step.subtitle|default:''|escapejs }}',
+                                                    accent_color: '{{ step.accent_color }}',
+                                                    description: '{{ step.description|escapejs }}',
+                                                    icon: '{{ step.icon|escapejs }}',
+                                                    order: '{{ step.order }}',
+                                                    is_active: {{ step.is_active|yesno:'true,false' }}
+                                                })">
                                             <i class="fas fa-edit"></i>
-                                        </a>
+                                        </button>
                                         <form method="post" class="m-0 p-0 d-inline-flex" onsubmit="return confirm('Delete this step?');">
                                             {% csrf_token %}
                                             <input type="hidden" name="action" value="delete_step">
@@ -418,138 +613,73 @@
             </div>
         </div>
     </div>
-
-    <!-- Edit Step Modal -->
-    {% if edit_step %}
-    <div class="modal fade" id="editStepModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Editing Step: {{ edit_step.title }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form method="post">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="save_step">
-                    <input type="hidden" name="step_id" value="{{ edit_step.id }}">
-                    <input type="hidden" name="tab" value="process">
-
-                    <div class="modal-body">
-                        <div class="row g-3">
-                            <div class="col-md-2">
-                                <label class="form-label fw-semibold">Step Number</label>
-                                {{ step_form.step_number }}
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-semibold">Phase Tag</label>
-                                {{ step_form.phase_tag }}
-                            </div>
-                            <div class="col-md-5">
-                                <label class="form-label fw-semibold">Step Title</label>
-                                {{ step_form.title }}
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label fw-semibold">Accent Color</label>
-                                {{ step_form.accent_color }}
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Detailed Description</label>
-                                {{ step_form.description }}
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold">FontAwesome Icon Class</label>
-                                {{ step_form.icon }}
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold">Order</label>
-                                {{ step_form.order }}
-                            </div>
-                            <div class="col-md-4 d-flex align-items-center mt-4">
-                                <div class="form-check form-switch">
-                                    {{ step_form.is_active }}
-                                    <label class="form-check-label ms-2 fw-semibold">Is Active</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <a href="?tab=process" class="btn btn-secondary">Cancel / Close</a>
-                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-save me-1"></i> Update Step</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Add Step Modal -->
-    <div class="modal fade" id="stepModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Add New Process Step</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="post">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="save_step">
-                    <input type="hidden" name="tab" value="process">
-                    <div class="modal-body">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label class="form-label fw-semibold">Step #</label>
-                                <input type="number" class="form-control" name="step_number" value="{{ process_steps.count|add:1 }}" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold">Phase Tag</label>
-                                <input type="text" class="form-control" name="phase_tag" value="PHASE {{ process_steps.count|add:1 }}" required>
-                            </div>
-                            <div class="col-md-5">
-                                <label class="form-label fw-semibold">Accent Color</label>
-                                <input type="color" class="form-control" name="accent_color" value="#f59e0b">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Step Title</label>
-                                <input type="text" class="form-control" name="title" required placeholder="e.g. Discovery & Setup">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Detailed Description</label>
-                                <textarea class="form-control" name="description" rows="3" required></textarea>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Icon Class</label>
-                                <input type="text" class="form-control" name="icon" value="fas fa-school">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Display Order</label>
-                                <input type="number" class="form-control" name="order" value="{{ process_steps.count|add:1 }}">
-                            </div>
-                            <div class="col-12">
-                                <div class="form-check form-switch">
-                                    <input type="checkbox" class="form-check-input" name="is_active" checked id="step_active_new">
-                                    <label class="form-check-label fw-semibold" for="step_active_new">Active</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-plus me-1"></i> Add Step</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
     {% endif %}
 
     <!-- =========================================================================
          TAB 4: FEATURE CARDS
          ========================================================================= -->
     {% if active_tab == 'features' %}
-    <div class="row">
+    <!-- Shared In-Page Form Panel for Feature Card -->
+    <div class="form-panel-view {% if not edit_feature %}d-none{% endif %} mb-4" id="featureFormPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeFeatureForm()">
+                    <i class="fas fa-arrow-left me-1"></i> Back to List
+                </button>
+                <h5 class="mb-0 fw-bold form-title-text" data-create-title="Add Feature Card" data-edit-title="Edit Feature Card">
+                    {% if edit_feature %}Edit Feature Card: {{ edit_feature.title }}{% else %}Add Feature Card{% endif %}
+                </h5>
+                <span class="form-mode-badge {% if edit_feature %}mode-edit{% else %}mode-create{% endif %}">
+                    {% if edit_feature %}Edit{% else %}New{% endif %}
+                </span>
+            </div>
+            <div class="form-header-actions">
+                <button type="button" class="btn btn-sm btn-light" onclick="closeFeatureForm()">Cancel</button>
+                <button type="submit" form="featureCmsForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> {% if edit_feature %}Update Feature{% else %}Save Feature{% endif %}
+                </button>
+            </div>
+        </div>
+        <div class="form-card-body">
+            <form method="post" id="featureCmsForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_feature">
+                <input type="hidden" name="tab" value="features">
+                <input type="hidden" name="feature_id" id="feature_id" value="{{ edit_feature.id|default:'' }}">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Feature Title</label>
+                        <input type="text" class="form-control" name="title" id="feature_title" value="{{ edit_feature.title|default:'' }}" placeholder="e.g. Attendance & SMS" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">FontAwesome Icon Class</label>
+                        <input type="text" class="form-control" name="icon" id="feature_icon" value="{{ edit_feature.icon|default:'fas fa-star' }}" placeholder="e.g. fas fa-user-graduate" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Display Order</label>
+                        <input type="number" class="form-control" name="order" id="feature_order" value="{{ edit_feature.order|default:features.count|add:1 }}">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Description</label>
+                        <textarea class="form-control" name="description" id="feature_description" rows="3" required placeholder="Describe what this feature offers...">{{ edit_feature.description|default:'' }}</textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Status</label>
+                        <div class="form-check form-switch pt-1">
+                            <input type="checkbox" class="form-check-input" name="is_active" id="feature_is_active" {% if edit_feature %}{% if edit_feature.is_active %}checked{% endif %}{% else %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold" for="feature_is_active">Active</label>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row {% if edit_feature %}d-none{% endif %}" id="featureListCard">
         <div class="col-12 mb-3 d-flex justify-content-between align-items-center">
             <h5 class="fw-bold mb-0 text-dark">Comprehensive Feature Cards</h5>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#featureModal">
+            <button type="button" class="btn btn-primary" onclick="openCreateFeature()">
                 <i class="fas fa-plus me-1"></i> Add New Feature Card
             </button>
         </div>
@@ -588,9 +718,17 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="d-flex align-items-center justify-content-end gap-2">
-                                        <a href="?tab=features&edit_feature={{ feat.id }}" class="btn-action-icon btn-action-edit" title="Edit Feature">
+                                        <button type="button" class="btn-action-icon btn-action-edit" title="Edit Feature"
+                                                onclick="editFeatureCard({
+                                                    feature_id: '{{ feat.id }}',
+                                                    title: '{{ feat.title|escapejs }}',
+                                                    icon: '{{ feat.icon|escapejs }}',
+                                                    order: '{{ feat.order }}',
+                                                    description: '{{ feat.description|escapejs }}',
+                                                    is_active: {{ feat.is_active|yesno:'true,false' }}
+                                                })">
                                             <i class="fas fa-edit"></i>
-                                        </a>
+                                        </button>
                                         <form method="post" class="m-0 p-0 d-inline-flex" onsubmit="return confirm('Delete this feature?');">
                                             {% csrf_token %}
                                             <input type="hidden" name="action" value="delete_feature">
@@ -613,114 +751,134 @@
             </div>
         </div>
     </div>
-
-    <!-- Edit Feature Modal -->
-    {% if edit_feature %}
-    <div class="modal fade" id="editFeatureModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Editing Feature: {{ edit_feature.title }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form method="post">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="save_feature">
-                    <input type="hidden" name="feature_id" value="{{ edit_feature.id }}">
-                    <input type="hidden" name="tab" value="features">
-
-                    <div class="modal-body">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Feature Title</label>
-                                {{ feature_form.title }}
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold">FontAwesome Icon Class</label>
-                                {{ feature_form.icon }}
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label fw-semibold">Display Order</label>
-                                {{ feature_form.order }}
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Description</label>
-                                {{ feature_form.description }}
-                            </div>
-                            <div class="col-12">
-                                <div class="form-check form-switch">
-                                    {{ feature_form.is_active }}
-                                    <label class="form-check-label ms-2 fw-semibold">Is Active</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <a href="?tab=features" class="btn btn-secondary">Cancel / Close</a>
-                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-save me-1"></i> Update Feature</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Add Feature Modal -->
-    <div class="modal fade" id="featureModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Add Feature Card</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="post">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="save_feature">
-                    <input type="hidden" name="tab" value="features">
-                    <div class="modal-body">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Title</label>
-                                <input type="text" class="form-control" name="title" required placeholder="e.g. Attendance & SMS">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Description</label>
-                                <textarea class="form-control" name="description" rows="3" required></textarea>
-                            </div>
-                            <div class="col-8">
-                                <label class="form-label fw-semibold">Icon Class</label>
-                                <input type="text" class="form-control" name="icon" value="fas fa-star" placeholder="e.g. fas fa-user-graduate">
-                            </div>
-                            <div class="col-4">
-                                <label class="form-label fw-semibold">Order</label>
-                                <input type="number" class="form-control" name="order" value="{{ features.count|add:1 }}">
-                            </div>
-                            <div class="col-12">
-                                <div class="form-check form-switch">
-                                    <input type="checkbox" class="form-check-input" name="is_active" checked id="feat_active_new">
-                                    <label class="form-check-label fw-semibold" for="feat_active_new">Active</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-plus me-1"></i> Add Feature</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
     {% endif %}
 
     <!-- =========================================================================
          TAB 5: PARALLAX SECTIONS
          ========================================================================= -->
     {% if active_tab == 'parallax' %}
-    <div class="row">
+    <!-- Shared In-Page Form Panel for Parallax Section -->
+    <div class="form-panel-view {% if not edit_parallax %}d-none{% endif %} mb-4" id="parallaxFormPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeParallaxForm()">
+                    <i class="fas fa-arrow-left me-1"></i> Back to List
+                </button>
+                <h5 class="mb-0 fw-bold form-title-text" data-create-title="Add Parallax Showcase Banner" data-edit-title="Edit Parallax Showcase Banner">
+                    {% if edit_parallax %}Edit Parallax Banner: {{ edit_parallax.title }}{% else %}Add Parallax Showcase Banner{% endif %}
+                </h5>
+                <span class="form-mode-badge {% if edit_parallax %}mode-edit{% else %}mode-create{% endif %}">
+                    {% if edit_parallax %}Edit{% else %}New{% endif %}
+                </span>
+            </div>
+            <div class="form-header-actions">
+                <button type="button" class="btn btn-sm btn-light" onclick="closeParallaxForm()">Cancel</button>
+                <button type="submit" form="parallaxCmsForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> {% if edit_parallax %}Update Banner{% else %}Save Banner{% endif %}
+                </button>
+            </div>
+        </div>
+        <div class="form-card-body">
+            <form method="post" id="parallaxCmsForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_parallax">
+                <input type="hidden" name="tab" value="parallax">
+                <input type="hidden" name="parallax_id" id="parallax_id" value="{{ edit_parallax.id|default:'' }}">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Heading Title</label>
+                        <input type="text" class="form-control" name="title" id="parallax_title" value="{{ edit_parallax.title|default:'' }}" placeholder="e.g. Digitize Your School Operations" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Appears In (Page Position Placement)</label>
+                        <select class="form-select" name="target_position" id="parallax_target_position">
+                            <option value="after_hero" {% if edit_parallax.target_position == 'after_hero' %}selected{% endif %}>After Hero Section</option>
+                            <option value="after_stats" {% if edit_parallax.target_position == 'after_stats' %}selected{% endif %}>After Stats Section</option>
+                            <option value="after_process" {% if edit_parallax.target_position == 'after_process' or not edit_parallax %}selected{% endif %}>After How It Works / Stepper</option>
+                            <option value="after_features" {% if edit_parallax.target_position == 'after_features' %}selected{% endif %}>After Comprehensive Features</option>
+                            <option value="after_cta" {% if edit_parallax.target_position == 'after_cta' %}selected{% endif %}>After CTA Section (Before Footer)</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Subtitle</label>
+                        <input type="text" class="form-control" name="subtitle" id="parallax_subtitle" value="{{ edit_parallax.subtitle|default:'' }}" placeholder="Short impactful subtitle">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Body Content (Optional)</label>
+                        <textarea class="form-control" name="content" id="parallax_content" rows="2" placeholder="Optional paragraph content...">{{ edit_parallax.content|default:'' }}</textarea>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Primary Button Text</label>
+                        <input type="text" class="form-control" name="primary_btn_text" id="parallax_primary_btn_text" value="{{ edit_parallax.primary_btn_text|default:'Explore Pricing' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Primary Button URL</label>
+                        <input type="text" class="form-control" name="primary_btn_url" id="parallax_primary_btn_url" value="{{ edit_parallax.primary_btn_url|default:'/pricing/' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Secondary Button Text</label>
+                        <input type="text" class="form-control" name="secondary_btn_text" id="parallax_secondary_btn_text" value="{{ edit_parallax.secondary_btn_text|default:'' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Secondary Button URL</label>
+                        <input type="text" class="form-control" name="secondary_btn_url" id="parallax_secondary_btn_url" value="{{ edit_parallax.secondary_btn_url|default:'' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Scroll Parallax Effect</label>
+                        <select class="form-select" name="scroll_effect" id="parallax_scroll_effect">
+                            <option value="fixed_bg" {% if edit_parallax.scroll_effect == 'fixed_bg' or not edit_parallax %}selected{% endif %}>Fixed Background (Classic Parallax)</option>
+                            <option value="zoom_in" {% if edit_parallax.scroll_effect == 'zoom_in' %}selected{% endif %}>Scroll Zoom In (Expands on Scroll)</option>
+                            <option value="zoom_out" {% if edit_parallax.scroll_effect == 'zoom_out' %}selected{% endif %}>Scroll Zoom Out (Subtle Shrink)</option>
+                            <option value="standard" {% if edit_parallax.scroll_effect == 'standard' %}selected{% endif %}>Standard Smooth Translation</option>
+                            <option value="none" {% if edit_parallax.scroll_effect == 'none' %}selected{% endif %}>None (Static)</option>
+                        </select>
+                        <small class="text-muted d-block mt-1">Choose: Fixed BG, Zoom In, Zoom Out, or Standard</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold d-flex justify-content-between align-items-center">
+                            <span>Overlay Darkness</span>
+                            <span class="badge bg-primary px-2 py-1" id="parallax_opacity_val">{{ edit_parallax.overlay_opacity|default:'0.75'|floatformat:2 }}</span>
+                        </label>
+                        <input type="range" step="0.01" min="0" max="1" class="form-range" name="overlay_opacity" id="parallax_overlay_opacity" value="{{ edit_parallax.overlay_opacity|default:'0.75' }}" oninput="document.getElementById('parallax_opacity_val').innerText = parseFloat(this.value).toFixed(2);" style="border: none !important; background: transparent !important; box-shadow: none !important; outline: none !important; padding: 0 !important;">
+                        <div class="d-flex justify-content-between text-muted" style="font-size: 0.72rem; margin-top: -2px;">
+                            <span>0.00 (Clear)</span>
+                            <span>0.50</span>
+                            <span>1.00 (Solid)</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">BG Color</label>
+                        <input type="color" class="form-control" name="bg_color" id="parallax_bg_color" value="{{ edit_parallax.bg_color|default:'#091528' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Background Image</label>
+                        <input type="file" class="form-control" name="bg_image" id="parallax_bg_image">
+                        <div id="parallax_current_bg" class="mt-1 {% if not edit_parallax.bg_image %}d-none{% endif %}">
+                            <small class="text-muted d-block">Current BG:</small>
+                            <img src="{% if edit_parallax.bg_image %}{{ edit_parallax.bg_image.url }}{% endif %}" alt="Background" id="parallax_bg_img_preview" class="img-thumbnail cms-img-preview-sm">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Display Order</label>
+                        <input type="number" class="form-control" name="order" id="parallax_order" value="{{ edit_parallax.order|default:parallax_sections.count|add:1 }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Status</label>
+                        <div class="form-check form-switch pt-2">
+                            <input type="checkbox" class="form-check-input" name="is_active" id="parallax_is_active" {% if edit_parallax %}{% if edit_parallax.is_active %}checked{% endif %}{% else %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold" for="parallax_is_active">Active</label>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row {% if edit_parallax %}d-none{% endif %}" id="parallaxListCard">
         <div class="col-12 mb-3 d-flex justify-content-between align-items-center">
             <h5 class="fw-bold mb-0 text-dark">Parallax Banners & Showcase Sections</h5>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#parallaxModal">
+            <button type="button" class="btn btn-primary" onclick="openCreateParallax()">
                 <i class="fas fa-plus me-1"></i> Add Parallax Banner
             </button>
         </div>
@@ -781,9 +939,26 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="d-flex align-items-center justify-content-end gap-2">
-                                        <a href="?tab=parallax&edit_parallax={{ p.id }}" class="btn-action-icon btn-action-edit" title="Edit Parallax Banner">
+                                        <button type="button" class="btn-action-icon btn-action-edit" title="Edit Parallax Banner"
+                                                onclick="editParallaxSection({
+                                                    parallax_id: '{{ p.id }}',
+                                                    title: '{{ p.title|escapejs }}',
+                                                    target_position: '{{ p.target_position }}',
+                                                    subtitle: '{{ p.subtitle|default:''|escapejs }}',
+                                                    content: '{{ p.content|default:''|escapejs }}',
+                                                    primary_btn_text: '{{ p.primary_btn_text|default:''|escapejs }}',
+                                                    primary_btn_url: '{{ p.primary_btn_url|default:''|escapejs }}',
+                                                    secondary_btn_text: '{{ p.secondary_btn_text|default:''|escapejs }}',
+                                                    secondary_btn_url: '{{ p.secondary_btn_url|default:''|escapejs }}',
+                                                    scroll_effect: '{{ p.scroll_effect }}',
+                                                    overlay_opacity: '{{ p.overlay_opacity }}',
+                                                    bg_color: '{{ p.bg_color }}',
+                                                    bg_image_url: '{% if p.bg_image %}{{ p.bg_image.url }}{% endif %}',
+                                                    order: '{{ p.order }}',
+                                                    is_active: {{ p.is_active|yesno:'true,false' }}
+                                                })">
                                             <i class="fas fa-edit"></i>
-                                        </a>
+                                        </button>
                                         <form method="post" class="m-0 p-0 d-inline-flex" onsubmit="return confirm('Delete this parallax section?');">
                                             {% csrf_token %}
                                             <input type="hidden" name="action" value="delete_parallax">
@@ -806,221 +981,332 @@
             </div>
         </div>
     </div>
-
-    <!-- Edit Parallax Modal -->
-    {% if edit_parallax %}
-    <div class="modal fade" id="editParallaxModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Editing Parallax Banner: {{ edit_parallax.title }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="save_parallax">
-                    <input type="hidden" name="parallax_id" value="{{ edit_parallax.id }}">
-                    <input type="hidden" name="tab" value="parallax">
-
-                    <div class="modal-body">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Heading Title</label>
-                                {{ parallax_form.title }}
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Appears In (Page Position Placement)</label>
-                                {{ parallax_form.target_position }}
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Subtitle</label>
-                                {{ parallax_form.subtitle }}
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Body Content (Optional)</label>
-                                {{ parallax_form.content }}
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-semibold">Primary Button Text</label>
-                                {{ parallax_form.primary_btn_text }}
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-semibold">Primary Button URL</label>
-                                {{ parallax_form.primary_btn_url }}
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-semibold">Secondary Button Text</label>
-                                {{ parallax_form.secondary_btn_text }}
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-semibold">Secondary Button URL</label>
-                                {{ parallax_form.secondary_btn_url }}
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold">Scroll Parallax Effect</label>
-                                {{ parallax_form.scroll_effect }}
-                                <small class="text-muted d-block mt-1">Choose: Fixed BG, Zoom In, Zoom Out, or Standard</small>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-semibold">Overlay Darkness (0.0 to 1.0)</label>
-                                {{ parallax_form.overlay_opacity }}
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label fw-semibold">BG Color</label>
-                                {{ parallax_form.bg_color }}
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-semibold">BG Image</label>
-                                {{ parallax_form.bg_image }}
-                                {% if edit_parallax.bg_image %}
-                                <div class="mt-1">
-                                    <small class="text-muted d-block">Current BG:</small>
-                                    <img src="{{ edit_parallax.bg_image.url }}" alt="Background" class="img-thumbnail cms-img-preview-sm">
-                                </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold">Display Order</label>
-                                {{ parallax_form.order }}
-                            </div>
-                            <div class="col-md-8 d-flex align-items-center mt-4">
-                                <div class="form-check form-switch">
-                                    {{ parallax_form.is_active }}
-                                    <label class="form-check-label ms-2 fw-semibold">Is Active</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <a href="?tab=parallax" class="btn btn-secondary">Cancel / Close</a>
-                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-save me-1"></i> Update Banner</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Add Parallax Modal -->
-    <div class="modal fade" id="parallaxModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Add Parallax Showcase Banner</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="save_parallax">
-                    <input type="hidden" name="tab" value="parallax">
-                    <div class="modal-body">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Heading Title</label>
-                                <input type="text" class="form-control" name="title" required placeholder="e.g. Digitize Your School Operations">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Appears In (Page Position Placement)</label>
-                                <select class="form-select" name="target_position">
-                                    <option value="after_hero">After Hero Section</option>
-                                    <option value="after_stats">After Stats Section</option>
-                                    <option value="after_process" selected>After How It Works / Stepper</option>
-                                    <option value="after_features">After Comprehensive Features</option>
-                                    <option value="after_cta">After CTA Section (Before Footer)</option>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Subtitle</label>
-                                <input type="text" class="form-control" name="subtitle" placeholder="Short impactful subtitle">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Body Content</label>
-                                <textarea class="form-control" name="content" rows="2"></textarea>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Primary Button Text</label>
-                                <input type="text" class="form-control" name="primary_btn_text" value="Explore Pricing">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Primary Button URL</label>
-                                <input type="text" class="form-control" name="primary_btn_url" value="/pricing/">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Scroll Effect</label>
-                                <select class="form-select" name="scroll_effect">
-                                    <option value="fixed_bg">Fixed Background (Classic Parallax)</option>
-                                    <option value="zoom_in">Scroll Zoom In (Expands on Scroll)</option>
-                                    <option value="zoom_out">Scroll Zoom Out (Subtle Shrink)</option>
-                                    <option value="standard">Standard Smooth Translation</option>
-                                    <option value="none">None (Static)</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Overlay Darkness (0.0 to 1.0)</label>
-                                <input type="number" step="0.05" min="0" max="1" class="form-control" name="overlay_opacity" value="0.75">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Background Image</label>
-                                <input type="file" class="form-control" name="bg_image">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Background Fallback Color</label>
-                                <input type="color" class="form-control" name="bg_color" value="#091528">
-                            </div>
-                            <div class="col-12">
-                                <div class="form-check form-switch">
-                                    <input type="checkbox" class="form-check-input" name="is_active" checked id="p_active_new">
-                                    <label class="form-check-label fw-semibold" for="p_active_new">Active</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-plus me-1"></i> Add Parallax Banner</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
     {% endif %}
 
 </div>
 
 <!-- Auto-trigger Edit Modals JavaScript -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    {% if edit_floating %}
-    var editFloatingModalEl = document.getElementById('editFloatingModal');
-    if (editFloatingModalEl) {
-        var modal = new bootstrap.Modal(editFloatingModalEl);
-        modal.show();
-    }
-    {% endif %}
+function openCreateFloating() {
+    toggleInPageFormView('floatingListCard', 'floatingFormPanel', 'create');
+    var idInput = document.getElementById('floating_id');
+    if (idInput) idInput.value = '';
+    var opInput = document.getElementById('floating_opacity');
+    if (opInput) opInput.value = '0.15';
+    var opVal = document.getElementById('floating_opacity_val');
+    if (opVal) opVal.innerText = '0.15';
+    var titleEl = document.querySelector('#floatingFormPanel .form-title-text');
+    if (titleEl) titleEl.textContent = 'Add Floating Parallax Icon';
+    var submitBtn = document.querySelector('#floatingFormPanel .form-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save Floating Icon';
+    var formEl = document.getElementById('floatingFormPanel');
+    if (formEl) window.scrollTo({ top: formEl.offsetTop - 80, behavior: 'smooth' });
+}
 
-    {% if edit_step %}
-    var editStepModalEl = document.getElementById('editStepModal');
-    if (editStepModalEl) {
-        var modal = new bootstrap.Modal(editStepModalEl);
-        modal.show();
+function editFloatingElement(data) {
+    toggleInPageFormView('floatingListCard', 'floatingFormPanel', 'edit', data);
+    var idInput = document.getElementById('floating_id');
+    if (idInput) idInput.value = data.floating_id || '';
+    if (data.opacity) {
+        var opInput = document.getElementById('floating_opacity');
+        if (opInput) opInput.value = data.opacity;
+        var opVal = document.getElementById('floating_opacity_val');
+        if (opVal) opVal.innerText = parseFloat(data.opacity).toFixed(2);
     }
-    {% endif %}
+    if (data.preset_position) {
+        var presetEl = document.getElementById('floating_preset_position');
+        if (presetEl) presetEl.value = data.preset_position;
+    }
+    if (data.section_target) {
+        var targetEl = document.getElementById('floating_section_target');
+        if (targetEl) targetEl.value = data.section_target;
+    }
+    if (data.animation_type) {
+        var animEl = document.getElementById('floating_animation_type');
+        if (animEl) animEl.value = data.animation_type;
+    }
+    var titleEl = document.querySelector('#floatingFormPanel .form-title-text');
+    if (titleEl) titleEl.textContent = 'Edit Floating Parallax Icon: ' + (data.title || data.icon);
+    var submitBtn = document.querySelector('#floatingFormPanel .form-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Update Floating Icon';
+    var formEl = document.getElementById('floatingFormPanel');
+    if (formEl) window.scrollTo({ top: formEl.offsetTop - 80, behavior: 'smooth' });
+}
 
-    {% if edit_feature %}
-    var editFeatureModalEl = document.getElementById('editFeatureModal');
-    if (editFeatureModalEl) {
-        var modal = new bootstrap.Modal(editFeatureModalEl);
-        modal.show();
+function closeFloatingForm() {
+    toggleInPageFormView('floatingListCard', 'floatingFormPanel', 'list');
+    if (window.history.replaceState) {
+        window.history.replaceState(null, '', window.location.pathname + '?tab=floating');
     }
-    {% endif %}
+}
 
-    {% if edit_parallax %}
-    var editParallaxModalEl = document.getElementById('editParallaxModal');
-    if (editParallaxModalEl) {
-        var modal = new bootstrap.Modal(editParallaxModalEl);
-        modal.show();
+function openCreateStep() {
+    toggleInPageFormView('stepListCard', 'stepFormPanel', 'create');
+    var idInput = document.getElementById('step_id');
+    if (idInput) idInput.value = '';
+    var numEl = document.getElementById('step_number');
+    if (numEl) numEl.value = '{{ process_steps.count|add:1 }}';
+    var phaseEl = document.getElementById('step_phase_tag');
+    if (phaseEl) phaseEl.value = 'PHASE {{ process_steps.count|add:1 }}';
+    var titleInput = document.getElementById('step_title');
+    if (titleInput) titleInput.value = '';
+    var subInput = document.getElementById('step_subtitle');
+    if (subInput) subInput.value = '';
+    var colorInput = document.getElementById('step_accent_color');
+    if (colorInput) colorInput.value = '#f59e0b';
+    var descInput = document.getElementById('step_description');
+    if (descInput) descInput.value = '';
+    var iconInput = document.getElementById('step_icon');
+    if (iconInput) iconInput.value = 'fas fa-school';
+    var orderInput = document.getElementById('step_order');
+    if (orderInput) orderInput.value = '{{ process_steps.count|add:1 }}';
+    var activeInput = document.getElementById('step_is_active');
+    if (activeInput) activeInput.checked = true;
+
+    var titleEl = document.querySelector('#stepFormPanel .form-title-text');
+    if (titleEl) titleEl.textContent = 'Add New Process Step';
+    var submitBtn = document.querySelector('#stepFormPanel .form-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save Step';
+    var formEl = document.getElementById('stepFormPanel');
+    if (formEl) window.scrollTo({ top: formEl.offsetTop - 80, behavior: 'smooth' });
+}
+
+function editProcessStep(data) {
+    toggleInPageFormView('stepListCard', 'stepFormPanel', 'edit', data);
+    var idInput = document.getElementById('step_id');
+    if (idInput) idInput.value = data.step_id || '';
+    if (data.step_number) {
+        var numEl = document.getElementById('step_number');
+        if (numEl) numEl.value = data.step_number;
     }
-    {% endif %}
-});
+    if (data.phase_tag) {
+        var phaseEl = document.getElementById('step_phase_tag');
+        if (phaseEl) phaseEl.value = data.phase_tag;
+    }
+    if (data.title) {
+        var titleInput = document.getElementById('step_title');
+        if (titleInput) titleInput.value = data.title;
+    }
+    if (data.subtitle !== undefined) {
+        var subInput = document.getElementById('step_subtitle');
+        if (subInput) subInput.value = data.subtitle;
+    }
+    if (data.accent_color) {
+        var colorInput = document.getElementById('step_accent_color');
+        if (colorInput) colorInput.value = data.accent_color;
+    }
+    if (data.description) {
+        var descInput = document.getElementById('step_description');
+        if (descInput) descInput.value = data.description;
+    }
+    if (data.icon) {
+        var iconInput = document.getElementById('step_icon');
+        if (iconInput) iconInput.value = data.icon;
+    }
+    if (data.order !== undefined) {
+        var orderInput = document.getElementById('step_order');
+        if (orderInput) orderInput.value = data.order;
+    }
+    var activeInput = document.getElementById('step_is_active');
+    if (activeInput) activeInput.checked = Boolean(data.is_active);
+
+    var titleEl = document.querySelector('#stepFormPanel .form-title-text');
+    if (titleEl) titleEl.textContent = 'Edit Process Step: ' + data.title;
+    var submitBtn = document.querySelector('#stepFormPanel .form-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Update Step';
+    var formEl = document.getElementById('stepFormPanel');
+    if (formEl) window.scrollTo({ top: formEl.offsetTop - 80, behavior: 'smooth' });
+}
+
+function closeStepForm() {
+    toggleInPageFormView('stepListCard', 'stepFormPanel', 'list');
+    if (window.history.replaceState) {
+        window.history.replaceState(null, '', window.location.pathname + '?tab=process');
+    }
+}
+
+function openCreateFeature() {
+    toggleInPageFormView('featureListCard', 'featureFormPanel', 'create');
+    var idInput = document.getElementById('feature_id');
+    if (idInput) idInput.value = '';
+    var titleInput = document.getElementById('feature_title');
+    if (titleInput) titleInput.value = '';
+    var iconInput = document.getElementById('feature_icon');
+    if (iconInput) iconInput.value = 'fas fa-star';
+    var orderInput = document.getElementById('feature_order');
+    if (orderInput) orderInput.value = '{{ features.count|add:1 }}';
+    var descInput = document.getElementById('feature_description');
+    if (descInput) descInput.value = '';
+    var activeInput = document.getElementById('feature_is_active');
+    if (activeInput) activeInput.checked = true;
+
+    var titleEl = document.querySelector('#featureFormPanel .form-title-text');
+    if (titleEl) titleEl.textContent = 'Add Feature Card';
+    var submitBtn = document.querySelector('#featureFormPanel .form-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save Feature';
+    var formEl = document.getElementById('featureFormPanel');
+    if (formEl) window.scrollTo({ top: formEl.offsetTop - 80, behavior: 'smooth' });
+}
+
+function editFeatureCard(data) {
+    toggleInPageFormView('featureListCard', 'featureFormPanel', 'edit', data);
+    var idInput = document.getElementById('feature_id');
+    if (idInput) idInput.value = data.feature_id || '';
+    if (data.title) {
+        var titleInput = document.getElementById('feature_title');
+        if (titleInput) titleInput.value = data.title;
+    }
+    if (data.icon) {
+        var iconInput = document.getElementById('feature_icon');
+        if (iconInput) iconInput.value = data.icon;
+    }
+    if (data.order !== undefined) {
+        var orderInput = document.getElementById('feature_order');
+        if (orderInput) orderInput.value = data.order;
+    }
+    if (data.description) {
+        var descInput = document.getElementById('feature_description');
+        if (descInput) descInput.value = data.description;
+    }
+    var activeInput = document.getElementById('feature_is_active');
+    if (activeInput) activeInput.checked = Boolean(data.is_active);
+
+    var titleEl = document.querySelector('#featureFormPanel .form-title-text');
+    if (titleEl) titleEl.textContent = 'Edit Feature Card: ' + data.title;
+    var submitBtn = document.querySelector('#featureFormPanel .form-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Update Feature';
+    var formEl = document.getElementById('featureFormPanel');
+    if (formEl) window.scrollTo({ top: formEl.offsetTop - 80, behavior: 'smooth' });
+}
+
+function closeFeatureForm() {
+    toggleInPageFormView('featureListCard', 'featureFormPanel', 'list');
+    if (window.history.replaceState) {
+        window.history.replaceState(null, '', window.location.pathname + '?tab=features');
+    }
+}
+
+function openCreateParallax() {
+    toggleInPageFormView('parallaxListCard', 'parallaxFormPanel', 'create');
+    var idInput = document.getElementById('parallax_id');
+    if (idInput) idInput.value = '';
+    var titleInput = document.getElementById('parallax_title');
+    if (titleInput) titleInput.value = '';
+    var posSelect = document.getElementById('parallax_target_position');
+    if (posSelect) posSelect.value = 'after_process';
+    var subInput = document.getElementById('parallax_subtitle');
+    if (subInput) subInput.value = '';
+    var contentInput = document.getElementById('parallax_content');
+    if (contentInput) contentInput.value = '';
+    var pBtnText = document.getElementById('parallax_primary_btn_text');
+    if (pBtnText) pBtnText.value = 'Explore Pricing';
+    var pBtnUrl = document.getElementById('parallax_primary_btn_url');
+    if (pBtnUrl) pBtnUrl.value = '/pricing/';
+    var sBtnText = document.getElementById('parallax_secondary_btn_text');
+    if (sBtnText) sBtnText.value = '';
+    var sBtnUrl = document.getElementById('parallax_secondary_btn_url');
+    if (sBtnUrl) sBtnUrl.value = '';
+    var scrollSelect = document.getElementById('parallax_scroll_effect');
+    if (scrollSelect) scrollSelect.value = 'fixed_bg';
+    var opInput = document.getElementById('parallax_overlay_opacity');
+    if (opInput) opInput.value = '0.75';
+    var opVal = document.getElementById('parallax_opacity_val');
+    if (opVal) opVal.innerText = '0.75';
+    var bgCol = document.getElementById('parallax_bg_color');
+    if (bgCol) bgCol.value = '#091528';
+    var bgImgPreview = document.getElementById('parallax_current_bg');
+    if (bgImgPreview) bgImgPreview.classList.add('d-none');
+    var orderInput = document.getElementById('parallax_order');
+    if (orderInput) orderInput.value = '{{ parallax_sections.count|add:1 }}';
+    var activeInput = document.getElementById('parallax_is_active');
+    if (activeInput) activeInput.checked = true;
+
+    var titleEl = document.querySelector('#parallaxFormPanel .form-title-text');
+    if (titleEl) titleEl.textContent = 'Add Parallax Showcase Banner';
+    var submitBtn = document.querySelector('#parallaxFormPanel .form-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save Banner';
+    var formEl = document.getElementById('parallaxFormPanel');
+    if (formEl) window.scrollTo({ top: formEl.offsetTop - 80, behavior: 'smooth' });
+}
+
+function editParallaxSection(data) {
+    toggleInPageFormView('parallaxListCard', 'parallaxFormPanel', 'edit', data);
+    var idInput = document.getElementById('parallax_id');
+    if (idInput) idInput.value = data.parallax_id || '';
+    if (data.title) {
+        var titleInput = document.getElementById('parallax_title');
+        if (titleInput) titleInput.value = data.title;
+    }
+    if (data.target_position) {
+        var posSelect = document.getElementById('parallax_target_position');
+        if (posSelect) posSelect.value = data.target_position;
+    }
+    if (data.subtitle !== undefined) {
+        var subInput = document.getElementById('parallax_subtitle');
+        if (subInput) subInput.value = data.subtitle;
+    }
+    if (data.content !== undefined) {
+        var contentInput = document.getElementById('parallax_content');
+        if (contentInput) contentInput.value = data.content;
+    }
+    if (data.primary_btn_text !== undefined) {
+        var pBtnText = document.getElementById('parallax_primary_btn_text');
+        if (pBtnText) pBtnText.value = data.primary_btn_text;
+    }
+    if (data.primary_btn_url !== undefined) {
+        var pBtnUrl = document.getElementById('parallax_primary_btn_url');
+        if (pBtnUrl) pBtnUrl.value = data.primary_btn_url;
+    }
+    if (data.secondary_btn_text !== undefined) {
+        var sBtnText = document.getElementById('parallax_secondary_btn_text');
+        if (sBtnText) sBtnText.value = data.secondary_btn_text;
+    }
+    if (data.secondary_btn_url !== undefined) {
+        var sBtnUrl = document.getElementById('parallax_secondary_btn_url');
+        if (sBtnUrl) sBtnUrl.value = data.secondary_btn_url;
+    }
+    if (data.scroll_effect) {
+        var scrollSelect = document.getElementById('parallax_scroll_effect');
+        if (scrollSelect) scrollSelect.value = data.scroll_effect;
+    }
+    if (data.overlay_opacity !== undefined) {
+        var opInput = document.getElementById('parallax_overlay_opacity');
+        if (opInput) opInput.value = data.overlay_opacity;
+        var opVal = document.getElementById('parallax_opacity_val');
+        if (opVal) opVal.innerText = parseFloat(data.overlay_opacity).toFixed(2);
+    }
+    if (data.bg_color) {
+        var bgCol = document.getElementById('parallax_bg_color');
+        if (bgCol) bgCol.value = data.bg_color;
+    }
+    var currentBgWrap = document.getElementById('parallax_current_bg');
+    var currentBgImg = document.getElementById('parallax_bg_img_preview');
+    if (data.bg_image_url) {
+        if (currentBgImg) currentBgImg.src = data.bg_image_url;
+        if (currentBgWrap) currentBgWrap.classList.remove('d-none');
+    } else {
+        if (currentBgWrap) currentBgWrap.classList.add('d-none');
+    }
+    if (data.order !== undefined) {
+        var orderInput = document.getElementById('parallax_order');
+        if (orderInput) orderInput.value = data.order;
+    }
+    var activeInput = document.getElementById('parallax_is_active');
+    if (activeInput) activeInput.checked = Boolean(data.is_active);
+
+    var titleEl = document.querySelector('#parallaxFormPanel .form-title-text');
+    if (titleEl) titleEl.textContent = 'Edit Parallax Banner: ' + data.title;
+    var submitBtn = document.querySelector('#parallaxFormPanel .form-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Update Banner';
+    var formEl = document.getElementById('parallaxFormPanel');
+    if (formEl) window.scrollTo({ top: formEl.offsetTop - 80, behavior: 'smooth' });
+}
+
+function closeParallaxForm() {
+    toggleInPageFormView('parallaxListCard', 'parallaxFormPanel', 'list');
+    if (window.history.replaceState) {
+        window.history.replaceState(null, '', window.location.pathname + '?tab=parallax');
+    }
+}
 </script>
 {% endblock %}

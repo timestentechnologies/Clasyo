@@ -1810,7 +1810,7 @@ class ProfileView(LoginRequiredMixin, TemplateView):
 
 
 class LoadSampleDataView(LoginRequiredMixin, View):
-    """View to load sample demo database for current school tenant"""
+    """View to switch active session to the Sample Demo Database"""
     def post(self, request, *args, **kwargs):
         return self._load_data(request, *args, **kwargs)
 
@@ -1818,39 +1818,68 @@ class LoadSampleDataView(LoginRequiredMixin, View):
         return self._load_data(request, *args, **kwargs)
 
     def _load_data(self, request, *args, **kwargs):
-        from core.sample_data import generate_all_sample_data_for_school
+        from tenants.models import School
+        from core.sample_data import wipe_and_reseed_demo_school, clear_all_sample_data_for_school
         school_slug = kwargs.get('school_slug', '')
         school = get_current_school(request)
 
         if not school and school_slug:
             school = School.objects.filter(slug=school_slug).first()
 
-        if not school:
-            messages.error(request, "School tenant context not found.")
-            return redirect('/')
+        # 1. Cleanse user's real school of any legacy injected sample data
+        if school and school.slug != 'demo-school':
+            try:
+                clear_all_sample_data_for_school(school, db_alias=school.slug)
+            except Exception as e:
+                logger.warning(f"Error cleansing real school on demo switch: {e}")
 
+        # 2. Ensure demo-school exists and has populated sample data
         try:
-            stats = generate_all_sample_data_for_school(school, db_alias=school.slug)
-            messages.success(
-                request,
-                f"Switched to Sample Demo Database! Loaded "
-                f"{stats.get('students', 0)} Students, {stats.get('teachers', 0)} Teachers, "
-                f"{stats.get('staff', 0)} Staff, {stats.get('invoices', 0)} Invoices, "
-                f"and interlinked sample data across all modules. You can switch back to your clean live database anytime."
-            )
+            from tenants.services import register_tenant_connection, ensure_school_database
+            from students.models import Student
+            demo_school = School.objects.using('default').filter(slug='demo-school').first()
+            if not demo_school:
+                demo_school = School.objects.using('default').create(
+                    name='Demo School',
+                    slug='demo-school',
+                    email='demo@school.com',
+                    phone='+1234567890',
+                    address='123 Education Street',
+                    city='Education City',
+                    state='State',
+                    country='Country',
+                    postal_code='12345',
+                    is_active=True,
+                    is_verified=True,
+                )
+            register_tenant_connection('demo-school')
+            ensure_school_database(demo_school)
+            if Student.objects.using('demo-school').count() == 0:
+                wipe_and_reseed_demo_school(demo_school)
         except Exception as e:
-            import traceback
-            traceback.print_exc()
-            messages.error(request, f"Failed to load sample data: {str(e)}")
+            logger.warning(f"Error ensuring demo-school database: {e}")
+
+        # 3. Switch session to the demo database
+        request.session['use_demo_database'] = True
+        if school:
+            request.session['real_school_slug'] = school.slug
+        request.session.modified = True
+
+        messages.success(
+            request,
+            "Switched to Sample Demo Database! You are now viewing the system with pre-populated demo data across all modules. "
+            "Your live school database is completely isolated and untouched. You can switch back anytime."
+        )
 
         next_url = request.META.get('HTTP_REFERER')
         if next_url and not any(x in next_url for x in ('load-sample-data', 'switch-to-my-database')):
             return redirect(next_url)
-        return redirect('core:dashboard', school_slug=school.slug)
+        dest_slug = 'demo-school'
+        return redirect('core:apps_home', school_slug=dest_slug)
 
 
 class ClearSampleDataView(LoginRequiredMixin, View):
-    """View to switch back to clean live database by removing all sample demo data"""
+    """View to switch back from demo database to the user's real clean live database"""
     def post(self, request, *args, **kwargs):
         return self._clear_data(request, *args, **kwargs)
 
@@ -1858,32 +1887,40 @@ class ClearSampleDataView(LoginRequiredMixin, View):
         return self._clear_data(request, *args, **kwargs)
 
     def _clear_data(self, request, *args, **kwargs):
+        from tenants.models import School
         from core.sample_data import clear_all_sample_data_for_school
         school_slug = kwargs.get('school_slug', '')
         school = get_current_school(request)
 
-        if not school and school_slug:
-            school = School.objects.filter(slug=school_slug).first()
+        # 1. Turn off demo database mode
+        if 'use_demo_database' in request.session:
+            del request.session['use_demo_database']
+        request.session['use_demo_database'] = False
+        real_slug = request.session.pop('real_school_slug', None)
+        request.session.modified = True
 
-        if not school:
-            messages.error(request, "School tenant context not found.")
-            return redirect('/')
+        target_school = None
+        if real_slug and real_slug != 'demo-school':
+            target_school = School.objects.filter(slug=real_slug).first()
+        if not target_school and school and school.slug != 'demo-school':
+            target_school = school
+        if not target_school and hasattr(request.user, 'school') and request.user.school:
+            target_school = request.user.school
 
-        try:
-            removed = clear_all_sample_data_for_school(school, db_alias=school.slug)
-            messages.success(
-                request,
-                f"Switched back to your live database! Cleared {removed} sample demo records. Your school database is now in its clean live state."
-            )
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            messages.error(request, f"Failed to switch database: {str(e)}")
+        # 2. Guarantee user's real school is 100% clean of any legacy demo records
+        if target_school and target_school.slug != 'demo-school':
+            try:
+                clear_all_sample_data_for_school(target_school, db_alias=target_school.slug)
+            except Exception as e:
+                logger.warning(f"Error cleansing real school on exit demo: {e}")
 
-        next_url = request.META.get('HTTP_REFERER')
-        if next_url and not any(x in next_url for x in ('load-sample-data', 'switch-to-my-database')):
-            return redirect(next_url)
-        return redirect('core:dashboard', school_slug=school.slug)
+        messages.success(
+            request,
+            "Switched back to your live database! You are now connected to your clean school database."
+        )
+
+        dest_slug = target_school.slug if target_school else (school_slug if school_slug != 'demo-school' else 'default')
+        return redirect('core:apps_home', school_slug=dest_slug)
 
 
 class SearchView(LoginRequiredMixin, TemplateView):

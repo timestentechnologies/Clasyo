@@ -184,8 +184,8 @@
 
 {% block content %}
 
-    <section class="hero-section hero-height-{{ hero_content.min_height|default:'large' }}" style="min-height: {% if hero_content.min_height == 'compact' %}500px{% elif hero_content.min_height == 'medium' %}620px{% elif hero_content.min_height == 'xlarge' %}850px{% elif hero_content.min_height == 'full' %}90vh{% else %}750px{% endif %} !important;">
-        <div class="hero-overlay" style="{% if hero_content.bg_image %}background-image: url('{{ hero_content.bg_image.url }}'); background-size: cover; background-position: center;{% endif %}"></div>
+    <section class="hero-section hero-height-{{ hero_content.min_height|default:'large' }}" style="min-height: {% if hero_content.min_height == 'compact' %}500px{% elif hero_content.min_height == 'medium' %}620px{% elif hero_content.min_height == 'xlarge' %}850px{% elif hero_content.min_height == 'full' %}90vh{% else %}750px{% endif %} !important; {% if hero_content.bg_type == 'color' and hero_content.bg_color %}background-color: {{ hero_content.bg_color }} !important;{% elif hero_content.bg_type == 'gradient' and hero_content.bg_gradient %}background: {{ hero_content.bg_gradient }} !important;{% endif %}">
+        <div class="hero-overlay" style="{% if hero_content.bg_image %}background-image: url('{{ hero_content.bg_image.url }}'); background-size: cover; background-position: center;{% endif %} {% if hero_content.overlay_color %}background-color: {{ hero_content.overlay_color }};{% endif %} {% if hero_content.overlay_opacity is not None %}opacity: {{ hero_content.overlay_opacity }};{% endif %}"></div>
         
         <!-- Dynamic Floating Parallax Background Icons -->
         <div class="bg-icons">

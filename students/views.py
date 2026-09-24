@@ -32,9 +32,7 @@ class StudentListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         queryset = super().get_queryset()
-        school_slug = self.kwargs.get('school_slug', '')
-        from tenants.models import School
-        school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+        school = get_current_school(self.request)
         # Optional status filter: 'active' or 'inactive'. Default: show all statuses
         status = self.request.GET.get('status', '').strip().lower()
         if school:
@@ -720,9 +718,7 @@ class ParentListView(LoginRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        school_slug = self.kwargs.get('school_slug', '')
-        from tenants.models import School
-        school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+        school = get_current_school(self.request)
         qs = User.objects.filter(role='parent').order_by('-created_at')
         if school:
             qs = qs.filter(

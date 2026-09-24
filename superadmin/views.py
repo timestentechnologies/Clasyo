@@ -1011,7 +1011,8 @@ class HomepageCMSView(SuperAdminRequiredMixin, View):
                 hero_form.save()
                 messages.success(request, 'Hero Section updated successfully!')
             else:
-                messages.error(request, 'Error updating Hero Section. Please check form values.')
+                error_msgs = [f"{field.replace('_', ' ').title()}: {', '.join(errs)}" for field, errs in hero_form.errors.items()]
+                messages.error(request, f"Error updating Hero Section: {'; '.join(error_msgs)}")
             return redirect(f"{reverse_lazy('superadmin:homepage_cms')}?tab=hero")
 
         # 2. Floating Parallax Element Actions

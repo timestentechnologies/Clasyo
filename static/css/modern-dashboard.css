@@ -2331,24 +2331,24 @@ body.dark-theme .ts-control input:focus {
 }
 
 /* Dark Mode Form Inputs Across System (Modals & All Pages) */
-[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-control:not(.form-range),
 [data-theme="dark"] .form-select,
 [data-theme="dark"] .form-control-modern,
 [data-theme="dark"] textarea,
 [data-theme="dark"] select,
-[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not(.color-picker-input):not(.color-picker-swatch),
-.theme-dark .form-control,
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not([type="range"]):not(.form-range):not(.color-picker-input):not(.color-picker-swatch),
+.theme-dark .form-control:not(.form-range),
 .theme-dark .form-select,
 .theme-dark .form-control-modern,
 .theme-dark textarea,
 .theme-dark select,
-.theme-dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not(.color-picker-input):not(.color-picker-swatch),
-body.dark-theme .form-control,
+.theme-dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not([type="range"]):not(.form-range):not(.color-picker-input):not(.color-picker-swatch),
+body.dark-theme .form-control:not(.form-range),
 body.dark-theme .form-select,
 body.dark-theme .form-control-modern,
 body.dark-theme textarea,
 body.dark-theme select,
-body.dark-theme input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not(.color-picker-input):not(.color-picker-swatch) {
+body.dark-theme input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not([type="range"]):not(.form-range):not(.color-picker-input):not(.color-picker-swatch) {
     background-color: #1E293B !important;
     background: #1E293B !important;
     color: #F8FAFC !important;
@@ -2357,30 +2357,54 @@ body.dark-theme input:not([type="checkbox"]):not([type="radio"]):not([type="subm
     color-scheme: dark !important;
 }
 
-[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-control:not(.form-range):focus,
 [data-theme="dark"] .form-select:focus,
 [data-theme="dark"] .form-control-modern:focus,
 [data-theme="dark"] textarea:focus,
 [data-theme="dark"] select:focus,
-[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not(.color-picker-input):not(.color-picker-swatch):focus,
-.theme-dark .form-control:focus,
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not([type="range"]):not(.form-range):not(.color-picker-input):not(.color-picker-swatch):focus,
+.theme-dark .form-control:not(.form-range):focus,
 .theme-dark .form-select:focus,
 .theme-dark .form-control-modern:focus,
 .theme-dark textarea:focus,
 .theme-dark select:focus,
-.theme-dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not(.color-picker-input):not(.color-picker-swatch):focus,
-body.dark-theme .form-control:focus,
+.theme-dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not([type="range"]):not(.form-range):not(.color-picker-input):not(.color-picker-swatch):focus,
+body.dark-theme .form-control:not(.form-range):focus,
 body.dark-theme .form-select:focus,
 body.dark-theme .form-control-modern:focus,
 body.dark-theme textarea:focus,
 body.dark-theme select:focus,
-body.dark-theme input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not(.color-picker-input):not(.color-picker-swatch):focus {
+body.dark-theme input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not([type="range"]):not(.form-range):not(.color-picker-input):not(.color-picker-swatch):focus {
     background-color: #1E293B !important;
     background: #1E293B !important;
     color: #FFFFFF !important;
     border-color: var(--brand-accent, #4DD0E1) !important;
     box-shadow: none !important;
     outline: none !important;
+}
+
+/* System-wide Range Slider Reset (No box, no border, no background box) */
+.form-range,
+input[type="range"] {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+}
+
+.form-range:focus,
+input[type="range"]:focus {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
 }
 
 [data-theme="dark"] .form-label,

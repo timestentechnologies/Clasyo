@@ -917,6 +917,7 @@ def clear_all_sample_data_for_school(school, db_alias=None):
     Safely purges only the generated sample/demo data from the school tenant database,
     restoring it back to the school's real/clean database without affecting any
     real user data or custom non-sample records.
+    Uses raw SQL with FK disabled to handle cascade ordering correctly.
     """
     if not db_alias:
         db_alias = school.slug
@@ -924,161 +925,208 @@ def clear_all_sample_data_for_school(school, db_alias=None):
     from tenants.services import register_tenant_connection
     register_tenant_connection(db_alias)
 
+    from django.db import connections
+
+    def _table_exists(cur, table_name):
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [table_name])
+        return cur.fetchone() is not None
+
+    def _has_column(cur, table_name, col_name):
+        cur.execute(f"PRAGMA table_info('{table_name}')")
+        cols = [r[1] for r in cur.fetchall()]
+        return col_name in cols
+
+    def _safe_delete(cur, table_name, where_clause, silent=True):
+        if not _table_exists(cur, table_name):
+            return 0
+        try:
+            cur.execute(f'DELETE FROM "{table_name}" WHERE {where_clause}')
+            return cur.rowcount or 0
+        except Exception as e:
+            if not silent:
+                logger.warning(f"[SampleData] Error deleting from {table_name}: {e}")
+            return 0
+
     total_deleted = 0
 
-    with transaction.atomic(using=db_alias):
-        # 1. Attendance
-        try:
-            from attendance.models import StudentAttendance, StaffAttendance
-            c1 = StudentAttendance.objects.using(db_alias).filter(school=school).delete()[0]
-            c2 = StaffAttendance.objects.using(db_alias).filter(school=school).delete()[0]
-            total_deleted += (c1 + c2)
-        except Exception as e:
-            logger.warning(f"Error clearing sample attendance: {e}")
+    conn = connections[db_alias]
+    with conn.cursor() as cur:
+        # Disable FK enforcement so we can delete in any order
+        cur.execute("PRAGMA foreign_keys = OFF;")
 
-        # 2. Homework
-        try:
-            from homework.models import HomeworkSubmission, HomeworkAssignment
-            c1 = HomeworkSubmission.objects.using(db_alias).all().delete()[0]
-            c2 = HomeworkAssignment.objects.using(db_alias).filter(title__icontains='Algebra & Linear Equations Practice').delete()[0]
-            total_deleted += (c1 + c2)
-        except Exception as e:
-            logger.warning(f"Error clearing sample homework: {e}")
+        # ---- Identify demo user IDs ----
+        if _table_exists(cur, 'accounts_user'):
+            cur.execute(
+                "SELECT id FROM accounts_user WHERE email LIKE '%@demo.school' OR is_sample_data = 1"
+            )
+            demo_user_ids = [row[0] for row in cur.fetchall()]
+        else:
+            demo_user_ids = []
 
-        # 3. Examinations
-        try:
-            from examinations.models import ExamMark, ExamQuestion, ExamSubjectConfig, Exam
-            c1 = ExamMark.objects.using(db_alias).all().delete()[0]
-            c2 = ExamQuestion.objects.using(db_alias).all().delete()[0]
-            c3 = ExamSubjectConfig.objects.using(db_alias).all().delete()[0]
-            c4 = Exam.objects.using(db_alias).filter(is_sample_data=True).delete()[0]
-            total_deleted += (c1 + c2 + c3 + c4)
-        except Exception as e:
-            logger.warning(f"Error clearing sample exams: {e}")
+        logger.info(f"[SampleData] Found {len(demo_user_ids)} demo user records to purge in '{db_alias}'.")
 
-        # 4. Library
-        try:
-            from library.models import BookIssue, BookCopy, Book
-            c1 = BookIssue.objects.using(db_alias).all().delete()[0]
-            c2 = BookCopy.objects.using(db_alias).all().delete()[0]
-            c3 = Book.objects.using(db_alias).filter(is_sample_data=True).delete()[0]
-            total_deleted += (c1 + c2 + c3)
-        except Exception as e:
-            logger.warning(f"Error clearing sample library: {e}")
+        if demo_user_ids:
+            ids_csv = ','.join(str(i) for i in demo_user_ids)
 
-        # 5. Dormitory
-        try:
-            from dormitory.models import RoomAllocation, Room, Dormitory
-            c1 = RoomAllocation.objects.using(db_alias).all().delete()[0]
-            c2 = Room.objects.using(db_alias).filter(room_number='101').delete()[0]
-            c3 = Dormitory.objects.using(db_alias).filter(is_sample_data=True).delete()[0]
-            total_deleted += (c1 + c2 + c3)
-        except Exception as e:
-            logger.warning(f"Error clearing sample dormitory: {e}")
+            # Cascade: delete all child records referencing demo user IDs
+            user_fk_tables = [
+                # allauth / social auth
+                ('account_emailaddress', 'user_id'),
+                ('socialaccount_socialaccount', 'user_id'),
+                # core
+                ('core_auditlog', 'user_id'),
+                ('core_notification', 'user_id'),
+                ('core_todo', 'created_by_id'),
+                ('core_calendarevent', 'created_by_id'),
+                ('core_loginevent', 'user_id'),
+                ('core_loginlog', 'user_id'),
+                # academics
+                ('academics_classroutine', 'teacher_id'),
+                ('academics_assignedsubject', 'teacher_id'),
+                ('academics_section', 'class_teacher_id'),
+                ('academics_class', 'created_by_id'),
+                # students
+                ('students_studenttimeline', 'added_by_id'),
+                ('students_studentdocument', 'uploaded_by_id'),
+                ('students_studentsubject', 'added_by_id'),
+                ('students_student', 'parent_user_id'),
+                ('students_student', 'user_id'),
+                ('students_student', 'created_by_id'),
+                ('students_student', 'disabled_by_id'),
+                # human resource
+                ('human_resource_teacher', 'user_id'),
+                ('human_resource_staff', 'user_id'),
+                # fees & finance
+                ('fees_feecollection', 'collected_by_id'),
+                ('fees_feestructure', 'created_by_id'),
+                ('finance_transaction', 'created_by_id'),
+                ('finance_transaction', 'posted_by_id'),
+                ('finance_journalentry', 'posted_by_id'),
+                # attendance
+                ('attendance_studentattendance', 'marked_by_id'),
+                ('attendance_staffattendance', 'teacher_id'),
+                # homework
+                ('homework_homeworkassignment', 'teacher_id'),
+                ('homework_homeworksubmission', 'student_id'),
+                ('homework_homeworkcomment', 'user_id'),
+                # exams
+                ('examinations_exammark', 'student_id'),
+                ('examinations_examquestion', 'created_by_id'),
+                ('examinations_exam', 'created_by_id'),
+                # library
+                ('library_bookissue', 'issued_by_id'),
+                ('library_bookissue', 'received_by_id'),
+                # communication
+                ('communication_message', 'sender_id'),
+                ('communication_message', 'recipient_id'),
+                ('communication_notice', 'created_by_id'),
+                # clubs
+                ('clubs_clubmembership', 'member_id'),
+                ('clubs_clubattendance', 'member_id'),
+                ('clubs_clubachievement', 'member_id'),
+                # leave
+                ('leave_management_leave', 'teacher_id'),
+                ('leave_management_leave', 'staff_id'),
+                ('leave_management_leave', 'approved_by_id'),
+                # inventory
+                ('inventory_staffpayment', 'teacher_id'),
+                ('inventory_staffpayment', 'staff_id'),
+                ('inventory_expense', 'created_by_id'),
+                # dormitory
+                ('dormitory_roomallocation', 'student_id'),
+                # lesson plan
+                ('lesson_plan_lessonplan', 'teacher_id'),
+                # chat
+                ('chat_chatmembership', 'user_id'),
+                ('chat_message', 'sender_id'),
+                ('chat_messagereaction', 'user_id'),
+                # certificates
+                ('certificates_certificate', 'issued_by_id'),
+                # reports
+                ('reports_report', 'created_by_id'),
+                ('reports_reportdistribution', 'user_id'),
+            ]
 
-        # 6. Leaves
-        try:
-            from leave_management.models import Leave
-            c1 = Leave.objects.using(db_alias).filter(is_sample_data=True).delete()[0]
-            total_deleted += c1
-        except Exception as e:
-            logger.warning(f"Error clearing sample leaves: {e}")
+            for (table, fk_col) in user_fk_tables:
+                if _table_exists(cur, table) and _has_column(cur, table, fk_col):
+                    count = _safe_delete(cur, table, f'{fk_col} IN ({ids_csv})')
+                    total_deleted += count
+                    if count:
+                        logger.info(f"[SampleData] Deleted {count} rows from {table} ({fk_col})")
 
-        # 7. Clubs
-        try:
-            from clubs.models import ClubMembership, ClubActivity, Club
-            c1 = ClubMembership.objects.using(db_alias).all().delete()[0]
-            c2 = ClubActivity.objects.using(db_alias).all().delete()[0]
-            c3 = Club.objects.using(db_alias).filter(is_sample_data=True).delete()[0]
-            total_deleted += (c1 + c2 + c3)
-        except Exception as e:
-            logger.warning(f"Error clearing sample clubs: {e}")
+            # Delete demo Students linked by parent / user
+            total_deleted += _safe_delete(cur, 'students_student',
+                f'user_id IN ({ids_csv}) OR parent_user_id IN ({ids_csv})')
 
-        # 8. Finance & Fees
-        try:
-            from fees.models import FeeCollection, FeeStructure
-            c1 = FeeCollection.objects.using(db_alias).filter(is_sample_data=True).delete()[0]
-            c2 = FeeStructure.objects.using(db_alias).filter(is_sample_data=True).delete()[0]
-            total_deleted += (c1 + c2)
-        except Exception as e:
-            logger.warning(f"Error clearing sample fees: {e}")
+            # Finally delete the demo User rows
+            cur.execute(f"DELETE FROM accounts_user WHERE id IN ({ids_csv})")
+            deleted_users = cur.rowcount or 0
+            total_deleted += deleted_users
+            logger.info(f"[SampleData] Deleted {deleted_users} demo user accounts from {db_alias}.")
 
+        # Also purge from master 'default' db (demo users stored there for auth)
         try:
-            from inventory.models import Expense
-            c1 = Expense.objects.using(db_alias).filter(is_sample_data=True).delete()[0]
-            total_deleted += c1
+            from django.db import connections as _conns
+            with _conns['default'].cursor() as dcur:
+                dcur.execute("PRAGMA foreign_keys = OFF;")
+                dcur.execute(
+                    "DELETE FROM accounts_user WHERE email LIKE '%@demo.school' OR is_sample_data = 1"
+                )
+                cnt = dcur.rowcount or 0
+                dcur.execute("PRAGMA foreign_keys = ON;")
+                if cnt:
+                    logger.info(f"[SampleData] Deleted {cnt} demo users from default/master database.")
+                    total_deleted += cnt
         except Exception as e:
-            logger.warning(f"Error clearing sample expenses: {e}")
+            logger.warning(f"[SampleData] Could not purge demo users from default db: {e}")
 
-        # 9. Communication & Calendar
-        try:
-            from communication.models import Notice
-            from core.models import CalendarEvent
-            c1 = Notice.objects.using(db_alias).filter(title__icontains='Welcome to New Academic Term 2026').delete()[0]
-            c2 = CalendarEvent.objects.using(db_alias).filter(title__in=[
-                'Annual Science & Robotics Exhibition',
-                'Term 1 Parents-Teachers Conference',
-                'Inter-House Athletics Championship',
-                'Midterm Examination Week',
-                'National Public Holiday'
-            ]).delete()[0]
-            total_deleted += (c1 + c2)
-        except Exception as e:
-            logger.warning(f"Error clearing sample notices/events: {e}")
+        # ---- Remove demo academic data ----
+        sub_codes = ('MATH101', 'ENG101', 'SCI101', 'SOC101', 'COMP101', 'PE101', 'KIS101')
+        sub_csv = ','.join(f"'{c}'" for c in sub_codes)
 
-        # 10. Transport
-        try:
-            from transport.models import RouteStop, Vehicle, Route
-            c1 = RouteStop.objects.using(db_alias).all().delete()[0]
-            c2 = Vehicle.objects.using(db_alias).filter(vehicle_number='KAA 890B').delete()[0]
-            c3 = Route.objects.using(db_alias).filter(name='North Metro Express Route').delete()[0]
-            total_deleted += (c1 + c2 + c3)
-        except Exception as e:
-            logger.warning(f"Error clearing sample transport: {e}")
+        demo_classes = ('Grade 1','Grade 2','Grade 3','Grade 4','Grade 5',
+                        'Grade 6','Grade 7','Grade 8','Grade 9','Grade 10')
+        cls_csv = ','.join(f"'{c}'" for c in demo_classes)
 
-        # 11. Students (un-mark is_sample_data first so model delete protection does not raise ValidationError)
-        try:
-            from students.models import Student
-            Student.objects.using(db_alias).filter(is_sample_data=True).update(is_sample_data=False)
-            c1 = Student.objects.using(db_alias).filter(admission_number__startswith='ADM-2026-').delete()[0]
-            total_deleted += c1
-        except Exception as e:
-            logger.warning(f"Error clearing sample students: {e}")
+        if _table_exists(cur, 'academics_class'):
+            cur.execute(f"SELECT id FROM academics_class WHERE name IN ({cls_csv})")
+            class_ids = [r[0] for r in cur.fetchall()]
+            if class_ids:
+                cids_csv = ','.join(str(i) for i in class_ids)
+                total_deleted += _safe_delete(cur, 'academics_classroutine', f'class_name_id IN ({cids_csv})')
+                total_deleted += _safe_delete(cur, 'academics_assignedsubject', f'class_name_id IN ({cids_csv})')
+                total_deleted += _safe_delete(cur, 'academics_section', f'class_name_id IN ({cids_csv})')
 
-        # 12. Teachers & Staff
-        try:
-            from human_resource.models import Teacher, Staff
-            Teacher.objects.using(db_alias).filter(is_sample_data=True).update(is_sample_data=False)
-            Staff.objects.using(db_alias).filter(is_sample_data=True).update(is_sample_data=False)
-            c1 = Teacher.objects.using(db_alias).filter(employee_id__startswith='EMP-T10').delete()[0]
-            c2 = Staff.objects.using(db_alias).filter(employee_id__startswith='EMP-S10').delete()[0]
-            total_deleted += (c1 + c2)
-        except Exception as e:
-            logger.warning(f"Error clearing sample staff/teachers: {e}")
+        if _table_exists(cur, 'academics_subject'):
+            cur.execute(f"SELECT id FROM academics_subject WHERE code IN ({sub_csv})")
+            sub_ids = [r[0] for r in cur.fetchall()]
+            if sub_ids:
+                sids_csv = ','.join(str(i) for i in sub_ids)
+                total_deleted += _safe_delete(cur, 'academics_assignedsubject', f'subject_id IN ({sids_csv})')
+            total_deleted += _safe_delete(cur, 'academics_subject', f'code IN ({sub_csv})')
 
-        # 13. Demo Users
-        try:
-            from django.db import connections
-            with connections[db_alias].cursor() as cur:
-                cur.execute('''
-                    CREATE TABLE IF NOT EXISTS account_emailaddress (
-                        id integer primary key autoincrement,
-                        email varchar(254) not null,
-                        verified bool not null default 0,
-                        [primary] bool not null default 0,
-                        user_id bigint not null
-                    )
-                ''')
-        except Exception:
-            pass
+        total_deleted += _safe_delete(cur, 'academics_class', f'name IN ({cls_csv})')
 
-        try:
-            from accounts.models import User
-            User.objects.using(db_alias).filter(is_sample_data=True).update(is_sample_data=False)
-            c1 = User.objects.using(db_alias).filter(email__endswith='@demo.school').delete()[0]
-            total_deleted += c1
-        except Exception as e:
-            logger.warning(f"Error clearing sample users: {e}")
+        house_names = ('Simba House (Red)', 'Chui House (Blue)', 'Kifaru House (Green)', 'Twiga House (Yellow)')
+        houses_csv = ','.join(f"'{h}'" for h in house_names)
+        total_deleted += _safe_delete(cur, 'academics_house', f'name IN ({houses_csv})')
+
+        # ---- Remove demo HR data ----
+        dept_codes = ('SCI_DEPT', 'MATH_DEPT', 'LANG_DEPT', 'HUM_DEPT', 'ADMIN_DEPT')
+        dept_csv = ','.join(f"'{c}'" for c in dept_codes)
+        des_codes = ('DES_SR_TCH', 'DES_ASST_TCH', 'DES_ACCT', 'DES_LIB', 'DES_RECEPT', 'DES_WARDEN')
+        des_csv = ','.join(f"'{c}'" for c in des_codes)
+
+        total_deleted += _safe_delete(cur, 'human_resource_department', f'code IN ({dept_csv})')
+        total_deleted += _safe_delete(cur, 'human_resource_designation', f'code IN ({des_csv})')
+
+        # ---- Remove demo transport ----
+        total_deleted += _safe_delete(cur, 'transport_routestop', '1=1')
+        total_deleted += _safe_delete(cur, 'transport_vehicle', "vehicle_number = 'KAA 890B'")
+        total_deleted += _safe_delete(cur, 'transport_route', "name = 'North Metro Express Route'")
+
+        # Re-enable FK enforcement
+        cur.execute("PRAGMA foreign_keys = ON;")
 
     logger.info(f"[SampleData] Finished clearing sample data for '{school.name}'. Total records removed: {total_deleted}")
     return total_deleted
@@ -1093,6 +1141,7 @@ def wipe_and_reseed_demo_school(school=None):
     from tenants.models import School
     from tenants.services import register_tenant_connection, ensure_school_database
     from tenants.threadlocals import set_current_tenant_db, get_current_tenant_db
+    from django.db import connections
 
     if not school:
         school = School.objects.using('default').filter(slug='demo-school').first()
@@ -1110,63 +1159,57 @@ def wipe_and_reseed_demo_school(school=None):
     logger.info(f"[DemoReset] Wiping all existing data in '{db_alias}' database...")
 
     try:
-        from attendance.models import StudentAttendance, StaffAttendance
-        from homework.models import HomeworkSubmission, HomeworkAssignment
-        from examinations.models import ExamMark, ExamQuestion, ExamSubjectConfig, Exam, Grade
-        from library.models import BookIssue, BookCopy, Book, Author, Publisher, BookCategory
-        from dormitory.models import RoomAllocation, Room, Dormitory
-        from leave_management.models import Leave, LeaveType
-        from clubs.models import ClubMembership, ClubActivity, Club
-        from fees.models import FeeCollection, FeeStructure
-        from finance.models import Transaction, Account
-        from inventory.models import Expense, StaffPayment, Item, ItemCategory, Supplier
-        from communication.models import Notice, Message
-        from transport.models import RouteStop, Vehicle, Route
-        from students.models import Student, StudentCategory
-        from human_resource.models import Teacher, Staff, Department, Designation
-        from academics.models import ClassRoutine, AssignedSubject, Section, Class, Subject, House
-        from core.models import AcademicYear, Session
-        from accounts.models import User
+        conn = connections[db_alias]
+        with conn.cursor() as cur:
+            cur.execute("PRAGMA foreign_keys = OFF;")
 
-        models_to_clear = [
-            StudentAttendance, StaffAttendance,
-            HomeworkSubmission, HomeworkAssignment,
-            ExamMark, ExamQuestion, ExamSubjectConfig, Exam, Grade,
-            BookIssue, BookCopy, Book, Author, Publisher, BookCategory,
-            RoomAllocation, Room, Dormitory,
-            Leave, LeaveType,
-            ClubMembership, ClubActivity, Club,
-            FeeCollection, FeeStructure,
-            Transaction,
-            StaffPayment, Expense, Item, ItemCategory, Supplier,
-            Notice, Message,
-            RouteStop, Vehicle, Route,
-            Student, StudentCategory,
-            Teacher, Staff,
-            ClassRoutine, AssignedSubject, Section, Class, Subject, House,
-            Department, Designation,
-            Session, AcademicYear,
-        ]
+            tables_to_clear = [
+                'attendance_studentattendance', 'attendance_staffattendance',
+                'homework_homeworksubmission', 'homework_homeworkassignment',
+                'examinations_exammark', 'examinations_examquestion',
+                'examinations_examsubjectconfig', 'examinations_exam', 'examinations_grade',
+                'library_bookissue', 'library_bookcopy', 'library_book',
+                'library_author', 'library_publisher', 'library_bookcategory',
+                'dormitory_roomallocation', 'dormitory_room', 'dormitory_dormitory',
+                'leave_management_leave', 'leave_management_leavetype',
+                'clubs_clubmembership', 'clubs_clubactivity', 'clubs_club',
+                'fees_feecollection', 'fees_feestructure',
+                'finance_transaction',
+                'inventory_staffpayment', 'inventory_expense',
+                'inventory_item', 'inventory_itemcategory', 'inventory_supplier',
+                'communication_message', 'communication_notice',
+                'transport_routestop', 'transport_vehicle', 'transport_route',
+                'students_student', 'students_studentcategory',
+                'human_resource_teacher', 'human_resource_staff',
+                'academics_classroutine', 'academics_assignedsubject',
+                'academics_section', 'academics_class',
+                'academics_subject', 'academics_house',
+                'human_resource_department', 'human_resource_designation',
+                'core_session', 'core_academicyear',
+            ]
 
-        for m in models_to_clear:
+            for table in tables_to_clear:
+                try:
+                    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [table])
+                    if cur.fetchone():
+                        cur.execute(f'DELETE FROM "{table}"')
+                        count = cur.rowcount
+                        if count:
+                            logger.info(f"[DemoReset] Cleared {count} rows from {table}")
+                except Exception as e:
+                    logger.warning(f"[DemoReset] Error clearing {table}: {e}")
+
+            # Delete non-superadmin users
             try:
-                if hasattr(m, 'is_sample_data'):
-                    m.objects.using(db_alias).filter(is_sample_data=True).update(is_sample_data=False)
-                m.objects.using(db_alias).all().delete()
+                cur.execute("DELETE FROM accounts_user WHERE role != 'superadmin'")
+                logger.info(f"[DemoReset] Cleared non-superadmin users.")
             except Exception as e:
-                logger.warning(f"[DemoReset] Error clearing {m.__name__}: {e}")
+                logger.warning(f"[DemoReset] Error clearing users in {db_alias}: {e}")
 
-        # Delete non-superadmin users in demo-school
-        try:
-            User.objects.using(db_alias).filter(is_sample_data=True).update(is_sample_data=False)
-            User.objects.using(db_alias).exclude(role='superadmin').delete()
-        except Exception as e:
-            logger.warning(f"[DemoReset] Error clearing users in {db_alias}: {e}")
+            cur.execute("PRAGMA foreign_keys = ON;")
 
     finally:
         set_current_tenant_db(prev_db)
 
     # Now generate the clean, full sample data
     return generate_all_sample_data_for_school(school, db_alias=db_alias)
-
-

@@ -32,15 +32,12 @@ def school_context(request):
         sys_settings = context['system_settings']
         context['navigation_layout'] = getattr(sys_settings, 'default_navigation_layout', 'sidebar') or 'sidebar'
 
-    # Check if active tenant database currently has sample demo data
-    has_sample = False
-    if context.get('school') and user and getattr(user, 'is_authenticated', False):
-        try:
-            from students.models import Student
-            db_alias = context['school'].slug
-            has_sample = Student.objects.using(db_alias).filter(is_sample_data=True).exists()
-        except Exception:
-            has_sample = False
-    context['has_sample_data'] = has_sample
+    # Check if active tenant database is currently switched to demo database
+    is_demo_mode = False
+    if hasattr(request, 'session'):
+        is_demo_mode = bool(request.session.get('use_demo_database', False))
+    if not is_demo_mode and context.get('school_slug') == 'demo-school':
+        is_demo_mode = True
+    context['has_sample_data'] = is_demo_mode
     
     return context
