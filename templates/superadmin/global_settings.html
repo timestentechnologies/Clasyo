@@ -165,9 +165,45 @@
                             </div>
                         </div>
 
+                        <h6 class="fw-bold border-bottom pb-2 mb-3">
+                            <i class="fas fa-bars-staggered text-primary me-2"></i>Default Navigation Layout for New Users
+                        </h6>
+                        <p class="text-muted small mb-3">
+                            Set the initial navigation layout for newly created users across the platform. Users can freely toggle or customize their layout anytime in their account profile or top navigation bar.
+                        </p>
+                        
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <div class="card h-100 border p-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="default_navigation_layout" id="nav_layout_sidebar" value="sidebar" {% if system_settings.default_navigation_layout == 'sidebar' or not system_settings.default_navigation_layout %}checked{% endif %}>
+                                        <label class="form-check-label fw-bold cursor-pointer" for="nav_layout_sidebar">
+                                            <i class="fas fa-bars-staggered me-2 text-primary"></i>Vertical Sidebar (Recommended)
+                                        </label>
+                                    </div>
+                                    <p class="text-muted small mt-2 mb-0 ps-4">
+                                        Classic collapsible sidebar on the left. Best suited for complex administration with nested menu sections, audit logs, and management tools.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card h-100 border p-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="default_navigation_layout" id="nav_layout_horizontal" value="horizontal" {% if system_settings.default_navigation_layout == 'horizontal' %}checked{% endif %}>
+                                        <label class="form-check-label fw-bold cursor-pointer" for="nav_layout_horizontal">
+                                            <i class="fas fa-table-columns me-2 text-info"></i>Horizontal Navigation Tabs
+                                        </label>
+                                    </div>
+                                    <p class="text-muted small mt-2 mb-0 ps-4">
+                                        Modern top navigation bar with horizontal dropdown categories. Maximizes horizontal screen real estate for wide tables, spreadsheets, and charts.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="mt-4 d-flex justify-content-end">
                             <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">
-                                <i class="fas fa-save me-2"></i>Save Theme Colors
+                                <i class="fas fa-save me-2"></i>Save Settings
                             </button>
                         </div>
                     </form>

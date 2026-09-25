@@ -65,6 +65,14 @@
                                         <div class="text-danger">{{ form.school.errors }}</div>
                                     {% endif %}
                                 </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Navigation Layout</label>
+                                    {{ form.navigation_layout }}
+                                    <small class="form-text text-muted">User can later toggle this in their profile or header.</small>
+                                    {% if form.navigation_layout.errors %}
+                                        <div class="text-danger">{{ form.navigation_layout.errors }}</div>
+                                    {% endif %}
+                                </div>
                             </div>
 
                             <div class="mb-3">
@@ -91,13 +99,6 @@
 
                 <div class="col-lg-4">
                     <div class="modern-card">
-                        <h4 class="mb-3"><i class="fas fa-info-circle"></i> Information</h4>
-                        <p><strong>Role:</strong> School Administrator</p>
-                        <p><strong>Created:</strong> {{ object.created_at|date:"F d, Y" }}</p>
-                        <p><strong>Last Login:</strong> {{ object.last_login|date:"F d, Y H:i"|default:"Never" }}</p>
-                    </div>
-
-                    <div class="modern-card mt-3">
                         <h4 class="mb-3"><i class="fas fa-key text-warning"></i> Reset Password Directly</h4>
                         <p class="text-muted small">Immediately set a new password for this admin from the UI without relying on email delivery.</p>
                         
@@ -137,7 +138,6 @@
                     </div>
                 </div>
             </div>
-        </div>
 
 {% endblock %}
 

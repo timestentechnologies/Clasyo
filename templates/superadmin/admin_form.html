@@ -61,15 +61,25 @@
                                 </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label">Assign to School (Optional)</label>
-                                <select name="school" class="form-select">
-                                    <option value="">-- Select School --</option>
-                                    {% for school in schools %}
-                                    <option value="{{ school.id }}">{{ school.name }}</option>
-                                    {% endfor %}
-                                </select>
-                                <small class="form-text text-muted">Leave empty if not assigning to a specific school yet</small>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Assign to School (Optional)</label>
+                                    <select name="school" class="form-select">
+                                        <option value="">-- Select School --</option>
+                                        {% for school in schools %}
+                                        <option value="{{ school.id }}">{{ school.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <small class="form-text text-muted">Leave empty if not assigning to a specific school yet</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Navigation Layout</label>
+                                    {{ form.navigation_layout }}
+                                    <small class="form-text text-muted">Defaults to system default. User can change it anytime.</small>
+                                    {% if form.navigation_layout.errors %}
+                                        <div class="text-danger">{{ form.navigation_layout.errors }}</div>
+                                    {% endif %}
+                                </div>
                             </div>
 
                             <div class="d-flex justify-content-end gap-2 mt-4">
@@ -105,6 +115,5 @@
                     </div>
                 </div>
             </div>
-        </div>
 
 {% endblock %}

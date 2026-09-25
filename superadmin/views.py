@@ -463,7 +463,7 @@ class AdminUserCreateView(SuperAdminRequiredMixin, CreateView):
     """Create a new school admin"""
     model = User
     template_name = 'superadmin/admin_form.html'
-    fields = ['email', 'first_name', 'last_name', 'phone']
+    fields = ['email', 'first_name', 'last_name', 'phone', 'navigation_layout']
     success_url = reverse_lazy('superadmin:admins')
     
     def get_form(self, form_class=None):
@@ -473,6 +473,8 @@ class AdminUserCreateView(SuperAdminRequiredMixin, CreateView):
         form.fields['first_name'].widget.attrs.update({'class': 'form-control', 'placeholder': 'First Name'})
         form.fields['last_name'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Last Name'})
         form.fields['phone'].widget.attrs.update({'class': 'form-control', 'placeholder': '+254 xxx xxx xxx'})
+        if 'navigation_layout' in form.fields:
+            form.fields['navigation_layout'].widget.attrs.update({'class': 'form-select'})
         return form
     
     def get_context_data(self, **kwargs):
@@ -550,7 +552,7 @@ class AdminUserUpdateView(SuperAdminRequiredMixin, UpdateView):
     model = User
     template_name = 'superadmin/admin_edit.html'
     context_object_name = 'admin_user'
-    fields = ['email', 'first_name', 'last_name', 'phone', 'is_active', 'school']
+    fields = ['email', 'first_name', 'last_name', 'phone', 'is_active', 'school', 'navigation_layout']
     success_url = reverse_lazy('superadmin:admins')
     
     def get_form(self, form_class=None):
@@ -563,6 +565,8 @@ class AdminUserUpdateView(SuperAdminRequiredMixin, UpdateView):
         form.fields['is_active'].widget.attrs.update({'class': 'form-check-input'})
         if 'school' in form.fields:
             form.fields['school'].widget.attrs.update({'class': 'form-select'})
+        if 'navigation_layout' in form.fields:
+            form.fields['navigation_layout'].widget.attrs.update({'class': 'form-select'})
         return form
     
     def get_context_data(self, **kwargs):
@@ -1875,6 +1879,10 @@ class GlobalSettingsView(SuperAdminRequiredMixin, TemplateView):
         
         icon_color = request.POST.get('icon_color', '#0284C7').strip()
         dark_icon_color = request.POST.get('dark_icon_color', '#38BDF8').strip()
+        default_navigation_layout = request.POST.get('default_navigation_layout', '').strip()
+        
+        if default_navigation_layout in ['sidebar', 'horizontal']:
+            settings_obj.default_navigation_layout = default_navigation_layout
         
         if primary_color:
             settings_obj.primary_color = primary_color
@@ -1898,7 +1906,7 @@ class GlobalSettingsView(SuperAdminRequiredMixin, TemplateView):
             settings_obj.dark_icon_color = dark_icon_color
             
         settings_obj.save()
-        messages.success(request, 'System theme & brand colors for Light & Dark modes updated successfully.')
+        messages.success(request, 'System branding and default navigation layout updated successfully.')
         return redirect('superadmin:global_settings')
 
 
