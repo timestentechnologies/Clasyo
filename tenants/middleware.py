@@ -52,7 +52,8 @@ class TenantMiddleware(MiddlewareMixin):
         # 4. Attach active tenant database
         if school:
             use_demo_db = bool(getattr(request, 'session', {}).get('use_demo_database', False))
-            if use_demo_db:
+            # Demo database mode is only active when visiting demo-school
+            if use_demo_db and school.slug == 'demo-school':
                 register_tenant_connection('demo-school')
                 demo_school = School.objects.using('default').filter(slug='demo-school').first()
                 if demo_school:
@@ -60,13 +61,27 @@ class TenantMiddleware(MiddlewareMixin):
                     request.school = demo_school
                 set_current_tenant_db('demo-school')
             else:
+                # If visiting a real school URL, ensure session demo flag is reset
+                if school.slug != 'demo-school' and use_demo_db:
+                    if hasattr(request, 'session'):
+                        request.session.pop('use_demo_database', None)
+                        request.session.pop('real_school_slug', None)
+                        request.session.modified = True
+
                 register_tenant_connection(school.slug)
                 set_current_tenant_db(school.slug)
                 # Auto-heal: Ensure real school DB is completely free of any demo records
                 if school.slug != 'demo-school':
                     try:
                         from accounts.models import User
-                        if User.objects.using(school.slug).filter(email__endswith='@demo.school').exists():
+                        from academics.models import Subject, House
+                        needs_heal = (
+                            User.objects.using(school.slug).filter(email__endswith='@demo.school').exists() or
+                            User.objects.using(school.slug).filter(is_sample_data=True).exists() or
+                            Subject.objects.using(school.slug).filter(code__in=['MATH101', 'ENG101', 'SCI101']).exists() or
+                            House.objects.using(school.slug).filter(name__in=['Red House', 'Blue House', 'Simba House (Red)']).exists()
+                        )
+                        if needs_heal:
                             from core.sample_data import clear_all_sample_data_for_school
                             clear_all_sample_data_for_school(school, db_alias=school.slug)
                     except Exception:
@@ -92,10 +107,8 @@ class TenantMiddleware(MiddlewareMixin):
 
         # If user is in their school context, ensure their database is ready
         if request.school:
-            if use_demo_db:
-                demo_school = School.objects.using('default').filter(slug='demo-school').first()
-                if demo_school:
-                    ensure_school_database(demo_school)
+            if request.school.slug == 'demo-school':
+                ensure_school_database(request.school)
                 set_current_tenant_db('demo-school')
             else:
                 ensure_school_database(request.school)

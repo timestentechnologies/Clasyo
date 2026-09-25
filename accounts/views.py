@@ -89,6 +89,10 @@ class LoginView(View):
                         del request.session['impersonated_user_id']
                     if 'original_user_id' in request.session:
                         del request.session['original_user_id']
+                    # Ensure demo database session mode is never inherited across logins
+                    if 'use_demo_database' in request.session:
+                        del request.session['use_demo_database']
+                    request.session.pop('real_school_slug', None)
                         
                     login(request, user)
                     
@@ -203,6 +207,9 @@ class LogoutView(LoginRequiredMixin, View):
             del request.session['impersonated_user_id']
         if 'original_user_id' in request.session:
             del request.session['original_user_id']
+        if 'use_demo_database' in request.session:
+            del request.session['use_demo_database']
+        request.session.pop('real_school_slug', None)
         
         logout(request)
         

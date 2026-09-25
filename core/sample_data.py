@@ -927,32 +927,35 @@ def clear_all_sample_data_for_school(school, db_alias=None):
 
     from django.db import connections
 
-    def _table_exists(cur, table_name):
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [table_name])
-        return cur.fetchone() is not None
-
-    def _has_column(cur, table_name, col_name):
-        cur.execute(f"PRAGMA table_info('{table_name}')")
-        cols = [r[1] for r in cur.fetchall()]
-        return col_name in cols
-
-    def _safe_delete(cur, table_name, where_clause, silent=True):
-        if not _table_exists(cur, table_name):
-            return 0
-        try:
-            cur.execute(f'DELETE FROM "{table_name}" WHERE {where_clause}')
-            return cur.rowcount or 0
-        except Exception as e:
-            if not silent:
-                logger.warning(f"[SampleData] Error deleting from {table_name}: {e}")
-            return 0
-
     total_deleted = 0
 
     conn = connections[db_alias]
     with conn.cursor() as cur:
         # Disable FK enforcement so we can delete in any order
         cur.execute("PRAGMA foreign_keys = OFF;")
+
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        existing_tables = set(r[0] for r in cur.fetchall())
+
+        def _table_exists(c, table_name):
+            return table_name in existing_tables
+
+        def _has_column(c, table_name, col_name):
+            if table_name not in existing_tables:
+                return False
+            c.execute(f"PRAGMA table_info('{table_name}')")
+            return col_name in [r[1] for r in c.fetchall()]
+
+        def _safe_delete(c, table_name, where_clause, silent=True):
+            if table_name not in existing_tables:
+                return 0
+            try:
+                c.execute(f'DELETE FROM "{table_name}" WHERE {where_clause}')
+                return c.rowcount or 0
+            except Exception as e:
+                if not silent:
+                    logger.warning(f"[SampleData] Error deleting from {table_name}: {e}")
+                return 0
 
         # ---- Identify demo user IDs ----
         if _table_exists(cur, 'accounts_user'):
@@ -1070,7 +1073,7 @@ def clear_all_sample_data_for_school(school, db_alias=None):
             with _conns['default'].cursor() as dcur:
                 dcur.execute("PRAGMA foreign_keys = OFF;")
                 dcur.execute(
-                    "DELETE FROM accounts_user WHERE email LIKE '%@demo.school' OR is_sample_data = 1"
+                    "DELETE FROM accounts_user WHERE email LIKE '%@demo.school' OR email LIKE '%@demo-school.com' OR is_sample_data = 1"
                 )
                 cnt = dcur.rowcount or 0
                 dcur.execute("PRAGMA foreign_keys = ON;")
@@ -1107,11 +1110,17 @@ def clear_all_sample_data_for_school(school, db_alias=None):
 
         total_deleted += _safe_delete(cur, 'academics_class', f'name IN ({cls_csv})')
 
-        house_names = ('Simba House (Red)', 'Chui House (Blue)', 'Kifaru House (Green)', 'Twiga House (Yellow)')
+        house_names = (
+            'Red House', 'Blue House', 'Green House', 'Yellow House',
+            'Simba House (Red)', 'Chui House (Blue)', 'Kifaru House (Green)', 'Twiga House (Yellow)'
+        )
         houses_csv = ','.join(f"'{h}'" for h in house_names)
         total_deleted += _safe_delete(cur, 'academics_house', f'name IN ({houses_csv})')
 
         # ---- Remove demo HR data ----
+        total_deleted += _safe_delete(cur, 'human_resource_teacher', "is_sample_data = 1 OR employee_id LIKE 'EMP-T10%'")
+        total_deleted += _safe_delete(cur, 'human_resource_staff', "is_sample_data = 1 OR employee_id LIKE 'EMP-S10%'")
+
         dept_codes = ('SCI_DEPT', 'MATH_DEPT', 'LANG_DEPT', 'HUM_DEPT', 'ADMIN_DEPT')
         dept_csv = ','.join(f"'{c}'" for c in dept_codes)
         des_codes = ('DES_SR_TCH', 'DES_ASST_TCH', 'DES_ACCT', 'DES_LIB', 'DES_RECEPT', 'DES_WARDEN')
@@ -1119,6 +1128,71 @@ def clear_all_sample_data_for_school(school, db_alias=None):
 
         total_deleted += _safe_delete(cur, 'human_resource_department', f'code IN ({dept_csv})')
         total_deleted += _safe_delete(cur, 'human_resource_designation', f'code IN ({des_csv})')
+
+        # ---- Remove demo fees & finance ----
+        total_deleted += _safe_delete(cur, 'fees_feecollection', "receipt_number LIKE 'REC-2026-%' OR is_sample_data = 1")
+        total_deleted += _safe_delete(cur, 'fees_feestructure', "is_sample_data = 1 OR name IN ('Term Tuition Fee', 'School Transport Fee', 'Digital Library Access', 'Annual Science & IT Lab Fee')")
+
+        if _table_exists(cur, 'finance_journalentryline') and _table_exists(cur, 'finance_journalentry'):
+            cur.execute("SELECT id FROM finance_journalentry WHERE reference LIKE 'FEE-%' OR memo LIKE '%Fee collection%'")
+            je_ids = [r[0] for r in cur.fetchall()]
+            if je_ids:
+                je_csv = ','.join(str(i) for i in je_ids)
+                total_deleted += _safe_delete(cur, 'finance_journalentryline', f'entry_id IN ({je_csv})')
+            total_deleted += _safe_delete(cur, 'finance_journalentry', "reference LIKE 'FEE-%' OR memo LIKE '%Fee collection%'")
+
+        # ---- Remove demo expenses ----
+        total_deleted += _safe_delete(cur, 'inventory_expense', "expense_number LIKE 'EXP-2026-%' OR is_sample_data = 1")
+
+        # ---- Remove demo library data ----
+        total_deleted += _safe_delete(cur, 'library_bookissue', '1=1')
+        total_deleted += _safe_delete(cur, 'library_bookcopy', "accession_number LIKE 'ACC-2026-%'")
+        if _table_exists(cur, 'library_book_authors'):
+            total_deleted += _safe_delete(cur, 'library_book_authors', '1=1')
+        total_deleted += _safe_delete(cur, 'library_book', "is_sample_data = 1 OR isbn IN ('978-0134494074', '978-0321973611', '978-0078799815', '978-0140449136', '978-0553380163')")
+        total_deleted += _safe_delete(cur, 'library_author', "name IN ('William Shakespeare', 'Albert Einstein', 'Isaac Newton', 'J.K. Rowling', 'Stephen Hawking')")
+        total_deleted += _safe_delete(cur, 'library_publisher', "name = 'Oxford Educational Press' OR email = 'sales@oxfordpress.demo'")
+        total_deleted += _safe_delete(cur, 'library_bookcategory', "name IN ('Fiction & Literature', 'Science & Technology', 'Mathematics', 'History & Geography', 'Biographies')")
+
+        # ---- Remove demo dormitory ----
+        total_deleted += _safe_delete(cur, 'dormitory_roomallocation', '1=1')
+        total_deleted += _safe_delete(cur, 'dormitory_room', "room_number = '101'")
+        total_deleted += _safe_delete(cur, 'dormitory_dormitory', "name = 'Sunrise Boys Hostel' OR is_sample_data = 1")
+
+        # ---- Remove demo examinations ----
+        total_deleted += _safe_delete(cur, 'examinations_exammark', '1=1')
+        total_deleted += _safe_delete(cur, 'examinations_exam', "name = 'Term 1 Mid-Term Examination 2026' OR is_sample_data = 1")
+        total_deleted += _safe_delete(cur, 'examinations_grade', "name = 'A' AND min_percentage = 80 AND max_percentage = 100")
+
+        # ---- Remove demo leave ----
+        total_deleted += _safe_delete(cur, 'leave_management_leave', 'is_sample_data = 1')
+        total_deleted += _safe_delete(cur, 'leave_management_leavetype', "name = 'Medical / Sick Leave' AND max_days = 10")
+
+        # ---- Remove demo clubs ----
+        total_deleted += _safe_delete(cur, 'clubs_clubactivity', '1=1')
+        total_deleted += _safe_delete(cur, 'clubs_clubmembership', '1=1')
+        total_deleted += _safe_delete(cur, 'clubs_club', "name = 'Science & Robotics Society' OR is_sample_data = 1")
+
+        # ---- Remove demo communication ----
+        total_deleted += _safe_delete(cur, 'communication_notice', "title = 'Welcome to New Academic Term 2026'")
+
+        # ---- Remove demo homework ----
+        total_deleted += _safe_delete(cur, 'homework_homeworksubmission', '1=1')
+        total_deleted += _safe_delete(cur, 'homework_homeworkassignment', "title = 'Algebra & Linear Equations Practice 1'")
+
+        # ---- Remove demo calendar events ----
+        cal_titles = (
+            'Annual Science & Robotics Exhibition',
+            'Term 1 Parents-Teachers Conference',
+            'Inter-House Athletics Championship',
+            'Midterm Examination Week',
+            'National Public Holiday'
+        )
+        c_csv = ','.join(f"'{t}'" for t in cal_titles)
+        total_deleted += _safe_delete(cur, 'core_calendarevent', f'title IN ({c_csv})')
+
+        # ---- Remove demo student category ----
+        total_deleted += _safe_delete(cur, 'students_studentcategory', "name = 'General Student' AND description = 'Regular enrolled full-time student'")
 
         # ---- Remove demo transport ----
         total_deleted += _safe_delete(cur, 'transport_routestop', '1=1')
