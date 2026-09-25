@@ -121,22 +121,14 @@ class LoginView(View):
                         redirect_target = next_url
                     else:
                         from tenants.models import School
-                        from tenants.services import ensure_school_database
+                        from tenants.services import register_tenant_connection
                         school = getattr(user, 'school', None)
                         if not school:
                             school = School.objects.filter(is_active=True).first()
                         
                         if school:
-                            ensure_school_database(school)
-                            # Ensure tenant database is in clean live state (no lingering sample data)
-                            if school.slug != 'demo-school':
-                                try:
-                                    from students.models import Student
-                                    from core.sample_data import clear_all_sample_data_for_school
-                                    if Student.objects.using(school.slug).filter(is_sample_data=True).exists():
-                                        clear_all_sample_data_for_school(school, db_alias=school.slug)
-                                except Exception as e:
-                                    logger.warning(f"Error checking/clearing sample data on login: {e}")
+                            # Register tenant connection in-memory (instantaneous)
+                            register_tenant_connection(school.slug)
                             redirect_target = reverse_lazy('core:apps_home', kwargs={'school_slug': school.slug})
                         else:
                             messages.warning(request, f'Welcome {user.get_full_name()}! No school associated with your account. Please contact administrator.')

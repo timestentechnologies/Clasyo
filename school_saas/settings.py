@@ -38,8 +38,10 @@ for host in ALLOWED_HOSTS:
             CSRF_TRUSTED_ORIGINS.append(f'https://{h_clean}')
         if f'https://*.{h_clean}' not in CSRF_TRUSTED_ORIGINS:
             CSRF_TRUSTED_ORIGINS.append(f'https://*.{h_clean}')
-CSRF_COOKIE_AGE = 3600  # 1 hour
+CSRF_COOKIE_AGE = 31449600  # 1 year
 CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
 
 # Add any additional custom domains from environment variable
 ADDITIONAL_TRUSTED_ORIGINS = config('ADDITIONAL_TRUSTED_ORIGINS', default='').split(',')
@@ -394,8 +396,9 @@ SESSION_COOKIE_AGE = 86400  # 24 hours
 SESSION_SAVE_EVERY_REQUEST = True
 
 # Security Settings (Enable in production)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 if not DEBUG:
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
@@ -403,9 +406,10 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
 else:
-    # Development settings to ensure CSRF works properly
-    CSRF_COOKIE_SECURE = False
-    SESSION_COOKIE_SECURE = False
+    # If on Render or external HTTPS host, ensure secure cookies even with DEBUG=True
+    is_https_env = bool(RENDER_EXTERNAL_HOSTNAME) or ('onrender.com' in str(ALLOWED_HOSTS))
+    CSRF_COOKIE_SECURE = is_https_env
+    SESSION_COOKIE_SECURE = is_https_env
     SECURE_SSL_REDIRECT = False
     CSRF_COOKIE_DOMAIN = None
     CSRF_COOKIE_SAMESITE = 'Lax'

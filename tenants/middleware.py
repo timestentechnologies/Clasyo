@@ -2,7 +2,7 @@ from django.utils.deprecation import MiddlewareMixin
 from django.shortcuts import redirect
 from .models import School
 from .threadlocals import set_current_tenant_db, clear_current_tenant_db
-from .services import ensure_school_database, register_tenant_connection
+from .services import register_tenant_connection
 
 
 class TenantMiddleware(MiddlewareMixin):
@@ -70,22 +70,6 @@ class TenantMiddleware(MiddlewareMixin):
 
                 register_tenant_connection(school.slug)
                 set_current_tenant_db(school.slug)
-                # Auto-heal: Ensure real school DB is completely free of any demo records
-                if school.slug != 'demo-school':
-                    try:
-                        from accounts.models import User
-                        from academics.models import Subject, House
-                        needs_heal = (
-                            User.objects.using(school.slug).filter(email__endswith='@demo.school').exists() or
-                            User.objects.using(school.slug).filter(is_sample_data=True).exists() or
-                            Subject.objects.using(school.slug).filter(code__in=['MATH101', 'ENG101', 'SCI101']).exists() or
-                            House.objects.using(school.slug).filter(name__in=['Red House', 'Blue House', 'Simba House (Red)']).exists()
-                        )
-                        if needs_heal:
-                            from core.sample_data import clear_all_sample_data_for_school
-                            clear_all_sample_data_for_school(school, db_alias=school.slug)
-                    except Exception:
-                        pass
         else:
             clear_current_tenant_db()
 
@@ -104,15 +88,6 @@ class TenantMiddleware(MiddlewareMixin):
                     if not (slug == 'demo-school' and use_demo_db):
                         full_path = request.get_full_path()
                         return redirect(full_path.replace(f'/school/{slug}/', f'/school/{user_school.slug}/', 1))
-
-        # If user is in their school context, ensure their database is ready
-        if request.school:
-            if request.school.slug == 'demo-school':
-                ensure_school_database(request.school)
-                set_current_tenant_db('demo-school')
-            else:
-                ensure_school_database(request.school)
-                set_current_tenant_db(request.school.slug)
 
         return None
 
