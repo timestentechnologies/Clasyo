@@ -1,12 +1,19 @@
 from .threadlocals import get_current_tenant_db
 
 # Applications that are strictly global / master-only
+# IMPORTANT: 'auth' must be here so AuthenticationMiddleware always reads
+# the User from the master DB (default). If 'auth' were in TENANT_APPS,
+# tenant-scoped requests would look up the session user in the tenant DB,
+# fail to find them (users live in master DB), and produce an infinite
+# login redirect loop for school admins.
 MASTER_ONLY_APPS = {
     'superadmin',
     'frontend',
     'sessions',
     'sites',
     'admin',
+    'auth',          # User auth lookups must always use master DB
+    'contenttypes',  # Content types are global
 }
 
 # Applications that belong to tenant databases
@@ -15,8 +22,6 @@ TENANT_APPS = {
     'subscriptions',
     'core',
     'accounts',
-    'auth',
-    'contenttypes',
     'students',
     'academics',
     'fees',
