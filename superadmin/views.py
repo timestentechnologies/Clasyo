@@ -571,22 +571,8 @@ class AdminUserUpdateView(SuperAdminRequiredMixin, UpdateView):
         return context
     
     def form_valid(self, form):
-        response = super().form_valid(form)
-        direct_password = self.request.POST.get('direct_new_password', '').strip()
-        direct_confirm = self.request.POST.get('direct_confirm_password', '').strip()
-        if direct_password:
-            if len(direct_password) < 6:
-                messages.warning(self.request, 'Password was not changed: must be at least 6 characters.')
-            elif direct_password != direct_confirm:
-                messages.warning(self.request, 'Password was not changed: passwords did not match.')
-            else:
-                self.object.set_password(direct_password)
-                self.object.is_active = True
-                self.object.save(update_fields=['password', 'is_active'])
-                messages.success(self.request, f'Password for "{self.object.get_full_name() or self.object.email}" was also updated successfully!')
-        else:
-            messages.success(self.request, f'Admin "{self.object.get_full_name() or self.object.email}" updated successfully!')
-        return response
+        messages.success(self.request, f'Admin "{self.object.get_full_name() or self.object.email}" updated successfully!')
+        return super().form_valid(form)
 
 
 class AdminUserResetPasswordView(SuperAdminRequiredMixin, View):
