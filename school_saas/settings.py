@@ -158,13 +158,16 @@ IS_PRODUCTION = config('IS_PRODUCTION', default=not DEBUG, cast=bool)
 DB_ENGINE = config('DB_ENGINE', default='mysql' if IS_PRODUCTION else 'sqlite3')
 
 if DATABASE_URL:
+    db_config = dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=config('DB_CONN_MAX_AGE', default=0, cast=int),
+        conn_health_checks=True,
+        ssl_require=True,
+    )
+    if 'pooler.supabase.com' in DATABASE_URL or ':6543' in DATABASE_URL:
+        db_config['DISABLE_SERVER_SIDE_CURSORS'] = True
     DATABASES = {
-        'default': dj_database_url.parse(
-            DATABASE_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
-            ssl_require=True,
-        )
+        'default': db_config
     }
 elif DB_ENGINE == 'mysql':
     DATABASES = {
