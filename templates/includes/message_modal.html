@@ -2,39 +2,39 @@
 <style>
 /* Global System Message Popup Modal */
 #messageModal .modal-dialog {
-    max-width: 360px !important;
+    max-width: 380px !important;
     margin: 1.75rem auto;
 }
 
 .system-msg-modal-content {
-    border-radius: 12px !important;
+    border-radius: 14px !important;
     overflow: hidden !important;
-    box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
     transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 /* Light Mode Defaults */
 :root, [data-theme="light"], body:not(.dark-theme) {
     --sys-msg-modal-bg: #ffffff;
-    --sys-msg-modal-header-bg: #f8fafc;
-    --sys-msg-modal-header-border: #e2e8f0;
-    --sys-msg-modal-title: #0f172a;
+    --sys-msg-modal-header-bg: var(--brand-accent, #0284C7);
+    --sys-msg-modal-header-border: rgba(0, 0, 0, 0.08);
+    --sys-msg-modal-title: #ffffff;
     --sys-msg-modal-text: #0f172a;
     --sys-msg-modal-subtext: #475569;
     --sys-msg-modal-border: rgba(0, 0, 0, 0.08);
-    --sys-msg-close-filter: none;
+    --sys-msg-close-filter: invert(1) brightness(200%);
 }
 
 /* Dark Mode Overrides */
 [data-theme="dark"], [data-bs-theme="dark"], .theme-dark, .dark-theme, body.dark-theme, html[data-theme="dark"] {
     --sys-msg-modal-bg: #0f172a;
-    --sys-msg-modal-header-bg: #1e293b;
-    --sys-msg-modal-header-border: rgba(255, 255, 255, 0.08);
-    --sys-msg-modal-title: #f8fafc;
+    --sys-msg-modal-header-bg: var(--brand-accent, #38BDF8);
+    --sys-msg-modal-header-border: rgba(255, 255, 255, 0.1);
+    --sys-msg-modal-title: #ffffff;
     --sys-msg-modal-text: #f8fafc;
     --sys-msg-modal-subtext: #94a3b8;
     --sys-msg-modal-border: rgba(255, 255, 255, 0.12);
-    --sys-msg-close-filter: invert(1) grayscale(100%) brightness(200%);
+    --sys-msg-close-filter: invert(1) brightness(200%);
 }
 
 .system-msg-modal-content {
@@ -43,26 +43,45 @@
     border: 1px solid var(--sys-msg-modal-border) !important;
 }
 
-.system-msg-modal-header {
-    background: var(--sys-msg-modal-header-bg) !important;
-    border-bottom: 1px solid var(--sys-msg-modal-header-border) !important;
-    padding: 10px 16px !important;
+/* Force dynamic color accent on modal header across all themes */
+#messageModal .modal-header,
+#messageModal div.modal-header,
+#messageModal .system-msg-modal-header {
+    background: var(--brand-accent, #0284C7) !important;
+    background-color: var(--brand-accent, #0284C7) !important;
+    background-image: none !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    padding: 12px 18px !important;
+    color: #ffffff !important;
 }
 
-.system-msg-modal-header .modal-title {
-    color: var(--sys-msg-modal-title) !important;
+#messageModal .modal-header.msg-theme-error {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+    background-color: #ef4444 !important;
+}
+#messageModal .modal-header.msg-theme-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    background-color: #f59e0b !important;
+}
+
+#messageModal .modal-header .modal-title,
+#messageModal .system-msg-modal-header .modal-title,
+#messageModalTitle,
+#messageModalTitleText {
+    color: #ffffff !important;
     font-size: 0.95rem !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
     letter-spacing: -0.01em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
 }
 
 #messageModalCloseBtn {
-    filter: var(--sys-msg-close-filter) !important;
-    font-size: 0.75rem !important;
-    opacity: 0.75;
+    filter: invert(1) brightness(200%) !important;
+    font-size: 0.8rem !important;
+    opacity: 0.9 !important;
 }
 #messageModalCloseBtn:hover {
-    opacity: 1;
+    opacity: 1 !important;
 }
 
 /* Remove icon completely */
@@ -75,18 +94,28 @@
 .system-msg-modal-content .modal-body {
     color: var(--sys-msg-modal-subtext) !important;
     font-size: 0.875rem !important;
-    line-height: 1.5 !important;
-    padding: 14px 16px !important;
+    line-height: 1.55 !important;
+    padding: 16px 18px !important;
 }
 
 .system-msg-modal-content .modal-footer {
-    padding: 6px 16px 14px !important;
+    padding: 6px 18px 16px !important;
     border-top: none !important;
+}
+
+#messageModalBtn {
+    background-color: var(--brand-accent, #0284C7) !important;
+    border-color: var(--brand-accent, #0284C7) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    min-width: 80px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 </style>
 
 <div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalTitleText" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 360px;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 380px;">
         <div class="modal-content system-msg-modal-content border-0 shadow-lg">
             <div class="modal-header system-msg-modal-header py-2 px-3 border-0 d-flex align-items-center justify-content-between" id="messageModalHeader">
                 <h5 class="modal-title mb-0" id="messageModalTitle">

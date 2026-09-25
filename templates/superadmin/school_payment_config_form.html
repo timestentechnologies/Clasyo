@@ -498,6 +498,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (gatewaySelect) {
         gatewaySelect.addEventListener('change', toggleGatewayFields);
+        
+        function bindTomSelect() {
+            if (gatewaySelect.tomselect) {
+                gatewaySelect.tomselect.on('change', function() {
+                    toggleGatewayFields();
+                });
+                return true;
+            }
+            return false;
+        }
+        if (!bindTomSelect()) {
+            const timer = setInterval(function() {
+                if (bindTomSelect()) clearInterval(timer);
+            }, 100);
+            setTimeout(function() { clearInterval(timer); }, 3000);
+        }
+
         toggleGatewayFields();
     }
 });

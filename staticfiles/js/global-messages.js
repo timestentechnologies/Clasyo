@@ -58,32 +58,40 @@
         
         // Set styling & iconography based on message type
         if (msgType === 'success') {
-            if (header) header.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            if (header) header.style.setProperty('background', 'var(--brand-accent, #0284C7)', 'important');
             if (icon) icon.className = 'fas fa-check-circle';
             if (btn) {
-                btn.className = 'btn btn-success fw-semibold px-4 shadow-sm';
+                btn.className = 'btn btn-primary fw-semibold px-4 shadow-sm';
+                btn.style.setProperty('background-color', 'var(--brand-accent, #0284C7)', 'important');
+                btn.style.setProperty('border-color', 'var(--brand-accent, #0284C7)', 'important');
                 btn.textContent = 'OK';
             }
         } else if (msgType === 'error') {
-            if (header) header.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+            if (header) header.style.setProperty('background', 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', 'important');
             if (icon) icon.className = 'fas fa-exclamation-circle';
             if (btn) {
                 btn.className = 'btn btn-danger fw-semibold px-4 shadow-sm';
+                btn.style.removeProperty('background-color');
+                btn.style.removeProperty('border-color');
                 btn.textContent = 'Dismiss';
             }
         } else if (msgType === 'warning') {
-            if (header) header.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+            if (header) header.style.setProperty('background', 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', 'important');
             if (icon) icon.className = 'fas fa-exclamation-triangle';
             if (btn) {
                 btn.className = 'btn btn-warning fw-semibold px-4 shadow-sm text-dark';
+                btn.style.removeProperty('background-color');
+                btn.style.removeProperty('border-color');
                 btn.textContent = 'Understood';
             }
         } else {
             // Info / default
-            if (header) header.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
+            if (header) header.style.setProperty('background', 'var(--brand-accent, #0284C7)', 'important');
             if (icon) icon.className = 'fas fa-info-circle';
             if (btn) {
                 btn.className = 'btn btn-primary fw-semibold px-4 shadow-sm';
+                btn.style.setProperty('background-color', 'var(--brand-accent, #0284C7)', 'important');
+                btn.style.setProperty('border-color', 'var(--brand-accent, #0284C7)', 'important');
                 btn.textContent = 'OK';
             }
         }
