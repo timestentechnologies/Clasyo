@@ -571,8 +571,60 @@ class AdminUserUpdateView(SuperAdminRequiredMixin, UpdateView):
         return context
     
     def form_valid(self, form):
-        messages.success(self.request, f'Admin "{self.object.get_full_name()}" updated successfully!')
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        direct_password = self.request.POST.get('direct_new_password', '').strip()
+        direct_confirm = self.request.POST.get('direct_confirm_password', '').strip()
+        if direct_password:
+            if len(direct_password) < 6:
+                messages.warning(self.request, 'Password was not changed: must be at least 6 characters.')
+            elif direct_password != direct_confirm:
+                messages.warning(self.request, 'Password was not changed: passwords did not match.')
+            else:
+                self.object.set_password(direct_password)
+                self.object.is_active = True
+                self.object.save(update_fields=['password', 'is_active'])
+                messages.success(self.request, f'Password for "{self.object.get_full_name() or self.object.email}" was also updated successfully!')
+        else:
+            messages.success(self.request, f'Admin "{self.object.get_full_name() or self.object.email}" updated successfully!')
+        return response
+
+
+class AdminUserResetPasswordView(SuperAdminRequiredMixin, View):
+    """Directly reset a school administrator's password from the Superadmin UI"""
+    def post(self, request, pk):
+        admin_user = get_object_or_404(User, pk=pk)
+        new_password = request.POST.get('new_password', '').strip()
+        confirm_password = request.POST.get('confirm_password', '').strip()
+        
+        if not new_password:
+            messages.error(request, 'Password cannot be empty.')
+            return redirect('superadmin:admin_edit', pk=pk)
+            
+        if len(new_password) < 6:
+            messages.error(request, 'Password must be at least 6 characters long.')
+            return redirect('superadmin:admin_edit', pk=pk)
+            
+        if new_password != confirm_password:
+            messages.error(request, 'New password and confirmation do not match.')
+            return redirect('superadmin:admin_edit', pk=pk)
+            
+        admin_user.set_password(new_password)
+        admin_user.is_active = True
+        admin_user.save(update_fields=['password', 'is_active'])
+        
+        try:
+            from core.models import AuditLog
+            AuditLog.objects.create(
+                user=request.user,
+                action='PASSWORD_RESET',
+                details=f'Superadmin reset password for admin {admin_user.email} (ID: {admin_user.id})',
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+        except Exception:
+            pass
+            
+        messages.success(request, f'Password for "{admin_user.get_full_name() or admin_user.email}" has been successfully reset! New password is now active.')
+        return redirect('superadmin:admin_edit', pk=pk)
 
 
 class AdminUserDeleteView(SuperAdminRequiredMixin, DeleteView):

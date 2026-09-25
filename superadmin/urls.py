@@ -19,6 +19,7 @@ urlpatterns = [
     path('admins/', views.AdminUserListView.as_view(), name='admins'),
     path('admins/create/', views.AdminUserCreateView.as_view(), name='admin_create'),
     path('admins/<int:pk>/edit/', views.AdminUserUpdateView.as_view(), name='admin_edit'),
+    path('admins/<int:pk>/reset-password/', views.AdminUserResetPasswordView.as_view(), name='admin_reset_password'),
     path('admins/<int:pk>/delete/', views.AdminUserDeleteView.as_view(), name='admin_delete'),
     
     # Subscriptions
