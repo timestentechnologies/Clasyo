@@ -12,23 +12,6 @@
     <!-- Main Form Panel -->
     <div class="col-lg-8">
         <div class="form-panel-view mb-4">
-            <div class="form-header-bar">
-                <div class="form-header-title-group">
-                    <h5 class="mb-0 fw-bold form-title-text">
-                        <i class="fas fa-credit-card text-primary me-2"></i>
-                        {% if form.instance.pk %}Edit Payment Configuration{% else %}Add New Payment Configuration{% endif %}
-                    </h5>
-                </div>
-                <div class="form-header-actions">
-                    <a href="{% url 'superadmin:payment_config_list' %}" class="btn btn-sm btn-secondary">
-                        <i class="fas fa-arrow-left me-1"></i> Back to List
-                    </a>
-                    <button type="submit" form="paymentConfigForm" class="btn btn-sm btn-primary">
-                        <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Configuration{% else %}Save Configuration{% endif %}
-                    </button>
-                </div>
-            </div>
-
             <div class="form-card-body">
                 <form method="post" id="paymentConfigForm" novalidate>
                     {% csrf_token %}
