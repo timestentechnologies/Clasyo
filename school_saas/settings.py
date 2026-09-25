@@ -239,6 +239,7 @@ SOCIALACCOUNT_PROVIDERS = {
         'AUTH_PARAMS': {'access_type': 'online'},
     },
 }
+SOCIALACCOUNT_ADAPTER = 'accounts.adapter.CustomSocialAccountAdapter'
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
@@ -412,3 +413,6 @@ PDFKIT_CONFIG = {
     'encoding': 'UTF-8',
     'quiet': ''
 }
+
+# Django Allauth Settings
+ACCOUNT_MESSAGES = False
