@@ -399,16 +399,12 @@ SESSION_SAVE_EVERY_REQUEST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 if not DEBUG:
-    # NOTE: Do NOT enable SECURE_SSL_REDIRECT on cPanel/Passenger hosting.
-    # Apache handles HTTPS termination — Django always sees plain HTTP internally.
-    # Enabling this causes an infinite redirect loop (HTTP->HTTPS->HTTP->...).
-    # Apache .htaccess or cPanel SSL enforces HTTPS at the edge.
-    SECURE_SSL_REDIRECT = False
+    SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'SAMEORIGIN'
+    X_FRAME_OPTIONS = 'DENY'
 else:
     # If on Render or external HTTPS host, ensure secure cookies even with DEBUG=True
     is_https_env = bool(RENDER_EXTERNAL_HOSTNAME) or ('onrender.com' in str(ALLOWED_HOSTS))
