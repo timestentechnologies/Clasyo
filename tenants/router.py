@@ -12,8 +12,10 @@ MASTER_ONLY_APPS = {
     'sessions',
     'sites',
     'admin',
-    'auth',          # User auth lookups must always use master DB
+    'auth',          # Django built-in auth - always master DB
     'contenttypes',  # Content types are global
+    'accounts',      # AUTH_USER_MODEL=accounts.User — must always be in master DB
+                     # so AuthenticationMiddleware finds the user regardless of tenant context
 }
 
 # Applications that belong to tenant databases
@@ -21,7 +23,6 @@ TENANT_APPS = {
     'tenants',
     'subscriptions',
     'core',
-    'accounts',
     'students',
     'academics',
     'fees',
