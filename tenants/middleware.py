@@ -83,7 +83,18 @@ class TenantMiddleware(MiddlewareMixin):
             path_parts = request.path.strip('/').split('/')
             if len(path_parts) >= 2:
                 slug = path_parts[1]
-                user_school = getattr(user, 'school', None)
+                user_school = None
+                try:
+                    user_school = getattr(user, 'school', None)
+                except Exception:
+                    user_school = None
+
+                if not user_school and getattr(user, 'school_id', None):
+                    try:
+                        user_school = School.objects.using('default').filter(id=user.school_id).first()
+                    except Exception:
+                        user_school = None
+
                 if user_school and getattr(user, 'role', None) != 'superadmin' and slug != user_school.slug:
                     if not (slug == 'demo-school' and use_demo_db):
                         full_path = request.get_full_path()

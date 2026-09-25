@@ -1,11 +1,14 @@
 from .threadlocals import get_current_tenant_db
 
 # Applications that are strictly global / master-only
-# IMPORTANT: 'auth' must be here so AuthenticationMiddleware always reads
-# the User from the master DB (default). If 'auth' were in TENANT_APPS,
-# tenant-scoped requests would look up the session user in the tenant DB,
-# fail to find them (users live in master DB), and produce an infinite
-# login redirect loop for school admins.
+# IMPORTANT:
+# - 'auth' must be here so AuthenticationMiddleware always reads the User from master DB.
+# - 'accounts' must be here so User lookups always hit master DB.
+# - 'tenants' (School, Domain) must be here so tenant metadata, user.school FKs,
+#   and tenant resolution always query the master DB, avoiding DoesNotExist errors
+#   and cross-db FK failures.
+# - 'subscriptions' must be here so subscription checks, billing, and plans
+#   always query the master DB.
 MASTER_ONLY_APPS = {
     'superadmin',
     'frontend',
@@ -15,13 +18,12 @@ MASTER_ONLY_APPS = {
     'auth',          # Django built-in auth - always master DB
     'contenttypes',  # Content types are global
     'accounts',      # AUTH_USER_MODEL=accounts.User — must always be in master DB
-                     # so AuthenticationMiddleware finds the user regardless of tenant context
+    'tenants',       # School and Domain models — always master DB
+    'subscriptions', # Subscription plans, subscriptions, payments — always master DB
 }
 
 # Applications that belong to tenant databases
 TENANT_APPS = {
-    'tenants',
-    'subscriptions',
     'core',
     'students',
     'academics',
@@ -97,11 +99,15 @@ class TenantDatabaseRouter:
         """
         Control which migrations run on which database.
         - 'default' gets all apps (master + base schemas).
-        - Tenant DBs get tenant apps only.
+        - Tenant DBs get tenant apps + 'tenants' (for School FK schema compatibility).
         """
         if db == 'default':
             return True
             
+        # Allow 'tenants' table on tenant DBs so foreign key constraints to School can resolve
+        if app_label == 'tenants':
+            return True
+
         # On a tenant database, do not migrate master-only apps
         if app_label in MASTER_ONLY_APPS:
             return False
