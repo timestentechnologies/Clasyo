@@ -7,14 +7,14 @@
 <!-- Modern Sidebar -->
 <div class="modern-sidebar" id="sidebar">
     <div class="sidebar-brand">
-        <div class="brand-logo" style="background: transparent !important; padding: 0 !important;">
+        <div class="brand-logo" style="background: transparent !important; padding: 0 !important; overflow: hidden; font-size: 0; line-height: 0;">
             {% if user.role == 'superadmin' and not school_slug %}
-                <img src="{% static 'images/erpupdated.png' %}" alt="School Logo" class="school-logo" style="background: transparent !important;">
+                <img src="{% static 'images/erpupdated.png' %}" alt="Logo" class="school-logo" style="background: transparent !important; width: 100%; height: 100%; object-fit: contain;" onerror="this.onerror=null; this.style.display='none';">
             {% else %}
                 {% if school and school.logo %}
-                    <img src="{{ school.logo.url }}" alt="{{ school.name }}" class="school-logo" style="background: transparent !important;">
+                    <img src="{{ school.logo.url }}" alt="Logo" class="school-logo" style="background: transparent !important; width: 100%; height: 100%; object-fit: contain;" onerror="this.onerror=null; this.src='{% static 'images/erpupdated.png' %}';">
                 {% else %}
-                    <img src="{% static 'images/erpupdated.png' %}" alt="School Logo" class="school-logo" style="background: transparent !important;">
+                    <img src="{% static 'images/erpupdated.png' %}" alt="Logo" class="school-logo" style="background: transparent !important; width: 100%; height: 100%; object-fit: contain;" onerror="this.onerror=null; this.style.display='none';">
                 {% endif %}
             {% endif %}
         </div>
