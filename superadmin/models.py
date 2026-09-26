@@ -992,6 +992,38 @@ class PaymentConfiguration(models.Model):
             return True
         return False
 
+    @property
+    def account_identifier(self):
+        """Return the primary account number, till, business number, or shortcode"""
+        if self.gateway == 'mpesa_stk':
+            return f"Shortcode: {self.mpesa_shortcode}" if self.mpesa_shortcode else "No Shortcode"
+        elif self.gateway == 'mpesa_paybill':
+            paybill = f"Paybill: {self.mpesa_paybill_number}" if self.mpesa_paybill_number else "No Paybill"
+            acc = self.mpesa_paybill_account_name
+            return f"{paybill} (A/C: {acc})" if acc else paybill
+        elif self.gateway == 'mpesa_buygoods':
+            return f"Till: {self.mpesa_till_number}" if self.mpesa_till_number else "No Till"
+        elif self.gateway == 'mpesa_send_money':
+            return f"Phone: {self.mpesa_send_money_recipient}" if self.mpesa_send_money_recipient else "No Phone"
+        elif self.gateway == 'mpesa_pochi':
+            return f"Pochi: {self.mpesa_pochi_number}" if self.mpesa_pochi_number else "No Pochi"
+        elif self.gateway == 'bank':
+            parts = []
+            if self.bank_name:
+                parts.append(self.bank_name)
+            if self.bank_account_number:
+                parts.append(f"A/C: {self.bank_account_number}")
+            return " - ".join(parts) if parts else "No Account"
+        elif self.gateway == 'paypal':
+            if self.paypal_client_id:
+                return f"Client ID: {self.paypal_client_id[:12]}..."
+            return "PayPal"
+        elif self.gateway == 'stripe':
+            if self.stripe_publishable_key:
+                return f"Key: {self.stripe_publishable_key[:14]}..."
+            return "Stripe"
+        return self.get_gateway_display()
+
 
 class SchoolPaymentConfiguration(models.Model):
     """School-specific payment gateway configurations"""
@@ -1251,6 +1283,34 @@ class SchoolPaymentConfiguration(models.Model):
         elif self.gateway in ['cash', 'cheque']:
             return True
         return False
+
+    @property
+    def account_identifier(self):
+        """Return the primary account number, till, business number, or shortcode"""
+        if self.gateway == 'mpesa_stk':
+            return f"Shortcode: {self.mpesa_shortcode}" if self.mpesa_shortcode else "No Shortcode"
+        elif self.gateway == 'mpesa_paybill':
+            paybill = f"Paybill: {self.mpesa_paybill_number}" if self.mpesa_paybill_number else "No Paybill"
+            acc = self.mpesa_paybill_account_number or self.mpesa_paybill_account_name
+            return f"{paybill} (A/C: {acc})" if acc else paybill
+        elif self.gateway == 'mpesa_buygoods':
+            return f"Till: {self.mpesa_till_number}" if self.mpesa_till_number else "No Till"
+        elif self.gateway == 'mpesa_send_money':
+            return f"Phone: {self.mpesa_send_money_recipient}" if self.mpesa_send_money_recipient else "No Phone"
+        elif self.gateway == 'mpesa_pochi':
+            return f"Pochi: {self.mpesa_pochi_number}" if self.mpesa_pochi_number else "No Pochi"
+        elif self.gateway == 'bank':
+            parts = []
+            if self.bank_name:
+                parts.append(self.bank_name)
+            if self.bank_account_number:
+                parts.append(f"A/C: {self.bank_account_number}")
+            return " - ".join(parts) if parts else "No Account"
+        elif self.gateway == 'paypal':
+            if self.paypal_email:
+                return f"Email: {self.paypal_email}"
+            return "PayPal"
+        return self.get_gateway_display()
 
 
 class GlobalAIConfiguration(models.Model):

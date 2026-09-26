@@ -1398,11 +1398,10 @@ class PaymentConfigurationUpdateView(SuperAdminRequiredMixin, UpdateView):
         return super().form_invalid(form)
 
 
-class PaymentConfigurationDetailView(SuperAdminRequiredMixin, DetailView):
-    """View payment configuration details"""
-    model = PaymentConfiguration
-    template_name = 'superadmin/payment_config_detail.html'
-    context_object_name = 'config'
+class PaymentConfigurationDetailView(SuperAdminRequiredMixin, View):
+    """View payment configuration details - redirects to edit view using the unified form template"""
+    def get(self, request, *args, **kwargs):
+        return redirect('superadmin:payment_config_update', pk=kwargs.get('pk'))
 
 
 class PaymentConfigurationDeleteView(SuperAdminRequiredMixin, DeleteView):
@@ -1830,11 +1829,11 @@ class SchoolPaymentConfigurationUpdateView(SchoolAdminRequiredMixin, UpdateView)
         return reverse_lazy('superadmin:school_payment_config_list', kwargs={'school_slug': self.object.school.slug})
 
 
-class SchoolPaymentConfigurationDetailView(SchoolAdminRequiredMixin, DetailView):
-    """View payment configuration details for a school"""
-    model = SchoolPaymentConfiguration
-    template_name = 'superadmin/school_payment_config_detail.html'
-    context_object_name = 'config'
+class SchoolPaymentConfigurationDetailView(SchoolAdminRequiredMixin, View):
+    """View payment configuration details for a school - redirects to edit view using the unified form template"""
+    def get(self, request, *args, **kwargs):
+        school_slug = kwargs.get('school_slug')
+        return redirect('superadmin:school_payment_config_update', school_slug=school_slug, pk=kwargs.get('pk'))
 
 
 class SchoolPaymentConfigurationDeleteView(SchoolAdminRequiredMixin, DeleteView):
