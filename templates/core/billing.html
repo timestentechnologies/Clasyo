@@ -955,20 +955,34 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function displayPaymentMethods(methods) {
         const select = document.getElementById('paymentMethodSelect');
+        if (!select) return;
         select.innerHTML = '<option value="">-- Select a payment method --</option>';
         
+        if (!methods || !methods.length) {
+            return;
+        }
+
         methods.forEach(method => {
             const option = document.createElement('option');
             option.value = method.id;
-            option.textContent = `${method.icon} ${method.name}`;
+            option.textContent = `${method.icon || '💳'} ${method.name}`;
             select.appendChild(option);
         });
         
-        // Add change event listener
-        select.addEventListener('change', function() {
+        select.onchange = function() {
             selectedPaymentMethod = this.value;
             showPaymentMethodFields(selectedPaymentMethod, methods);
-        });
+        };
+
+        if (methods.length === 1) {
+            select.value = methods[0].id;
+            selectedPaymentMethod = methods[0].id;
+            showPaymentMethodFields(selectedPaymentMethod, methods);
+        } else {
+            selectedPaymentMethod = null;
+            const container = document.getElementById('payment-method-details');
+            if (container) container.innerHTML = '';
+        }
     }
     
     function escapeHtml(text) {

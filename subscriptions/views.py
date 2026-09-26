@@ -112,6 +112,7 @@ class SubscribeView(View):
 
             methods = []
             icon_map = {
+                'mpesa': '📱',
                 'mpesa_stk': '📱',
                 'mpesa_paybill': '📱',
                 'mpesa_buygoods': '🛒',
@@ -124,6 +125,7 @@ class SubscribeView(View):
                 'cheque': '🧾',
             }
             name_map = {
+                'mpesa': 'M-Pesa STK Push',
                 'mpesa_stk': 'M-Pesa STK Push',
                 'mpesa_paybill': 'M-Pesa Paybill',
                 'mpesa_buygoods': 'Lipa na M-Pesa (Buy Goods & Services)',
@@ -136,59 +138,107 @@ class SubscribeView(View):
                 'cheque': 'Cheque',
             }
 
-            # Use superadmin (global) payment configurations for subscription payments
-            configs = PaymentConfiguration.objects.using('default').filter(is_active=True)
+            # Query global payment configurations, fallback to current DB or school configs if none found
+            configs = []
+            try:
+                configs = list(PaymentConfiguration.objects.using('default').filter(is_active=True))
+            except Exception:
+                pass
+            if not configs:
+                try:
+                    configs = list(PaymentConfiguration.objects.filter(is_active=True))
+                except Exception:
+                    pass
+            if not configs and school:
+                try:
+                    configs = list(SchoolPaymentConfiguration.objects.using('default').filter(school=school, is_active=True))
+                except Exception:
+                    pass
+                if not configs:
+                    try:
+                        configs = list(SchoolPaymentConfiguration.objects.filter(school=school, is_active=True))
+                    except Exception:
+                        pass
+
             for cfg in configs:
                 gw = cfg.gateway
-                if gw not in name_map:
-                    continue
-                method_id = gw if gw != 'bank' else 'bank_transfer'
+                normalized_gw = 'mpesa_stk' if gw == 'mpesa' else gw
+                method_id = normalized_gw if normalized_gw != 'bank' else 'bank_transfer'
                 details = {}
-                if gw == 'mpesa_stk':
-                    if cfg.mpesa_shortcode:
-                        details['shortcode'] = cfg.mpesa_shortcode
-                elif gw == 'mpesa_paybill':
-                    if cfg.mpesa_paybill_number:
-                        details['paybill_number'] = cfg.mpesa_paybill_number
-                    if hasattr(cfg, 'mpesa_paybill_account_name') and cfg.mpesa_paybill_account_name:
-                        details['account_name'] = cfg.mpesa_paybill_account_name
-                    if hasattr(cfg, 'mpesa_paybill_instructions') and cfg.mpesa_paybill_instructions:
+
+                shortcode = getattr(cfg, 'mpesa_shortcode', None) or getattr(cfg, 'shortcode', None)
+                till_number = getattr(cfg, 'mpesa_till_number', None) or getattr(cfg, 'till_number', None)
+                paybill_number = getattr(cfg, 'mpesa_paybill_number', None) or getattr(cfg, 'paybill_number', None)
+                account_name = getattr(cfg, 'mpesa_paybill_account_name', None) or getattr(cfg, 'account_name', None)
+                recipient = getattr(cfg, 'mpesa_send_money_recipient', None) or getattr(cfg, 'phone_number', None)
+                pochi_number = getattr(cfg, 'mpesa_pochi_number', None) or getattr(cfg, 'phone_number', None)
+
+                if normalized_gw == 'mpesa_stk':
+                    if shortcode:
+                        details['shortcode'] = shortcode
+                    if till_number:
+                        details['till_number'] = till_number
+                    if paybill_number:
+                        details['paybill_number'] = paybill_number
+                elif normalized_gw == 'mpesa_paybill':
+                    if paybill_number:
+                        details['paybill_number'] = paybill_number
+                    elif shortcode:
+                        details['paybill_number'] = shortcode
+                    if account_name:
+                        details['account_name'] = account_name
+                    if getattr(cfg, 'mpesa_paybill_instructions', None):
                         details['instructions'] = cfg.mpesa_paybill_instructions
-                elif gw == 'mpesa_buygoods':
-                    if hasattr(cfg, 'mpesa_till_number') and cfg.mpesa_till_number:
-                        details['till_number'] = cfg.mpesa_till_number
-                    if hasattr(cfg, 'mpesa_buygoods_instructions') and cfg.mpesa_buygoods_instructions:
+                elif normalized_gw == 'mpesa_buygoods':
+                    if till_number:
+                        details['till_number'] = till_number
+                    elif shortcode:
+                        details['till_number'] = shortcode
+                    if getattr(cfg, 'mpesa_buygoods_instructions', None):
                         details['instructions'] = cfg.mpesa_buygoods_instructions
-                elif gw == 'mpesa_send_money':
-                    if hasattr(cfg, 'mpesa_send_money_recipient') and cfg.mpesa_send_money_recipient:
-                        details['recipient'] = cfg.mpesa_send_money_recipient
-                    if hasattr(cfg, 'mpesa_send_money_instructions') and cfg.mpesa_send_money_instructions:
+                elif normalized_gw == 'mpesa_send_money':
+                    if recipient:
+                        details['recipient'] = recipient
+                    elif shortcode:
+                        details['recipient'] = shortcode
+                    if getattr(cfg, 'mpesa_send_money_instructions', None):
                         details['instructions'] = cfg.mpesa_send_money_instructions
-                elif gw == 'mpesa_pochi':
-                    if hasattr(cfg, 'mpesa_pochi_number') and cfg.mpesa_pochi_number:
-                        details['pochi_number'] = cfg.mpesa_pochi_number
-                    if hasattr(cfg, 'mpesa_pochi_instructions') and cfg.mpesa_pochi_instructions:
+                elif normalized_gw == 'mpesa_pochi':
+                    if pochi_number:
+                        details['pochi_number'] = pochi_number
+                    elif recipient:
+                        details['pochi_number'] = recipient
+                    if getattr(cfg, 'mpesa_pochi_instructions', None):
                         details['instructions'] = cfg.mpesa_pochi_instructions
-                elif gw == 'bank':
-                    if cfg.bank_name:
+                elif normalized_gw in ('bank', 'bank_transfer'):
+                    if getattr(cfg, 'bank_name', None):
                         details['bank_name'] = cfg.bank_name
-                    if cfg.bank_account_name:
+                    if getattr(cfg, 'bank_account_name', None):
                         details['account_name'] = cfg.bank_account_name
-                    if cfg.bank_account_number:
+                    if getattr(cfg, 'bank_account_number', None):
                         details['account_number'] = cfg.bank_account_number
-                    if cfg.bank_branch:
+                    if getattr(cfg, 'bank_branch', None):
                         details['branch'] = cfg.bank_branch
-                elif gw == 'paypal':
-                    if cfg.paypal_client_id:
+                elif normalized_gw == 'paypal':
+                    if getattr(cfg, 'paypal_client_id', None):
                         details['paypal_email'] = ''
-                elif gw == 'stripe':
-                    if cfg.stripe_publishable_key:
+                elif normalized_gw == 'stripe':
+                    if getattr(cfg, 'stripe_publishable_key', None):
                         details['publishable_key'] = cfg.stripe_publishable_key
+
+                display_name = (
+                    name_map.get(gw) or 
+                    name_map.get(normalized_gw) or 
+                    (getattr(cfg, 'get_gateway_display', None) and cfg.get_gateway_display()) or 
+                    str(gw).replace('_', ' ').title()
+                )
+                icon = icon_map.get(gw) or icon_map.get(normalized_gw) or '💳'
 
                 methods.append({
                     'id': method_id,
-                    'name': name_map.get(gw, gw),
-                    'icon': icon_map.get(gw, ''),
+                    'gateway': gw,
+                    'name': display_name,
+                    'icon': icon,
                     'details': details
                 })
 
