@@ -969,6 +969,29 @@ class PaymentConfiguration(models.Model):
         
         return config
 
+    @property
+    def is_configured(self):
+        """Return True if gateway has required credentials configured"""
+        if self.gateway == 'mpesa_stk':
+            return bool(self.mpesa_consumer_key and self.mpesa_consumer_secret and self.mpesa_passkey and self.mpesa_shortcode)
+        elif self.gateway == 'mpesa_paybill':
+            return bool(self.mpesa_paybill_number)
+        elif self.gateway == 'mpesa_buygoods':
+            return bool(self.mpesa_till_number)
+        elif self.gateway == 'mpesa_send_money':
+            return bool(self.mpesa_send_money_recipient)
+        elif self.gateway == 'mpesa_pochi':
+            return bool(self.mpesa_pochi_number)
+        elif self.gateway == 'paypal':
+            return bool(self.paypal_client_id and self.paypal_client_secret)
+        elif self.gateway == 'stripe':
+            return bool(self.stripe_publishable_key and self.stripe_secret_key)
+        elif self.gateway == 'bank':
+            return bool(self.bank_name and self.bank_account_name and self.bank_account_number)
+        elif self.gateway in ['cash', 'cheque']:
+            return True
+        return False
+
 
 class SchoolPaymentConfiguration(models.Model):
     """School-specific payment gateway configurations"""
@@ -1207,6 +1230,27 @@ class SchoolPaymentConfiguration(models.Model):
             })
         
         return config
+
+    @property
+    def is_configured(self):
+        """Return True if school gateway has required credentials configured"""
+        if self.gateway == 'mpesa_stk':
+            return bool(self.mpesa_consumer_key and self.mpesa_consumer_secret and self.mpesa_passkey and self.mpesa_shortcode)
+        elif self.gateway == 'mpesa_paybill':
+            return bool(self.mpesa_paybill_number)
+        elif self.gateway == 'mpesa_buygoods':
+            return bool(self.mpesa_till_number)
+        elif self.gateway == 'mpesa_send_money':
+            return bool(self.mpesa_send_money_recipient)
+        elif self.gateway == 'mpesa_pochi':
+            return bool(self.mpesa_pochi_number)
+        elif self.gateway == 'paypal':
+            return bool(self.paypal_email)
+        elif self.gateway == 'bank':
+            return bool(self.bank_name and self.bank_account_name and self.bank_account_number)
+        elif self.gateway in ['cash', 'cheque']:
+            return True
+        return False
 
 
 class GlobalAIConfiguration(models.Model):

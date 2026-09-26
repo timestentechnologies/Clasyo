@@ -76,30 +76,10 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if config.gateway == 'mpesa' %}
-                            {% if config.mpesa_consumer_key and config.mpesa_consumer_secret and config.mpesa_passkey %}
-                                <span class="badge bg-success">Configured</span>
-                            {% else %}
-                                <span class="badge bg-warning">Incomplete</span>
-                            {% endif %}
-                        {% elif config.gateway == 'paypal' %}
-                            {% if config.paypal_client_id and config.paypal_client_secret %}
-                                <span class="badge bg-success">Configured</span>
-                            {% else %}
-                                <span class="badge bg-warning">Incomplete</span>
-                            {% endif %}
-                        {% elif config.gateway == 'stripe' %}
-                            {% if config.stripe_publishable_key and config.stripe_secret_key %}
-                                <span class="badge bg-success">Configured</span>
-                            {% else %}
-                                <span class="badge bg-warning">Incomplete</span>
-                            {% endif %}
-                        {% elif config.gateway == 'bank' %}
-                            {% if config.bank_name and config.bank_account_name and config.bank_account_number %}
-                                <span class="badge bg-success">Configured</span>
-                            {% else %}
-                                <span class="badge bg-warning">Incomplete</span>
-                            {% endif %}
+                        {% if config.is_configured %}
+                            <span class="badge bg-success">Configured</span>
+                        {% else %}
+                            <span class="badge bg-warning">Incomplete</span>
                         {% endif %}
                     </td>
                     <td>{{ config.created_at|date:"M d, Y" }}</td>

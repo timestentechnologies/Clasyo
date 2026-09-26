@@ -15,6 +15,42 @@ from datetime import timedelta
 import json
 
 
+def resolve_school(request):
+    """Safely resolve the active school across request, user, session, or parameters without throwing DoesNotExist."""
+    school = getattr(request, 'school', None) or getattr(request, 'tenant', None)
+    if school:
+        return school
+
+    user = getattr(request, 'user', None)
+    if user and getattr(user, 'is_authenticated', False):
+        try:
+            school = getattr(user, 'school', None)
+            if school:
+                return school
+        except Exception:
+            pass
+
+        try:
+            school_id = getattr(user, 'school_id', None)
+            if school_id:
+                school = School.objects.using('default').filter(id=school_id).first()
+                if school:
+                    return school
+        except Exception:
+            pass
+
+    slug = request.GET.get('school_slug') or request.POST.get('school_slug')
+    if slug:
+        try:
+            school = School.objects.using('default').filter(slug=slug).first()
+            if school:
+                return school
+        except Exception:
+            pass
+
+    return None
+
+
 class SubscriptionPlansView(ListView):
     """View to display all subscription plans"""
     model = SubscriptionPlan
@@ -22,11 +58,11 @@ class SubscriptionPlansView(ListView):
     context_object_name = 'plans'
     
     def get_queryset(self):
-        return SubscriptionPlan.objects.filter(is_active=True).exclude(price=0)
+        return SubscriptionPlan.objects.using('default').filter(is_active=True).exclude(price=0)
 
     def dispatch(self, request, *args, **kwargs):
         """If a logged-in school user lands here, send them to Billing which shows plans."""
-        school = getattr(request, 'school', None) or getattr(request.user, 'school', None)
+        school = resolve_school(request)
         if request.user.is_authenticated and school:
             return redirect('core:billing', school_slug=school.slug)
         return super().dispatch(request, *args, **kwargs)
@@ -36,110 +72,141 @@ class SubscribeView(View):
     """View to handle subscription purchase - returns payment modal data"""
     
     def get(self, request, plan_slug):
-        plan = get_object_or_404(SubscriptionPlan, slug=plan_slug, is_active=True, price__gt=0)
+        try:
+            # Query plan from master database safely with fallback casing and id lookup
+            clean_slug = (plan_slug or '').strip()
+            plan = SubscriptionPlan.objects.using('default').filter(slug=clean_slug, is_active=True).first()
+            if not plan:
+                plan = SubscriptionPlan.objects.using('default').filter(slug__iexact=clean_slug, is_active=True).first()
+            if not plan and clean_slug.isdigit():
+                plan = SubscriptionPlan.objects.using('default').filter(id=int(clean_slug), is_active=True).first()
+            if not plan:
+                return JsonResponse({
+                    'success': False,
+                    'error': f"Subscription plan '{plan_slug}' was not found or is currently inactive."
+                }, status=404)
 
-        school = getattr(request, 'school', None) or getattr(request, 'tenant', None) or getattr(request.user, 'school', None)
-        if not school:
-            slug = request.GET.get('school_slug')
-            if slug:
-                school = School.objects.filter(slug=slug).first()
+            school = resolve_school(request)
 
-        methods = []
-        icon_map = {
-            'mpesa_stk': '📱',
-            'mpesa_paybill': '📱',
-            'mpesa_buygoods': '🛒',
-            'mpesa_send_money': '💸',
-            'mpesa_pochi': '🧺',
-            'paypal': '💳',
-            'bank': '🏦',
-            'cash': '💵',
-            'cheque': '🧾',
-        }
-        name_map = {
-            'mpesa_stk': 'M-Pesa STK Push',
-            'mpesa_paybill': 'M-Pesa Paybill',
-            'mpesa_buygoods': 'Lipa na M-Pesa (Buy Goods & Services)',
-            'mpesa_send_money': 'M-Pesa Send Money',
-            'mpesa_pochi': 'M-Pesa Pochi la Biashara',
-            'paypal': 'PayPal',
-            'bank': 'Bank Transfer',
-            'cash': 'Cash',
-            'cheque': 'Cheque',
-        }
+            methods = []
+            icon_map = {
+                'mpesa_stk': '📱',
+                'mpesa_paybill': '📱',
+                'mpesa_buygoods': '🛒',
+                'mpesa_send_money': '💸',
+                'mpesa_pochi': '🧺',
+                'paypal': '💳',
+                'stripe': '💳',
+                'bank': '🏦',
+                'cash': '💵',
+                'cheque': '🧾',
+            }
+            name_map = {
+                'mpesa_stk': 'M-Pesa STK Push',
+                'mpesa_paybill': 'M-Pesa Paybill',
+                'mpesa_buygoods': 'Lipa na M-Pesa (Buy Goods & Services)',
+                'mpesa_send_money': 'M-Pesa Send Money',
+                'mpesa_pochi': 'M-Pesa Pochi la Biashara',
+                'paypal': 'PayPal',
+                'stripe': 'Stripe',
+                'bank': 'Bank Transfer',
+                'cash': 'Cash',
+                'cheque': 'Cheque',
+            }
 
-        # Use superadmin (global) payment configurations for subscription payments
-        configs = PaymentConfiguration.objects.filter(is_active=True)
-        for cfg in configs:
-            gw = cfg.gateway
-            if gw not in name_map:
-                continue
-            method_id = gw if gw != 'bank' else 'bank_transfer'
-            details = {}
-            if gw == 'mpesa_stk':
-                if cfg.mpesa_shortcode:
-                    details['shortcode'] = cfg.mpesa_shortcode
-            elif gw == 'mpesa_paybill':
-                if cfg.mpesa_paybill_number:
-                    details['paybill_number'] = cfg.mpesa_paybill_number
-                if hasattr(cfg, 'mpesa_paybill_account_name') and cfg.mpesa_paybill_account_name:
-                    details['account_name'] = cfg.mpesa_paybill_account_name
-                if hasattr(cfg, 'mpesa_paybill_instructions') and cfg.mpesa_paybill_instructions:
-                    details['instructions'] = cfg.mpesa_paybill_instructions
-            elif gw == 'mpesa_buygoods':
-                if hasattr(cfg, 'mpesa_till_number') and cfg.mpesa_till_number:
-                    details['till_number'] = cfg.mpesa_till_number
-                if hasattr(cfg, 'mpesa_buygoods_instructions') and cfg.mpesa_buygoods_instructions:
-                    details['instructions'] = cfg.mpesa_buygoods_instructions
-            elif gw == 'mpesa_send_money':
-                if hasattr(cfg, 'mpesa_send_money_recipient') and cfg.mpesa_send_money_recipient:
-                    details['recipient'] = cfg.mpesa_send_money_recipient
-                if hasattr(cfg, 'mpesa_send_money_instructions') and cfg.mpesa_send_money_instructions:
-                    details['instructions'] = cfg.mpesa_send_money_instructions
-            elif gw == 'mpesa_pochi':
-                if hasattr(cfg, 'mpesa_pochi_number') and cfg.mpesa_pochi_number:
-                    details['pochi_number'] = cfg.mpesa_pochi_number
-                if hasattr(cfg, 'mpesa_pochi_instructions') and cfg.mpesa_pochi_instructions:
-                    details['instructions'] = cfg.mpesa_pochi_instructions
-            elif gw == 'bank':
-                if cfg.bank_name:
-                    details['bank_name'] = cfg.bank_name
-                if cfg.bank_account_name:
-                    details['account_name'] = cfg.bank_account_name
-                if cfg.bank_account_number:
-                    details['account_number'] = cfg.bank_account_number
-                if cfg.bank_branch:
-                    details['branch'] = cfg.bank_branch
-            elif gw == 'paypal':
-                # For subscriptions, show PayPal availability if configured
-                if cfg.paypal_client_id:
-                    details['paypal_email'] = ''
-            # cash/cheque and other gateways may not have extra details globally
-            methods.append({
-                'id': method_id,
-                'name': name_map.get(gw, gw),
-                'icon': icon_map.get(gw, ''),
-                'details': details
+            # Use superadmin (global) payment configurations for subscription payments
+            configs = PaymentConfiguration.objects.using('default').filter(is_active=True)
+            for cfg in configs:
+                gw = cfg.gateway
+                if gw not in name_map:
+                    continue
+                method_id = gw if gw != 'bank' else 'bank_transfer'
+                details = {}
+                if gw == 'mpesa_stk':
+                    if cfg.mpesa_shortcode:
+                        details['shortcode'] = cfg.mpesa_shortcode
+                elif gw == 'mpesa_paybill':
+                    if cfg.mpesa_paybill_number:
+                        details['paybill_number'] = cfg.mpesa_paybill_number
+                    if hasattr(cfg, 'mpesa_paybill_account_name') and cfg.mpesa_paybill_account_name:
+                        details['account_name'] = cfg.mpesa_paybill_account_name
+                    if hasattr(cfg, 'mpesa_paybill_instructions') and cfg.mpesa_paybill_instructions:
+                        details['instructions'] = cfg.mpesa_paybill_instructions
+                elif gw == 'mpesa_buygoods':
+                    if hasattr(cfg, 'mpesa_till_number') and cfg.mpesa_till_number:
+                        details['till_number'] = cfg.mpesa_till_number
+                    if hasattr(cfg, 'mpesa_buygoods_instructions') and cfg.mpesa_buygoods_instructions:
+                        details['instructions'] = cfg.mpesa_buygoods_instructions
+                elif gw == 'mpesa_send_money':
+                    if hasattr(cfg, 'mpesa_send_money_recipient') and cfg.mpesa_send_money_recipient:
+                        details['recipient'] = cfg.mpesa_send_money_recipient
+                    if hasattr(cfg, 'mpesa_send_money_instructions') and cfg.mpesa_send_money_instructions:
+                        details['instructions'] = cfg.mpesa_send_money_instructions
+                elif gw == 'mpesa_pochi':
+                    if hasattr(cfg, 'mpesa_pochi_number') and cfg.mpesa_pochi_number:
+                        details['pochi_number'] = cfg.mpesa_pochi_number
+                    if hasattr(cfg, 'mpesa_pochi_instructions') and cfg.mpesa_pochi_instructions:
+                        details['instructions'] = cfg.mpesa_pochi_instructions
+                elif gw == 'bank':
+                    if cfg.bank_name:
+                        details['bank_name'] = cfg.bank_name
+                    if cfg.bank_account_name:
+                        details['account_name'] = cfg.bank_account_name
+                    if cfg.bank_account_number:
+                        details['account_number'] = cfg.bank_account_number
+                    if cfg.bank_branch:
+                        details['branch'] = cfg.bank_branch
+                elif gw == 'paypal':
+                    if cfg.paypal_client_id:
+                        details['paypal_email'] = ''
+                elif gw == 'stripe':
+                    if cfg.stripe_publishable_key:
+                        details['publishable_key'] = cfg.stripe_publishable_key
+
+                methods.append({
+                    'id': method_id,
+                    'name': name_map.get(gw, gw),
+                    'icon': icon_map.get(gw, ''),
+                    'details': details
+                })
+
+            features_data = plan.features
+            if isinstance(features_data, str):
+                try:
+                    features_data = json.loads(features_data)
+                except Exception:
+                    features_data = [f.strip() for f in features_data.split('\n') if f.strip()]
+            elif not features_data:
+                features_data = {}
+
+            return JsonResponse({
+                'success': True,
+                'plan': {
+                    'id': plan.id,
+                    'name': plan.name,
+                    'slug': plan.slug,
+                    'price': float(plan.price),
+                    'billing_cycle': plan.billing_cycle,
+                    'description': plan.description,
+                    'features': features_data,
+                    'trial_days': plan.trial_days
+                },
+                'payment_methods': methods
             })
-
-        return JsonResponse({
-            'success': True,
-            'plan': {
-                'id': plan.id,
-                'name': plan.name,
-                'slug': plan.slug,
-                'price': float(plan.price),
-                'billing_cycle': plan.billing_cycle,
-                'description': plan.description,
-                'features': plan.features,
-                'trial_days': plan.trial_days
-            },
-            'payment_methods': methods
-        })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': f"Error loading payment methods: {str(e)}"
+            }, status=500)
     
     def post(self, request, plan_slug):
         try:
-            plan = get_object_or_404(SubscriptionPlan, slug=plan_slug, is_active=True, price__gt=0)
+            clean_slug = (plan_slug or '').strip()
+            plan = SubscriptionPlan.objects.using('default').filter(slug=clean_slug, is_active=True).first()
+            if not plan:
+                plan = SubscriptionPlan.objects.using('default').filter(slug__iexact=clean_slug, is_active=True).first()
+            if not plan:
+                return JsonResponse({'success': False, 'error': f"Plan '{plan_slug}' not found."}, status=404)
             payment_method = request.POST.get('payment_method')
             
             with transaction.atomic():
@@ -160,27 +227,23 @@ class SubscribeView(View):
                     end_date = start_date + timedelta(days=30)
                 is_trial = False
                 
-                # Resolve school (user.school, request.tenant, or posted school_slug)
-                school = getattr(request.user, 'school', None) or getattr(request, 'tenant', None)
-                if not school:
-                    school_slug = request.POST.get('school_slug')
-                    if school_slug:
-                        school = School.objects.filter(slug=school_slug).first()
+                # Resolve school safely
+                school = resolve_school(request)
                 if not school:
                     return JsonResponse({'success': False, 'error': 'School context not found. Please access this page from your school account.'}, status=400)
 
                 # Server-side guard: disallow upgrading/subscribing to a free plan if a free offer was already used
                 try:
                     if float(plan.price) == 0:
-                        current_sub = school.subscriptions.order_by('-created_at').first()
+                        current_sub = school.subscriptions.using('default').order_by('-created_at').first()
                         current_free = bool(current_sub and current_sub.plan and float(getattr(current_sub.plan, 'price', 0)) == 0)
-                        has_trial_invoice = Invoice.objects.filter(school=school, invoice_type='trial_end').exists()
-                        has_past_free_invoice = Invoice.objects.filter(
+                        has_trial_invoice = Invoice.objects.using('default').filter(school=school, invoice_type='trial_end').exists()
+                        has_past_free_invoice = Invoice.objects.using('default').filter(
                             school=school,
                             invoice_type__in=['new', 'renewal', 'upgrade'],
                             total_amount=0
                         ).exists()
-                        past_free_sub_qs = school.subscriptions.filter(plan__price=0)
+                        past_free_sub_qs = school.subscriptions.using('default').filter(plan__price=0)
                         if current_sub:
                             past_free_sub_qs = past_free_sub_qs.exclude(id=current_sub.id)
                         has_past_free_sub = past_free_sub_qs.exists()
@@ -194,6 +257,7 @@ class SubscribeView(View):
                 method_to_gateway = {
                     'bank_transfer': 'bank',
                     'paypal': 'paypal',
+                    'stripe': 'stripe',
                     'mpesa_paybill': 'mpesa_paybill',
                     'mpesa_stk': 'mpesa_stk',
                     'mpesa_buygoods': 'mpesa_buygoods',
@@ -203,11 +267,11 @@ class SubscribeView(View):
                     'cheque': 'cheque',
                 }
                 gw = method_to_gateway.get(payment_method)
-                if not gw or not PaymentConfiguration.objects.filter(gateway=gw, is_active=True).exists():
+                if not gw or not PaymentConfiguration.objects.using('default').filter(gateway=gw, is_active=True).exists():
                     return JsonResponse({'success': False, 'error': 'Selected payment method is not available.'}, status=400)
 
                 # Create subscription linked to school
-                subscription = Subscription.objects.create(
+                subscription = Subscription.objects.using('default').create(
                     school=school,
                     plan=plan,
                     start_date=start_date,
@@ -391,7 +455,7 @@ class PaymentFailedView(TemplateView):
 class MySubscriptionView(View):
     """Redirect users to the Billing page instead of rendering a separate subscription page."""
     def get(self, request):
-        school = getattr(request, 'school', None) or getattr(request.user, 'school', None)
+        school = resolve_school(request)
         if school:
             return redirect('core:billing', school_slug=school.slug)
         messages.info(request, 'Please access billing from your school dashboard.')
@@ -401,10 +465,12 @@ class MySubscriptionView(View):
 class RenewSubscriptionView(View):
     """View to renew subscription"""
     def post(self, request):
+        school = resolve_school(request)
         # Get current subscription
-        current_subscription = Subscription.objects.filter(
-            status__in=['active', 'expired']
-        ).order_by('-created_at').first()
+        sub_qs = Subscription.objects.using('default').filter(status__in=['active', 'expired'])
+        if school:
+            sub_qs = sub_qs.filter(school=school)
+        current_subscription = sub_qs.order_by('-created_at').first()
         
         if not current_subscription:
             messages.error(request, 'No subscription found to renew.')
@@ -419,16 +485,16 @@ class CancelSubscriptionView(View):
     """View to cancel subscription"""
     def post(self, request):
         today = timezone.now().date()
-        school = getattr(request, 'school', None) or getattr(request.user, 'school', None)
+        school = resolve_school(request)
         if not school:
             messages.error(request, 'School context not found.')
             return redirect('frontend:home')
-        subscription = Subscription.objects.filter(school=school, status='active').order_by('-created_at').first()
+        subscription = Subscription.objects.using('default').filter(school=school, status='active').order_by('-created_at').first()
 
         if subscription:
             subscription.status = 'cancelled'
             subscription.auto_renew = False
-            subscription.save()
+            subscription.save(using='default')
             can_reactivate = bool(subscription.end_date and subscription.end_date >= today)
             messages.success(request, 'Subscription cancelled successfully.')
             # Always route to Billing, show a cancelled modal, and if still valid allow reactivation
@@ -445,11 +511,7 @@ class ReactivateSubscriptionView(View):
     """Reactivate a cancelled but still valid subscription (end date not reached)."""
     def post(self, request):
         today = timezone.now().date()
-        school = getattr(request, 'school', None) or getattr(request.user, 'school', None)
-        if not school:
-            school_slug = request.POST.get('school_slug') or request.GET.get('school_slug')
-            if school_slug:
-                school = School.objects.filter(slug=school_slug).first()
+        school = resolve_school(request)
         if not school:
             # Support AJAX response
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -457,7 +519,7 @@ class ReactivateSubscriptionView(View):
             messages.error(request, 'School context not found.')
             return redirect('frontend:home')
 
-        sub = Subscription.objects.filter(school=school).order_by('-created_at').first()
+        sub = Subscription.objects.using('default').filter(school=school).order_by('-created_at').first()
         if not sub or sub.status != 'cancelled' or not sub.end_date or sub.end_date < today:
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({'success': False, 'error': 'Subscription cannot be reactivated.'}, status=400)

@@ -304,54 +304,16 @@
                     <h6 class="mb-0">Configuration Status</h6>
                 </div>
                 <div class="card-body">
-                    {% if config.gateway == 'mpesa' %}
-                        {% if config.mpesa_consumer_key and config.mpesa_consumer_secret and config.mpesa_passkey %}
-                            <div class="alert alert-success">
-                                <i class="fas fa-check-circle me-2"></i>
-                                M-Pesa is properly configured
-                            </div>
-                        {% else %}
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                M-Pesa configuration is incomplete
-                            </div>
-                        {% endif %}
-                    {% elif config.gateway == 'paypal' %}
-                        {% if config.paypal_client_id and config.paypal_client_secret %}
-                            <div class="alert alert-success">
-                                <i class="fas fa-check-circle me-2"></i>
-                                PayPal is properly configured
-                            </div>
-                        {% else %}
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                PayPal configuration is incomplete
-                            </div>
-                        {% endif %}
-                    {% elif config.gateway == 'stripe' %}
-                        {% if config.stripe_publishable_key and config.stripe_secret_key %}
-                            <div class="alert alert-success">
-                                <i class="fas fa-check-circle me-2"></i>
-                                Stripe is properly configured
-                            </div>
-                        {% else %}
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                Stripe configuration is incomplete
-                            </div>
-                        {% endif %}
-                    {% elif config.gateway == 'bank' %}
-                        {% if config.bank_name and config.bank_account_name and config.bank_account_number %}
-                            <div class="alert alert-success">
-                                <i class="fas fa-check-circle me-2"></i>
-                                Bank details are properly configured
-                            </div>
-                        {% else %}
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                Bank configuration is incomplete
-                            </div>
-                        {% endif %}
+                    {% if config.is_configured %}
+                        <div class="alert alert-success mb-0">
+                            <i class="fas fa-check-circle me-2"></i>
+                            {{ config.get_gateway_display }} is properly configured
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            {{ config.get_gateway_display }} configuration is incomplete
+                        </div>
                     {% endif %}
                 </div>
             </div>

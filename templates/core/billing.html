@@ -890,36 +890,45 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Fetch payment methods from API
         const qs = BILLING_SCHOOL_SLUG ? `?school_slug=${encodeURIComponent(BILLING_SCHOOL_SLUG)}` : '';
-        const getUrl = `/subscriptions/subscribe/${selectedPlan.slug}/` + qs;
+        const getUrl = `/subscriptions/subscribe/${encodeURIComponent(selectedPlan.slug)}/` + qs;
         fetch(getUrl)
-            .then(response => response.json())
+            .then(async response => {
+                const text = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (parseErr) {
+                    console.error('Non-JSON response received:', text);
+                    throw new Error(`Server returned unexpected response (${response.status})`);
+                }
+                if (!response.ok || !data.success) {
+                    const errorMsg = (data && data.error) ? data.error : 'Failed to load payment methods. Please try again.';
+                    throw new Error(errorMsg);
+                }
+                return data;
+            })
             .then(data => {
-                if (data.success) {
-                    if (data.payment_methods && data.payment_methods.length) {
-                        displayPaymentMethods(data.payment_methods);
-                        paymentModal.show();
-                    } else {
-                        const msg = 'No payment methods are configured yet. Please contact your administrator.';
-                        if (typeof showMessage === 'function') {
-                            showMessage('Payment Setup Required', msg, false);
-                        } else {
-                            alert(msg);
-                        }
-                    }
+                if (data.payment_methods && data.payment_methods.length) {
+                    displayPaymentMethods(data.payment_methods);
+                    paymentModal.show();
                 } else {
-                    if (typeof showError === 'function') {
-                        showError('Error loading payment methods. Please try again.');
+                    const msg = 'No payment methods are currently configured. Please contact the administrator to set up payment gateways.';
+                    if (typeof showMessage === 'function') {
+                        showMessage('Payment Setup Required', msg, false);
+                    } else if (typeof showError === 'function') {
+                        showError(msg);
                     } else {
-                        alert('Error loading payment methods. Please try again.');
+                        alert(msg);
                     }
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('Error loading payment methods:', error);
+                const errMsg = error && error.message ? error.message : 'Error loading payment methods. Please try again.';
                 if (typeof showError === 'function') {
-                    showError('Error loading payment methods. Please try again.');
+                    showError(errMsg);
                 } else {
-                    alert('Error loading payment methods. Please try again.');
+                    alert(errMsg);
                 }
             });
     }
