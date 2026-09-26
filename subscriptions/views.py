@@ -13,13 +13,18 @@ from tenants.models import School
 from superadmin.models import SchoolPaymentConfiguration, PaymentConfiguration
 from datetime import timedelta
 import json
+import urllib.parse
 
 
-def resolve_school(request):
+def resolve_school(request, school_slug=None):
     """Safely resolve the active school across request, user, session, or parameters without throwing DoesNotExist."""
-    school = getattr(request, 'school', None) or getattr(request, 'tenant', None)
-    if school:
-        return school
+    if school_slug:
+        try:
+            school = School.objects.using('default').filter(slug=school_slug).first()
+            if school:
+                return school
+        except Exception:
+            pass
 
     user = getattr(request, 'user', None)
     if user and getattr(user, 'is_authenticated', False):
@@ -71,22 +76,39 @@ class SubscriptionPlansView(ListView):
 class SubscribeView(View):
     """View to handle subscription purchase - returns payment modal data"""
     
-    def get(self, request, plan_slug):
+    def get(self, request, plan_slug=None, *args, **kwargs):
         try:
-            # Query plan from master database safely with fallback casing and id lookup
-            clean_slug = (plan_slug or '').strip()
-            plan = SubscriptionPlan.objects.using('default').filter(slug=clean_slug, is_active=True).first()
-            if not plan:
-                plan = SubscriptionPlan.objects.using('default').filter(slug__iexact=clean_slug, is_active=True).first()
-            if not plan and clean_slug.isdigit():
-                plan = SubscriptionPlan.objects.using('default').filter(id=int(clean_slug), is_active=True).first()
+            # Query plan from master database safely with fallback casing, name, and id lookup
+            raw_identifier = (
+                plan_slug or 
+                request.GET.get('plan_slug') or 
+                request.GET.get('plan_id') or 
+                request.GET.get('slug') or 
+                ''
+            )
+            clean_identifier = urllib.parse.unquote(str(raw_identifier)).strip().strip("'\"")
+
+            plan = None
+            if clean_identifier:
+                plan = SubscriptionPlan.objects.using('default').filter(slug=clean_identifier, is_active=True).first()
+                if not plan:
+                    plan = SubscriptionPlan.objects.using('default').filter(slug__iexact=clean_identifier, is_active=True).first()
+                if not plan and clean_identifier.isdigit():
+                    plan = SubscriptionPlan.objects.using('default').filter(id=int(clean_identifier), is_active=True).first()
+                if not plan:
+                    plan = SubscriptionPlan.objects.using('default').filter(name__iexact=clean_identifier, is_active=True).first()
+
+            plan_id = request.GET.get('plan_id')
+            if not plan and plan_id and str(plan_id).isdigit():
+                plan = SubscriptionPlan.objects.using('default').filter(id=int(plan_id), is_active=True).first()
+
             if not plan:
                 return JsonResponse({
                     'success': False,
-                    'error': f"Subscription plan '{plan_slug}' was not found or is currently inactive."
+                    'error': f"Subscription plan '{raw_identifier}' was not found or is currently inactive."
                 }, status=404)
 
-            school = resolve_school(request)
+            school = resolve_school(request, school_slug=kwargs.get('school_slug'))
 
             methods = []
             icon_map = {
@@ -199,14 +221,34 @@ class SubscribeView(View):
                 'error': f"Error loading payment methods: {str(e)}"
             }, status=500)
     
-    def post(self, request, plan_slug):
+    def post(self, request, plan_slug=None, *args, **kwargs):
         try:
-            clean_slug = (plan_slug or '').strip()
-            plan = SubscriptionPlan.objects.using('default').filter(slug=clean_slug, is_active=True).first()
+            raw_identifier = (
+                plan_slug or 
+                request.POST.get('plan_slug') or 
+                request.POST.get('plan_id') or 
+                request.GET.get('plan_slug') or 
+                request.GET.get('plan_id') or 
+                ''
+            )
+            clean_identifier = urllib.parse.unquote(str(raw_identifier)).strip().strip("'\"")
+
+            plan = None
+            if clean_identifier:
+                plan = SubscriptionPlan.objects.using('default').filter(slug=clean_identifier, is_active=True).first()
+                if not plan:
+                    plan = SubscriptionPlan.objects.using('default').filter(slug__iexact=clean_identifier, is_active=True).first()
+                if not plan and clean_identifier.isdigit():
+                    plan = SubscriptionPlan.objects.using('default').filter(id=int(clean_identifier), is_active=True).first()
+                if not plan:
+                    plan = SubscriptionPlan.objects.using('default').filter(name__iexact=clean_identifier, is_active=True).first()
+
+            plan_id = request.POST.get('plan_id') or request.GET.get('plan_id')
+            if not plan and plan_id and str(plan_id).isdigit():
+                plan = SubscriptionPlan.objects.using('default').filter(id=int(plan_id), is_active=True).first()
+
             if not plan:
-                plan = SubscriptionPlan.objects.using('default').filter(slug__iexact=clean_slug, is_active=True).first()
-            if not plan:
-                return JsonResponse({'success': False, 'error': f"Plan '{plan_slug}' not found."}, status=404)
+                return JsonResponse({'success': False, 'error': f"Plan '{raw_identifier}' not found."}, status=404)
             payment_method = request.POST.get('payment_method')
             
             with transaction.atomic():
@@ -228,7 +270,7 @@ class SubscribeView(View):
                 is_trial = False
                 
                 # Resolve school safely
-                school = resolve_school(request)
+                school = resolve_school(request, school_slug=kwargs.get('school_slug'))
                 if not school:
                     return JsonResponse({'success': False, 'error': 'School context not found. Please access this page from your school account.'}, status=400)
 

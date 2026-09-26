@@ -478,6 +478,7 @@
                                                 </button>
                                             {% elif pricing_plan.is_renew %}
                                                 <button class="btn btn-primary w-100 upgrade-btn" 
+                                                        data-plan-id="{{ pricing_plan.id }}"
                                                         data-plan-slug="{{ pricing_plan.slug }}"
                                                         data-plan-name="{{ pricing_plan.name }}"
                                                         data-plan-price="{{ pricing_plan.price }}">
@@ -491,6 +492,7 @@
                                                 <div class="text-muted small mt-1">You have already used your free plan limit.</div>
                                             {% else %}
                                                 <button class="btn btn-primary w-100 upgrade-btn" 
+                                                        data-plan-id="{{ pricing_plan.id }}"
                                                         data-plan-slug="{{ pricing_plan.slug }}"
                                                         data-plan-name="{{ pricing_plan.name }}"
                                                         data-plan-price="{{ pricing_plan.price }}">
@@ -873,9 +875,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.upgrade-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             selectedPlan = {
-                slug: this.dataset.planSlug,
-                name: this.dataset.planName,
-                price: this.dataset.planPrice
+                id: this.dataset.planId || '',
+                slug: (this.dataset.planSlug || '').trim(),
+                name: this.dataset.planName || '',
+                price: this.dataset.planPrice || ''
             };
             
             // Load payment modal
@@ -889,9 +892,26 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modal-plan-price').textContent = 'Ksh ' + selectedPlan.price;
         
         // Fetch payment methods from API
-        const qs = BILLING_SCHOOL_SLUG ? `?school_slug=${encodeURIComponent(BILLING_SCHOOL_SLUG)}` : '';
-        const getUrl = `/subscriptions/subscribe/${encodeURIComponent(selectedPlan.slug)}/` + qs;
-        fetch(getUrl)
+        const planParam = selectedPlan.slug || selectedPlan.id;
+        const planIdQuery = selectedPlan.id ? `&plan_id=${encodeURIComponent(selectedPlan.id)}` : '';
+        const planSlugQuery = selectedPlan.slug ? `&plan_slug=${encodeURIComponent(selectedPlan.slug)}` : '';
+        const schoolQuery = BILLING_SCHOOL_SLUG ? `&school_slug=${encodeURIComponent(BILLING_SCHOOL_SLUG)}` : '';
+        const qs = `?${planIdQuery}${planSlugQuery}${schoolQuery}`.replace('?&', '?');
+        const primaryUrl = `/subscriptions/subscribe/${encodeURIComponent(planParam)}/${qs}`;
+
+        async function fetchPaymentMethods() {
+            let resp = await fetch(primaryUrl);
+            if (resp.status === 404 && BILLING_SCHOOL_SLUG) {
+                const fallbackUrl = `/school/${encodeURIComponent(BILLING_SCHOOL_SLUG)}/billing/subscribe/${encodeURIComponent(planParam)}/${qs}`;
+                const fallbackResp = await fetch(fallbackUrl);
+                if (fallbackResp.ok) {
+                    return fallbackResp;
+                }
+            }
+            return resp;
+        }
+
+        fetchPaymentMethods()
             .then(async response => {
                 const text = await response.text();
                 let data;
@@ -1266,22 +1286,50 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append(key, paymentData[key]);
         });
         
+        const planParam = selectedPlan.slug || selectedPlan.id;
+        if (selectedPlan.id) {
+            formData.append('plan_id', selectedPlan.id);
+        }
+        if (selectedPlan.slug) {
+            formData.append('plan_slug', selectedPlan.slug);
+        }
+
         // Show loading state
         const confirmBtn = document.getElementById('confirm-payment');
         const originalText = confirmBtn.innerHTML;
         confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
         confirmBtn.disabled = true;
         
-        fetch(`/subscriptions/subscribe/${selectedPlan.slug}/`, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': csrfToken || '' ,
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            },
-            credentials: 'same-origin'
-        })
+        const primaryPostUrl = `/subscriptions/subscribe/${encodeURIComponent(planParam)}/`;
+        const postHeaders = {
+            'X-CSRFToken': csrfToken || '',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        };
+
+        async function submitPayment() {
+            let resp = await fetch(primaryPostUrl, {
+                method: 'POST',
+                body: formData,
+                headers: postHeaders,
+                credentials: 'same-origin'
+            });
+            if (resp.status === 404 && BILLING_SCHOOL_SLUG) {
+                const tenantPostUrl = `/school/${encodeURIComponent(BILLING_SCHOOL_SLUG)}/billing/subscribe/${encodeURIComponent(planParam)}/`;
+                const fallbackResp = await fetch(tenantPostUrl, {
+                    method: 'POST',
+                    body: formData,
+                    headers: postHeaders,
+                    credentials: 'same-origin'
+                });
+                if (fallbackResp.ok || fallbackResp.status !== 404) {
+                    return fallbackResp;
+                }
+            }
+            return resp;
+        }
+
+        submitPayment()
         .then(response => {
             if (response.redirected) {
                 window.location.href = response.url;

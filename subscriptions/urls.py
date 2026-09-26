@@ -5,7 +5,8 @@ app_name = 'subscriptions'
 
 urlpatterns = [
     path('plans/', views.SubscriptionPlansView.as_view(), name='plans'),
-    path('subscribe/<slug:plan_slug>/', views.SubscribeView.as_view(), name='subscribe'),
+    path('subscribe/<str:plan_slug>/', views.SubscribeView.as_view(), name='subscribe'),
+    path('subscribe/', views.SubscribeView.as_view(), name='subscribe_query'),
     path('payment/<uuid:payment_id>/', views.PaymentView.as_view(), name='payment'),
     path('payment/success/', views.PaymentSuccessView.as_view(), name='payment_success'),
     path('payment/failed/', views.PaymentFailedView.as_view(), name='payment_failed'),

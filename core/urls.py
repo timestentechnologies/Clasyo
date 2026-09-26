@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from subscriptions.views import SubscribeView
 
 app_name = 'core'
 
@@ -99,6 +100,8 @@ urlpatterns = [
     
     # Billing
     path('billing/', views.BillingView.as_view(), name='billing'),
+    path('billing/subscribe/<str:plan_slug>/', SubscribeView.as_view(), name='billing_subscribe'),
+    path('billing/subscribe/', SubscribeView.as_view(), name='billing_subscribe_query'),
     path('billing/invoices/<int:invoice_id>/download/', views.InvoiceDownloadView.as_view(), name='invoice_download'),
     path('billing/invoices/<int:invoice_id>/preview/', views.InvoicePreviewView.as_view(), name='invoice_preview'),
     
