@@ -5,7 +5,68 @@
 {% block title %}Billing & Subscription{% endblock %}
 {% block page_title %}Billing & Subscription{% endblock %}
 {% block page_icon %}credit-card{% endblock %}
-{% block page_subtitle %}Manage your subscription and billing information{% endblock %}
+{% block extra_css %}
+<style>
+/* Precise input field styling & vertical centering for TomSelect in Payment Modal */
+#paymentModal .ts-wrapper,
+#paymentModal .ts-wrapper.form-select,
+#paymentModal .modal-body .ts-wrapper.form-select {
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    min-height: 44px !important;
+    height: auto !important;
+    width: 100% !important;
+}
+
+#paymentModal .ts-control {
+    min-height: 44px !important;
+    height: 44px !important;
+    padding: 0 38px 0 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+    border: 1.5px solid var(--input-border, #334155) !important;
+    background-color: var(--input-bg, #1E293B) !important;
+    color: var(--input-text, #F8FAFC) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%2394A3B8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 14px center !important;
+    background-size: 14px 14px !important;
+    line-height: normal !important;
+    cursor: pointer !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+#paymentModal .ts-control:hover,
+#paymentModal .ts-wrapper:hover .ts-control {
+    border-color: #38BDF8 !important;
+}
+
+#paymentModal .ts-control.focus,
+#paymentModal .ts-wrapper.focus .ts-control,
+#paymentModal .ts-wrapper.dropdown-active .ts-control {
+    border-color: #38BDF8 !important;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22) !important;
+    outline: none !important;
+}
+
+#paymentModal .ts-wrapper.single .ts-control .item {
+    display: inline-flex !important;
+    align-items: center !important;
+    line-height: normal !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    vertical-align: middle !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: inherit !important;
+}
+</style>
+{% endblock %}
 
 {% block content %}
 <div id="billing-page" class="container-fluid">
@@ -594,7 +655,7 @@
                 
                 <div class="mb-3">
                     <label for="paymentMethodSelect" class="form-label fw-bold">Choose Payment Method</label>
-                    <select class="form-select no-tomselect" id="paymentMethodSelect" data-no-tomselect="true">
+                    <select class="form-select" id="paymentMethodSelect">
                         <option value="">-- Select a payment method --</option>
                     </select>
                 </div>
@@ -891,15 +952,18 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modal-plan-name').textContent = selectedPlan.name;
         document.getElementById('modal-plan-price').textContent = 'Ksh ' + selectedPlan.price;
         
-        // Reset and prepare paymentMethodSelect (prevent TomSelect interference)
+        // Show loading state in paymentMethodSelect if TomSelect or native select exists
         const select = document.getElementById('paymentMethodSelect');
         if (select) {
             if (select.tomselect) {
-                try { select.tomselect.destroy(); } catch (e) {}
+                select.tomselect.clear(true);
+                select.tomselect.clearOptions();
+                select.tomselect.addOption({ value: '', text: 'Loading payment methods...' });
+                select.tomselect.setValue('', true);
+                select.tomselect.refreshOptions(false);
+            } else {
+                select.innerHTML = '<option value="">Loading payment methods...</option>';
             }
-            select.classList.add('no-tomselect');
-            select.setAttribute('data-no-tomselect', 'true');
-            select.innerHTML = '<option value="">Loading payment methods...</option>';
         }
         const container = document.getElementById('payment-method-details');
         if (container) {
@@ -971,20 +1035,20 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayPaymentMethods(methods) {
         const select = document.getElementById('paymentMethodSelect');
         if (!select) return;
-        
-        // Ensure TomSelect does not hijack this dynamic modal select
-        if (select.tomselect) {
-            try { select.tomselect.destroy(); } catch (e) {}
-        }
-        select.classList.add('no-tomselect');
-        select.setAttribute('data-no-tomselect', 'true');
-        
+
+        // Keep native select in sync as fallback
         select.innerHTML = '<option value="">-- Select a payment method --</option>';
-        
         if (!methods || !methods.length) {
             const container = document.getElementById('payment-method-details');
             if (container) {
                 container.innerHTML = '<div class="alert alert-warning mb-0"><i class="fas fa-exclamation-triangle me-2"></i>No payment methods are currently active in SuperAdmin. Please contact support.</div>';
+            }
+            if (select.tomselect) {
+                select.tomselect.clear(true);
+                select.tomselect.clearOptions();
+                select.tomselect.addOption({ value: '', text: '-- No payment methods available --' });
+                select.tomselect.setValue('', true);
+                select.tomselect.refreshOptions(false);
             }
             return;
         }
@@ -995,22 +1059,80 @@ document.addEventListener('DOMContentLoaded', function() {
             option.textContent = `${method.icon || '💳'} ${method.name}`;
             select.appendChild(option);
         });
-        
-        select.onchange = function() {
-            selectedPaymentMethod = this.value;
-            showPaymentMethodFields(selectedPaymentMethod, methods);
-        };
 
-        // Auto-select the first available payment gateway and render its fields
-        if (methods.length >= 1) {
-            select.value = methods[0].id;
-            selectedPaymentMethod = methods[0].id;
-            showPaymentMethodFields(selectedPaymentMethod, methods);
-        } else {
-            selectedPaymentMethod = null;
-            const container = document.getElementById('payment-method-details');
-            if (container) container.innerHTML = '';
+        // Initialize or update TomSelect to match system standard styling
+        let ts = select.tomselect;
+        if (!ts && typeof TomSelect !== 'undefined') {
+            try {
+                ts = new TomSelect(select, {
+                    create: false,
+                    placeholder: '-- Select a payment method --',
+                    allowEmptyOption: true,
+                    controlInput: null,
+                    dropdownParent: 'body',
+                    copyClassesToDropdown: false,
+                    plugins: []
+                });
+            } catch (e) {
+                console.warn('TomSelect init error on paymentMethodSelect:', e);
+            }
         }
+
+        if (ts) {
+            ts.clear(true);
+            ts.clearOptions();
+            ts.addOption({ value: '', text: '-- Select a payment method --' });
+            methods.forEach(method => {
+                ts.addOption({
+                    value: method.id,
+                    text: `${method.icon || '💳'} ${method.name}`
+                });
+            });
+            ts.refreshOptions(false);
+
+            ts.off('change');
+            ts.on('change', function(value) {
+                selectedPaymentMethod = value;
+                showPaymentMethodFields(selectedPaymentMethod, methods);
+            });
+
+            if (methods.length >= 1) {
+                ts.setValue(methods[0].id, false);
+                selectedPaymentMethod = methods[0].id;
+                showPaymentMethodFields(selectedPaymentMethod, methods);
+            } else {
+                selectedPaymentMethod = null;
+                ts.setValue('', false);
+                const container = document.getElementById('payment-method-details');
+                if (container) container.innerHTML = '';
+            }
+        } else {
+            select.onchange = function() {
+                selectedPaymentMethod = this.value;
+                showPaymentMethodFields(selectedPaymentMethod, methods);
+            };
+
+            if (methods.length >= 1) {
+                select.value = methods[0].id;
+                selectedPaymentMethod = methods[0].id;
+                showPaymentMethodFields(selectedPaymentMethod, methods);
+            } else {
+                selectedPaymentMethod = null;
+                const container = document.getElementById('payment-method-details');
+                if (container) container.innerHTML = '';
+            }
+        }
+    }
+
+    // Auto-close TomSelect dropdown if open when modal is closed
+    const paymentModalEl = document.getElementById('paymentModal');
+    if (paymentModalEl) {
+        paymentModalEl.addEventListener('hidden.bs.modal', function() {
+            const select = document.getElementById('paymentMethodSelect');
+            if (select && select.tomselect) {
+                select.tomselect.close();
+            }
+        });
     }
     
     function escapeHtml(text) {
