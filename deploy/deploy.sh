@@ -20,8 +20,9 @@ echo ">>> [2/6] Installing Python dependencies..."
 pip install --upgrade pip
 pip install -r requirements.txt
 
-echo ">>> [3/6] Running database migrations..."
+echo ">>> [3/6] Running database migrations (master + tenants)..."
 python manage.py migrate --noinput
+python manage.py migrate_tenants
 
 echo ">>> [4/6] Collecting static files..."
 python manage.py collectstatic --noinput

@@ -594,7 +594,7 @@
                 
                 <div class="mb-3">
                     <label for="paymentMethodSelect" class="form-label fw-bold">Choose Payment Method</label>
-                    <select class="form-select" id="paymentMethodSelect">
+                    <select class="form-select no-tomselect" id="paymentMethodSelect" data-no-tomselect="true">
                         <option value="">-- Select a payment method --</option>
                     </select>
                 </div>
@@ -891,6 +891,21 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modal-plan-name').textContent = selectedPlan.name;
         document.getElementById('modal-plan-price').textContent = 'Ksh ' + selectedPlan.price;
         
+        // Reset and prepare paymentMethodSelect (prevent TomSelect interference)
+        const select = document.getElementById('paymentMethodSelect');
+        if (select) {
+            if (select.tomselect) {
+                try { select.tomselect.destroy(); } catch (e) {}
+            }
+            select.classList.add('no-tomselect');
+            select.setAttribute('data-no-tomselect', 'true');
+            select.innerHTML = '<option value="">Loading payment methods...</option>';
+        }
+        const container = document.getElementById('payment-method-details');
+        if (container) {
+            container.innerHTML = '<div class="text-center py-3 text-muted"><div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>Loading available payment gateways...</div>';
+        }
+        
         // Fetch payment methods from API
         const planParam = selectedPlan.slug || selectedPlan.id;
         const planIdQuery = selectedPlan.id ? `&plan_id=${encodeURIComponent(selectedPlan.id)}` : '';
@@ -956,9 +971,21 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayPaymentMethods(methods) {
         const select = document.getElementById('paymentMethodSelect');
         if (!select) return;
+        
+        // Ensure TomSelect does not hijack this dynamic modal select
+        if (select.tomselect) {
+            try { select.tomselect.destroy(); } catch (e) {}
+        }
+        select.classList.add('no-tomselect');
+        select.setAttribute('data-no-tomselect', 'true');
+        
         select.innerHTML = '<option value="">-- Select a payment method --</option>';
         
         if (!methods || !methods.length) {
+            const container = document.getElementById('payment-method-details');
+            if (container) {
+                container.innerHTML = '<div class="alert alert-warning mb-0"><i class="fas fa-exclamation-triangle me-2"></i>No payment methods are currently active in SuperAdmin. Please contact support.</div>';
+            }
             return;
         }
 
@@ -974,7 +1001,8 @@ document.addEventListener('DOMContentLoaded', function() {
             showPaymentMethodFields(selectedPaymentMethod, methods);
         };
 
-        if (methods.length === 1) {
+        // Auto-select the first available payment gateway and render its fields
+        if (methods.length >= 1) {
             select.value = methods[0].id;
             selectedPaymentMethod = methods[0].id;
             showPaymentMethodFields(selectedPaymentMethod, methods);

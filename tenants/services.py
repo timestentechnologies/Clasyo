@@ -1,9 +1,10 @@
 import logging
 from django.db import connections
-from django.core.management import call_command
 from django.apps import apps
 from django.conf import settings
 from .drivers import get_tenant_database_driver
+from .school_sync import sync_tenant_school_record
+from .tenant_ops import run_tenant_migrations
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +32,10 @@ def register_tenant_connection(db_alias: str) -> dict:
 def provision_school_database(school) -> bool:
     """
     Physically creates the dedicated database for the school (using school.slug),
-    registers the connection, and runs all tenant schema migrations against it.
-    Also copies the School record itself so foreign keys to School resolve properly.
+    registers the connection, runs tenant schema migrations, and synchronizes the
+    master School row into the tenant database (same primary key).
+
+    Raises if database creation, migrations, or School sync fail.
     """
     db_alias = school.slug
     driver = get_tenant_database_driver()
@@ -40,30 +43,29 @@ def provision_school_database(school) -> bool:
     logger.info(f"[Tenants] Provisioning dedicated database for school '{school.name}' ({db_alias})...")
 
     # 1. Physically create the database or schema
-    driver.create_database(db_alias)
+    if not driver.create_database(db_alias):
+        raise RuntimeError(f"Could not create tenant database '{db_alias}'.")
 
     # 2. Register dynamic connection config in Django
     register_tenant_connection(db_alias)
 
-    # 3. Run migrations on the new tenant database
+    # 3. Run migrations on the new tenant database (router limits apps on tenant DBs)
     try:
-        call_command('migrate', database=db_alias, interactive=False, verbosity=0)
+        run_tenant_migrations(db_alias, verbosity=0)
         logger.info(f"[Tenants] Successfully applied migrations to database '{db_alias}'.")
     except Exception as e:
         logger.error(f"[Tenants] Failed applying migrations to database '{db_alias}': {e}")
-        raise e
+        raise
 
-    # 4. Copy School row into the tenant database so foreign keys can be resolved
-    try:
-        from tenants.models import School
-        if not School.objects.using(db_alias).filter(pk=school.pk).exists():
-            school_record = School.objects.using('default').get(pk=school.pk)
-            school_record.subscription_plan = None
-            school_record.save(using=db_alias)
-    except Exception as e:
-        logger.warning(f"[Tenants] Error cloning School into tenant database {db_alias}: {e}")
+    # 4. Synchronize School row into the tenant database for local FK resolution
+    sync_tenant_school_record(school, db_alias=db_alias)
+    from tenants.models import School
+    if not School.objects.using(db_alias).filter(pk=school.pk).exists():
+        raise RuntimeError(
+            f"Tenant School pk={school.pk} missing in database '{db_alias}' after sync."
+        )
 
-    # 5. Copy superadmin user records into tenant DB so platform administrators can access tenant portals
+    # 5. Optional legacy: clone superadmin users into tenant DB (non-fatal)
     try:
         from accounts.models import User
         for sa in User.objects.using('default').filter(role='superadmin'):
@@ -84,15 +86,7 @@ def migrate_existing_school_data(school) -> dict:
     db_alias = school.slug
     register_tenant_connection(db_alias)
 
-    # Ensure school record is in the tenant DB
-    from tenants.models import School
-    try:
-        if not School.objects.using(db_alias).filter(pk=school.pk).exists():
-            school_record = School.objects.using('default').get(pk=school.pk)
-            school_record.subscription_plan = None
-            school_record.save(using=db_alias)
-    except Exception as e:
-        logger.warning(f"[Tenants] Error ensuring School in {db_alias}: {e}")
+    sync_tenant_school_record(school, db_alias=db_alias)
     
     from .router import TENANT_APPS
     migrated_counts = {}

@@ -138,22 +138,26 @@ class PostgresTenantDriver(BaseTenantDatabaseDriver):
     def database_exists(self, db_name: str) -> bool:
         clean_name = "".join(c for c in db_name if c.isalnum() or c in ('_', '-'))
         import psycopg2
+
+        conn = psycopg2.connect(
+            dbname=self.default_db.get('NAME', 'postgres'),
+            user=self.default_db.get('USER', 'postgres'),
+            password=self.default_db.get('PASSWORD', ''),
+            host=self.default_db.get('HOST', 'localhost'),
+            port=self.default_db.get('PORT', 5432),
+        )
         try:
-            conn = psycopg2.connect(
-                dbname=self.default_db.get('NAME', 'postgres'),
-                user=self.default_db.get('USER', 'postgres'),
-                password=self.default_db.get('PASSWORD', ''),
-                host=self.default_db.get('HOST', 'localhost'),
-                port=self.default_db.get('PORT', 5432)
-            )
             cursor = conn.cursor()
-            cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", (clean_name,))
-            exists = bool(cursor.fetchone())
-            cursor.close()
+            try:
+                cursor.execute(
+                    "SELECT 1 FROM pg_database WHERE datname = %s",
+                    (clean_name,),
+                )
+                return bool(cursor.fetchone())
+            finally:
+                cursor.close()
+        finally:
             conn.close()
-            return exists
-        except Exception:
-            return False
 
     def delete_database(self, db_name: str) -> bool:
         """

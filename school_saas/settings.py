@@ -172,6 +172,7 @@ if DATABASE_URL:
     DATABASES = {
         'default': db_config
     }
+    print(f"[Database] Active engine: PostgreSQL | Host: {db_config.get('HOST')} | Database: {db_config.get('NAME')}")
 elif DB_ENGINE == 'mysql':
     DATABASES = {
         'default': {
