@@ -28,14 +28,27 @@ class ClubForm(forms.ModelForm):
         if self.school:
             # Filter users by school for advisor and student leadership
             self.fields['teacher_advisor'].queryset = self.fields['teacher_advisor'].queryset.filter(
-                role='teacher'
+                school=self.school, role='teacher', is_active=True
             )
             self.fields['student_president'].queryset = self.fields['student_president'].queryset.filter(
-                role='student'
+                school=self.school, role='student', is_active=True
             )
             self.fields['student_secretary'].queryset = self.fields['student_secretary'].queryset.filter(
-                role='student'
+                school=self.school, role='student', is_active=True
             )
+            
+        self.fields['teacher_advisor'].empty_label = "- Select Teacher Advisor -"
+        self.fields['student_president'].empty_label = "- Select Student President -"
+        self.fields['student_secretary'].empty_label = "- Select Student Secretary -"
+
+        for name, field in self.fields.items():
+            if isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs['class'] = 'form-check-input'
+            elif isinstance(field.widget, forms.Select):
+                field.widget.attrs['class'] = 'form-select'
+            else:
+                existing_class = field.widget.attrs.get('class', '')
+                field.widget.attrs['class'] = f"{existing_class} form-control".strip()
     
     def clean_application_deadline(self):
         deadline = self.cleaned_data.get('application_deadline')

@@ -201,6 +201,137 @@
         .color-label-dot {
             display: inline-block !important;
         }
+
+        /* ==========================================================================
+           UNIVERSAL TABLE ACTION ICONS (STRICTLY NO BOXING / NO BORDERS SYSTEM-WIDE)
+           ========================================================================== */
+        table td .btn-group,
+        .table td .btn-group,
+        .modern-table td .btn-group,
+        .table-modern td .btn-group,
+        table td [role="group"],
+        .table td [role="group"] {
+            background: transparent !important;
+            background-color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            gap: 8px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+        }
+
+        table td .btn-group .btn,
+        .table td .btn-group .btn,
+        .modern-table td .btn-group .btn,
+        .table-modern td .btn-group .btn,
+        table td .table-action-link,
+        .table td .table-action-link,
+        .modern-table td .table-action-link,
+        .table-modern td .table-action-link,
+        a.table-action-link,
+        button.table-action-link,
+        .btn-action-icon,
+        .table td .btn-action-icon,
+        .modern-table td .btn-action-icon,
+        .table-modern td .btn-action-icon,
+        table td .action-btn,
+        .table td .action-btn,
+        .table td .table-action-btn,
+        table td a.btn[class*="btn-outline-"],
+        table td button.btn[class*="btn-outline-"],
+        .table td a[class*="btn-outline-"],
+        .table td button[class*="btn-outline-"],
+        .modern-table td a[class*="btn-outline-"],
+        .modern-table td button[class*="btn-outline-"],
+        table td a.btn:has(> i:only-child),
+        table td button.btn:has(> i:only-child),
+        .table td a.btn:has(> i:only-child),
+        .table td button.btn:has(> i:only-child),
+        .modern-table td a.btn:has(> i:only-child),
+        .modern-table td button.btn:has(> i:only-child),
+        .table td a.btn-info,
+        .modern-table td a.btn-info,
+        .table-modern td a.btn-info {
+            background: transparent !important;
+            background-color: transparent !important;
+            border: none !important;
+            border-color: transparent !important;
+            box-shadow: none !important;
+            outline: none !important;
+            padding: 4px 6px !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            min-width: auto !important;
+            width: auto !important;
+            height: auto !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: var(--system-icon-color) !important;
+            font-size: 1.15rem !important;
+            line-height: 1 !important;
+            transition: transform 0.15s ease, opacity 0.15s ease, color 0.15s ease !important;
+            text-decoration: none !important;
+        }
+
+        table td .btn-group .btn:hover,
+        .table td .btn-group .btn:hover,
+        .modern-table td .btn-group .btn:hover,
+        .table-modern td .btn-group .btn:hover,
+        table td .table-action-link:hover,
+        .table td .table-action-link:hover,
+        .modern-table td .table-action-link:hover,
+        .table-modern td .table-action-link:hover,
+        a.table-action-link:hover,
+        button.table-action-link:hover,
+        .btn-action-icon:hover,
+        .table td .btn-action-icon:hover,
+        .modern-table td .btn-action-icon:hover,
+        .table-modern td .btn-action-icon:hover,
+        table td .action-btn:hover,
+        .table td .action-btn:hover,
+        .table td .table-action-btn:hover,
+        table td a.btn[class*="btn-outline-"]:hover,
+        table td button.btn[class*="btn-outline-"]:hover,
+        .table td a[class*="btn-outline-"]:hover,
+        .table td button[class*="btn-outline-"]:hover,
+        .modern-table td a[class*="btn-outline-"]:hover,
+        .modern-table td button[class*="btn-outline-"]:hover,
+        table td a.btn:has(> i:only-child):hover,
+        table td button.btn:has(> i:only-child):hover,
+        .table td a.btn:has(> i:only-child):hover,
+        .table td button.btn:has(> i:only-child):hover,
+        .modern-table td a.btn:has(> i:only-child):hover,
+        .modern-table td button.btn:has(> i:only-child):hover,
+        .table td a.btn-info:hover,
+        .modern-table td a.btn-info:hover,
+        .table-modern td a.btn-info:hover {
+            background: transparent !important;
+            background-color: transparent !important;
+            border: none !important;
+            border-color: transparent !important;
+            box-shadow: none !important;
+            outline: none !important;
+            transform: scale(1.22) !important;
+            opacity: 0.85 !important;
+        }
+
+        table td a.btn-outline-danger:hover,
+        table td button.btn-outline-danger:hover,
+        .table td .btn-outline-danger:hover,
+        .btn-action-delete:hover,
+        a.table-action-link.text-danger:hover,
+        button.table-action-link.text-danger:hover {
+            color: #ef4444 !important;
+        }
+        table td a.btn-outline-danger:hover i,
+        table td button.btn-outline-danger:hover i,
+        .table td .btn-outline-danger:hover i,
+        .btn-action-delete:hover i,
+        a.table-action-link.text-danger:hover i,
+        button.table-action-link.text-danger:hover i {
+            color: #ef4444 !important;
+        }
     </style>
     {% block extra_css %}{% endblock %}
     <!-- Early theme apply: prevents flash of wrong theme on page load -->
@@ -522,27 +653,19 @@
                 // If form is explicitly marked not to auto-filter, skip
                 if (form.dataset.dynamicFilter === 'false') return;
 
-                // 1. Hide/remove manual Filter, Apply, and Search buttons inside filter forms
-                const submitElements = form.querySelectorAll('button[type="submit"]:not(.keep-btn), input[type="submit"]:not(.keep-btn), .btn-filter');
-                submitElements.forEach(function(btn) {
-                    const txt = (btn.textContent || btn.value || '').trim().toLowerCase();
-                    if (txt.includes('filter') || txt.includes('apply') || txt.includes('search') || btn.querySelector('.fa-filter, .fa-search')) {
-                        const parentCol = btn.closest('.col-md-3, .col-md-2, .col-md-4, .col-12, .col-auto');
-                        // If the column contains only this button (and no input/select), hide the whole column
-                        if (parentCol && parentCol.querySelectorAll('input:not([type="hidden"]), select, textarea').length === 0) {
-                            parentCol.style.display = 'none';
-                        } else {
-                            btn.style.display = 'none';
-                        }
-                    }
-                });
+                // Hide/remove manual Filter, Apply, Search, Reset, and Clear buttons inside filter forms
+                const filterActionButtons = form.querySelectorAll('button:not(.keep-btn), input[type="submit"]:not(.keep-btn), input[type="button"]:not(.keep-btn), input[type="reset"], a.btn, a:not(.keep-btn)');
+                filterActionButtons.forEach(function(btn) {
+                    // Do not hide pagination links, navigation tabs, or modal triggers
+                    if (btn.classList.contains('page-link') || btn.classList.contains('nav-link') || btn.dataset.bsToggle || btn.closest('.pagination')) return;
 
-                // Also hide standalone Reset/Clear buttons in filter forms (user can simply clear the input/select)
-                const resetElements = form.querySelectorAll('a.btn-reset, button.btn-reset, a[href*="clear"], button[type="reset"]');
-                resetElements.forEach(function(btn) {
-                    const txt = (btn.textContent || '').trim().toLowerCase();
-                    if (txt.includes('clear') || txt.includes('reset') || btn.querySelector('.fa-times, .fa-undo')) {
-                        const parentCol = btn.closest('.col-md-3, .col-md-2, .col-md-4, .col-12, .col-auto');
+                    const txt = (btn.textContent || btn.value || '').trim().toLowerCase();
+                    const hasIcon = btn.querySelector('.fa-filter, .fa-search, .fa-times, .fa-undo, .fa-rotate-left, .fa-sync');
+                    const isFilterOrApply = txt.includes('filter') || txt.includes('apply') || (txt.includes('search') && !btn.closest('.input-group') && !btn.closest('.search-box'));
+                    const isResetOrClear = txt.includes('clear') || txt.includes('reset');
+
+                    if (isFilterOrApply || isResetOrClear || hasIcon) {
+                        const parentCol = btn.closest('.col-md-3, .col-md-2, .col-md-4, .col-md-1, .col-md-12, .col-12, .col-auto, .col-sm-6');
                         if (parentCol && parentCol.querySelectorAll('input:not([type="hidden"]), select, textarea').length === 0) {
                             parentCol.style.display = 'none';
                         } else {

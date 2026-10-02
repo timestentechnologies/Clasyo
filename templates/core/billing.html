@@ -424,19 +424,21 @@
                                     </td>
                                     <td>{{ invoice.due_date|date:"M d, Y" }}</td>
                                     <td>
-                                        <div class="btn-group" role="group">
-                                            <button class="btn btn-sm btn-outline-info" 
+                                        <div class="d-inline-flex align-items-center gap-3">
+                                            <button type="button" 
+                                                    class="table-action-link" 
                                                     data-invoice-id="{{ invoice.id }}"
                                                     title="Preview Invoice"
                                                     onclick="previewInvoice(this.dataset.invoiceId)">
                                                 <i class="fas fa-eye"></i>
                                             </button>
                                             <a href="{% url 'core:invoice_download' school_slug=school_slug invoice_id=invoice.id %}" 
-                                               class="btn btn-sm btn-outline-primary" title="Download PDF">
+                                               class="table-action-link" title="Download PDF">
                                                 <i class="fas fa-download"></i>
                                             </a>
                                             {% if invoice.status == 'sent' or invoice.status == 'overdue' %}
-                                            <button class="btn btn-sm btn-outline-success" 
+                                            <button type="button" 
+                                                    class="table-action-link text-muted" 
                                                     title="Pay Invoice"
                                                     disabled>
                                                 <i class="fas fa-credit-card"></i>
@@ -624,13 +626,14 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form method="post" action="{% url 'subscriptions:renew' %}" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-sync-alt me-2"></i>
-                        Renew Now
-                    </button>
-                </form>
+                <button type="button" class="btn btn-primary upgrade-btn" 
+                        data-plan-id="{{ plan.id|default:'' }}"
+                        data-plan-slug="{{ plan.slug|default:'' }}"
+                        data-plan-name="{{ plan.name|default:'' }}"
+                        data-plan-price="{{ plan.price|default:'' }}">
+                    <i class="fas fa-sync-alt me-2"></i>
+                    Renew Now
+                </button>
             </div>
         </div>
     </div>
@@ -948,6 +951,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     function loadPaymentModal() {
+        // If renewModal is open, hide it cleanly first
+        const renewModalEl = document.getElementById('renewModal');
+        if (renewModalEl) {
+            try {
+                const renewModalInstance = bootstrap.Modal.getInstance(renewModalEl);
+                if (renewModalInstance) {
+                    renewModalInstance.hide();
+                }
+            } catch (e) { /* ignore */ }
+        }
+
         // Set plan details
         document.getElementById('modal-plan-name').textContent = selectedPlan.name;
         document.getElementById('modal-plan-price').textContent = 'Ksh ' + selectedPlan.price;
@@ -975,14 +989,23 @@ document.addEventListener('DOMContentLoaded', function() {
         const planIdQuery = selectedPlan.id ? `&plan_id=${encodeURIComponent(selectedPlan.id)}` : '';
         const planSlugQuery = selectedPlan.slug ? `&plan_slug=${encodeURIComponent(selectedPlan.slug)}` : '';
         const schoolQuery = BILLING_SCHOOL_SLUG ? `&school_slug=${encodeURIComponent(BILLING_SCHOOL_SLUG)}` : '';
-        const qs = `?${planIdQuery}${planSlugQuery}${schoolQuery}`.replace('?&', '?');
+        const qs = `?format=json${planIdQuery}${planSlugQuery}${schoolQuery}`;
         const primaryUrl = `/subscriptions/subscribe/${encodeURIComponent(planParam)}/${qs}`;
 
+        const fetchOptions = {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        };
+
         async function fetchPaymentMethods() {
-            let resp = await fetch(primaryUrl);
+            let resp = await fetch(primaryUrl, fetchOptions);
             if (resp.status === 404 && BILLING_SCHOOL_SLUG) {
                 const fallbackUrl = `/school/${encodeURIComponent(BILLING_SCHOOL_SLUG)}/billing/subscribe/${encodeURIComponent(planParam)}/${qs}`;
-                const fallbackResp = await fetch(fallbackUrl);
+                const fallbackResp = await fetch(fallbackUrl, fetchOptions);
                 if (fallbackResp.ok) {
                     return fallbackResp;
                 }
@@ -992,6 +1015,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         fetchPaymentMethods()
             .then(async response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                    return null;
+                }
                 const text = await response.text();
                 let data;
                 try {
@@ -1007,6 +1034,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return data;
             })
             .then(data => {
+                if (!data) return;
                 if (data.payment_methods && data.payment_methods.length) {
                     displayPaymentMethods(data.payment_methods);
                     paymentModal.show();
@@ -1526,6 +1554,40 @@ document.addEventListener('DOMContentLoaded', function() {
             confirmBtn.disabled = false;
         });
     });
+
+    // Auto-open payment modal if navigated with plan_slug or renew query parameters
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const autoPlanSlug = urlParams.get('plan_slug');
+        const autoAction = urlParams.get('action') || (urlParams.get('renew') ? 'renew' : '');
+        if (autoPlanSlug || autoAction === 'renew') {
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            setTimeout(function() {
+                let targetBtn = null;
+                if (autoPlanSlug) {
+                    targetBtn = document.querySelector(`.upgrade-btn[data-plan-slug="${autoPlanSlug}"]`);
+                }
+                if (!targetBtn && autoAction === 'renew') {
+                    targetBtn = document.querySelector('.upgrade-btn[data-plan-slug]');
+                }
+                if (targetBtn) {
+                    targetBtn.click();
+                } else if (autoPlanSlug) {
+                    selectedPlan = {
+                        id: '',
+                        slug: autoPlanSlug,
+                        name: autoPlanSlug,
+                        price: ''
+                    };
+                    loadPaymentModal();
+                }
+            }, 200);
+        }
+    } catch (e) {
+        console.error('Auto-open payment modal error:', e);
+    }
 });
 
 function previewInvoice(invoiceId) {

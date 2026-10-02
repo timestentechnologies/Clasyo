@@ -52,10 +52,17 @@ class ClubListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['school_slug'] = self.kwargs.get('school_slug')
+        school_slug = self.kwargs.get('school_slug')
+        school = get_object_or_404(School, slug=school_slug)
+        context['school'] = school
+        context['school_slug'] = school_slug
         context['club_types'] = Club.CLUB_TYPES
         context['selected_type'] = self.request.GET.get('type', '')
         context['search_query'] = self.request.GET.get('search', '')
+        
+        # Provide form instance for in-page panel view
+        if self.request.user.role in ['admin', 'teacher']:
+            context['form'] = ClubForm(school=school)
         
         # Get user's club memberships
         if self.request.user.role == 'student':
@@ -177,9 +184,8 @@ class ClubUpdateView(LoginRequiredMixin, UpdateView):
         return kwargs
     
     def get_success_url(self):
-        return reverse_lazy('clubs:club_detail', 
-                          kwargs={'school_slug': self.kwargs.get('school_slug'),
-                                 'pk': self.object.pk})
+        return reverse_lazy('clubs:club_list', 
+                          kwargs={'school_slug': self.kwargs.get('school_slug')})
     
     def form_valid(self, form):
         messages.success(self.request, f'Club "{form.instance.name}" updated successfully!')
@@ -426,42 +432,5 @@ def manage_memberships(request, school_slug, club_id):
 
 @login_required
 def club_dashboard(request, school_slug):
-    """Dashboard overview for clubs"""
-    school = get_object_or_404(School, slug=school_slug)
-
-    if request.user.role == 'parent':
-        messages.info(request, "Parents can only view clubs for their children.")
-        return redirect(f"/school/{school_slug}/children-clubs/")
-    
-    context = {
-        'school_slug': school_slug,
-        'total_clubs': Club.objects.filter(school=school, is_active=True).count(),
-        'total_members': ClubMembership.objects.filter(
-            club__school=school, 
-            status='active'
-        ).count(),
-        'recent_activities': ClubActivity.objects.filter(
-            club__school=school,
-            date__gte=timezone.now() - timezone.timedelta(days=7)
-        ).order_by('-date')[:10],
-        'popular_clubs': Club.objects.filter(
-            school=school, 
-            is_active=True
-        ).annotate(
-            members_count=Count('memberships', filter=Q(memberships__status='active'))
-        ).order_by('-members_count')[:5],
-    }
-    
-    # Student-specific data
-    if request.user.role == 'student':
-        context['user_memberships'] = ClubMembership.objects.filter(
-            student=request.user,
-            status='active'
-        ).select_related('club')
-        
-        context['user_upcoming_activities'] = ClubActivity.objects.filter(
-            club__in=[m.club for m in context['user_memberships']],
-            date__gte=timezone.now()
-        ).order_by('date')[:5]
-    
-    return render(request, 'clubs/dashboard.html', context)
+    """Directly redirect to clubs list since separate dashboard is redundant"""
+    return redirect('clubs:club_list', school_slug=school_slug)

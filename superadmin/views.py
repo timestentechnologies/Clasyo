@@ -1460,6 +1460,17 @@ class PaymentDetailView(SuperAdminRequiredMixin, DetailView):
         qs = queryset or self.get_queryset()
         return qs.get(**{self.lookup_field: payment_id})
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        payment = self.object
+        invoice = payment.invoices.first()
+        if not invoice and payment.invoice_number:
+            invoice = Invoice.objects.filter(invoice_number=payment.invoice_number).first()
+        if not invoice and payment.invoice_number_ref:
+            invoice = Invoice.objects.filter(invoice_number=payment.invoice_number_ref).first()
+        context['invoice'] = invoice
+        return context
+
 
 class PaymentVerifyView(SuperAdminRequiredMixin, View):
     """Verify a payment"""

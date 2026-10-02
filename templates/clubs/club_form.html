@@ -3,164 +3,149 @@
 {% load widget_tweaks %}
 
 {% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Club{% endblock %}
-{% block page_title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Club{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit Club{% else %}Create Club{% endif %}{% endblock %}
 {% block page_icon %}users{% endblock %}
+{% block page_subtitle %}{% if form.instance.pk %}Update club details and leadership{% else %}Create a new club or society for your school{% endif %}{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-10">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-brand-primary text-white">
-                <h5 class="mb-0">{% if form.instance.pk %}Edit{% else %}Create{% endif %} Club</h5>
+<div class="container-fluid px-0">
+    <div class="form-panel-view" id="clubStandalonePanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <a href="{% url 'clubs:club_list' school_slug=school_slug %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Clubs
+                </a>
+                <h5 class="mb-0 fw-bold form-title-text">
+                    {% if form.instance.pk %}Edit Club: {{ form.instance.name }}{% else %}Create New Club{% endif %}
+                </h5>
             </div>
-            <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.name.id_for_label }}" class="form-label">Club Name</label>
-                                {{ form.name|add_class:"form-control" }}
-                                {% if form.name.errors %}
-                                <div class="text-danger small mt-1">{{ form.name.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.club_type.id_for_label }}" class="form-label">Club Type</label>
-                                {{ form.club_type|add_class:"form-select" }}
-                                {% if form.club_type.errors %}
-                                <div class="text-danger small mt-1">{{ form.club_type.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
+            <div class="form-header-actions">
+                <a href="{% url 'clubs:club_list' school_slug=school_slug %}" class="btn btn-sm btn-light">Cancel</a>
+                <button type="submit" form="clubStandaloneForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Club{% else %}Save Club{% endif %}
+                </button>
+            </div>
+        </div>
+        <div class="form-card-body">
+            <form method="post" id="clubStandaloneForm" novalidate>
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger mb-4">
+                    {% for error in form.non_field_errors %}
+                        <p class="mb-0"><i class="fas fa-exclamation-circle me-2"></i>{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
 
-                    <div class="mb-3">
-                        <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
-                        {{ form.description|add_class:"form-control" }}
-                        {% if form.description.errors %}
-                        <div class="text-danger small mt-1">{{ form.description.errors }}</div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold">Club Name <span class="text-danger">*</span></label>
+                        {{ form.name|add_class:"form-control" }}
+                        {% if form.name.errors %}
+                        <div class="text-danger small mt-1">{{ form.name.errors }}</div>
                         {% endif %}
                     </div>
-
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="{{ form.meeting_day.id_for_label }}" class="form-label">Meeting Day</label>
-                                {{ form.meeting_day|add_class:"form-select" }}
-                                {% if form.meeting_day.errors %}
-                                <div class="text-danger small mt-1">{{ form.meeting_day.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="{{ form.meeting_time.id_for_label }}" class="form-label">Meeting Time</label>
-                                {{ form.meeting_time|add_class:"form-control" }}
-                                {% if form.meeting_time.errors %}
-                                <div class="text-danger small mt-1">{{ form.meeting_time.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="{{ form.meeting_venue.id_for_label }}" class="form-label">Meeting Venue</label>
-                                {{ form.meeting_venue|add_class:"form-control" }}
-                                {% if form.meeting_venue.errors %}
-                                <div class="text-danger small mt-1">{{ form.meeting_venue.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
+                    <div class="col-md-6">
+                        <label for="{{ form.club_type.id_for_label }}" class="form-label fw-semibold">Club Type <span class="text-danger">*</span></label>
+                        {{ form.club_type|add_class:"form-select" }}
+                        {% if form.club_type.errors %}
+                        <div class="text-danger small mt-1">{{ form.club_type.errors }}</div>
+                        {% endif %}
                     </div>
+                </div>
 
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="{{ form.max_members.id_for_label }}" class="form-label">Max Members</label>
-                                {{ form.max_members|add_class:"form-control" }}
-                                {% if form.max_members.errors %}
-                                <div class="text-danger small mt-1">{{ form.max_members.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="{{ form.membership_fee.id_for_label }}" class="form-label">Membership Fee (KES)</label>
-                                {{ form.membership_fee|add_class:"form-control" }}
-                                {% if form.membership_fee.errors %}
-                                <div class="text-danger small mt-1">{{ form.membership_fee.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="{{ form.application_deadline.id_for_label }}" class="form-label">Application Deadline</label>
-                                {{ form.application_deadline|add_class:"form-control" }}
-                                {% if form.application_deadline.errors %}
-                                <div class="text-danger small mt-1">{{ form.application_deadline.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
+                <div class="mb-3">
+                    <label for="{{ form.description.id_for_label }}" class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
+                    {{ form.description|add_class:"form-control" }}
+                    {% if form.description.errors %}
+                    <div class="text-danger small mt-1">{{ form.description.errors }}</div>
+                    {% endif %}
+                </div>
 
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    {{ form.requires_application|add_class:"form-check-input" }}
-                                    <label class="form-check-label" for="{{ form.requires_application.id_for_label }}">
-                                        {{ form.requires_application.label }}
-                                    </label>
-                                </div>
-                                {% if form.requires_application.errors %}
-                                <div class="text-danger small mt-1">{{ form.requires_application.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label for="{{ form.meeting_day.id_for_label }}" class="form-label fw-semibold">Meeting Day</label>
+                        {{ form.meeting_day|add_class:"form-select" }}
+                        {% if form.meeting_day.errors %}
+                        <div class="text-danger small mt-1">{{ form.meeting_day.errors }}</div>
+                        {% endif %}
                     </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.meeting_time.id_for_label }}" class="form-label fw-semibold">Meeting Time</label>
+                        {{ form.meeting_time|add_class:"form-control" }}
+                        {% if form.meeting_time.errors %}
+                        <div class="text-danger small mt-1">{{ form.meeting_time.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.meeting_venue.id_for_label }}" class="form-label fw-semibold">Meeting Venue</label>
+                        {{ form.meeting_venue|add_class:"form-control" }}
+                        {% if form.meeting_venue.errors %}
+                        <div class="text-danger small mt-1">{{ form.meeting_venue.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
 
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="{{ form.teacher_advisor.id_for_label }}" class="form-label">Teacher Advisor</label>
-                                {{ form.teacher_advisor|add_class:"form-select" }}
-                                {% if form.teacher_advisor.errors %}
-                                <div class="text-danger small mt-1">{{ form.teacher_advisor.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="{{ form.student_president.id_for_label }}" class="form-label">Student President</label>
-                                {{ form.student_president|add_class:"form-select" }}
-                                {% if form.student_president.errors %}
-                                <div class="text-danger small mt-1">{{ form.student_president.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="{{ form.student_secretary.id_for_label }}" class="form-label">Student Secretary</label>
-                                {{ form.student_secretary|add_class:"form-select" }}
-                                {% if form.student_secretary.errors %}
-                                <div class="text-danger small mt-1">{{ form.student_secretary.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label for="{{ form.max_members.id_for_label }}" class="form-label fw-semibold">Max Members</label>
+                        {{ form.max_members|add_class:"form-control" }}
+                        {% if form.max_members.errors %}
+                        <div class="text-danger small mt-1">{{ form.max_members.errors }}</div>
+                        {% endif %}
                     </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.membership_fee.id_for_label }}" class="form-label fw-semibold">Membership Fee (KES)</label>
+                        {{ form.membership_fee|add_class:"form-control" }}
+                        {% if form.membership_fee.errors %}
+                        <div class="text-danger small mt-1">{{ form.membership_fee.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.application_deadline.id_for_label }}" class="form-label fw-semibold">Application Deadline</label>
+                        {{ form.application_deadline|add_class:"form-control" }}
+                        {% if form.application_deadline.errors %}
+                        <div class="text-danger small mt-1">{{ form.application_deadline.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
 
-                    <div class="d-flex justify-content-between">
-                        <a href="{% url 'clubs:club_list' school_slug=school_slug %}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left me-2"></i>Back
-                        </a>
-                        <button type="submit" class="btn btn-brand-primary">
-                            <i class="fas fa-save me-2"></i>{% if form.instance.pk %}Update{% else %}Create{% endif %} Club
-                        </button>
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        {{ form.requires_application|add_class:"form-check-input" }}
+                        <label class="form-check-label fw-semibold" for="{{ form.requires_application.id_for_label }}">
+                            {{ form.requires_application.label }}
+                        </label>
                     </div>
-                </form>
-            </div>
+                    {% if form.requires_application.errors %}
+                    <div class="text-danger small mt-1">{{ form.requires_application.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label for="{{ form.teacher_advisor.id_for_label }}" class="form-label fw-semibold">Teacher Advisor</label>
+                        {{ form.teacher_advisor|add_class:"form-select" }}
+                        {% if form.teacher_advisor.errors %}
+                        <div class="text-danger small mt-1">{{ form.teacher_advisor.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.student_president.id_for_label }}" class="form-label fw-semibold">Student President</label>
+                        {{ form.student_president|add_class:"form-select" }}
+                        {% if form.student_president.errors %}
+                        <div class="text-danger small mt-1">{{ form.student_president.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.student_secretary.id_for_label }}" class="form-label fw-semibold">Student Secretary</label>
+                        {{ form.student_secretary|add_class:"form-select" }}
+                        {% if form.student_secretary.errors %}
+                        <div class="text-danger small mt-1">{{ form.student_secretary.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>

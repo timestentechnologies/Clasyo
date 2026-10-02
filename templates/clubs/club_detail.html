@@ -12,10 +12,10 @@
         <i class="fas fa-arrow-left me-2"></i>All Clubs
     </a>
     {% if user.role in 'admin,teacher' %}
-    <a href="{% url 'clubs:club_edit' school_slug=school_slug pk=club.id %}" class="btn btn-brand-primary">
+    <a href="{% url 'clubs:club_edit' school_slug=school_slug pk=club.id %}" class="btn btn-primary">
         <i class="fas fa-edit me-2"></i>Edit Club
     </a>
-    <a href="{% url 'clubs:manage_memberships' school_slug=school_slug club_id=club.id %}" class="btn btn-brand-cyan">
+    <a href="{% url 'clubs:manage_memberships' school_slug=school_slug club_id=club.id %}" class="btn btn-outline-primary">
         <i class="fas fa-users me-2"></i>Manage Members
     </a>
     {% endif %}
@@ -28,7 +28,7 @@
             {% endif %}
         {% else %}
             {% if not club.is_full %}
-                <a href="{% url 'clubs:join_club' school_slug=school_slug club_id=club.id %}" class="btn btn-brand-primary">
+                <a href="{% url 'clubs:join_club' school_slug=school_slug club_id=club.id %}" class="btn btn-primary">
                     <i class="fas fa-plus me-2"></i>Join Club
                 </a>
             {% endif %}

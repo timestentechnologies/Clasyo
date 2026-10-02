@@ -4,10 +4,8 @@ from . import views
 app_name = 'clubs'
 
 urlpatterns = [
-    # Dashboard and overview
-    path('', views.club_dashboard, name='dashboard'),
-    
-    # Club management
+    # Clubs overview and list
+    path('', views.ClubListView.as_view(), name='dashboard'),
     path('list/', views.ClubListView.as_view(), name='club_list'),
     path('create/', views.ClubCreateView.as_view(), name='club_create'),
     path('<int:pk>/', views.ClubDetailView.as_view(), name='club_detail'),

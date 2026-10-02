@@ -53,6 +53,24 @@ def resolve_school(request, school_slug=None):
         except Exception:
             pass
 
+    # Check session for impersonated or active school
+    try:
+        sess_school_id = request.session.get('impersonate_school_id') or request.session.get('active_school_id') or request.session.get('school_id')
+        if sess_school_id:
+            school = School.objects.using('default').filter(id=sess_school_id).first()
+            if school:
+                return school
+    except Exception:
+        pass
+
+    # Fallback to first active school for single-tenant / local development
+    try:
+        school = School.objects.using('default').filter(is_active=True).first() or School.objects.using('default').first()
+        if school:
+            return school
+    except Exception:
+        pass
+
     return None
 
 
@@ -74,7 +92,7 @@ class SubscriptionPlansView(ListView):
 
 
 class SubscribeView(View):
-    """View to handle subscription purchase - returns payment modal data"""
+    """View to handle subscription purchase - returns payment modal data for AJAX or redirects browser to Billing"""
     
     def get(self, request, plan_slug=None, *args, **kwargs):
         try:
@@ -101,6 +119,34 @@ class SubscribeView(View):
             plan_id = request.GET.get('plan_id')
             if not plan and plan_id and str(plan_id).isdigit():
                 plan = SubscriptionPlan.objects.using('default').filter(id=int(plan_id), is_active=True).first()
+
+            school = resolve_school(request, school_slug=kwargs.get('school_slug'))
+
+            # Direct browser page navigations (e.g. typing URL in address bar or link navigation)
+            # should redirect to the school's billing checkout page with payment modal opened.
+            # Fetch / API requests should ALWAYS return JSON.
+            accept_header = (request.headers.get('accept') or '').lower()
+            is_explicit_api = (
+                request.GET.get('format') == 'json' or
+                request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+                'application/json' in accept_header or
+                request.headers.get('sec-fetch-mode') in ('cors', 'same-origin')
+            )
+
+            is_browser_navigation = (
+                not is_explicit_api and (
+                    request.headers.get('sec-fetch-mode') == 'navigate' or
+                    request.headers.get('sec-fetch-dest') == 'document' or
+                    accept_header.startswith('text/html')
+                )
+            )
+
+            if is_browser_navigation:
+                plan_slug_param = plan.slug if plan else clean_identifier
+                if school:
+                    billing_url = reverse('core:billing', kwargs={'school_slug': school.slug})
+                    return redirect(f"{billing_url}?plan_slug={plan_slug_param}&action=renew")
+                return redirect(f"{reverse('subscriptions:plans')}?plan_slug={plan_slug_param}&action=renew")
 
             if not plan:
                 return JsonResponse({
@@ -566,11 +612,19 @@ class RenewSubscriptionView(View):
         
         if not current_subscription:
             messages.error(request, 'No subscription found to renew.')
+            if school:
+                return redirect('core:billing', school_slug=school.slug)
             return redirect('subscriptions:plans')
         
-        # Create new subscription with same plan
+        # Open renewal checkout for same plan
         plan = current_subscription.plan
-        return redirect('subscriptions:subscribe', plan_slug=plan.slug)
+        if school:
+            billing_url = reverse('core:billing', kwargs={'school_slug': school.slug})
+            return redirect(f"{billing_url}?plan_slug={plan.slug}&action=renew")
+        return redirect(f"{reverse('subscriptions:plans')}?plan_slug={plan.slug}&action=renew")
+
+    def get(self, request):
+        return self.post(request)
 
 
 class CancelSubscriptionView(View):
