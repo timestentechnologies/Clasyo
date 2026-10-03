@@ -2639,6 +2639,8 @@ class NotificationTemplate(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Created At'))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_('Updated At'))
 
+    objects = models.Manager()
+
     class Meta:
         verbose_name = _('Notification Template')
         verbose_name_plural = _('Notification Templates')
