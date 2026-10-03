@@ -240,6 +240,13 @@ LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = '/accounts/social-login-complete/'
 LOGOUT_REDIRECT_URL = 'frontend:home'
 
+# Skip intermediate allauth confirmation prompt on GET; redirect directly to Google OAuth
+SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_AUTO_SIGNUP = True
+
+# Enforce https protocol in production for accurate OAuth callback URL generation
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https' if not DEBUG else 'http'
+
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': ['profile', 'email'],

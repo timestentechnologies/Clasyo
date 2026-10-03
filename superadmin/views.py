@@ -2087,15 +2087,18 @@ class GlobalEmailConfigurationListView(SuperAdminRequiredMixin, ListView):
         context['current_host'] = host
 
         # Deduplicate URIs and Origins preserving insertion order
+        # NOTE: allauth is mounted at /auth/, so callbacks are /auth/google/login/callback/
         raw_redirect_uris = [
-            f"{proto}://{host}/accounts/google/login/callback/",
-            "http://127.0.0.1:8000/accounts/google/login/callback/",
-            "http://localhost:8000/accounts/google/login/callback/",
+            f"{proto}://{host}/auth/google/login/callback/",
+            "https://clasyo.timestentechnologies.co.ke/auth/google/login/callback/",
+            "http://127.0.0.1:8000/auth/google/login/callback/",
+            "http://localhost:8000/auth/google/login/callback/",
         ]
         context['redirect_uris'] = list(dict.fromkeys(raw_redirect_uris))
 
         raw_origins = [
             f"{proto}://{host}",
+            "https://clasyo.timestentechnologies.co.ke",
             "http://127.0.0.1:8000",
             "http://localhost:8000",
         ]

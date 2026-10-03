@@ -14,6 +14,8 @@ sitemaps = {
     'static': StaticViewSitemap,  # Pass class to avoid instantiating during urlconf import
 }
 
+from django.views.generic import RedirectView
+
 urlpatterns = [
     # Health checks (for Cron-job.org, UptimeRobot, Render Health Check)
     path('health/', health_check, name='health_check'),
@@ -39,6 +41,9 @@ urlpatterns = [
     path('accounts/', include('accounts.urls', namespace='accounts')),
     # Social authentication (django-allauth)
     path('auth/', include('allauth.urls')),
+    # Compatibility routes for Google OAuth if accessed via /accounts/
+    path('accounts/google/login/', RedirectView.as_view(url='/auth/google/login/', permanent=False)),
+    path('accounts/google/login/callback/', RedirectView.as_view(url='/auth/google/login/callback/', query_string=True, permanent=False)),
     
     # Public site
     path('', include('frontend.urls', namespace='frontend')),
