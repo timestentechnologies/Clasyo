@@ -192,16 +192,22 @@ function showError(message) {
 }
 
 function showMessage(title, message, reload) {
-    alert(`${title}\n${message}`);
-    if (reload) {
-        location.reload();
+    if (typeof window.showMessage === 'function') {
+        window.showMessage(title, message, true, reload ? function(){ location.reload(); } : null);
+    } else {
+        window.alert(`${title}\n${message}`);
+        if (reload) location.reload();
     }
 }
 
 function showConfirmation(title, message, callback) {
-    if (confirm(`${title}\n${message}`)) {
-        callback();
-    }
+    window.showConfirmModal({
+        title: title,
+        message: message,
+        confirmText: 'Confirm',
+        confirmClass: 'btn-warning',
+        onConfirm: callback
+    });
 }
 </script>
 {% endblock %}

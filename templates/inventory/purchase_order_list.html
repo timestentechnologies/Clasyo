@@ -362,25 +362,32 @@ function addPOItem(poId, poNumber) {
 }
 
 function approvePO(poId) {
-    if (confirm('Approve this Purchase Order?')) {
-        const formData = new FormData();
-        formData.append('action', 'approve_po');
-        formData.append('po_id', poId);
-        
-        fetch(window.location.pathname, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Purchase Order approved!');
-                location.reload();
-            } else {
-                alert('Error: ' + data.error);
-            }
-        });
-    }
+    window.showConfirmModal({
+        title: 'Approve Purchase Order',
+        message: 'Approve this Purchase Order?',
+        confirmText: 'Approve',
+        confirmClass: 'btn-success',
+        onConfirm: function() {
+            const formData = new FormData();
+            formData.append('action', 'approve_po');
+            formData.append('po_id', poId);
+            
+            fetch(window.location.pathname, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (typeof window.showMessage === 'function') window.showMessage('Success', 'Purchase Order approved!', true, function(){ location.reload(); });
+                    else location.reload();
+                } else {
+                    if (typeof window.showMessage === 'function') window.showMessage('Error', 'Error: ' + data.error, false, null, 'error');
+                    else window.alert('Error: ' + data.error);
+                }
+            });
+        }
+    });
 }
 
 function receivePO(poId) {

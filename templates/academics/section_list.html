@@ -174,14 +174,20 @@ function submitSectionForm() {
 }
 
 function deleteSection(id, name) {
-    if (confirm(`Delete section ${name}?`)) {
-        fetch(window.location.pathname + id + '/delete/', {
-            method: 'POST',
-            headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
-        })
-        .then(response => response.json())
-        .then(data => { if (data.success) location.reload(); });
-    }
+    window.showConfirmModal({
+        title: 'Delete Section',
+        message: `Delete section ${name}?`,
+        confirmText: 'Delete',
+        confirmClass: 'btn-danger',
+        onConfirm: function() {
+            fetch(window.location.pathname + id + '/delete/', {
+                method: 'POST',
+                headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
+            })
+            .then(response => response.json())
+            .then(data => { if (data.success) location.reload(); });
+        }
+    });
 }
 </script>
 {% endblock %}

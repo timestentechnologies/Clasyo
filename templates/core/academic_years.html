@@ -418,27 +418,33 @@ function submitTerm() {
 }
 
 function deleteTerm(termId) {
-    if (confirm('Are you sure you want to delete this term?')) {
-        fetch('/school/{{ school_slug }}/academic-years/terms/' + termId + '/delete/', {
-            method: 'POST',
-            headers: {'X-CSRFToken': '{{ csrf_token }}'}
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showSuccess('Term deleted successfully!');
-                setTimeout(() => {
-                    manageTerms(currentYearId, document.getElementById('yearName').textContent);
-                }, 1000);
-            } else {
-                showError(data.error || 'Failed to delete term');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showError('Failed to delete term. Please try again.');
-        });
-    }
+    window.showConfirmModal({
+        title: 'Delete Term',
+        message: 'Are you sure you want to delete this term?',
+        confirmText: 'Delete',
+        confirmClass: 'btn-danger',
+        onConfirm: function() {
+            fetch('/school/{{ school_slug }}/academic-years/terms/' + termId + '/delete/', {
+                method: 'POST',
+                headers: {'X-CSRFToken': '{{ csrf_token }}'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccess('Term deleted successfully!');
+                    setTimeout(() => {
+                        manageTerms(currentYearId, document.getElementById('yearName').textContent);
+                    }, 1000);
+                } else {
+                    showError(data.error || 'Failed to delete term');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Failed to delete term. Please try again.');
+            });
+        }
+    });
 }
 </script>
 {% endblock %}

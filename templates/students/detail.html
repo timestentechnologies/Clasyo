@@ -26,9 +26,12 @@
                 <button type="button" class="btn btn-warning" onclick="openEditStudentModal()">
                     <i class="fas fa-edit"></i> Edit
                 </button>
-                <form method="post" action="delete/" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this student?');">
+                <form method="post" action="delete/" style="display:inline;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">
+                    <button type="submit" class="btn btn-danger"
+                            data-confirm="Are you sure you want to delete this student? This action cannot be undone."
+                            data-confirm-title="Delete Student"
+                            data-confirm-btn="Delete">
                         <i class="fas fa-trash"></i> Delete
                     </button>
                 </form>

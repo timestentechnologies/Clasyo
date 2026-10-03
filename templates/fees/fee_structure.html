@@ -150,9 +150,15 @@ function editFee(id) {
 }
 
 function deleteFee(id, name) {
-    if (confirm('Delete fee: ' + name + '?')) {
-        console.log('Delete fee:', id);
-    }
+    window.showConfirmModal({
+        title: 'Delete Fee',
+        message: 'Delete fee: ' + name + '?',
+        confirmText: 'Delete',
+        confirmClass: 'btn-danger',
+        onConfirm: function() {
+            console.log('Delete fee:', id);
+        }
+    });
 }
 </script>
 {% endblock %}

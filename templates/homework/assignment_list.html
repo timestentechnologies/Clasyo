@@ -127,16 +127,22 @@
         });
     });
 
-    // Handle delete button click with browser confirmation
+    // Handle delete button click with styled confirmation modal
     function confirmDelete(assignmentId) {
-        if (confirm('{% trans "Are you sure you want to delete this homework assignment? This action cannot be undone." %}')) {
-            const form = document.createElement('form');
-            form.method = 'post';
-            form.action = `/school/{{ school_slug }}/homework/${assignmentId}/delete/`;
-            form.innerHTML = `{% csrf_token %}`;
-            document.body.appendChild(form);
-            form.submit();
-        }
+        window.showConfirmModal({
+            title: '{% trans "Delete Assignment" %}',
+            message: '{% trans "Are you sure you want to delete this homework assignment? This action cannot be undone." %}',
+            confirmText: '{% trans "Delete" %}',
+            confirmClass: 'btn-danger',
+            onConfirm: function() {
+                const form = document.createElement('form');
+                form.method = 'post';
+                form.action = `/school/{{ school_slug }}/homework/${assignmentId}/delete/`;
+                form.innerHTML = `{% csrf_token %}`;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
     }
 </script>
 {% endblock %}

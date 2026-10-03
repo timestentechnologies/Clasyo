@@ -199,27 +199,40 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Submit exam
     document.getElementById('submitExamBtn').addEventListener('click', function() {
-        if (confirm('Are you sure you want to submit this exam? You cannot change your answers after submission.')) {
-            fetch(`/school/${schoolSlug}/examinations/${examId}/submit-exam/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert(data.message);
-                    window.location.href = `/school/${schoolSlug}/examinations/my-results/`;
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to submit exam');
-            });
-        }
+        window.showConfirmModal({
+            title: 'Submit Exam',
+            message: 'Are you sure you want to submit this exam? You cannot change your answers after submission.',
+            confirmText: 'Submit Exam',
+            confirmClass: 'btn-primary',
+            onConfirm: function() {
+                fetch(`/school/${schoolSlug}/examinations/${examId}/submit-exam/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (typeof window.showMessage === 'function') {
+                            window.showMessage('Exam Submitted', data.message, true, function(){
+                                window.location.href = `/school/${schoolSlug}/examinations/my-results/`;
+                            });
+                        } else {
+                            window.location.href = `/school/${schoolSlug}/examinations/my-results/`;
+                        }
+                    } else {
+                        if (typeof window.showMessage === 'function') window.showMessage('Error', 'Error: ' + data.error, false, null, 'error');
+                        else window.alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    if (typeof window.showMessage === 'function') window.showMessage('Error', 'Failed to submit exam', false, null, 'error');
+                    else window.alert('Failed to submit exam');
+                });
+            }
+        });
     });
 });
 </script>

@@ -253,41 +253,57 @@ function showSuccessAndReload(message) {
 }
 
 function showError(message) {
-    alert(message);
+    if (typeof window.showMessage === 'function') {
+        window.showMessage('Error', message, false, null, 'error');
+    } else {
+        window.alert(message);
+    }
 }
 
 function approveLeave(id) {
-    if (confirm('Approve this leave application?')) {
-        fetch(`/school/{{ school_slug }}/leave/${id}/approve/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            }
-        });
-    }
+    window.showConfirmModal({
+        title: 'Approve Leave',
+        message: 'Approve this leave application?',
+        confirmText: 'Approve',
+        confirmClass: 'btn-success',
+        onConfirm: function() {
+            fetch(`/school/{{ school_slug }}/leave/${id}/approve/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+    });
 }
 
 function rejectLeave(id) {
-    if (confirm('Reject this leave application?')) {
-        fetch(`/school/{{ school_slug }}/leave/${id}/reject/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            }
-        });
-    }
+    window.showConfirmModal({
+        title: 'Reject Leave',
+        message: 'Reject this leave application?',
+        confirmText: 'Reject',
+        confirmClass: 'btn-danger',
+        onConfirm: function() {
+            fetch(`/school/{{ school_slug }}/leave/${id}/reject/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+    });
 }
 
 // Dynamic filtering for leave table
