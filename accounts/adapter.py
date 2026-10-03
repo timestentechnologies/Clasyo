@@ -55,24 +55,41 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
                 logger.warning(f"Error checking google auth active status: {e}")
 
         # 2. Check if a user with matching email already exists
-        if not sociallogin.is_existing:
-            email = sociallogin.account.extra_data.get('email')
-            if not email and hasattr(sociallogin, 'user') and sociallogin.user:
-                email = sociallogin.user.email
+        email = sociallogin.account.extra_data.get('email')
+        if not email and hasattr(sociallogin, 'user') and sociallogin.user:
+            email = sociallogin.user.email
 
-            if email:
-                from accounts.models import User
-                existing_user = User.objects.using('default').filter(email__iexact=email).first()
-                if existing_user:
-                    sociallogin.connect(request, existing_user)
-                    existing_user.auth_provider = 'google'
-                    existing_user.is_verified = True
-                    existing_user.save(using='default', update_fields=['auth_provider', 'is_verified'])
+        from accounts.models import User
+        existing_user = None
+        if email:
+            existing_user = User.objects.using('default').filter(email__iexact=email).first()
+
+        action = request.session.get('google_auth_action', 'login')
+
+        # If user intended to LOGIN but account does not exist, reject with clear error
+        if action == 'login' and not existing_user and not sociallogin.is_existing:
+            messages.error(
+                request,
+                f"No account exists with Google email ({email or 'provided'}). Please click 'Start Free Trial' to register your institution."
+            )
+            request.session.pop('google_auth_action', None)
+            raise ImmediateHttpResponse(redirect('frontend:home'))
+
+        # Connect or update existing user
+        if existing_user:
+            if not sociallogin.is_existing:
+                sociallogin.connect(request, existing_user)
+            if getattr(existing_user, 'auth_provider', '') != 'both':
+                existing_user.auth_provider = 'both' if existing_user.has_usable_password() else 'google'
+            existing_user.is_verified = True
+            existing_user.save(using='default', update_fields=['auth_provider', 'is_verified'])
         else:
             if sociallogin.user and hasattr(sociallogin.user, 'auth_provider'):
                 sociallogin.user.auth_provider = 'google'
                 sociallogin.user.is_verified = True
                 sociallogin.user.save(using='default', update_fields=['auth_provider', 'is_verified'])
+
+        request.session.pop('google_auth_action', None)
 
     def save_user(self, request, sociallogin, form=None):
         """Mark user with auth_provider = 'google' upon new social user registration"""

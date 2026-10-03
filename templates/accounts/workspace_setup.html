@@ -1,0 +1,160 @@
+{% extends "frontend/base.html" %}
+{% load static %}
+
+{% block title %}Set Up Your School Workspace - Clasyo{% endblock %}
+
+{% block content %}
+<div class="container py-5 my-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9">
+            <div class="card shadow-lg border-0" style="border-radius: 20px; overflow: hidden; background: #ffffff;">
+                <div class="card-header text-center py-4" style="background-color: #0f172a; color: white;">
+                    <img src="{% static 'images/erpupdated.png' %}" alt="Clasyo Logo" style="height: 55px; width: auto; margin: 0 auto 12px; display: block;">
+                    <h4 class="fw-bold mb-1">Set Up Your School Workspace</h4>
+                    <p class="text-white-50 small mb-0">Create your dedicated tenant database & institution portal</p>
+                </div>
+                
+                <div class="card-body p-4 p-md-5">
+                    {% if is_google_user %}
+                    <div class="alert alert-info d-flex align-items-center mb-4 py-3 px-3 rounded-3" style="background-color: rgba(13, 202, 240, 0.08); border: 1px solid rgba(13, 202, 240, 0.25);">
+                        <i class="fab fa-google text-danger fs-3 me-3"></i>
+                        <div class="small">
+                            <strong>Google Account Connected:</strong> {{ user.email }}<br>
+                            Welcome, <strong>{{ user.get_full_name|default:user.email }}</strong>! We just need a few details about your institution to provision your dedicated school database.
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if messages %}
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post" action="{% url 'accounts:workspace_setup' %}" id="workspaceSetupForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                School / Institution Name <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="school_name" id="schoolName" class="form-control form-control-lg" placeholder="e.g., Sunrise Academy" required autofocus>
+                            <small class="text-muted">The official name of your school or institution.</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                School Subdomain / Slug <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <input type="text" name="school_slug" id="schoolSlug" class="form-control" placeholder="sunrise-academy" required pattern="[a-z0-9\-]+" title="Lowercase letters, numbers, and hyphens only">
+                                <span class="input-group-text bg-light text-muted">.clasyo.com</span>
+                            </div>
+                            <div class="small text-muted mt-1">
+                                Your school portal address: <strong class="text-primary">https://<span id="slugPreview">sunrise-academy</span>.clasyo.com</strong>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold">
+                                    Institution Type <span class="text-danger">*</span>
+                                </label>
+                                <select name="institution_type" class="form-select" required>
+                                    {% for val, label in institution_type_choices %}
+                                    <option value="{{ val }}" {% if val == 'pre_primary_primary' %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold">
+                                    Official Phone Number <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" name="phone" class="form-control" value="{{ user.phone|default:'' }}" placeholder="+254 7XX XXX XXX" required>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold">Country</label>
+                                <input type="text" name="country" class="form-control" value="Kenya" placeholder="Kenya" required>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold">City / Town</label>
+                                <input type="text" name="city" class="form-control" value="Nairobi" placeholder="Nairobi" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Physical Address / Campus Location</label>
+                            <input type="text" name="address" class="form-control" placeholder="e.g., Along Ngong Road, Nairobi">
+                        </div>
+
+                        <div class="alert alert-light border small text-muted mb-4 py-2 px-3">
+                            <i class="fas fa-database text-primary me-2"></i>
+                            Submitting this form creates your school, provisions an isolated database schema, and starts your <strong>7-day free trial</strong> with zero credit card required.
+                        </div>
+
+                        <button type="submit" id="submitBtn" class="btn btn-primary w-100 py-3 fw-bold fs-6 shadow-sm" style="background-color: #0284c7; border: 1px solid #0284c7; border-radius: 10px;">
+                            <i class="fas fa-rocket me-2"></i> Create Workspace & Launch Database
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var nameInput = document.getElementById('schoolName');
+    var slugInput = document.getElementById('schoolSlug');
+    var slugPreview = document.getElementById('slugPreview');
+    var form = document.getElementById('workspaceSetupForm');
+    var submitBtn = document.getElementById('submitBtn');
+    var slugManuallyEdited = false;
+
+    function slugify(text) {
+        return text.toString().toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^\w\-]+/g, '')
+            .replace(/\-\-+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
+    }
+
+    if (slugInput) {
+        slugInput.addEventListener('input', function() {
+            slugManuallyEdited = true;
+            var clean = slugify(this.value);
+            this.value = clean;
+            if (slugPreview) {
+                slugPreview.textContent = clean || 'your-school';
+            }
+        });
+    }
+
+    if (nameInput) {
+        nameInput.addEventListener('input', function() {
+            if (!slugManuallyEdited && slugInput) {
+                var clean = slugify(this.value);
+                slugInput.value = clean;
+                if (slugPreview) {
+                    slugPreview.textContent = clean || 'your-school';
+                }
+            }
+        });
+    }
+
+    if (form && submitBtn) {
+        form.addEventListener('submit', function() {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Initializing Your Workspace...';
+        });
+    }
+});
+</script>
+{% endblock %}

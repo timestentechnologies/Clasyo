@@ -436,10 +436,15 @@ function toggleStatus() {
     const newStatus = !isActive;
     const statusText = newStatus ? 'activate' : 'deactivate';
     
-    if (confirm(`Are you sure you want to ${statusText} this payment configuration?`)) {
-        // In a real implementation, this would make an AJAX call to update the status
-        window.location.href = updateUrl + '?toggle_status=true';
-    }
+    window.showConfirmModal({
+        title: 'Confirm Configuration Update',
+        message: `Are you sure you want to ${statusText} this payment configuration?`,
+        confirmText: statusText.charAt(0).toUpperCase() + statusText.slice(1),
+        confirmClass: newStatus ? 'btn-success' : 'btn-warning',
+        onConfirm: function() {
+            window.location.href = updateUrl + '?toggle_status=true';
+        }
+    });
 }
 </script>
 {% endblock %}

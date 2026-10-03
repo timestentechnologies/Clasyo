@@ -132,3 +132,126 @@
         </div>
     </div>
 </div>
+
+<!-- Global System Confirmation Modal -->
+<div class="modal fade" id="systemConfirmModal" tabindex="-1" aria-labelledby="systemConfirmModalTitleText" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+        <div class="modal-content system-msg-modal-content border-0 shadow-lg">
+            <div class="modal-header system-msg-modal-header py-2 px-3 border-0 d-flex align-items-center justify-content-between" id="systemConfirmModalHeader" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;">
+                <h5 class="modal-title mb-0 d-flex align-items-center" id="systemConfirmModalTitle" style="color: #ffffff !important; font-size: 0.95rem; font-weight: 700;">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <span id="systemConfirmModalTitleText">Confirm Action</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="systemConfirmModalCloseBtn" style="filter: invert(1) brightness(200%);"></button>
+            </div>
+            <div class="modal-body py-3 px-3" id="systemConfirmModalBody">
+                <p class="mb-0 text-muted" id="systemConfirmModalText">Are you sure you want to proceed?</p>
+            </div>
+            <div class="modal-footer border-0 pt-0 pb-3 px-3 d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary btn-sm px-3 fw-semibold shadow-sm" data-bs-dismiss="modal" id="systemConfirmModalCancelBtn" style="border-radius: 6px;">Cancel</button>
+                <button type="button" class="btn btn-danger btn-sm px-3 fw-semibold shadow-sm" id="systemConfirmModalOkBtn" style="border-radius: 6px;">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+window.showConfirmModal = function(options) {
+    var modalEl = document.getElementById('systemConfirmModal');
+    if (!modalEl || typeof bootstrap === 'undefined') {
+        if (confirm(options.message || 'Are you sure?')) {
+            if (options.onConfirm) options.onConfirm();
+            else if (options.href) window.location.href = options.href;
+            else if (options.form) options.form.submit();
+        }
+        return;
+    }
+
+    document.getElementById('systemConfirmModalTitleText').textContent = options.title || 'Confirm Action';
+    document.getElementById('systemConfirmModalText').textContent = options.message || 'Are you sure you want to proceed?';
+    
+    var okBtn = document.getElementById('systemConfirmModalOkBtn');
+    okBtn.textContent = options.confirmText || 'Confirm';
+    okBtn.className = 'btn btn-sm px-3 fw-semibold shadow-sm ' + (options.confirmClass || 'btn-danger');
+
+    var bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+    // Replace button to drop existing listeners
+    var newOkBtn = okBtn.cloneNode(true);
+    okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+
+    newOkBtn.addEventListener('click', function() {
+        bsModal.hide();
+        if (options.onConfirm) {
+            options.onConfirm();
+        } else if (options.href) {
+            window.location.href = options.href;
+        } else if (options.form) {
+            options.form.submit();
+        }
+    });
+
+    bsModal.show();
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Intercept native alert() to use global styled message modal
+    window.alert = function(msg) {
+        if (typeof window.showMessage === 'function') {
+            window.showMessage('Notice', String(msg), false, null, 'info');
+        } else {
+            var modalEl = document.getElementById('messageModal');
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                var title = document.getElementById('messageModalTitleText');
+                if (title) title.textContent = 'Notice';
+                var text = document.getElementById('messageModalText');
+                if (text) text.textContent = String(msg);
+                var bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                bsModal.show();
+            }
+        }
+    };
+
+    document.addEventListener('click', function(e) {
+        var target = e.target.closest('[data-confirm]');
+        if (target) {
+            e.preventDefault();
+            e.stopPropagation();
+            var message = target.getAttribute('data-confirm');
+            var title = target.getAttribute('data-confirm-title') || 'Confirm Action';
+            var confirmText = target.getAttribute('data-confirm-btn') || 'Confirm';
+            var confirmClass = target.getAttribute('data-confirm-class') || 'btn-danger';
+            var href = target.getAttribute('href');
+            var form = target.closest('form');
+            var btnName = target.getAttribute('name');
+            var btnValue = target.getAttribute('value');
+
+            window.showConfirmModal({
+                title: title,
+                message: message,
+                confirmText: confirmText,
+                confirmClass: confirmClass,
+                href: (href && href !== '#' ? href : null),
+                onConfirm: function() {
+                    if (form) {
+                        if (btnName) {
+                            var hidden = form.querySelector('input[name="' + btnName + '"][data-temp-submit="true"]');
+                            if (!hidden) {
+                                hidden = document.createElement('input');
+                                hidden.type = 'hidden';
+                                hidden.name = btnName;
+                                hidden.setAttribute('data-temp-submit', 'true');
+                                form.appendChild(hidden);
+                            }
+                            hidden.value = btnValue || '';
+                        }
+                        form.submit();
+                    } else if (href && href !== '#') {
+                        window.location.href = href;
+                    }
+                }
+            });
+        }
+    });
+});
+</script>

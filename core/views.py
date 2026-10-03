@@ -1734,12 +1734,40 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         school_slug = self.kwargs.get('school_slug', '')
         context['school_slug'] = school_slug
+        user = self.request.user
+        context['has_usable_password'] = user.has_usable_password()
+        context['is_google_user'] = (
+            getattr(user, 'auth_provider', '') in ['google', 'both'] or
+            user.socialaccount_set.filter(provider='google').exists()
+        )
+        context['google_account'] = user.socialaccount_set.filter(provider='google').first()
         return context
 
     def post(self, request, *args, **kwargs):
         user = request.user
         school_slug = kwargs.get('school_slug', '') or getattr(request, 'school_slug', '')
         
+        # 0. Handle explicit authentication actions
+        action = request.POST.get('action', '')
+        if action == 'remove_password':
+            is_google = (
+                getattr(user, 'auth_provider', '') in ['google', 'both'] or
+                user.socialaccount_set.filter(provider='google').exists()
+            )
+            if is_google:
+                user.set_unusable_password()
+                user.auth_provider = 'google'
+                user.save(update_fields=['password', 'auth_provider'])
+                messages.success(request, 'Password removed. Your account will now sign in exclusively via Google.')
+                if school_slug:
+                    return redirect('core:profile', school_slug=school_slug)
+                return redirect('accounts:profile')
+            else:
+                messages.error(request, 'Cannot remove password because no Google account is linked.')
+                if school_slug:
+                    return redirect('core:profile', school_slug=school_slug)
+                return redirect('accounts:profile')
+
         # 1. Update personal details
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
@@ -1758,22 +1786,25 @@ class ProfileView(LoginRequiredMixin, TemplateView):
             user.avatar = request.FILES['avatar']
             
         # 2. Check password change if any password field is entered
+        has_password = user.has_usable_password()
         old_password = request.POST.get('old_password', '').strip()
         new_password1 = request.POST.get('new_password1', '').strip()
         new_password2 = request.POST.get('new_password2', '').strip()
         
         password_changed = False
         if old_password or new_password1 or new_password2:
-            if not old_password:
-                messages.error(request, 'Please enter your current password to set a new password.')
-                if school_slug:
-                    return redirect('core:profile', school_slug=school_slug)
-                return redirect('accounts:profile')
-            if not user.check_password(old_password):
-                messages.error(request, 'Current password is incorrect.')
-                if school_slug:
-                    return redirect('core:profile', school_slug=school_slug)
-                return redirect('accounts:profile')
+            if has_password:
+                if not old_password:
+                    messages.error(request, 'Please enter your current password to set a new password.')
+                    if school_slug:
+                        return redirect('core:profile', school_slug=school_slug)
+                    return redirect('accounts:profile')
+                if not user.check_password(old_password):
+                    messages.error(request, 'Current password is incorrect.')
+                    if school_slug:
+                        return redirect('core:profile', school_slug=school_slug)
+                    return redirect('accounts:profile')
+            
             if not new_password1:
                 messages.error(request, 'Please enter a new password.')
                 if school_slug:
@@ -1791,6 +1822,15 @@ class ProfileView(LoginRequiredMixin, TemplateView):
                 return redirect('accounts:profile')
             
             user.set_password(new_password1)
+            # If Google is linked, mark as 'both' so both Google and password are used
+            is_google = (
+                getattr(user, 'auth_provider', '') in ['google', 'both'] or
+                user.socialaccount_set.filter(provider='google').exists()
+            )
+            if is_google:
+                user.auth_provider = 'both'
+            else:
+                user.auth_provider = 'email'
             password_changed = True
             
         try:
@@ -1798,7 +1838,10 @@ class ProfileView(LoginRequiredMixin, TemplateView):
             if password_changed:
                 from django.contrib.auth import update_session_auth_hash
                 update_session_auth_hash(request, user)
-                messages.success(request, 'Profile and password updated successfully!')
+                if not has_password:
+                    messages.success(request, 'Password created successfully! You can now sign in using either Google or your email & password.')
+                else:
+                    messages.success(request, 'Profile and password updated successfully!')
             else:
                 messages.success(request, 'Profile updated successfully!')
         except Exception as e:

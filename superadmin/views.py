@@ -644,6 +644,9 @@ class AdminUserDeleteView(SuperAdminRequiredMixin, DeleteView):
         context['linked_school'] = getattr(admin_user, 'school', None)
         return context
 
+    def post(self, request, *args, **kwargs):
+        return self.delete(request, *args, **kwargs)
+
     def delete(self, request, *args, **kwargs):
         admin_user = self.get_object()
         if admin_user.role != 'admin':

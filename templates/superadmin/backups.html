@@ -347,19 +347,25 @@ body.dark-theme .btn-outline-primary:hover {
 
 {% block page_actions %}
 <div class="d-flex align-items-center gap-2">
-    <form method="POST" action="{% url 'superadmin:backup_create' %}" class="d-inline"
-        onsubmit="return confirm('Trigger an immediate snapshot backup of the Master database?');">
+    <form method="POST" action="{% url 'superadmin:backup_create' %}" class="d-inline">
         {% csrf_token %}
         <input type="hidden" name="target" value="master">
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" class="btn btn-primary"
+                data-confirm="Trigger an immediate snapshot backup of the Master database?"
+                data-confirm-title="Confirm Backup"
+                data-confirm-btn="Start Backup"
+                data-confirm-class="btn-primary">
             <i class="fas fa-server me-1"></i> Backup Master DB
         </button>
     </form>
-    <form method="POST" action="{% url 'superadmin:backup_create' %}" class="d-inline"
-        onsubmit="return confirm('Trigger a snapshot backup for ALL tenant school databases?');">
+    <form method="POST" action="{% url 'superadmin:backup_create' %}" class="d-inline">
         {% csrf_token %}
         <input type="hidden" name="target" value="all_tenants">
-        <button type="submit" class="btn btn-outline-success">
+        <button type="submit" class="btn btn-outline-success"
+                data-confirm="Trigger a snapshot backup for ALL tenant school databases?"
+                data-confirm-title="Confirm Backup"
+                data-confirm-btn="Start Backup"
+                data-confirm-class="btn-success">
             <i class="fas fa-layer-group me-1"></i> Backup All Schools
         </button>
     </form>
@@ -506,11 +512,14 @@ body.dark-theme .btn-outline-primary:hover {
                             </div>
                         </div>
                         <div class="col-md-3 text-md-end">
-                            <form method="POST" action="{% url 'superadmin:backup_create' %}" class="d-inline"
-                                onsubmit="return confirm('Trigger an immediate snapshot backup of the Master database?');">
+                            <form method="POST" action="{% url 'superadmin:backup_create' %}" class="d-inline">
                                 {% csrf_token %}
                                 <input type="hidden" name="target" value="master">
-                                <button type="submit" class="btn btn-outline-primary btn-sm px-3">
+                                <button type="submit" class="btn btn-outline-primary btn-sm px-3"
+                                        data-confirm="Trigger an immediate snapshot backup of the Master database?"
+                                        data-confirm-title="Confirm Backup"
+                                        data-confirm-btn="Snapshot Now"
+                                        data-confirm-class="btn-primary">
                                     <i class="fas fa-download me-1"></i> Snapshot Master Now
                                 </button>
                             </form>
@@ -758,11 +767,14 @@ body.dark-theme .btn-outline-primary:hover {
                                         </a>
                                         {% endif %}
                                         <form method="POST" action="{% url 'superadmin:backup_delete' b.id %}"
-                                            class="d-inline ms-1"
-                                            onsubmit="return confirm('Are you sure you want to permanently delete backup {{ b.file_name }}?');">
+                                            class="d-inline ms-1">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-outline-danger btn-sm"
-                                                title="Delete backup">
+                                                title="Delete backup"
+                                                data-confirm="Are you sure you want to permanently delete backup {{ b.file_name }}?"
+                                                data-confirm-title="Delete Backup"
+                                                data-confirm-btn="Delete"
+                                                data-confirm-class="btn-danger">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>

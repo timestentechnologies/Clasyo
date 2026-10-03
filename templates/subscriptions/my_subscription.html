@@ -54,7 +54,10 @@
                         <form method="post" action="{% url 'subscriptions:cancel' %}" class="d-inline">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-danger" 
-                                    onclick="return confirm('Are you sure you want to cancel your subscription?')">
+                                    data-confirm="Are you sure you want to cancel your subscription?"
+                                    data-confirm-title="Cancel Subscription"
+                                    data-confirm-btn="Yes, Cancel"
+                                    data-confirm-class="btn-danger">
                                 <i class="fas fa-times"></i> Cancel Subscription
                             </button>
                         </form>

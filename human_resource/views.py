@@ -18,10 +18,16 @@ class TeacherListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         school = get_current_school(self.request)
-        qs = User.objects.filter(role='teacher', is_active=True)
-        if school:
-            qs = qs.filter(school=school)
-        return qs
+        if not school:
+            if hasattr(self.request.user, 'school') and self.request.user.school:
+                school = self.request.user.school
+        
+        if not school:
+            if not self.request.user.is_superuser and getattr(self.request.user, 'role', '') != 'superadmin':
+                return User.objects.none()
+            return User.objects.filter(role='teacher', is_active=True)
+            
+        return User.objects.filter(role='teacher', is_active=True, school=school)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

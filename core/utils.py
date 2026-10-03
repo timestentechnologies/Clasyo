@@ -69,6 +69,8 @@ def get_school_slug_from_request(request):
 def get_current_school(request):
     if hasattr(request, 'school') and request.school:
         return request.school
+    if hasattr(request, 'user') and request.user.is_authenticated and hasattr(request.user, 'school') and request.user.school:
+        return request.user.school
     slug = get_school_slug_from_request(request)
     try:
         return School.objects.get(slug=slug, is_active=True)

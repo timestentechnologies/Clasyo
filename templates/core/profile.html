@@ -90,31 +90,119 @@
                 </div>
             </div>
 
-            <!-- Security & Password Section (Combined directly into the same section) -->
+            <!-- Security & Password Section -->
             <div class="pt-4 mt-4 border-top">
-                <div class="mb-3">
-                    <h6 class="fw-bold mb-1">
-                        <i class="fas fa-lock text-primary me-2"></i> Security & Password
-                    </h6>
-                    <small class="text-muted">Change your account password (leave all password fields blank if you do not want to change it)</small>
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                    <div>
+                        <h6 class="fw-bold mb-1">
+                            <i class="fas fa-shield-alt text-primary me-2"></i> Security & Authentication Method
+                        </h6>
+                        <small class="text-muted">Manage how you sign in to your Clasyo account</small>
+                    </div>
+                    <div>
+                        {% if is_google_user and has_usable_password %}
+                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 px-3 py-2 rounded-pill">
+                                <i class="fab fa-google me-1 text-danger"></i> Google & Password (Both Active)
+                            </span>
+                        {% elif is_google_user %}
+                            <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 px-3 py-2 rounded-pill">
+                                <i class="fab fa-google me-1"></i> Signed In with Google
+                            </span>
+                        {% else %}
+                            <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-50 px-3 py-2 rounded-pill">
+                                <i class="fas fa-envelope me-1"></i> Email & Password
+                            </span>
+                        {% endif %}
+                    </div>
                 </div>
-                <div class="row g-3">
-                    <div class="col-12 col-md-4">
-                        <label class="form-label small fw-bold">Current Password</label>
-                        <input type="password" name="old_password" class="form-control" placeholder="Enter current password" autocomplete="current-password">
-                        <small class="text-muted">Required only when changing password</small>
+
+                {% if is_google_user and not has_usable_password %}
+                    <!-- Google Only Notice & Password Setup -->
+                    <div class="alert alert-info d-flex align-items-center mb-3 py-3 px-3 rounded-3" style="background-color: rgba(13, 202, 240, 0.08); border: 1px solid rgba(13, 202, 240, 0.25);">
+                        <i class="fab fa-google text-danger fs-3 me-3"></i>
+                        <div class="small">
+                            <strong>Google Account Connected:</strong> {{ google_account.extra_data.email|default:user.email }}<br>
+                            You currently sign in using Google and do not have an account password. 
+                            <strong>Set a password below</strong> if you would like to be able to sign in using your email and password as well, or continue using Google anytime.
+                        </div>
                     </div>
-                    <div class="col-12 col-md-4">
-                        <label class="form-label small fw-bold">New Password</label>
-                        <input type="password" name="new_password1" class="form-control" placeholder="Enter new password" autocomplete="new-password">
-                        <small class="text-muted">Min 8 characters</small>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-bold">New Password</label>
+                            <input type="password" name="new_password1" class="form-control" placeholder="Create a password (min 8 characters)" autocomplete="new-password">
+                            <small class="text-muted">Min 8 characters</small>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-bold">Confirm New Password</label>
+                            <input type="password" name="new_password2" class="form-control" placeholder="Re-enter password to confirm" autocomplete="new-password">
+                            <small class="text-muted">Must match new password</small>
+                        </div>
                     </div>
-                    <div class="col-12 col-md-4">
-                        <label class="form-label small fw-bold">Confirm New Password</label>
-                        <input type="password" name="new_password2" class="form-control" placeholder="Re-enter new password" autocomplete="new-password">
-                        <small class="text-muted">Must match new password</small>
+
+                {% elif is_google_user and has_usable_password %}
+                    <!-- Both Google & Password Active -->
+                    <div class="alert alert-success d-flex flex-wrap justify-content-between align-items-center mb-3 py-2 px-3 rounded-3" style="background-color: rgba(25, 135, 84, 0.08); border: 1px solid rgba(25, 135, 84, 0.25);">
+                        <div class="d-flex align-items-center mb-2 mb-md-0">
+                            <i class="fab fa-google text-danger fs-3 me-3"></i>
+                            <div class="small">
+                                <strong>Connected Google Account:</strong> {{ google_account.extra_data.email|default:user.email }}<br>
+                                You can sign in using <strong>either</strong> your Google account or your email & password.
+                            </div>
+                        </div>
+                        <button type="submit" name="action" value="remove_password" class="btn btn-outline-danger btn-sm"
+                                data-confirm="Are you sure you want to remove your password? You will only be able to sign in via Google."
+                                data-confirm-title="Remove Password"
+                                data-confirm-btn="Remove Password"
+                                data-confirm-class="btn-danger">
+                            <i class="fab fa-google me-1"></i> Switch to Google Only (Remove Password)
+                        </button>
                     </div>
-                </div>
+
+                    <div class="mb-2">
+                        <small class="text-muted fw-bold">Change your account password (leave blank to keep current):</small>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label class="form-label small fw-bold">Current Password</label>
+                            <input type="password" name="old_password" class="form-control" placeholder="Enter current password" autocomplete="current-password">
+                            <small class="text-muted">Required to change password</small>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label small fw-bold">New Password</label>
+                            <input type="password" name="new_password1" class="form-control" placeholder="Enter new password" autocomplete="new-password">
+                            <small class="text-muted">Min 8 characters</small>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label small fw-bold">Confirm New Password</label>
+                            <input type="password" name="new_password2" class="form-control" placeholder="Re-enter new password" autocomplete="new-password">
+                            <small class="text-muted">Must match new password</small>
+                        </div>
+                    </div>
+
+                {% else %}
+                    <!-- Email and Password Only -->
+                    <div class="mb-3">
+                        <small class="text-muted">Change your account password (leave blank if you do not want to change it):</small>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label class="form-label small fw-bold">Current Password</label>
+                            <input type="password" name="old_password" class="form-control" placeholder="Enter current password" autocomplete="current-password">
+                            <small class="text-muted">Required only when changing password</small>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label small fw-bold">New Password</label>
+                            <input type="password" name="new_password1" class="form-control" placeholder="Enter new password" autocomplete="new-password">
+                            <small class="text-muted">Min 8 characters</small>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label small fw-bold">Confirm New Password</label>
+                            <input type="password" name="new_password2" class="form-control" placeholder="Re-enter new password" autocomplete="new-password">
+                            <small class="text-muted">Must match new password</small>
+                        </div>
+                    </div>
+                {% endif %}
             </div>
 
             <!-- Form Action Buttons -->

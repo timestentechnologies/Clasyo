@@ -95,6 +95,11 @@ class TenantMiddleware(MiddlewareMixin):
                     except Exception:
                         user_school = None
 
+                if not user_school and getattr(user, 'role', None) != 'superadmin':
+                    from django.contrib import messages
+                    messages.info(request, "Please complete setting up your school workspace first.")
+                    return redirect('accounts:workspace_setup')
+
                 if user_school and getattr(user, 'role', None) != 'superadmin' and slug != user_school.slug:
                     if not (slug == 'demo-school' and use_demo_db):
                         full_path = request.get_full_path()

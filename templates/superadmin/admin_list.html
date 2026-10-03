@@ -135,12 +135,11 @@
                                         </a>
                                         <a href="{% url 'superadmin:impersonate_user' admin.id %}" 
                                            class="btn btn-sm btn-outline-success" title="Login as this admin"
-                                           onclick="return confirm('Are you sure you want to login as {{ admin.get_full_name }}?')">
+                                           data-confirm="Are you sure you want to login as {{ admin.get_full_name|default:admin.email }}?" data-confirm-title="Confirm Login As" data-confirm-btn="Login As" data-confirm-class="btn-success">
                                             <i class="fas fa-sign-in-alt"></i>
                                         </a>
                                         <a href="{% url 'superadmin:admin_delete' admin.id %}"
-                                           class="btn btn-sm btn-outline-danger" title="Delete Admin"
-                                           onclick="return confirm('Are you sure you want to delete {{ admin.get_full_name }}?')">
+                                           class="btn btn-sm btn-outline-danger" title="Delete Admin">
                                             <i class="fas fa-trash-alt"></i>
                                         </a>
                                     </div>

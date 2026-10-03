@@ -2,47 +2,70 @@
 {% load static %}
 
 {% block title %}Delete School Admin{% endblock %}
-{% block page_title %}Delete School Administrator{% endblock %}
+{% block page_title %}{% if linked_school %}Delete School Administrator & School{% else %}Delete Administrator Account{% endif %}{% endblock %}
 {% block page_icon %}user-times{% endblock %}
-{% block page_subtitle %}This action will also delete the associated school and all its data{% endblock %}
+{% block page_subtitle %}{% if linked_school %}Permanently delete this administrator and its dedicated school database{% else %}Remove unlinked administrator account{% endif %}{% endblock %}
 
 {% block content %}
 <div class="modern-card">
+  {% if linked_school %}
   <div class="alert alert-danger">
-    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+    <i class="fas fa-exclamation-triangle fa-2x mb-3 text-danger"></i>
     <h4 class="alert-heading">Irrevocable Permanent Action</h4>
-    <p>You are about to permanently delete the admin account <strong>{{ admin_user.get_full_name }}</strong>
-    ({{ admin_user.email }}){% if admin_user.school %} for school <strong>{{ admin_user.school.name }}</strong>{% endif %}.</p>
+    <p>You are about to permanently delete the admin account <strong>{{ admin_user.get_full_name|default:admin_user.email }}</strong>
+    ({{ admin_user.email }}) and the associated school <strong>{{ linked_school.name }}</strong>.</p>
     <hr>
-    <p class="mb-0"><strong>Zero Remnants Warning:</strong> This will permanently destroy the dedicated tenant database, erase all database backup files from disk, remove uploaded media files, and delete all associated students, teachers, parents, and administrative records.</p>
+    <p class="mb-0"><strong>Zero Remnants Warning:</strong> This will permanently destroy the dedicated tenant database (<code>{{ linked_school.slug }}</code>), erase all database backup files from disk, remove uploaded media files, and delete all associated school records.</p>
   </div>
+  {% else %}
+  <div class="alert alert-warning" style="background-color: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3);">
+    <i class="fas fa-user-times fa-2x mb-3 text-warning"></i>
+    <h4 class="alert-heading text-warning">Delete Unlinked Administrator</h4>
+    <p>You are about to delete the admin account <strong>{{ admin_user.get_full_name|default:admin_user.email }}</strong> ({{ admin_user.email }}).</p>
+    <hr>
+    <p class="mb-0 text-muted"><strong>Notice:</strong> This administrator account is <strong>Unlinked</strong> (not attached to any school or tenant workspace). Deleting this account will remove the user record only. No school, tenant database, or student/teacher data will be affected.</p>
+  </div>
+  {% endif %}
 
   <form method="post">
     {% csrf_token %}
-    {% if not linked_school %}
-      <div class="mb-3">
-        <label class="form-label">Select School to Delete (required)</label>
-        <select name="school_id" class="form-select" required>
-          <option value="">-- Select School --</option>
-          {% for school in available_schools %}
-            <option value="{{ school.id }}">{{ school.name }}</option>
-          {% endfor %}
-        </select>
-        <small class="form-text text-muted">The selected school and all its related data will be deleted together with this admin account.</small>
+    {% if linked_school %}
+      <div class="mb-4">
+        <label class="form-label fw-bold">Associated School (Auto-Selected)</label>
+        <div class="input-group">
+          <span class="input-group-text bg-dark-subtle"><i class="fas fa-school text-primary"></i></span>
+          <input type="text" class="form-control" value="{{ linked_school.name }} ({{ linked_school.slug }})" disabled readonly />
+        </div>
+        <input type="hidden" name="school_id" value="{{ linked_school.id }}" />
+        <small class="form-text text-muted">The linked school and its dedicated database will be purged along with this administrator.</small>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-danger">
+          <i class="fas fa-trash-alt me-1"></i> Yes, Delete Admin and School
+        </button>
+        <a href="{% url 'superadmin:admins' %}" class="btn btn-secondary">Cancel</a>
       </div>
     {% else %}
-      <div class="mb-3">
-        <label class="form-label">Linked School</label>
-        <input type="text" class="form-control" value="{{ linked_school.name }}" disabled />
-        <input type="hidden" name="school_id" value="{{ linked_school.id }}" />
+      <div class="mb-4">
+        <label class="form-label fw-bold">School Association</label>
+        <div class="p-3 rounded border" style="background: rgba(255,255,255,0.03);">
+          <div class="d-flex align-items-center mb-2">
+            <span class="badge bg-warning text-dark px-3 py-2 fw-semibold">
+              <i class="fas fa-unlink me-1"></i> Unlinked Account
+            </span>
+          </div>
+          <p class="text-muted small mb-0">
+            This administrator has no associated school. Deleting this account requires no school selection.
+          </p>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-danger">
+          <i class="fas fa-trash-alt me-1"></i> Yes, Delete Unlinked Administrator
+        </button>
+        <a href="{% url 'superadmin:admins' %}" class="btn btn-secondary">Cancel</a>
       </div>
     {% endif %}
-    <div class="d-flex gap-2">
-      <button type="submit" class="btn btn-danger">
-        <i class="fas fa-trash"></i> Yes, delete admin and school
-      </button>
-      <a href="{% url 'superadmin:admins' %}" class="btn btn-secondary">Cancel</a>
-    </div>
   </form>
 </div>
 {% endblock %}

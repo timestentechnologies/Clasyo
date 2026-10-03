@@ -7,9 +7,13 @@
 {% block page_subtitle %}Dedicated database backups and recovery archives for {{ school.name }}.{% endblock %}
 
 {% block page_actions %}
-<form method="POST" action="{% url 'core:school_backup_create' school_slug=school_slug %}" class="d-inline" onsubmit="return confirm('Create an immediate snapshot backup of your school\'s database?');">
+<form method="POST" action="{% url 'core:school_backup_create' school_slug=school_slug %}" class="d-inline">
     {% csrf_token %}
-    <button type="submit" class="btn btn-primary">
+    <button type="submit" class="btn btn-primary"
+            data-confirm="Create an immediate snapshot backup of your school's database?"
+            data-confirm-title="Confirm Backup"
+            data-confirm-btn="Create Backup"
+            data-confirm-class="btn-primary">
         <i class="fas fa-cloud-download-alt me-1"></i> Create Backup Now
     </button>
 </form>
@@ -166,9 +170,13 @@
                                     <i class="fas fa-download me-1"></i> Download
                                 </a>
                                 {% endif %}
-                                <form method="POST" action="{% url 'core:school_backup_delete' school_slug=school_slug pk=b.id %}" class="d-inline ms-1" onsubmit="return confirm('Permanently delete backup {{ b.file_name }}?');">
+                                <form method="POST" action="{% url 'core:school_backup_delete' school_slug=school_slug pk=b.id %}" class="d-inline ms-1">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete backup">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete backup"
+                                            data-confirm="Permanently delete backup {{ b.file_name }}?"
+                                            data-confirm-title="Delete Backup"
+                                            data-confirm-btn="Delete"
+                                            data-confirm-class="btn-danger">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>

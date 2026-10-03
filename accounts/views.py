@@ -5,6 +5,7 @@ from django.contrib.auth import login, logout, authenticate, update_session_auth
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.urls import reverse_lazy
+from datetime import timedelta
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.db.models import Q
@@ -46,11 +47,11 @@ class LoginView(View):
             else:
                 from tenants.models import School
                 school = getattr(request.user, 'school', None)
-                if not school:
-                    school = School.objects.filter(is_active=True).first()
+                if not school and getattr(request.user, 'school_id', None):
+                    school = School.objects.filter(id=request.user.school_id).first()
                 if school:
                     return redirect('core:apps_home', school_slug=school.slug)
-                return redirect('frontend:home')
+                return redirect('accounts:workspace_setup')
         
         # For unauthenticated users, redirect to home page
         from core.models import SystemSetting
@@ -123,16 +124,15 @@ class LoginView(View):
                         from tenants.models import School
                         from tenants.services import register_tenant_connection
                         school = getattr(user, 'school', None)
-                        if not school:
-                            school = School.objects.filter(is_active=True).first()
+                        if not school and getattr(user, 'school_id', None):
+                            school = School.objects.filter(id=user.school_id).first()
                         
                         if school:
                             # Register tenant connection in-memory (instantaneous)
                             register_tenant_connection(school.slug)
                             redirect_target = reverse_lazy('core:apps_home', kwargs={'school_slug': school.slug})
                         else:
-                            messages.warning(request, f'Welcome {user.get_full_name()}! No school associated with your account. Please contact administrator.')
-                            redirect_target = reverse_lazy('frontend:home')
+                            redirect_target = reverse_lazy('accounts:workspace_setup')
                     
                     target_url = str(redirect_target)
                     if is_ajax:
@@ -241,7 +241,137 @@ class RegisterView(View):
             messages.success(request, 'Registration successful! Please check your email and use the login modal to sign in.')
             return redirect('frontend:home')
         
-        return render(request, self.template_name, {'form': form})
+class GoogleAuthInitView(View):
+    """
+    Sets session intent ('login' vs 'register') before initiating
+    the Google OAuth flow via allauth.
+    """
+    def get(self, request):
+        action = request.GET.get('action', 'login')
+        if action not in ['login', 'register']:
+            action = 'login'
+        request.session['google_auth_action'] = action
+        request.session.modified = True
+        return redirect('/auth/google/login/')
+
+
+class WorkspaceSetupView(LoginRequiredMixin, View):
+    """
+    Onboarding view for users who registered (e.g. via Google or self-signup)
+    and do not have an institution/school linked yet.
+    Collects institution name, subdomain slug, phone, institution_type, city, country,
+    creates the School, links the user as admin, and redirects to workspace provisioning.
+    """
+    template_name = 'accounts/workspace_setup.html'
+
+    def get(self, request):
+        user = request.user
+        if user.role == 'superadmin':
+            return redirect('superadmin:dashboard')
+        
+        # If user already has a school, redirect to their school
+        school = getattr(user, 'school', None)
+        if not school and getattr(user, 'school_id', None):
+            from tenants.models import School
+            school = School.objects.filter(id=user.school_id).first()
+        if school:
+            return redirect('core:apps_home', school_slug=school.slug)
+
+        from tenants.models import School
+        context = {
+            'user': user,
+            'institution_type_choices': School.INSTITUTION_TYPE_CHOICES,
+            'is_google_user': (
+                getattr(user, 'auth_provider', '') in ['google', 'both'] or 
+                user.socialaccount_set.filter(provider='google').exists()
+            ),
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request):
+        user = request.user
+        if user.role == 'superadmin':
+            return redirect('superadmin:dashboard')
+
+        school = getattr(user, 'school', None)
+        if not school and getattr(user, 'school_id', None):
+            from tenants.models import School
+            school = School.objects.filter(id=user.school_id).first()
+        if school:
+            return redirect('core:apps_home', school_slug=school.slug)
+
+        school_name = request.POST.get('school_name', '').strip()
+        school_slug = request.POST.get('school_slug', '').strip().lower()
+        phone = request.POST.get('phone', '').strip()
+        institution_type = request.POST.get('institution_type', '').strip()
+        city = request.POST.get('city', '').strip() or 'Nairobi'
+        country = request.POST.get('country', '').strip() or 'Kenya'
+        address = request.POST.get('address', '').strip()
+
+        if not school_name:
+            messages.error(request, 'Please provide your institution / school name.')
+            return self.get(request)
+
+        import re
+        from django.utils.text import slugify
+        if not school_slug:
+            school_slug = slugify(school_name)
+        else:
+            school_slug = slugify(school_slug)
+
+        if not school_slug or not re.match(r'^[a-z0-9-]+$', school_slug):
+            messages.error(request, 'Invalid school subdomain. Use letters, numbers, and hyphens only.')
+            return self.get(request)
+
+        from tenants.models import School
+        from subscriptions.models import SubscriptionPlan
+        if School.objects.filter(slug=school_slug).exists():
+            messages.error(request, f"The school subdomain '{school_slug}' is already taken. Please choose another.")
+            return self.get(request)
+
+        # Unique school email fallback
+        school_email = user.email
+        if School.objects.filter(email=school_email).exists():
+            school_email = f"info@{school_slug}.clasyo.com"
+
+        trial_plan = SubscriptionPlan.objects.filter(plan_type='basic').order_by('price').first() or SubscriptionPlan.objects.order_by('price').first()
+        trial_days = trial_plan.trial_days if trial_plan and trial_plan.trial_days else 7
+
+        try:
+            school = School.objects.create(
+                name=school_name,
+                slug=school_slug,
+                email=school_email,
+                phone=phone or getattr(user, 'phone', '') or '+254700000000',
+                address=address or f"{city}, {country}",
+                city=city,
+                state=city,
+                country=country,
+                postal_code='00100',
+                institution_type=institution_type or 'pre_primary_primary',
+                subscription_plan=trial_plan,
+                is_active=True,
+                is_trial=True,
+                trial_end_date=timezone.now() + timedelta(days=trial_days),
+                is_verified=True,
+            )
+
+            # Link admin user to the newly created school
+            user.school = school
+            user.role = 'admin'
+            if phone and not user.phone:
+                user.phone = phone
+            user.save(update_fields=['school', 'role', 'phone'])
+
+            messages.success(
+                request,
+                f"Workspace for '{school.name}' created! Setting up your dedicated database..."
+            )
+            return redirect('tenants:workspace_provisioning', school_slug=school.slug)
+
+        except Exception as e:
+            messages.error(request, f"Failed to initialize workspace: {str(e)}")
+            return self.get(request)
 
 
 class SocialLoginCompleteView(LoginRequiredMixin, View):
@@ -260,21 +390,17 @@ class SocialLoginCompleteView(LoginRequiredMixin, View):
         if user.role == 'superadmin':
             return redirect('superadmin:dashboard')
 
-        # For other roles, redirect to user's linked school; fallback to first active school
+        # For other roles, redirect to user's linked school
         from tenants.models import School
         school = getattr(user, 'school', None)
-        if not school:
-            school = School.objects.filter(is_active=True).first()
+        if not school and getattr(user, 'school_id', None):
+            school = School.objects.filter(id=user.school_id).first()
 
         if school:
             return redirect('core:apps_home', school_slug=school.slug)
 
-        # No school associated
-        messages.warning(
-            request,
-            f'Welcome {user.get_full_name()}! No school associated with your account. Please contact administrator.',
-        )
-        return redirect('frontend:home')
+        # Unlinked user: send to workspace setup to complete registration
+        return redirect('accounts:workspace_setup')
 
 
 class PasswordResetView(View):
@@ -501,6 +627,13 @@ class ProfileView(LoginRequiredMixin, DetailView):
             except Exception:
                 pass
         context['school_slug'] = school_slug
+        user = self.request.user
+        context['has_usable_password'] = user.has_usable_password()
+        context['is_google_user'] = (
+            getattr(user, 'auth_provider', '') in ['google', 'both'] or
+            user.socialaccount_set.filter(provider='google').exists()
+        )
+        context['google_account'] = user.socialaccount_set.filter(provider='google').first()
         return context
 
     def post(self, request, *args, **kwargs):
@@ -514,6 +647,27 @@ class ProfileView(LoginRequiredMixin, DetailView):
                     slug_part = parts[1].split('/')[0]
                     if slug_part:
                         school_slug = slug_part
+
+        # 0. Handle explicit authentication actions
+        action = request.POST.get('action', '')
+        if action == 'remove_password':
+            is_google = (
+                getattr(user, 'auth_provider', '') in ['google', 'both'] or
+                user.socialaccount_set.filter(provider='google').exists()
+            )
+            if is_google:
+                user.set_unusable_password()
+                user.auth_provider = 'google'
+                user.save(update_fields=['password', 'auth_provider'])
+                messages.success(request, 'Password removed. Your account will now sign in exclusively via Google.')
+                if school_slug:
+                    return redirect('core:profile', school_slug=school_slug)
+                return redirect('accounts:profile')
+            else:
+                messages.error(request, 'Cannot remove password because no Google account is linked.')
+                if school_slug:
+                    return redirect('core:profile', school_slug=school_slug)
+                return redirect('accounts:profile')
         
         # 1. Update personal details
         first_name = request.POST.get('first_name', '').strip()
@@ -533,22 +687,25 @@ class ProfileView(LoginRequiredMixin, DetailView):
             user.avatar = request.FILES['avatar']
             
         # 2. Check password change if any password field is entered
+        has_password = user.has_usable_password()
         old_password = request.POST.get('old_password', '').strip()
         new_password1 = request.POST.get('new_password1', '').strip()
         new_password2 = request.POST.get('new_password2', '').strip()
         
         password_changed = False
         if old_password or new_password1 or new_password2:
-            if not old_password:
-                messages.error(request, 'Please enter your current password to set a new password.')
-                if school_slug:
-                    return redirect('core:profile', school_slug=school_slug)
-                return redirect('accounts:profile')
-            if not user.check_password(old_password):
-                messages.error(request, 'Current password is incorrect.')
-                if school_slug:
-                    return redirect('core:profile', school_slug=school_slug)
-                return redirect('accounts:profile')
+            if has_password:
+                if not old_password:
+                    messages.error(request, 'Please enter your current password to set a new password.')
+                    if school_slug:
+                        return redirect('core:profile', school_slug=school_slug)
+                    return redirect('accounts:profile')
+                if not user.check_password(old_password):
+                    messages.error(request, 'Current password is incorrect.')
+                    if school_slug:
+                        return redirect('core:profile', school_slug=school_slug)
+                    return redirect('accounts:profile')
+            
             if not new_password1:
                 messages.error(request, 'Please enter a new password.')
                 if school_slug:
@@ -566,13 +723,25 @@ class ProfileView(LoginRequiredMixin, DetailView):
                 return redirect('accounts:profile')
             
             user.set_password(new_password1)
+            # If Google is linked, mark as 'both' so both Google and password are used
+            is_google = (
+                getattr(user, 'auth_provider', '') in ['google', 'both'] or
+                user.socialaccount_set.filter(provider='google').exists()
+            )
+            if is_google:
+                user.auth_provider = 'both'
+            else:
+                user.auth_provider = 'email'
             password_changed = True
             
         try:
             user.save()
             if password_changed:
                 update_session_auth_hash(request, user)
-                messages.success(request, 'Profile and password updated successfully!')
+                if not has_password:
+                    messages.success(request, 'Password created successfully! You can now sign in using either Google or your email & password.')
+                else:
+                    messages.success(request, 'Profile and password updated successfully!')
             else:
                 messages.success(request, 'Profile updated successfully!')
         except Exception as e:

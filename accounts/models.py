@@ -55,6 +55,7 @@ class User(AbstractUser):
     AUTH_PROVIDER_CHOICES = [
         ('email', _('Email and Password')),
         ('google', _('Google Sign-In')),
+        ('both', _('Google & Password')),
     ]
     
     username = None

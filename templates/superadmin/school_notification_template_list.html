@@ -127,10 +127,13 @@
                                 {% if item.is_custom %}
                                 <form method="post" 
                                       action="{% url 'superadmin:school_notification_template_reset' school_slug=school.slug code=item.code channel=item.channel %}" 
-                                      class="d-inline"
-                                      onsubmit="return confirm('Reset this template back to system default?');">
+                                      class="d-inline">
                                     {% csrf_token %}
-                                    <button type="submit" class="table-action-link text-danger" title="Revert to Default" aria-label="Revert to Default">
+                                    <button type="submit" class="table-action-link text-danger" title="Revert to Default" aria-label="Revert to Default"
+                                            data-confirm="Reset this template back to system default?"
+                                            data-confirm-title="Reset Template"
+                                            data-confirm-btn="Reset Default"
+                                            data-confirm-class="btn-warning">
                                         <i class="fas fa-undo"></i>
                                     </button>
                                 </form>
