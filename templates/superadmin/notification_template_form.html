@@ -1,0 +1,232 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Notification Template - Super Admin{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit Notification Template{% else %}New Notification Template{% endif %}{% endblock %}
+{% block page_icon %}file-alt{% endblock %}
+{% block page_subtitle %}Configure dynamic notification message content, variables, and CTA actions{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <div class="form-panel-view" id="notificationTemplatePanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <a href="{% url 'superadmin:notification_template_list' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Templates
+                </a>
+                <h5 class="mb-0 fw-bold form-title-text">
+                    {% if form.instance.pk %}Edit: {{ form.instance.name }}{% else %}Create Notification Template{% endif %}
+                </h5>
+            </div>
+            <div class="form-header-actions">
+                <a href="{% url 'superadmin:notification_template_list' %}" class="btn btn-sm btn-light">Cancel</a>
+                <button type="submit" form="templateForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> Save Template
+                </button>
+            </div>
+        </div>
+
+        <div class="form-card-body p-3 p-md-4">
+            <form method="post" id="templateForm" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger mb-4">
+                    {% for err in form.non_field_errors %}
+                        <div><i class="fas fa-exclamation-circle me-1"></i> {{ err }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Core Information -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" for="{{ form.name.id_for_label }}">
+                            Template Name <span class="text-danger">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" for="{{ form.code.id_for_label }}">
+                            Template Code <span class="text-danger">*</span>
+                        </label>
+                        {{ form.code }}
+                        <small class="text-muted">Unique identifier used by system events, e.g. <code>fee_reminder</code>, <code>payment_receipt</code></small>
+                        {% if form.code.errors %}<div class="text-danger small mt-1">{{ form.code.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold" for="{{ form.channel.id_for_label }}">
+                            Notification Channel <span class="text-danger">*</span>
+                        </label>
+                        {{ form.channel }}
+                        {% if form.channel.errors %}<div class="text-danger small mt-1">{{ form.channel.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold" for="{{ form.category.id_for_label }}">
+                            Category
+                        </label>
+                        {{ form.category }}
+                        {% if form.category.errors %}<div class="text-danger small mt-1">{{ form.category.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-4 d-flex align-items-center">
+                        <div class="form-check form-switch mt-3">
+                            {{ form.is_active }}
+                            <label class="form-check-label fw-semibold" for="{{ form.is_active.id_for_label }}">
+                                Template is Active
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email Specific Header & Subject -->
+                <div id="emailSpecificFields" class="row g-3 mb-4 p-3 bg-light-subtle rounded-3 border">
+                    <div class="col-12">
+                        <h6 class="fw-bold mb-1 text-primary">
+                            <i class="fas fa-envelope-open-text me-1"></i> Email-Specific Parameters
+                        </h6>
+                        <small class="text-muted">Emails automatically inherit the standard branded header with logo &amp; motto, accent bar, and dark contact footer.</small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" for="{{ form.subject.id_for_label }}">
+                            Email Subject Line <span class="text-danger">*</span>
+                        </label>
+                        {{ form.subject }}
+                        {% if form.subject.errors %}<div class="text-danger small mt-1">{{ form.subject.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" for="{{ form.heading.id_for_label }}">
+                            Email Headline / Main Title
+                        </label>
+                        {{ form.heading }}
+                        <small class="text-muted">Displayed prominently above the body content</small>
+                        {% if form.heading.errors %}<div class="text-danger small mt-1">{{ form.heading.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold" for="{{ form.hero_image.id_for_label }}">
+                            Hero / Feature Banner Image
+                        </label>
+                        {{ form.hero_image }}
+                        <small class="text-muted">Optional header illustration (e.g. 600x240px)</small>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold" for="{{ form.button_text.id_for_label }}">
+                            Action Button (CTA) Text
+                        </label>
+                        {{ form.button_text }}
+                        <small class="text-muted">e.g. <code>PAY NOW</code>, <code>READ MORE HERE</code></small>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold" for="{{ form.button_url.id_for_label }}">
+                            Action Button Target URL
+                        </label>
+                        {{ form.button_url }}
+                        <small class="text-muted">e.g. <code>{% verbatim %}{{ payment_url }}{% endverbatim %}</code></small>
+                    </div>
+                </div>
+
+                <!-- Message Body -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <label class="form-label fw-semibold mb-0" for="{{ form.body.id_for_label }}">
+                            Message Content / Body <span class="text-danger">*</span>
+                        </label>
+                        <div id="tagHelperContainer" class="small text-muted">
+                            Click tag to insert:
+                        </div>
+                    </div>
+
+                    <!-- Interactive Tags Pill Bar -->
+                    <div id="tagPillsBar" class="d-flex flex-wrap gap-1 mb-2"></div>
+
+                    {{ form.body }}
+                    {% if form.body.errors %}<div class="text-danger small mt-1">{{ form.body.errors.0 }}</div>{% endif %}
+                </div>
+
+                <!-- Available Tags Metadata -->
+                <div class="mb-4">
+                    <label class="form-label fw-semibold" for="{{ form.available_tags.id_for_label }}">
+                        Available Dynamic Variables
+                    </label>
+                    {{ form.available_tags }}
+                    <small class="text-muted">Comma-separated placeholders available for this template (e.g., <code>student_name, parent_name, balance, due_date</code>).</small>
+                    {% if form.available_tags.errors %}<div class="text-danger small mt-1">{{ form.available_tags.errors.0 }}</div>{% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const channelSelect = document.getElementById('id_channel');
+    const emailFields = document.getElementById('emailSpecificFields');
+    const tagsInput = document.getElementById('{{ form.available_tags.id_for_label }}');
+    const tagPillsBar = document.getElementById('tagPillsBar');
+    const bodyTextarea = document.getElementById('{{ form.body.id_for_label }}');
+
+    function toggleChannelFields() {
+        if (channelSelect.value === 'email') {
+            emailFields.style.display = 'flex';
+        } else {
+            emailFields.style.display = 'none';
+        }
+    }
+
+    function renderTagPills() {
+        tagPillsBar.innerHTML = '';
+        const rawTags = tagsInput.value || 'student_name, parent_name, balance, due_date, currency, school_name, admission_number';
+        const tags = rawTags.split(',').map(t => t.trim()).filter(Boolean);
+
+        tags.forEach(tag => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-outline-secondary btn-sm py-0 px-2 small';
+            btn.style.fontSize = '12px';
+            btn.innerHTML = '<code>{{ ' + tag + ' }}</code>';
+            btn.onclick = function() {
+                insertAtCursor(bodyTextarea, '{{ ' + tag + ' }}');
+            };
+            tagPillsBar.appendChild(btn);
+        });
+    }
+
+    function insertAtCursor(myField, myValue) {
+        if (document.selection) {
+            myField.focus();
+            sel = document.selection.createRange();
+            sel.text = myValue;
+        } else if (myField.selectionStart || myField.selectionStart == '0') {
+            var startPos = myField.selectionStart;
+            var endPos = myField.selectionEnd;
+            myField.value = myField.value.substring(0, startPos)
+                + myValue
+                + myField.value.substring(endPos, myField.value.length);
+            myField.selectionStart = startPos + myValue.length;
+            myField.selectionEnd = startPos + myValue.length;
+            myField.focus();
+        } else {
+            myField.value += myValue;
+            myField.focus();
+        }
+    }
+
+    channelSelect.addEventListener('change', toggleChannelFields);
+    tagsInput.addEventListener('input', renderTagPills);
+
+    toggleChannelFields();
+    renderTagPills();
+});
+</script>
+{% endblock %}

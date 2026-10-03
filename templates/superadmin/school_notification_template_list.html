@@ -1,0 +1,187 @@
+{% extends 'dashboards/base.html' %}
+{% load static %}
+
+{% block title %}Notification Templates - {{ school.name }}{% endblock %}
+{% block page_title %}Notification Templates{% endblock %}
+{% block page_icon %}envelope-open-text{% endblock %}
+{% block page_subtitle %}Manage and customize fee reminders, payment receipts, notices, and exam alerts for {{ school.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <!-- Standard System Navigation Tabs -->
+    <div class="page-tabs-bar mb-4">
+        <ul class="page-nav-tabs nav" role="tablist">
+            <li class="page-tab-item">
+                <a class="page-tab-link {% if active_channel == 'all' %}active{% endif %}" href="?channel=all">
+                    <i class="fas fa-layer-group me-1"></i>
+                    <span>All Channels</span>
+                    <span class="page-tab-badge">{{ total_count }}</span>
+                </a>
+            </li>
+            <li class="page-tab-item">
+                <a class="page-tab-link {% if active_channel == 'email' %}active{% endif %}" href="?channel=email">
+                    <i class="fas fa-envelope text-info me-1"></i>
+                    <span>Email Templates</span>
+                    <span class="page-tab-badge">{{ email_count }}</span>
+                </a>
+            </li>
+            <li class="page-tab-item">
+                <a class="page-tab-link {% if active_channel == 'sms' %}active{% endif %}" href="?channel=sms">
+                    <i class="fas fa-sms text-warning me-1"></i>
+                    <span>SMS Templates</span>
+                    <span class="page-tab-badge">{{ sms_count }}</span>
+                </a>
+            </li>
+            <li class="page-tab-item">
+                <a class="page-tab-link {% if active_channel == 'whatsapp' %}active{% endif %}" href="?channel=whatsapp">
+                    <i class="fab fa-whatsapp text-success me-1"></i>
+                    <span>WhatsApp Templates</span>
+                    <span class="page-tab-badge">{{ whatsapp_count }}</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Card -->
+    <div class="card border shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Template Event</th>
+                        <th>Channel</th>
+                        <th>Category</th>
+                        <th>Customization Status</th>
+                        <th>Subject / Preview</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in templates %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold text-body">{{ item.name }}</div>
+                            <code class="text-muted small">{{ item.code }}</code>
+                        </td>
+                        <td>
+                            {% if item.channel == 'email' %}
+                                <span class="badge bg-info-subtle text-info border">
+                                    <i class="fas fa-envelope me-1"></i> Email
+                                </span>
+                            {% elif item.channel == 'sms' %}
+                                <span class="badge bg-warning-subtle text-warning border">
+                                    <i class="fas fa-sms me-1"></i> SMS
+                                </span>
+                            {% elif item.channel == 'whatsapp' %}
+                                <span class="badge bg-success-subtle text-success border">
+                                    <i class="fab fa-whatsapp me-1"></i> WhatsApp
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ item.category_display }}</span>
+                        </td>
+                        <td>
+                            {% if item.is_custom %}
+                                <span class="badge bg-success-subtle text-success border">
+                                    <i class="fas fa-check-circle me-1"></i> Customized for School
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary border">
+                                    <i class="fas fa-cog me-1"></i> System Standard Default
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.channel == 'email' %}
+                                <div class="text-truncate" style="max-width: 260px;" title="{{ item.active_template.subject }}">
+                                    {{ item.active_template.subject|default:"(Default Subject)" }}
+                                </div>
+                                {% if item.active_template.button_text %}
+                                    <small class="badge bg-orange-subtle text-warning border mt-1">CTA: {{ item.active_template.button_text }}</small>
+                                {% endif %}
+                            {% else %}
+                                <div class="text-truncate text-muted small" style="max-width: 260px;" title="{{ item.active_template.body }}">
+                                    {{ item.active_template.body }}
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4 text-nowrap">
+                            <div class="table-action-group d-inline-flex align-items-center gap-2">
+                                <button type="button" 
+                                        class="table-action-link" 
+                                        onclick="openTemplatePreview('{{ item.preview_id }}', '{{ item.name|escapejs }}', '{{ item.channel }}')"
+                                        title="Preview Live Branded Template"
+                                        aria-label="Preview">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                
+                                <a href="{% url 'superadmin:school_notification_template_customize' school_slug=school.slug code=item.code channel=item.channel %}" 
+                                   class="table-action-link" 
+                                   title="{% if item.is_custom %}Edit Customization{% else %}Customize for School{% endif %}"
+                                   aria-label="Customize">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+
+                                {% if item.is_custom %}
+                                <form method="post" 
+                                      action="{% url 'superadmin:school_notification_template_reset' school_slug=school.slug code=item.code channel=item.channel %}" 
+                                      class="d-inline"
+                                      onsubmit="return confirm('Reset this template back to system default?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="table-action-link text-danger" title="Revert to Default" aria-label="Revert to Default">
+                                        <i class="fas fa-undo"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                            <p class="mb-0">No templates found for selected channel.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title fw-bold" id="previewModalLabel">Live Branded Preview</h5>
+                    <div class="text-muted small">Rendered with {{ school.name }} logo, motto, address, and contacts</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" style="min-height: 480px; background-color: #f1f5f9;">
+                <iframe id="previewIframe" style="width: 100%; height: 600px; border: none;"></iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openTemplatePreview(tplId, tplName, channel) {
+    document.getElementById('previewModalLabel').textContent = tplName + ' (' + channel.toUpperCase() + ') - ' + '{{ school.name|escapejs }}';
+    const previewUrl = "{% url 'superadmin:notification_template_preview' 0 %}".replace('/0/', '/' + tplId + '/') + '?school_slug={{ school.slug|escapejs }}';
+    const iframe = document.getElementById('previewIframe');
+    iframe.src = previewUrl;
+    const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

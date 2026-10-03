@@ -40,4 +40,12 @@ def school_context(request):
         is_demo_mode = True
     context['has_sample_data'] = is_demo_mode
     
+    # Check if Google Auth is enabled
+    try:
+        from superadmin.models import GlobalGoogleAuthConfiguration
+        google_cfg = GlobalGoogleAuthConfiguration.objects.using('default').first()
+        context['google_auth_enabled'] = bool(google_cfg and google_cfg.is_active and google_cfg.client_id)
+    except Exception:
+        context['google_auth_enabled'] = False
+
     return context

@@ -92,6 +92,8 @@ urlpatterns = [
     path('settings/email/create/', views.GlobalEmailConfigurationCreateView.as_view(), name='email_config_create'),
     path('settings/email/<int:pk>/edit/', views.GlobalEmailConfigurationUpdateView.as_view(), name='email_config_update'),
     path('settings/email/<int:pk>/delete/', views.GlobalEmailConfigurationDeleteView.as_view(), name='email_config_delete'),
+    path('settings/email/test/', views.TestEmailDeliveryView.as_view(), name='test_email_delivery'),
+    path('settings/google-auth/update/', views.GlobalGoogleAuthConfigurationUpdateView.as_view(), name='google_auth_update'),
     
     # Database Configurations
     path('settings/database/', views.GlobalDatabaseConfigurationListView.as_view(), name='db_config_list'),
@@ -122,6 +124,19 @@ urlpatterns = [
     path('school/<slug:school_slug>/settings/whatsapp/create/', views.SchoolWhatsAppConfigurationCreateView.as_view(), name='school_whatsapp_config_create'),
     path('school/<slug:school_slug>/settings/whatsapp/<int:pk>/edit/', views.SchoolWhatsAppConfigurationUpdateView.as_view(), name='school_whatsapp_config_update'),
     path('school/<slug:school_slug>/settings/whatsapp/<int:pk>/delete/', views.SchoolWhatsAppConfigurationDeleteView.as_view(), name='school_whatsapp_config_delete'),
+
+    # Global Notification Templates (Email, SMS, WhatsApp)
+    path('settings/templates/', views.GlobalNotificationTemplateListView.as_view(), name='notification_template_list'),
+    path('settings/templates/create/', views.GlobalNotificationTemplateCreateView.as_view(), name='notification_template_create'),
+    path('settings/templates/<int:pk>/edit/', views.GlobalNotificationTemplateUpdateView.as_view(), name='notification_template_update'),
+    path('settings/templates/<int:pk>/delete/', views.GlobalNotificationTemplateDeleteView.as_view(), name='notification_template_delete'),
+    path('settings/templates/<int:pk>/preview/', views.NotificationTemplatePreviewView.as_view(), name='notification_template_preview'),
+    path('settings/templates/<int:pk>/test-send/', views.NotificationTemplateTestSendView.as_view(), name='notification_template_test_send'),
+
+    # School Notification Templates
+    path('school/<slug:school_slug>/settings/templates/', views.SchoolNotificationTemplateListView.as_view(), name='school_notification_template_list'),
+    path('school/<slug:school_slug>/settings/templates/<str:code>/<str:channel>/customize/', views.SchoolNotificationTemplateCustomizeView.as_view(), name='school_notification_template_customize'),
+    path('school/<slug:school_slug>/settings/templates/<str:code>/<str:channel>/reset/', views.SchoolNotificationTemplateResetView.as_view(), name='school_notification_template_reset'),
 
     # Database Backups (Super Admin - Master & All Tenants)
     path('backups/', views.SuperAdminBackupListView.as_view(), name='backups'),

@@ -518,7 +518,7 @@ textarea.form-control-modern {
 .form-control-modern:focus,
 textarea.form-control:focus,
 textarea.form-control-modern:focus {
-    border-color: var(--brand-primary, #0284C7) !important;
+    border-color: var(--input-border, #CBD5E1) !important;
     box-shadow: none !important;
     outline: none !important;
 }
@@ -659,8 +659,9 @@ body.dark-theme input:not([type="checkbox"]):not([type="radio"]):not([type="subm
     background: #1E293B !important;
     background-color: #1E293B !important;
     color: #FFFFFF !important;
-    border-color: var(--brand-accent, #4DD0E1) !important;
-    box-shadow: 0 0 0 0.25rem rgba(77, 208, 225, 0.25) !important;
+    border-color: var(--input-border, #334155) !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
 /* System-wide Range Slider Reset (No box, no border, no background box) */
@@ -761,8 +762,9 @@ body.theme-light input:not([type="checkbox"]):not([type="radio"]):not([type="sub
     background: #FFFFFF !important;
     background-color: #FFFFFF !important;
     color: #0F172A !important;
-    border-color: var(--brand-accent, #4DD0E1) !important;
-    box-shadow: 0 0 0 0.25rem rgba(77, 208, 225, 0.15) !important;
+    border-color: var(--input-border, #CBD5E1) !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
 [data-theme="light"] .form-label,
@@ -829,7 +831,7 @@ body.theme-light input:not([type="checkbox"]):not([type="radio"]):not([type="sub
 .search-input-group .form-control:focus,
 .field-icon-group .form-control:focus {
     outline: none !important;
-    border-color: var(--accent-cyan, #4DD0E1) !important;
+    border-color: var(--input-border, #CBD5E1) !important;
     box-shadow: none !important;
 }
 
@@ -845,8 +847,9 @@ body.theme-light input:not([type="checkbox"]):not([type="radio"]):not([type="sub
 }
 
 .input-group:focus-within {
-    border-color: var(--brand-primary) !important;
-    box-shadow: 0 0 0 0.25rem var(--input-focus-ring) !important;
+    border-color: var(--input-border, #CBD5E1) !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
 /* All children inside input-group have NO inner borders and NO separate backgrounds */
@@ -927,6 +930,14 @@ body.theme-light input:not([type="checkbox"]):not([type="radio"]):not([type="sub
     width: 100% !important;
     display: block !important;
     padding-right: 2.75rem !important;
+}
+
+/* Disable default MS Edge native password reveal icon to prevent duplicate eye icons */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 
 .password-toggle-btn {

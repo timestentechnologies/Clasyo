@@ -6,6 +6,8 @@ from django.urls import reverse, reverse_lazy
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from django.http import JsonResponse, HttpResponse
+from django.views.decorators.clickjacking import xframe_options_sameorigin
+from django.utils.decorators import method_decorator
 import csv
 from django.conf import settings
 from django.core.mail import send_mail
@@ -25,6 +27,8 @@ from .models import (
     SchoolWhatsAppConfiguration,
     GlobalAIConfiguration,
     SchoolAIConfiguration,
+    GlobalGoogleAuthConfiguration,
+    NotificationTemplate,
 )
 from .forms import (
     PaymentConfigurationForm, SchoolPaymentConfigurationForm,
@@ -32,6 +36,8 @@ from .forms import (
     GlobalDatabaseConfigurationForm, GlobalWhatsAppConfigurationForm,
     SchoolWhatsAppConfigurationForm, SchoolSMSConfigurationForm,
     SchoolEmailConfigurationForm,
+    NotificationTemplateForm, TestNotificationSendForm,
+    GlobalGoogleAuthConfigurationForm, TestEmailDeliveryForm,
 )
 from .ai_forms import GlobalAIConfigurationForm, SchoolAIConfigurationForm
 from tenants.models import School
@@ -450,12 +456,19 @@ class AdminUserListView(SuperAdminRequiredMixin, ListView):
             else:
                 queryset = queryset.filter(school_id=school_id)
         
+        auth_method = self.request.GET.get('auth_method', '').strip()
+        if auth_method == 'google':
+            queryset = queryset.filter(auth_provider='google')
+        elif auth_method == 'email':
+            queryset = queryset.filter(auth_provider='email')
+        
         return queryset
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['schools_list'] = School.objects.filter(is_active=True).order_by('name')
         context['selected_school'] = self.request.GET.get('school', '')
+        context['selected_auth_method'] = self.request.GET.get('auth_method', '')
         return context
 
 
@@ -2051,35 +2064,132 @@ class GlobalEmailConfigurationListView(SuperAdminRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        from django.conf import settings
-        from collections import namedtuple
         
-        # Check active database config FIRST
+        # Check active database config
         active_config = GlobalEmailConfiguration.objects.filter(is_active=True).first()
-        if active_config:
-            context['current_email'] = active_config
-            context['is_database_config'] = True
-        else:
-            current_email = {
-                'id': None,
-                'name': 'System Email Settings',
-                'is_active': True,
-                'provider': 'system',
-                'get_provider_display': 'Environment Variables',
-                'smtp_host': getattr(settings, 'EMAIL_HOST', 'Not configured'),
-                'smtp_port': getattr(settings, 'EMAIL_PORT', 587),
-                'smtp_username': getattr(settings, 'EMAIL_HOST_USER', 'Not configured'),
-                'smtp_use_tls': getattr(settings, 'EMAIL_USE_TLS', True),
-                'smtp_use_ssl': getattr(settings, 'EMAIL_USE_SSL', False),
-                'default_from_email': getattr(settings, 'DEFAULT_FROM_EMAIL', 'Not configured'),
-                'default_from_name': getattr(settings, 'DEFAULT_FROM_NAME', 'Clasyo'),
-                'backend': getattr(settings, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend').split('.')[-1],
-                'is_current': True,
-            }
-            CurrentEmail = namedtuple('CurrentEmail', current_email.keys())
-            context['current_email'] = CurrentEmail(**current_email)
-            context['is_database_config'] = False
+        context['current_email'] = active_config
+        context['is_database_config'] = bool(active_config)
+
+        # Google Auth Configuration (Strictly from Database)
+        try:
+            google_auth_cfg = GlobalGoogleAuthConfiguration.objects.first()
+        except Exception:
+            google_auth_cfg = None
+
+        context['google_auth_config'] = google_auth_cfg
+        context['google_auth_form'] = GlobalGoogleAuthConfigurationForm(instance=google_auth_cfg)
+        context['test_email_form'] = TestEmailDeliveryForm()
+
+        request = self.request
+        host = request.get_host()
+        is_secure = request.is_secure()
+        proto = 'https' if is_secure else 'http'
+        context['current_host'] = host
+
+        # Deduplicate URIs and Origins preserving insertion order
+        raw_redirect_uris = [
+            f"{proto}://{host}/accounts/google/login/callback/",
+            "http://127.0.0.1:8000/accounts/google/login/callback/",
+            "http://localhost:8000/accounts/google/login/callback/",
+        ]
+        context['redirect_uris'] = list(dict.fromkeys(raw_redirect_uris))
+
+        raw_origins = [
+            f"{proto}://{host}",
+            "http://127.0.0.1:8000",
+            "http://localhost:8000",
+        ]
+        context['javascript_origins'] = list(dict.fromkeys(raw_origins))
+
+        active_tab = request.GET.get('tab', 'google')
+        if active_tab not in ['google', 'outgoing']:
+            active_tab = 'google'
+        context['active_tab'] = active_tab
+
         return context
+
+
+class GlobalGoogleAuthConfigurationUpdateView(SuperAdminRequiredMixin, View):
+    """Update Google OAuth 2.0 configuration and sync to SocialApp"""
+    
+    def post(self, request):
+        google_auth_cfg = GlobalGoogleAuthConfiguration.objects.first()
+        if not google_auth_cfg:
+            google_auth_cfg = GlobalGoogleAuthConfiguration()
+        
+        form = GlobalGoogleAuthConfigurationForm(request.POST, instance=google_auth_cfg)
+        if form.is_valid():
+            config = form.save()
+            config.sync_to_social_app()
+            messages.success(request, 'Google Authentication configurations updated and synchronized successfully!')
+        else:
+            first_err = next(iter(form.errors.values()))[0] if form.errors else 'Invalid configuration values provided.'
+            messages.error(request, f'Failed to update Google Authentication: {first_err}')
+            
+        from django.urls import reverse
+        return redirect(f"{reverse('superadmin:email_config_list')}?tab=google")
+
+
+class TestEmailDeliveryView(SuperAdminRequiredMixin, View):
+    """Test outgoing email delivery with active email configuration"""
+    
+    def post(self, request):
+        from django.core.mail import send_mail
+        from django.conf import settings
+        from django.utils import timezone
+        
+        recipient = request.POST.get('recipient_email', '').strip()
+        is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.META.get('HTTP_ACCEPT', '')
+        
+        if not recipient:
+            msg = 'Please enter a valid recipient email address.'
+            if is_ajax:
+                return JsonResponse({'success': False, 'message': msg})
+            messages.error(request, msg)
+            return redirect('superadmin:email_config_list')
+
+        try:
+            active_config = GlobalEmailConfiguration.objects.filter(is_active=True).first()
+            sender_name = active_config.default_from_name if active_config and active_config.default_from_name else getattr(settings, 'DEFAULT_FROM_NAME', 'Clasyo')
+            sender_email = active_config.default_from_email if active_config and active_config.default_from_email else getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@clasyo.co.ke')
+            provider_title = active_config.get_provider_display() if active_config else 'System Default (.env / Console)'
+            
+            subject = f"Test Email Delivery - Clasyo [{timezone.now().strftime('%Y-%m-%d %H:%M:%S')}]"
+            message = (
+                f"Hello,\n\n"
+                f"This is a test notification verifying your Clasyo Email Configuration.\n\n"
+                f"Delivery Details:\n"
+                f"----------------------------------------\n"
+                f"Active Provider: {provider_title}\n"
+                f"Sender: {sender_name} <{sender_email}>\n"
+                f"Recipient: {recipient}\n"
+                f"Sent At: {timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
+                f"Status: DELIVERED SUCCESSFULLY\n"
+                f"----------------------------------------\n\n"
+                f"If you received this email, password resets, invitations, and system notifications will be delivered reliably.\n\n"
+                f"Best regards,\n"
+                f"Clasyo SaaS Platform Administration"
+            )
+            
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=None,
+                recipient_list=[recipient],
+                fail_silently=False
+            )
+            
+            success_msg = f"Test email successfully sent to {recipient} via {provider_title}!"
+            if is_ajax:
+                return JsonResponse({'success': True, 'message': success_msg, 'provider': provider_title})
+            messages.success(request, success_msg)
+        except Exception as e:
+            err_msg = f"Email delivery failed: {str(e)}"
+            if is_ajax:
+                return JsonResponse({'success': False, 'message': err_msg})
+            messages.error(request, err_msg)
+            
+        return redirect('superadmin:email_config_list')
 
 
 class GlobalEmailConfigurationCreateView(SuperAdminRequiredMixin, CreateView):
@@ -3132,4 +3242,445 @@ class SuperAdminSearchApiView(SuperAdminRequiredMixin, View):
             'backups': backups_data,
             'view_all_url': f"{reverse('superadmin:search')}?q={query}"
         })
+
+
+# ==============================================================================
+# NOTIFICATION TEMPLATES VIEWS (GLOBAL & SCHOOL MULTI-TENANT)
+# ==============================================================================
+
+class GlobalNotificationTemplateListView(SuperAdminRequiredMixin, ListView):
+    """List all Global/System notification templates (Email, SMS, WhatsApp)"""
+    model = NotificationTemplate
+    template_name = 'superadmin/notification_template_list.html'
+    context_object_name = 'templates'
+
+    def get_queryset(self):
+        from core.services.notification_templates import seed_default_notification_templates
+        if NotificationTemplate.objects.filter(school__isnull=True).count() == 0:
+            seed_default_notification_templates()
+
+        qs = NotificationTemplate.objects.filter(school__isnull=True)
+        channel = self.request.GET.get('channel')
+        category = self.request.GET.get('category')
+        search_q = self.request.GET.get('q')
+
+        if channel and channel != 'all':
+            qs = qs.filter(channel=channel)
+        if category and category != 'all':
+            qs = qs.filter(category=category)
+        if search_q:
+            qs = qs.filter(Q(name__icontains=search_q) | Q(code__icontains=search_q) | Q(subject__icontains=search_q))
+
+        return qs.order_by('channel', 'category', 'name')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        all_qs = NotificationTemplate.objects.filter(school__isnull=True)
+        context['total_count'] = all_qs.count()
+        context['email_count'] = all_qs.filter(channel='email').count()
+        context['sms_count'] = all_qs.filter(channel='sms').count()
+        context['whatsapp_count'] = all_qs.filter(channel='whatsapp').count()
+        context['active_channel'] = self.request.GET.get('channel', 'all')
+        context['active_category'] = self.request.GET.get('category', 'all')
+        context['search_q'] = self.request.GET.get('q', '')
+        return context
+
+
+class GlobalNotificationTemplateCreateView(SuperAdminRequiredMixin, CreateView):
+    """Create a new global notification template"""
+    model = NotificationTemplate
+    form_class = NotificationTemplateForm
+    template_name = 'superadmin/notification_template_form.html'
+    success_url = reverse_lazy('superadmin:notification_template_list')
+
+    def form_valid(self, form):
+        form.instance.school = None
+        form.instance.is_system = False
+        messages.success(self.request, f"Notification template '{form.instance.name}' created successfully.")
+        return super().form_valid(form)
+
+
+class GlobalNotificationTemplateUpdateView(SuperAdminRequiredMixin, UpdateView):
+    """Edit a global notification template"""
+    model = NotificationTemplate
+    form_class = NotificationTemplateForm
+    template_name = 'superadmin/notification_template_form.html'
+    success_url = reverse_lazy('superadmin:notification_template_list')
+
+    def get_queryset(self):
+        return NotificationTemplate.objects.filter(school__isnull=True)
+
+    def form_valid(self, form):
+        messages.success(self.request, f"Notification template '{form.instance.name}' updated successfully.")
+        return super().form_valid(form)
+
+
+class GlobalNotificationTemplateDeleteView(SuperAdminRequiredMixin, DeleteView):
+    """Delete a global notification template"""
+    model = NotificationTemplate
+    template_name = 'superadmin/notification_template_confirm_delete.html'
+    success_url = reverse_lazy('superadmin:notification_template_list')
+
+    def get_queryset(self):
+        return NotificationTemplate.objects.filter(school__isnull=True)
+
+    def delete(self, request, *args, **kwargs):
+        obj = self.get_object()
+        name = obj.name
+        res = super().delete(request, *args, **kwargs)
+        messages.success(request, f"Notification template '{name}' deleted.")
+        return res
+
+
+@method_decorator(xframe_options_sameorigin, name='dispatch')
+class NotificationTemplatePreviewView(LoginRequiredMixin, View):
+    """
+    Renders live preview of notification template with standard dynamic header & footer
+    """
+    def get(self, request, pk):
+        template = get_object_or_404(NotificationTemplate, pk=pk)
+        
+        # Check permissions: allow superusers, staff, superadmins, and active school admins
+        if not (request.user.is_superuser or request.user.is_staff or request.user.role in ('superadmin', 'admin')):
+            return HttpResponse("Unauthorized", status=403)
+
+        # Resolve active school context for preview (from template or query param or user)
+        preview_school = template.school
+        if not preview_school:
+            school_slug = request.GET.get('school_slug')
+            if school_slug:
+                preview_school = School.objects.filter(slug=school_slug).first()
+            elif hasattr(request.user, 'school') and request.user.school:
+                preview_school = request.user.school
+            if not preview_school:
+                preview_school = School.objects.first()
+
+        if template.school and request.user.role == 'admin' and not (request.user.is_superuser or request.user.is_staff):
+            user_school = getattr(request.user, 'school', None)
+            if user_school and user_school != template.school:
+                return HttpResponse("Unauthorized", status=403)
+
+        sample_context = {
+            'student_name': 'Alexander Mwangi',
+            'parent_name': 'Dr. Robert Mwangi',
+            'admission_number': 'ADM-2026-084',
+            'class_name': 'Grade 8 Emerald',
+            'currency': 'KES',
+            'balance': '18,500.00',
+            'amount_paid': '12,000.00',
+            'due_date': '15th November 2026',
+            'paybill_number': '522123',
+            'account_number': 'ADM-2026-084',
+            'bank_name': 'Equity Bank Kenya',
+            'bank_account': '0120198273645',
+            'receipt_number': 'REC-98234',
+            'payment_method': 'M-Pesa (Till)',
+            'transaction_reference': 'SHK78392LQ',
+            'payment_date': '03 Oct 2026 09:15 AM',
+            'remaining_balance': '6,500.00',
+            'notice_title': 'Annual Inter-House Sports Gala & Parent-Teacher Meeting',
+            'notice_content': 'We are pleased to announce the upcoming Term 3 Annual Sports Day scheduled for Saturday, 24th October 2026. All parents are warmly invited.',
+            'academic_year': '2026',
+            'term_name': 'Term 3',
+            'mean_grade': 'A-',
+            'total_marks': '412',
+            'max_marks': '500',
+            'class_position': '3rd of 42',
+            'user_full_name': 'Jane Elizabeth Doe',
+            'username': 'jane.doe@school.edu',
+            'temporary_password': 'Pass@2026#Secure',
+            'recipient_name': 'Dr. Robert Mwangi',
+            'event_title': 'Annual Science, Arts & Cultural Fair 2026',
+            'event_date': 'Saturday, 24th October 2026',
+            'event_time': '09:00 AM - 03:30 PM',
+            'event_location': 'Main Auditorium & Sports Complex',
+            'event_description': 'Featuring student project demonstrations, guest roboticists, art exhibitions, and interactive science pavilions across all grades.',
+            'event_url': 'https://schoolsaas.com/portal/events/',
+            'notice_summary': 'Important updates regarding Term 3 sports gala and parent-teacher consultations.',
+            'date': '03 Oct 2026',
+            'exam_name': 'End of Term 3 Assessment Examination',
+            'start_date': '10th November 2026',
+            'end_date': '20th November 2026',
+            'exam_url': 'https://schoolsaas.com/portal/exams/timetable/',
+            'overdue_amount': '18,500.00',
+            'cutoff_date': '20th October 2026',
+            'school_contact_url': 'https://schoolsaas.com/contact/',
+            'school_name': preview_school.name if preview_school else 'Clasyo School Management',
+            'payment_url': 'https://schoolsaas.com/portal/pay/',
+            'receipt_url': 'https://schoolsaas.com/portal/receipt/REC-98234/',
+            'fee_structure_url': 'https://schoolsaas.com/portal/fees/',
+            'notice_url': 'https://schoolsaas.com/portal/notices/',
+            'report_card_url': 'https://schoolsaas.com/portal/exams/report/',
+            'login_url': 'https://schoolsaas.com/login/',
+            'reset_url': 'https://schoolsaas.com/password/reset/token/',
+        }
+
+        if template.channel == 'email':
+            from core.services.notification_templates import render_email_template
+            subject, html_content, text_content = render_email_template(
+                template_or_code=template,
+                context=sample_context,
+                school=preview_school,
+                request=request
+            )
+            response = HttpResponse(html_content, content_type='text/html')
+            response['X-Frame-Options'] = 'SAMEORIGIN'
+            return response
+        else:
+            rendered_body = template.interpolate(template.body, sample_context)
+            response = render(request, 'superadmin/notification_template_preview_modal.html', {
+                'template': template,
+                'rendered_body': rendered_body,
+                'sample_context': sample_context,
+            })
+            response['X-Frame-Options'] = 'SAMEORIGIN'
+            return response
+
+
+class NotificationTemplateTestSendView(LoginRequiredMixin, View):
+    """Send live test notification to a given email or phone"""
+    def post(self, request, pk):
+        import json
+        template = get_object_or_404(NotificationTemplate, pk=pk)
+        
+        # Check permissions
+        if template.school:
+            if not (request.user.role == 'superadmin' or (request.user.role == 'admin' and template.school.is_active)):
+                return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
+        else:
+            if request.user.role != 'superadmin':
+                return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
+
+        form = TestNotificationSendForm(request.POST)
+        if not form.is_valid():
+            return JsonResponse({'success': False, 'error': 'Please provide a valid recipient.'})
+
+        recipient = form.cleaned_data['recipient'].strip()
+        custom_context_raw = form.cleaned_data.get('sample_context')
+        context = {
+            'student_name': 'Alexander Mwangi',
+            'parent_name': 'Dr. Robert Mwangi',
+            'balance': '18,500.00',
+            'due_date': '15th Nov 2026',
+            'currency': 'KES',
+            'paybill_number': '522123',
+            'account_number': 'ADM-2026-084',
+            'receipt_number': 'REC-98234',
+            'amount_paid': '12,000.00',
+            'remaining_balance': '6,500.00',
+            'school_name': template.school.name if template.school else 'Clasyo School Platform',
+            'payment_url': 'https://schoolsaas.com/portal/pay/',
+            'login_url': 'https://schoolsaas.com/login/',
+        }
+        if custom_context_raw:
+            try:
+                parsed = json.loads(custom_context_raw)
+                if isinstance(parsed, dict):
+                    context.update(parsed)
+            except Exception:
+                pass
+
+        from core.services.notification_templates import send_notification_by_template
+        try:
+            res = send_notification_by_template(
+                code=template.code,
+                channel=template.channel,
+                recipients=[recipient],
+                context=context,
+                school=template.school,
+                request=request
+            )
+            return JsonResponse(res)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+
+# --- SCHOOL ADMIN NOTIFICATION TEMPLATES VIEWS ---
+
+class SchoolNotificationTemplateListView(LoginRequiredMixin, TemplateView):
+    """
+    List notification templates for a school.
+    Allows School Admins to view all templates, see which ones are customized vs using system default,
+    and customize / override them.
+    """
+    template_name = 'superadmin/school_notification_template_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        school_slug = self.kwargs.get('school_slug')
+        school = get_object_or_404(School, slug=school_slug)
+
+        # Check permissions
+        if not (self.request.user.role == 'superadmin' or 
+                (self.request.user.role == 'admin' and school.is_active)):
+            messages.error(self.request, "You do not have permission to access this school's notification templates.")
+            return context
+
+        from core.services.notification_templates import seed_default_notification_templates
+        if NotificationTemplate.objects.filter(school__isnull=True).count() == 0:
+            seed_default_notification_templates()
+
+        # Get all global templates
+        global_templates = NotificationTemplate.objects.filter(school__isnull=True).order_by('channel', 'category', 'name')
+
+        # Get all school-specific custom templates
+        school_custom_dict = {
+            (t.code, t.channel): t 
+            for t in NotificationTemplate.objects.filter(school=school)
+        }
+
+        # Build list of items combining global + school custom status
+        template_items = []
+        for g_tpl in global_templates:
+            custom_tpl = school_custom_dict.get((g_tpl.code, g_tpl.channel))
+            is_custom = bool(custom_tpl)
+            active_tpl = custom_tpl if custom_tpl else g_tpl
+
+            template_items.append({
+                'code': g_tpl.code,
+                'name': g_tpl.name,
+                'channel': g_tpl.channel,
+                'channel_display': g_tpl.get_channel_display(),
+                'category': g_tpl.category,
+                'category_display': g_tpl.get_category_display(),
+                'is_custom': is_custom,
+                'active_template': active_tpl,
+                'global_template': g_tpl,
+                'custom_id': custom_tpl.pk if custom_tpl else None,
+                'preview_id': active_tpl.pk,
+            })
+
+        # Also add any school templates that might have unique codes not in global
+        global_keys = {(g.code, g.channel) for g in global_templates}
+        for (code, channel), s_tpl in school_custom_dict.items():
+            if (code, channel) not in global_keys:
+                template_items.append({
+                    'code': s_tpl.code,
+                    'name': s_tpl.name,
+                    'channel': s_tpl.channel,
+                    'channel_display': s_tpl.get_channel_display(),
+                    'category': s_tpl.category,
+                    'category_display': s_tpl.get_category_display(),
+                    'is_custom': True,
+                    'active_template': s_tpl,
+                    'global_template': None,
+                    'custom_id': s_tpl.pk,
+                    'preview_id': s_tpl.pk,
+                })
+
+        total_all = len(template_items)
+        email_count = sum(1 for t in template_items if t['channel'] == 'email')
+        sms_count = sum(1 for t in template_items if t['channel'] == 'sms')
+        whatsapp_count = sum(1 for t in template_items if t['channel'] == 'whatsapp')
+
+        # Channel filter
+        channel_filter = self.request.GET.get('channel', 'all')
+        filtered_items = template_items
+        if channel_filter != 'all':
+            filtered_items = [t for t in template_items if t['channel'] == channel_filter]
+
+        context['school'] = school
+        context['templates'] = filtered_items
+        context['active_channel'] = channel_filter
+        context['total_count'] = total_all
+        context['email_count'] = email_count
+        context['sms_count'] = sms_count
+        context['whatsapp_count'] = whatsapp_count
+        context['customized_count'] = sum(1 for t in template_items if t['is_custom'])
+        return context
+
+
+class SchoolNotificationTemplateCustomizeView(LoginRequiredMixin, View):
+    """
+    Customize a template for a specific school.
+    If the school hasn't customized it yet, clone the global template to the school.
+    """
+    template_name = 'superadmin/school_notification_template_form.html'
+
+    def get(self, request, school_slug, code, channel):
+        school = get_object_or_404(School, slug=school_slug)
+        if not (request.user.role == 'superadmin' or (request.user.role == 'admin' and school.is_active)):
+            messages.error(request, "Permission denied.")
+            return redirect('frontend:home')
+
+        # Check if already exists for this school
+        instance = NotificationTemplate.objects.filter(school=school, code=code, channel=channel).first()
+        global_tpl = NotificationTemplate.objects.filter(school__isnull=True, code=code, channel=channel).first()
+
+        if not instance and global_tpl:
+            # Pre-populate with global template data
+            initial_data = {
+                'name': global_tpl.name,
+                'code': global_tpl.code,
+                'channel': global_tpl.channel,
+                'category': global_tpl.category,
+                'subject': global_tpl.subject,
+                'heading': global_tpl.heading,
+                'body': global_tpl.body,
+                'button_text': global_tpl.button_text,
+                'button_url': global_tpl.button_url,
+                'available_tags': global_tpl.available_tags,
+                'is_active': global_tpl.is_active,
+            }
+            form = NotificationTemplateForm(initial=initial_data)
+        elif instance:
+            form = NotificationTemplateForm(instance=instance)
+        else:
+            form = NotificationTemplateForm(initial={'code': code, 'channel': channel})
+
+        return render(request, self.template_name, {
+            'school': school,
+            'form': form,
+            'code': code,
+            'channel': channel,
+            'is_existing': bool(instance),
+            'global_tpl': global_tpl,
+        })
+
+    def post(self, request, school_slug, code, channel):
+        school = get_object_or_404(School, slug=school_slug)
+        if not (request.user.role == 'superadmin' or (request.user.role == 'admin' and school.is_active)):
+            messages.error(request, "Permission denied.")
+            return redirect('frontend:home')
+
+        instance = NotificationTemplate.objects.filter(school=school, code=code, channel=channel).first()
+        form = NotificationTemplateForm(request.POST, request.FILES, instance=instance)
+        
+        if form.is_valid():
+            tpl = form.save(commit=False)
+            tpl.school = school
+            tpl.code = code
+            tpl.channel = channel
+            tpl.is_system = False
+            tpl.save()
+            messages.success(request, f"Template '{tpl.name}' for {school.name} saved successfully.")
+            return redirect('superadmin:school_notification_template_list', school_slug=school.slug)
+
+        global_tpl = NotificationTemplate.objects.filter(school__isnull=True, code=code, channel=channel).first()
+        return render(request, self.template_name, {
+            'school': school,
+            'form': form,
+            'code': code,
+            'channel': channel,
+            'is_existing': bool(instance),
+            'global_tpl': global_tpl,
+        })
+
+
+class SchoolNotificationTemplateResetView(LoginRequiredMixin, View):
+    """Reset a school's customized template back to system default"""
+    def post(self, request, school_slug, code, channel):
+        school = get_object_or_404(School, slug=school_slug)
+        if not (request.user.role == 'superadmin' or (request.user.role == 'admin' and school.is_active)):
+            messages.error(request, "Permission denied.")
+            return redirect('frontend:home')
+
+        deleted_count, _ = NotificationTemplate.objects.filter(school=school, code=code, channel=channel).delete()
+        if deleted_count > 0:
+            messages.success(request, f"Template reset to system default successfully.")
+        else:
+            messages.info(request, "Template was already using system default.")
+
+        return redirect('superadmin:school_notification_template_list', school_slug=school.slug)
+
 

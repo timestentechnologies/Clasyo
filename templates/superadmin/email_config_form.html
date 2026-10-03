@@ -12,7 +12,7 @@
     <div class="form-panel-view" id="emailConfigPanel">
         <div class="form-header-bar">
             <div class="form-header-title-group">
-                <a href="{% url 'superadmin:email_config_list' %}" class="btn btn-sm btn-outline-secondary">
+                <a href="{% url 'superadmin:email_config_list' %}?tab=outgoing" class="btn btn-sm btn-outline-secondary">
                     <i class="fas fa-arrow-left me-1"></i> Back to Configurations
                 </a>
                 <h5 class="mb-0 fw-bold form-title-text">
@@ -20,13 +20,13 @@
                 </h5>
             </div>
             <div class="form-header-actions">
-                <a href="{% url 'superadmin:email_config_list' %}" class="btn btn-sm btn-light">Cancel</a>
+                <a href="{% url 'superadmin:email_config_list' %}?tab=outgoing" class="btn btn-sm btn-light">Cancel</a>
                 <button type="submit" form="emailConfigForm" class="btn btn-sm btn-primary form-submit-btn">
                     <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Configuration{% else %}Save Configuration{% endif %}
                 </button>
             </div>
         </div>
-        <div class="form-card-body">
+        <div class="form-card-body p-3 p-md-4">
             <form method="post" id="emailConfigForm" novalidate>
                 {% csrf_token %}
                 
@@ -38,75 +38,57 @@
                 </div>
                 {% endif %}
 
-                <!-- Provider & Activation + Sender Defaults (Unified Section) -->
-                <div class="mb-4">
-                    <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                        <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(56, 189, 248, 0.15); color: var(--accent-cyan, #38BDF8);">
-                            <i class="fas fa-sliders-h"></i>
-                        </div>
-                        <h6 class="mb-0 fw-bold">Provider & Activation</h6>
+                <!-- Single Unified Form Section (No dividing lines or split subheadings) -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label for="{{ form.provider.id_for_label }}" class="form-label fw-bold">
+                            Email Provider <span class="text-danger">*</span>
+                        </label>
+                        {{ form.provider }}
+                        {% if form.provider.errors %}
+                        <div class="text-danger small mt-1">{{ form.provider.errors.0 }}</div>
+                        {% endif %}
+                        <small class="text-muted">Select SMTP for standard mail servers or a direct cloud API service.</small>
                     </div>
                     
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label for="{{ form.provider.id_for_label }}" class="form-label fw-bold">
-                                Email Provider <span class="text-danger">*</span>
+                    <div class="col-md-6 d-flex flex-column justify-content-center">
+                        <label class="form-label fw-bold">System Status</label>
+                        <div class="form-check form-switch mt-1">
+                            {{ form.is_active }}
+                            <label class="form-check-label fw-semibold" for="{{ form.is_active.id_for_label }}">
+                                Set as Primary Active Email Provider
                             </label>
-                            {{ form.provider }}
-                            {% if form.provider.errors %}
-                            <div class="text-danger small mt-1">{{ form.provider.errors.0 }}</div>
-                            {% endif %}
-                            <small class="text-muted">Select SMTP for standard mail servers or a direct cloud API service.</small>
                         </div>
-                        
-                        <div class="col-md-6 d-flex flex-column justify-content-center">
-                            <label class="form-label fw-bold">System Status</label>
-                            <div class="form-check form-switch mt-1">
-                                {{ form.is_active }}
-                                <label class="form-check-label fw-semibold" for="{{ form.is_active.id_for_label }}">
-                                    Set as Primary Active Email Provider
-                                </label>
-                            </div>
-                            {% if form.is_active.errors %}
-                            <div class="text-danger small mt-1">{{ form.is_active.errors.0 }}</div>
-                            {% endif %}
-                            <small class="text-muted">Activating this will set it as the outgoing provider for all schools.</small>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label for="{{ form.default_from_email.id_for_label }}" class="form-label fw-bold">
-                                Default "From" Email Address
-                            </label>
-                            {{ form.default_from_email }}
-                            {% if form.default_from_email.errors %}
-                            <div class="text-danger small mt-1">{{ form.default_from_email.errors.0 }}</div>
-                            {% endif %}
-                            <small class="text-muted">e.g. notifications@yourdomain.com</small>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="{{ form.default_from_name.id_for_label }}" class="form-label fw-bold">
-                                Default "From" Display Name
-                            </label>
-                            {{ form.default_from_name }}
-                            {% if form.default_from_name.errors %}
-                            <div class="text-danger small mt-1">{{ form.default_from_name.errors.0 }}</div>
-                            {% endif %}
-                            <small class="text-muted">e.g. Clasyo Portal Notifications</small>
-                        </div>
+                        {% if form.is_active.errors %}
+                        <div class="text-danger small mt-1">{{ form.is_active.errors.0 }}</div>
+                        {% endif %}
+                        <small class="text-muted">Activating this will set it as the outgoing provider for all schools.</small>
                     </div>
-                </div>
 
-                <!-- Provider Specific Settings Card -->
-                <div class="mb-4" id="providerSpecificCard" style="display: none;">
-                    <!-- SMTP Section -->
-                    <div id="section-smtp" class="provider-section">
-                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
-                                <i class="fas fa-server"></i>
-                            </div>
-                            <h6 class="mb-0 fw-bold">SMTP Server Credentials</h6>
-                        </div>
-                        
+                    <div class="col-md-6">
+                        <label for="{{ form.default_from_email.id_for_label }}" class="form-label fw-bold">
+                            Default "From" Email Address
+                        </label>
+                        {{ form.default_from_email }}
+                        {% if form.default_from_email.errors %}
+                        <div class="text-danger small mt-1">{{ form.default_from_email.errors.0 }}</div>
+                        {% endif %}
+                        <small class="text-muted">e.g. notifications@yourdomain.com</small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="{{ form.default_from_name.id_for_label }}" class="form-label fw-bold">
+                            Default "From" Display Name
+                        </label>
+                        {{ form.default_from_name }}
+                        {% if form.default_from_name.errors %}
+                        <div class="text-danger small mt-1">{{ form.default_from_name.errors.0 }}</div>
+                        {% endif %}
+                        <small class="text-muted">e.g. Clasyo Portal Notifications</small>
+                    </div>
+
+                    <!-- SMTP Fields (Seamless continuation) -->
+                    <div id="section-smtp" class="provider-section col-12">
                         <div class="row g-3">
                             <div class="col-md-8">
                                 <label for="{{ form.smtp_host.id_for_label }}" class="form-label fw-bold">SMTP Host</label>
@@ -131,18 +113,15 @@
                             </div>
                             <div class="col-md-6">
                                 <label for="{{ form.smtp_password.id_for_label }}" class="form-label fw-bold">SMTP Password</label>
-                                <div class="input-group">
+                                <div class="password-field-wrapper position-relative">
                                     {{ form.smtp_password }}
-                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ form.smtp_password.id_for_label }}', this)">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
                                 </div>
                                 {% if form.smtp_password.errors %}
                                 <div class="text-danger small mt-1">{{ form.smtp_password.errors.0 }}</div>
                                 {% endif %}
                             </div>
                             <div class="col-12">
-                                <div class="d-flex gap-4 mt-2">
+                                <div class="d-flex gap-4 mt-1">
                                     <div class="form-check">
                                         {{ form.smtp_use_tls }}
                                         <label class="form-check-label fw-semibold" for="{{ form.smtp_use_tls.id_for_label }}">
@@ -160,23 +139,13 @@
                         </div>
                     </div>
 
-                    <!-- SendGrid Section -->
-                    <div id="section-sendgrid" class="provider-section" style="display: none;">
-                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(34, 197, 94, 0.15); color: #22c55e;">
-                                <i class="fas fa-paper-plane"></i>
-                            </div>
-                            <h6 class="mb-0 fw-bold">SendGrid API Credentials</h6>
-                        </div>
-                        
+                    <!-- SendGrid Fields (Seamless continuation) -->
+                    <div id="section-sendgrid" class="provider-section col-12" style="display: none;">
                         <div class="row g-3">
                             <div class="col-12">
                                 <label for="{{ form.sendgrid_api_key.id_for_label }}" class="form-label fw-bold">SendGrid API Key</label>
-                                <div class="input-group">
+                                <div class="password-field-wrapper position-relative">
                                     {{ form.sendgrid_api_key }}
-                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ form.sendgrid_api_key.id_for_label }}', this)">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
                                 </div>
                                 {% if form.sendgrid_api_key.errors %}
                                 <div class="text-danger small mt-1">{{ form.sendgrid_api_key.errors.0 }}</div>
@@ -199,23 +168,13 @@
                         </div>
                     </div>
 
-                    <!-- Mailgun Section -->
-                    <div id="section-mailgun" class="provider-section" style="display: none;">
-                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(239, 68, 68, 0.15); color: #ef4444;">
-                                <i class="fas fa-envelope-open-text"></i>
-                            </div>
-                            <h6 class="mb-0 fw-bold">Mailgun API Credentials</h6>
-                        </div>
-                        
+                    <!-- Mailgun Fields (Seamless continuation) -->
+                    <div id="section-mailgun" class="provider-section col-12" style="display: none;">
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label for="{{ form.mailgun_api_key.id_for_label }}" class="form-label fw-bold">Mailgun Private API Key</label>
-                                <div class="input-group">
+                                <div class="password-field-wrapper position-relative">
                                     {{ form.mailgun_api_key }}
-                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ form.mailgun_api_key.id_for_label }}', this)">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
                                 </div>
                                 {% if form.mailgun_api_key.errors %}
                                 <div class="text-danger small mt-1">{{ form.mailgun_api_key.errors.0 }}</div>
@@ -238,15 +197,8 @@
                         </div>
                     </div>
 
-                    <!-- Amazon SES Section -->
-                    <div id="section-ses" class="provider-section" style="display: none;">
-                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
-                                <i class="fab fa-aws"></i>
-                            </div>
-                            <h6 class="mb-0 fw-bold">Amazon SES Credentials</h6>
-                        </div>
-                        
+                    <!-- Amazon SES Fields (Seamless continuation) -->
+                    <div id="section-ses" class="provider-section col-12" style="display: none;">
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label for="{{ form.ses_access_key.id_for_label }}" class="form-label fw-bold">AWS Access Key ID</label>
@@ -257,11 +209,8 @@
                             </div>
                             <div class="col-md-6">
                                 <label for="{{ form.ses_secret_key.id_for_label }}" class="form-label fw-bold">AWS Secret Access Key</label>
-                                <div class="input-group">
+                                <div class="password-field-wrapper position-relative">
                                     {{ form.ses_secret_key }}
-                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ form.ses_secret_key.id_for_label }}', this)">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
                                 </div>
                                 {% if form.ses_secret_key.errors %}
                                 <div class="text-danger small mt-1">{{ form.ses_secret_key.errors.0 }}</div>
@@ -284,23 +233,13 @@
                         </div>
                     </div>
 
-                    <!-- Postmark Section -->
-                    <div id="section-postmark" class="provider-section" style="display: none;">
-                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(168, 85, 247, 0.15); color: #a855f7;">
-                                <i class="fas fa-stamp"></i>
-                            </div>
-                            <h6 class="mb-0 fw-bold">Postmark API Credentials</h6>
-                        </div>
-                        
+                    <!-- Postmark Fields (Seamless continuation) -->
+                    <div id="section-postmark" class="provider-section col-12" style="display: none;">
                         <div class="row g-3">
                             <div class="col-12">
                                 <label for="{{ form.postmark_api_key.id_for_label }}" class="form-label fw-bold">Postmark Server API Token</label>
-                                <div class="input-group">
+                                <div class="password-field-wrapper position-relative">
                                     {{ form.postmark_api_key }}
-                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ form.postmark_api_key.id_for_label }}', this)">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
                                 </div>
                                 {% if form.postmark_api_key.errors %}
                                 <div class="text-danger small mt-1">{{ form.postmark_api_key.errors.0 }}</div>
@@ -324,9 +263,9 @@
                     </div>
                 </div>
 
-                <!-- Form Actions -->
-                <div class="d-flex justify-content-end gap-2 mb-2">
-                    <a href="{% url 'superadmin:email_config_list' %}" class="btn btn-outline-secondary px-4">
+                <!-- Form Actions Bottom -->
+                <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                    <a href="{% url 'superadmin:email_config_list' %}?tab=outgoing" class="btn btn-outline-secondary px-4">
                         Cancel
                     </a>
                     <button type="submit" class="btn btn-primary px-4 fw-semibold">
@@ -341,28 +280,8 @@
 
 {% block extra_js %}
 <script>
-function togglePasswordVisibility(fieldId, btn) {
-    const input = document.getElementById(fieldId);
-    if (!input) return;
-    const icon = btn.querySelector('i');
-    if (input.type === 'password') {
-        input.type = 'text';
-        if (icon) {
-            icon.classList.remove('fa-eye');
-            icon.classList.add('fa-eye-slash');
-        }
-    } else {
-        input.type = 'password';
-        if (icon) {
-            icon.classList.remove('fa-eye-slash');
-            icon.classList.add('fa-eye');
-        }
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function() {
     const providerSelect = document.getElementById('id_provider');
-    const providerCard = document.getElementById('providerSpecificCard');
     const sections = {
         'smtp': document.getElementById('section-smtp'),
         'sendgrid': document.getElementById('section-sendgrid'),
@@ -373,20 +292,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateSections() {
         const val = providerSelect ? providerSelect.value : '';
-        let hasActiveSection = false;
         Object.keys(sections).forEach(key => {
             if (sections[key]) {
                 if (key === val) {
                     sections[key].style.display = 'block';
-                    hasActiveSection = true;
                 } else {
                     sections[key].style.display = 'none';
                 }
             }
         });
-        if (providerCard) {
-            providerCard.style.display = hasActiveSection ? 'block' : 'none';
-        }
     }
 
     if (providerSelect) {

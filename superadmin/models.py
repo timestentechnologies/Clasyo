@@ -424,6 +424,67 @@ class GlobalEmailConfiguration(models.Model):
         return config
 
 
+class GlobalGoogleAuthConfiguration(models.Model):
+    """Global Google OAuth 2.0 configuration for Sign-in and Register with Google"""
+    
+    client_id = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Google Client ID'),
+        help_text=_('OAuth 2.0 Client ID from Google Cloud Console (e.g. xxxxxxxx.apps.googleusercontent.com)')
+    )
+    client_secret = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name=_('Google Client Secret'),
+        help_text=_('OAuth 2.0 Client Secret from Google Cloud Console (e.g. GOCSPX-xxxxxxxx)')
+    )
+    is_active = models.BooleanField(
+        default=True, 
+        verbose_name=_('Enable Google Sign-In'),
+        help_text=_('Enable or disable Google Sign-In on login and register modals')
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Created At'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('Updated At'))
+
+    class Meta:
+        verbose_name = _('Global Google Auth Configuration')
+        verbose_name_plural = _('Global Google Auth Configurations')
+
+    def __str__(self):
+        status = 'Active' if self.is_active else 'Inactive'
+        return f"Google Auth ({status})"
+
+    def sync_to_social_app(self):
+        """Synchronize settings with Django Allauth SocialApp and Sites"""
+        try:
+            from allauth.socialaccount.models import SocialApp
+            from django.contrib.sites.models import Site
+
+            apps = list(SocialApp.objects.using('default').filter(provider='google').order_by('id'))
+            if apps:
+                app = apps[0]
+                # Clean up any duplicates
+                for extra_app in apps[1:]:
+                    extra_app.delete()
+            else:
+                app = SocialApp(provider='google')
+
+            app.name = 'Google Web Client'
+            app.client_id = (self.client_id or '').strip()
+            app.secret = (self.client_secret or '').strip()
+            app.save(using='default')
+
+            current_site = Site.objects.using('default').first()
+            if current_site and not app.sites.filter(id=current_site.id).exists():
+                app.sites.add(current_site)
+            return app
+        except Exception:
+            return None
+
+
 class GlobalDatabaseConfiguration(models.Model):
     """Global database configuration settings"""
     
@@ -2466,3 +2527,158 @@ class DatabaseBackup(models.Model):
             return f"{round(bytes_val / (1024 * 1024), 2)} MB"
         else:
             return f"{round(bytes_val / (1024 * 1024 * 1024), 2)} GB"
+
+
+class NotificationTemplate(models.Model):
+    """
+    Unified Notification Template model for Email, SMS, and WhatsApp.
+    Supports both Global (system-wide) templates (school=None)
+    and School-specific templates (school=School instance).
+    """
+    CHANNEL_CHOICES = [
+        ('email', _('Email')),
+        ('sms', _('SMS')),
+        ('whatsapp', _('WhatsApp')),
+    ]
+
+    CATEGORY_CHOICES = [
+        ('fees', _('Fees & Finance')),
+        ('academics', _('Academics & Exams')),
+        ('attendance', _('Attendance')),
+        ('notices', _('Notices & Announcements')),
+        ('events', _('Events & Activities')),
+        ('system', _('System & Account')),
+        ('other', _('Other')),
+    ]
+
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='notification_templates',
+        verbose_name=_('School'),
+        help_text=_('If empty, this is a global system template')
+    )
+    code = models.CharField(
+        max_length=100,
+        db_index=True,
+        verbose_name=_('Template Code'),
+        help_text=_('Unique identifier code, e.g. fee_reminder, payment_receipt, welcome_user')
+    )
+    name = models.CharField(
+        max_length=255,
+        verbose_name=_('Template Name'),
+        help_text=_('Descriptive name, e.g. Fee Balance Reminder')
+    )
+    channel = models.CharField(
+        max_length=20,
+        choices=CHANNEL_CHOICES,
+        default='email',
+        verbose_name=_('Channel')
+    )
+    category = models.CharField(
+        max_length=30,
+        choices=CATEGORY_CHOICES,
+        default='other',
+        verbose_name=_('Category')
+    )
+    
+    # Email-specific fields
+    subject = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_('Subject'),
+        help_text=_('Email subject line. Supports dynamic tags like {{ student_name }}')
+    )
+    heading = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_('Headline / Title'),
+        help_text=_('Main title displayed inside email body above content')
+    )
+    body = models.TextField(
+        verbose_name=_('Message Body / Content'),
+        help_text=_('Body text with dynamic tags (e.g., {{ student_name }}, {{ balance }})')
+    )
+    hero_image = models.ImageField(
+        upload_to='templates/banners/',
+        blank=True,
+        null=True,
+        verbose_name=_('Hero / Feature Banner Image')
+    )
+    button_text = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name=_('Action Button Text'),
+        help_text=_('e.g. READ MORE HERE, PAY NOW, VIEW INVOICE')
+    )
+    button_url = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name=_('Action Button URL'),
+        help_text=_('Target URL or dynamic tag e.g. {{ payment_url }}')
+    )
+    
+    # Metadata & Tags
+    available_tags = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name=_('Available Tags'),
+        help_text=_('Comma-separated list of tags, e.g. student_name, balance, due_date, school_name')
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name=_('Is Active')
+    )
+    is_system = models.BooleanField(
+        default=False,
+        verbose_name=_('Built-in System Template')
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Created At'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('Updated At'))
+
+    class Meta:
+        verbose_name = _('Notification Template')
+        verbose_name_plural = _('Notification Templates')
+        ordering = ['channel', 'category', 'name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['school', 'code', 'channel'],
+                name='unique_school_channel_code'
+            )
+        ]
+
+    def __str__(self):
+        scope = self.school.name if self.school else 'Global'
+        return f"[{scope}] {self.name} ({self.get_channel_display()})"
+
+    def get_tags_list(self):
+        """Return list of available tags"""
+        if not self.available_tags:
+            return []
+        return [t.strip() for t in self.available_tags.split(',') if t.strip()]
+
+    def interpolate(self, text, context):
+        """Safely interpolate tags like {{ key }} or {key} from context"""
+        if not text:
+            return ''
+        result = str(text)
+        for key, value in context.items():
+            str_val = '' if value is None else str(value)
+            result = result.replace(f'{{{{ {key} }}}}', str_val)
+            result = result.replace(f'{{{{{key}}}}}', str_val)
+            result = result.replace(f'{{{key}}}', str_val)
+        return result
+
+    def render_content(self, context):
+        """Render subject, heading, body, and button_url with context"""
+        return {
+            'subject': self.interpolate(self.subject, context),
+            'heading': self.interpolate(self.heading, context),
+            'body': self.interpolate(self.body, context),
+            'button_text': self.interpolate(self.button_text, context),
+            'button_url': self.interpolate(self.button_url, context),
+        }
+

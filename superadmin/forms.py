@@ -4,8 +4,9 @@ from .models import (
     GlobalAIConfiguration, SchoolAIConfiguration,
     GlobalEmailConfiguration, GlobalSMSConfiguration,
     GlobalDatabaseConfiguration, GlobalWhatsAppConfiguration,
+    GlobalGoogleAuthConfiguration,
     SchoolWhatsAppConfiguration, SchoolSMSConfiguration,
-    SchoolEmailConfiguration,
+    SchoolEmailConfiguration, NotificationTemplate,
 )
 
 
@@ -674,3 +675,83 @@ class SchoolEmailConfigurationForm(forms.ModelForm):
                 current_cls = widget.attrs.get('class', '')
                 if 'form-control' not in current_cls:
                     widget.attrs['class'] = (current_cls + ' form-control').strip()
+
+
+class GlobalGoogleAuthConfigurationForm(forms.ModelForm):
+    """Form for setting up Google OAuth credentials and enabling Google Sign-In"""
+    class Meta:
+        model = GlobalGoogleAuthConfiguration
+        fields = ['client_id', 'client_secret', 'is_active']
+        widgets = {
+            'client_id': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., 1234567890-abcdefghijklmnop.apps.googleusercontent.com',
+                'autocomplete': 'off',
+            }),
+            'client_secret': forms.PasswordInput(render_value=True, attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx',
+                'autocomplete': 'off',
+            }),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class TestEmailDeliveryForm(forms.Form):
+    """Form to test outgoing email delivery"""
+    recipient_email = forms.EmailField(
+        label='Recipient Email Address',
+        required=True,
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g., admin@example.com'
+        })
+    )
+
+
+class NotificationTemplateForm(forms.ModelForm):
+    """Form for creating and editing Global & School Notification Templates"""
+    class Meta:
+        model = NotificationTemplate
+        fields = [
+            'name', 'code', 'channel', 'category',
+            'subject', 'heading', 'body', 'hero_image',
+            'button_text', 'button_url', 'available_tags',
+            'is_active',
+        ]
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Fee Balance Reminder'}),
+            'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., fee_reminder'}),
+            'channel': forms.Select(attrs={'class': 'form-select', 'id': 'id_channel'}),
+            'category': forms.Select(attrs={'class': 'form-select'}),
+            'subject': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Fee Payment Reminder - {{ student_name }}'}),
+            'heading': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., School Fee Payment Reminder'}),
+            'body': forms.Textarea(attrs={'class': 'form-control font-monospace', 'rows': 7, 'placeholder': 'Write message content with dynamic {{ tags }}...'}),
+            'hero_image': forms.FileInput(attrs={'class': 'form-control'}),
+            'button_text': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., PAY NOW or READ MORE HERE'}),
+            'button_url': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., {{ payment_url }} or https://...'}),
+            'available_tags': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'comma-separated, e.g. student_name, balance, due_date'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class TestNotificationSendForm(forms.Form):
+    """Form to send a live test notification for any template"""
+    recipient = forms.CharField(
+        label='Recipient (Email or Phone Number)',
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'admin@example.com or +254700000000'
+        })
+    )
+    sample_context = forms.CharField(
+        label='Sample Data (JSON)',
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control font-monospace',
+            'rows': 4,
+            'placeholder': '{\n  "student_name": "John Doe",\n  "parent_name": "Jane Doe",\n  "balance": "15,000",\n  "due_date": "15th Oct 2026"\n}'
+        })
+    )
+

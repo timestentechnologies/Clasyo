@@ -250,6 +250,12 @@ class SocialLoginCompleteView(LoginRequiredMixin, View):
     def get(self, request):
         user = request.user
 
+        # Ensure user is tagged with Google auth provider and verified
+        if getattr(user, 'auth_provider', '') != 'google' or not user.is_verified:
+            user.auth_provider = 'google'
+            user.is_verified = True
+            user.save(update_fields=['auth_provider', 'is_verified'])
+
         # Super admin: always go to superadmin dashboard
         if user.role == 'superadmin':
             return redirect('superadmin:dashboard')
@@ -272,61 +278,118 @@ class SocialLoginCompleteView(LoginRequiredMixin, View):
 
 
 class PasswordResetView(View):
-    """Password reset request view - handles sending reset emails"""
+    """Password reset request view - handles sending reset emails and smart auth method detection"""
     
     def post(self, request):
         from django.contrib.auth.tokens import default_token_generator
         from django.utils.http import urlsafe_base64_encode
         from django.utils.encoding import force_bytes
         from django.template.loader import render_to_string
-        from django.core.mail import send_mail
-        from django.conf import settings
+        from django.core.mail import EmailMultiAlternatives
+        from django.http import JsonResponse
         
-        email = request.POST.get('email')
+        is_ajax = (
+            request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+            request.POST.get('ajax') == 'true' or
+            'application/json' in request.META.get('HTTP_ACCEPT', '')
+        )
         
-        try:
-            user = User.objects.get(email=email)
+        email = request.POST.get('email', '').strip()
+        if not email:
+            err_msg = 'Please enter your email address.'
+            if is_ajax:
+                return JsonResponse({'success': False, 'message': err_msg}, status=400)
+            messages.error(request, err_msg)
+            return redirect('frontend:home')
+        
+        user = User.objects.filter(email__iexact=email).first()
+        
+        if user:
+            # Check if this user used Google Sign-In
+            has_google_social = user.socialaccount_set.filter(provider='google').exists()
+            is_google_auth = (
+                user.auth_provider == 'google' or
+                has_google_social or
+                (not user.has_usable_password() and has_google_social)
+            )
             
-            # Generate password reset token
+            if is_google_auth:
+                google_msg = (
+                    "This account was created using Google Sign-In. "
+                    "You do not have a password to reset. "
+                    "Please sign in using the 'Continue with Google' button on the login screen."
+                )
+                if is_ajax:
+                    return JsonResponse({
+                        'success': False,
+                        'is_google': True,
+                        'auth_method': 'google',
+                        'message': google_msg
+                    })
+                messages.warning(request, google_msg)
+                return redirect('frontend:home')
+            
+            # User registered with Email & Password: Send reset link
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             
-            # Build reset URL
             reset_url = request.build_absolute_uri(
                 f'/accounts/password-reset/confirm/{uid}/{token}/'
             )
             
-            # Send email (you'll need to configure email settings)
             subject = 'Password Reset Request - Clasyo'
-            message = f'''
-Hello {user.get_full_name()},
-
-You have requested to reset your password. Click the link below to reset it:
-
-{reset_url}
-
-If you didn't request this, please ignore this email.
-
-Best regards,
-Clasyo Team
-            '''
+            text_body = (
+                f"Hello {user.get_full_name()},\n\n"
+                f"You requested to reset your password. Click the link below to set a new password:\n\n"
+                f"{reset_url}\n\n"
+                f"This link is valid for 24 hours. If you did not request this, please ignore this email.\n\n"
+                f"Best regards,\n"
+                f"Clasyo Team"
+            )
             
             try:
-                send_mail(
-                    subject,
-                    message,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [email],
-                    fail_silently=False,
+                html_body = render_to_string('emails/password_reset_email.html', {
+                    'user': user,
+                    'reset_url': reset_url,
+                })
+                email_msg = EmailMultiAlternatives(
+                    subject=subject,
+                    body=text_body,
+                    from_email=None,  # DynamicEmailBackend will inject active default from_email
+                    to=[user.email]
                 )
-                messages.success(request, 'Password reset instructions have been sent to your email.')
-            except Exception as e:
-                # If email fails, still show success message for security
-                messages.success(request, 'If an account exists with that email, password reset instructions have been sent.')
+                email_msg.attach_alternative(html_body, "text/html")
+                email_msg.send(fail_silently=False)
                 
-        except User.DoesNotExist:
-            # Don't reveal if user exists or not for security
-            messages.success(request, 'If an account exists with that email, password reset instructions have been sent.')
+                success_msg = 'Password reset instructions have been sent to your email. Please check your inbox and spam folder.'
+                if is_ajax:
+                    return JsonResponse({
+                        'success': True,
+                        'auth_method': 'email',
+                        'message': success_msg
+                    })
+                messages.success(request, success_msg)
+            except Exception as e:
+                logger.error(f"Password reset email delivery error for {user.email}: {e}")
+                # For security and user feedback
+                fallback_msg = 'If an account exists with that email, password reset instructions have been sent.'
+                if is_ajax:
+                    return JsonResponse({
+                        'success': True,
+                        'auth_method': 'email',
+                        'message': fallback_msg
+                    })
+                messages.success(request, fallback_msg)
+        else:
+            # Don't reveal whether user exists for security
+            generic_msg = 'If an account exists with that email, password reset instructions have been sent.'
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'auth_method': 'unknown',
+                    'message': generic_msg
+                })
+            messages.success(request, generic_msg)
         
         return redirect('frontend:home')
 

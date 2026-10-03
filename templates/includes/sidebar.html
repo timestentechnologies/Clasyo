@@ -152,6 +152,11 @@
             <span>WhatsApp Configurations</span>
         </a></li>
 
+        <li class="{% if '/settings/templates/' in request.path %}active{% endif %}"><a href="{% url 'superadmin:notification_template_list' %}">
+            <i class="fas fa-file-invoice"></i>
+            <span>Notification Templates</span>
+        </a></li>
+
         <li><a href="{% url 'superadmin:db_config_list' %}">
             <i class="fas fa-database"></i>
             <span>Database Configurations</span>
@@ -392,6 +397,13 @@
         <a href="{% if school_slug %}{% url 'superadmin:school_whatsapp_config_list' school_slug=school_slug %}{% else %}#{% endif %}">
             <i class="fab fa-whatsapp"></i>
             <span>WhatsApp Settings</span>
+        </a>
+        </li>
+
+        <li class="{% if '/settings/templates/' in request.path %}active{% endif %}">
+        <a href="{% if school_slug %}{% url 'superadmin:school_notification_template_list' school_slug=school_slug %}{% else %}#{% endif %}">
+            <i class="fas fa-file-invoice"></i>
+            <span>Notification Templates</span>
         </a>
         </li>
         <li><a href="{% if school_slug %}{% url 'superadmin:school_audit_logs' school_slug=school_slug %}{% else %}#{% endif %}">

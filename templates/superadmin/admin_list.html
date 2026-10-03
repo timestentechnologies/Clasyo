@@ -17,7 +17,7 @@
             <!-- Modern Dynamic Filter Bar -->
             <div class="modern-card mb-4 p-3 p-md-4">
                 <form method="get" id="adminsFilterForm" class="row g-3 dynamic-filter-form">
-                    <div class="col-12 col-md-3">
+                    <div class="col-12 col-md-2">
                         <label for="status" class="form-label fw-semibold text-muted small text-uppercase">Status</label>
                         <select class="form-select" id="status" name="status">
                             <option value="" {% if not request.GET.status %}selected{% endif %}>All Statuses</option>
@@ -25,7 +25,15 @@
                             <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
                         </select>
                     </div>
-                    <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-2">
+                        <label for="auth_method" class="form-label fw-semibold text-muted small text-uppercase">Auth Method</label>
+                        <select class="form-select" id="auth_method" name="auth_method">
+                            <option value="" {% if not selected_auth_method %}selected{% endif %}>All Methods</option>
+                            <option value="google" {% if selected_auth_method == 'google' %}selected{% endif %}>Google Sign-In</option>
+                            <option value="email" {% if selected_auth_method == 'email' %}selected{% endif %}>Email &amp; Password</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3">
                         <label for="school" class="form-label fw-semibold text-muted small text-uppercase">School</label>
                         <select class="form-select" id="school" name="school">
                             <option value="" {% if not selected_school %}selected{% endif %}>All Schools</option>
@@ -65,6 +73,7 @@
                                 <th>Admin</th>
                                 <th>Contact</th>
                                 <th>School</th>
+                                <th>Auth Method</th>
                                 <th>Status</th>
                                 <th>Last Login</th>
                                 <th>Created</th>
@@ -96,6 +105,17 @@
                                         </a>
                                     {% else %}
                                         <span class="badge bg-warning-subtle text-warning border">Unlinked</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if admin.auth_provider == 'google' or admin.socialaccount_set.all %}
+                                        <span class="badge bg-light text-dark border">
+                                            <i class="fab fa-google text-danger me-1"></i> Google
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-light text-muted border">
+                                            <i class="fas fa-envelope text-primary me-1"></i> Email &amp; Pass
+                                        </span>
                                     {% endif %}
                                 </td>
                                 <td>

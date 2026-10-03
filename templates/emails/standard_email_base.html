@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subject|default:"Notification" }}</title>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <![endif]-->
+    <style>
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+        table { border-collapse: collapse !important; }
+        body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        @media screen and (max-width: 600px) {
+            .email-container { width: 100% !important; max-width: 100% !important; }
+            .header-cell { display: block !important; width: 100% !important; text-align: center !important; }
+            .tagline-text { text-align: center !important; margin-top: 8px !important; }
+            .footer-col { display: block !important; width: 100% !important; text-align: center !important; }
+            .footer-logo { margin: 16px auto 0 auto !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9;">
+    <!-- Background Wrapper -->
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f1f5f9; padding: 24px 12px;">
+        <tr>
+            <td align="center">
+                <!-- Main Email Card -->
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="email-container" style="max-width: 620px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);">
+                    
+                    <!-- ── Standard Email Header ── -->
+                    <tr>
+                        <td style="padding: 24px 28px 18px 28px; background-color: #ffffff;">
+                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <!-- Logo on Left -->
+                                    <td class="header-cell" valign="middle" align="left" style="vertical-align: middle;">
+                                        {% if branding.logo_url %}
+                                            <img src="{{ branding.logo_url }}" alt="{{ branding.name }}" style="max-height: 48px; max-width: 200px; display: block; border: 0;">
+                                        {% else %}
+                                            <span style="font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; display: inline-block;">
+                                                {{ branding.name }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <!-- Slogan / Tagline on Right -->
+                                    <td class="header-cell" valign="middle" align="right" style="vertical-align: middle;">
+                                        {% if branding.tagline %}
+                                            <span class="tagline-text" style="font-size: 13px; font-style: italic; color: #64748b; line-height: 1.4; display: block; text-align: right; max-width: 260px;">
+                                                {{ branding.tagline }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Accent Colored Divider Bar (Matches Provided Design) -->
+                    <tr>
+                        <td style="background-color: {{ branding.accent_color|default:'#ea580c' }}; height: 3.5px; line-height: 3.5px; font-size: 1px;">
+                            &nbsp;
+                        </td>
+                    </tr>
+
+                    <!-- ── Standard Email Body ── -->
+                    <tr>
+                        <td style="padding: 32px 32px 28px 32px; background-color: #ffffff;">
+                            
+                            <!-- Optional Hero Banner Image -->
+                            {% if hero_image_url %}
+                            <div style="margin-bottom: 24px; text-align: center;">
+                                <img src="{{ hero_image_url }}" alt="" style="width: 100%; max-height: 320px; object-fit: cover; border-radius: 8px; display: block;">
+                            </div>
+                            {% endif %}
+
+                            <!-- Main Title / Heading -->
+                            {% if heading %}
+                            <h1 style="color: #0f172a; font-size: 22px; font-weight: 700; line-height: 1.35; margin: 0 0 18px 0;">
+                                {{ heading }}
+                            </h1>
+                            {% endif %}
+
+                            <!-- Content Body (Formatted Paragraphs, HTML or Plain text) -->
+                            <div style="color: #475569; font-size: 15px; line-height: 1.65; margin: 0 0 24px 0;">
+                                {{ body|safe }}
+                            </div>
+
+                            <!-- Optional Call-To-Action (CTA) Button -->
+                            {% if button_text and button_url %}
+                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 28px 0 16px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{ button_url }}" target="_blank" style="background-color: {{ branding.accent_color|default:'#ea580c' }}; color: #ffffff !important; text-decoration: none; padding: 14px 34px; font-size: 14px; font-weight: 700; border-radius: 6px; display: inline-block; text-transform: uppercase; letter-spacing: 0.6px; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.35);">
+                                            {{ button_text }}
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            {% endif %}
+
+                        </td>
+                    </tr>
+
+                    <!-- ── Standard Email Footer (Dark Branded Footer matching design) ── -->
+                    <tr>
+                        <td style="background-color: #1e1e2d; padding: 32px 32px 24px 32px; color: #cbd5e1;">
+                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <!-- Organization / School Info on Left -->
+                                    <td class="footer-col" valign="top" align="left" style="font-size: 13px; line-height: 1.55;">
+                                        <div style="color: #f8fafc; font-size: 16px; font-weight: 700; margin-bottom: 6px;">
+                                            {{ branding.name }}
+                                        </div>
+                                        {% if branding.address %}
+                                        <div style="color: #94a3b8; margin-bottom: 4px;">
+                                            {{ branding.address }}
+                                        </div>
+                                        {% endif %}
+                                        <div style="color: #94a3b8;">
+                                            {% if branding.phone %}Phone: <span style="color: #f8fafc;">{{ branding.phone }}</span>{% endif %}
+                                            {% if branding.phone and branding.email %} | {% endif %}
+                                            {% if branding.email %}Email: <a href="mailto:{{ branding.email }}" style="color: {{ branding.accent_color|default:'#ea580c' }}; text-decoration: none; font-weight: 600;">{{ branding.email }}</a>{% endif %}
+                                        </div>
+                                    </td>
+                                    <!-- Footer Logo on Right -->
+                                    {% if branding.footer_logo_url or branding.logo_url %}
+                                    <td class="footer-col" valign="middle" align="right" style="vertical-align: middle;">
+                                        <img src="{{ branding.footer_logo_url|default:branding.logo_url }}" alt="{{ branding.name }}" class="footer-logo" style="max-height: 42px; max-width: 150px; display: block; border: 0; opacity: 0.95;">
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                            </table>
+
+                            <!-- Subtle Divider -->
+                            <div style="border-top: 1px solid #334155; margin: 20px 0 16px 0;"></div>
+
+                            <!-- Context / Disclaimer & Copyright -->
+                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td align="center" style="font-size: 12px; color: #64748b; line-height: 1.5; text-align: center;">
+                                        <p style="margin: 0 0 6px 0;">
+                                            {{ branding.disclaimer|default:"You received this notification because you are a registered user/parent on this portal." }}
+                                        </p>
+                                        <p style="margin: 0;">
+                                            &copy; {{ current_year|default:"2026" }} {{ branding.name }}. All rights reserved.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

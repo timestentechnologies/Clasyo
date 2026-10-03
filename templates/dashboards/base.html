@@ -23,10 +23,60 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=35.0">
-    <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}?v=45.0">
-    <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=25.0">
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=36.0">
+    <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}?v=46.0">
+    <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=26.0">
     <style id="custom-theme-variables">
+        /* Universal Outline & Focus-Glow Suppression Across All Inputs, Groups & Controls */
+        *:focus,
+        *:focus-visible,
+        *:focus-within,
+        input:focus,
+        input:focus-visible,
+        select:focus,
+        select:focus-visible,
+        textarea:focus,
+        textarea:focus-visible,
+        button:focus,
+        button:focus-visible,
+        .form-control:focus,
+        .form-control:focus-visible,
+        .form-select:focus,
+        .form-select:focus-visible,
+        .form-control-modern:focus,
+        .form-control-modern:focus-visible,
+        .input-group:focus,
+        .input-group:focus-within,
+        .input-group-sm:focus,
+        .input-group-sm:focus-within,
+        .input-group .form-control:focus,
+        .input-group-sm .form-control:focus {
+            outline: none !important;
+            outline-width: 0 !important;
+            outline-style: none !important;
+            outline-offset: 0 !important;
+            box-shadow: none !important;
+            -webkit-box-shadow: none !important;
+        }
+
+        [data-bs-theme="dark"] .input-group:focus-within,
+        [data-theme="dark"] .input-group:focus-within,
+        .theme-dark .input-group:focus-within,
+        body.dark-theme .input-group:focus-within {
+            border-color: var(--input-border, #475569) !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }
+
+        [data-bs-theme="light"] .input-group:focus-within,
+        [data-theme="light"] .input-group:focus-within,
+        .theme-light .input-group:focus-within,
+        body.theme-light .input-group:focus-within {
+            border-color: var(--input-border, #CBD5E1) !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }
+
         /* Universal Range Slider Box/Border Removal */
         input[type="range"],
         .form-range,
@@ -482,7 +532,13 @@
                 input.style.paddingRight = '2.75rem';
                 input.style.width = '100%';
 
-                var btn = wrapper.querySelector('.password-toggle-btn');
+                var allExistingBtns = wrapper.querySelectorAll('button');
+                if (allExistingBtns.length > 1) {
+                    for (var i = 1; i < allExistingBtns.length; i++) {
+                        allExistingBtns[i].remove();
+                    }
+                }
+                var btn = wrapper.querySelector('.password-toggle-btn') || wrapper.querySelector('button');
                 if (!btn) {
                     btn = document.createElement('button');
                     btn.type = 'button';
@@ -493,6 +549,7 @@
                     btn.innerHTML = '<i class="fas fa-eye"></i>';
                     wrapper.appendChild(btn);
                 }
+                btn.className = 'password-toggle-btn';
                 btn.style.cssText = 'position: absolute !important; right: 12px !important; top: 50% !important; transform: translateY(-50%) !important; background: transparent !important; background-color: transparent !important; border: none !important; outline: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; cursor: pointer !important; color: #64748b !important; z-index: 10 !important; display: flex !important; align-items: center !important; justify-content: center !important; width: 24px !important; height: 24px !important; line-height: 1 !important;';
 
                 btn.addEventListener('click', function(e) {

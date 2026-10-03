@@ -52,8 +52,22 @@ class User(AbstractUser):
         ('other', 'Other'),
     ]
     
+    AUTH_PROVIDER_CHOICES = [
+        ('email', _('Email and Password')),
+        ('google', _('Google Sign-In')),
+    ]
+    
     username = None
     email = models.EmailField(_('Email Address'), unique=True)
+    
+    # Authentication Method
+    auth_provider = models.CharField(
+        _('Authentication Method'),
+        max_length=20,
+        choices=AUTH_PROVIDER_CHOICES,
+        default='email',
+        help_text=_('Method used to authenticate/register (Email & Password or Google Sign-In)')
+    )
     
     # Role and Permissions
     role = models.CharField(_('Role'), max_length=20, choices=ROLE_CHOICES)
