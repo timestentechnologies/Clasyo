@@ -15,8 +15,19 @@
                 <a href="{% url 'superadmin:sms_config_list' %}" class="btn btn-sm btn-outline-secondary">
                     <i class="fas fa-arrow-left me-1"></i> Back to Configurations
                 </a>
-                <h5 class="mb-0 fw-bold form-title-text">
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
                     {% if form.instance.pk %}Edit SMS Configuration{% else %}Add SMS Configuration{% endif %}
+                    <button type="button" 
+                            class="more-info-btn ms-2" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="bottom" 
+                            data-bs-html="true" 
+                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-shield-alt text-primary'></i><strong>SMS Best Practices & Guidelines</strong></div>" 
+                            data-bs-content="<ul class='small ps-3 mb-0'><li>Keep API keys and tokens strictly confidential.</li><li>Sender ID guidelines: Max 11 alphanumeric characters, no spaces, formally approved by telecom regulators.</li><li>Test SMS delivery using a single test recipient before enabling broadcast alerts.</li><li>Monitor gateway balance regularly to prevent unsent message alerts.</li></ul>" 
+                            aria-label="SMS Best Practices Info" 
+                            title="SMS Best Practices & Guidelines">
+                        <i class="fas fa-info-circle text-primary"></i>
+                    </button>
                 </h5>
             </div>
             <div class="form-header-actions">
@@ -295,16 +306,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="d-flex justify-content-end gap-2 mb-2">
-                    <a href="{% url 'superadmin:sms_config_list' %}" class="btn btn-outline-secondary px-4">
-                        Cancel
-                    </a>
-                    <button type="submit" class="btn btn-primary px-4 fw-semibold">
-                        <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Configuration{% else %}Save Configuration{% endif %}
-                    </button>
                 </div>
             </form>
         </div>

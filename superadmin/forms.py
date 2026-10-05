@@ -561,12 +561,11 @@ class SchoolWhatsAppConfigurationForm(forms.ModelForm):
     """Form for creating and editing School-specific WhatsApp Configuration"""
     class Meta:
         model = SchoolWhatsAppConfiguration
-        fields = '__all__'
+        exclude = ['use_global_settings']
         widgets = {
             'school': forms.Select(attrs={'class': 'form-select'}),
             'provider': forms.Select(attrs={'class': 'form-select', 'id': 'id_provider'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'use_global_settings': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'custom_sender_phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+254700000000'}),
             'daily_whatsapp_limit': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0 for unlimited'}),
             'monthly_whatsapp_limit': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0 for unlimited'}),
@@ -595,11 +594,10 @@ class SchoolSMSConfigurationForm(forms.ModelForm):
     """Form for creating and editing School-specific SMS configuration"""
     class Meta:
         model = SchoolSMSConfiguration
-        exclude = ['school']
+        exclude = ['school', 'use_global_settings']
         widgets = {
             'provider': forms.Select(attrs={'class': 'form-select'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'use_global_settings': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'custom_sender_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. SCHOOLSMS'}),
             'default_sender_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. SCHOOLNAME'}),
             'daily_sms_limit': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0 for unlimited'}),
@@ -639,11 +637,10 @@ class SchoolEmailConfigurationForm(forms.ModelForm):
     """Form for creating and editing School-specific Email configuration"""
     class Meta:
         model = SchoolEmailConfiguration
-        exclude = ['school']
+        exclude = ['school', 'use_global_settings']
         widgets = {
             'provider': forms.Select(attrs={'class': 'form-select'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'use_global_settings': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'from_email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'noreply@school.com'}),
             'from_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'School Name'}),
             'daily_limit': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0 for unlimited'}),

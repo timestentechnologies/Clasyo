@@ -128,8 +128,19 @@
             <div class="form-panel-view mb-4" id="currentSubscriptionPanel">
                 <div class="form-header-bar">
                     <div class="form-header-title-group">
-                        <h5 class="mb-0 fw-bold form-title-text">
+                        <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
                             <i class="fas fa-check-circle text-success me-2"></i> Current Subscription
+                            <button type="button" 
+                                    class="more-info-btn ms-2" 
+                                    data-bs-toggle="popover" 
+                                    data-bs-placement="bottom" 
+                                    data-bs-html="true" 
+                                    data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-receipt text-primary'></i><strong>Subscription Info</strong></div>" 
+                                    data-bs-content="<ul class='small ps-3 mb-0'><li>Subscriptions grant access to student quotas and specialized school modules.</li><li>Invoices and receipts are instantly generated upon payment confirmation.</li><li>Renewals can be processed at any time without loss of remaining cycle days.</li></ul>" 
+                                    aria-label="Subscription Info" 
+                                    title="Subscription Info">
+                                <i class="fas fa-info-circle text-primary"></i>
+                            </button>
                         </h5>
                         {% if subscription %}
                             {% if subscription.status == 'active' %}

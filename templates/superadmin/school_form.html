@@ -128,6 +128,55 @@
                                 </div>
                             </div>
 
+                            <hr class="my-4">
+
+                            <h4 class="mb-3 d-flex align-items-center gap-2">
+                                <i class="fas fa-network-wired text-primary"></i>
+                                <span>Platform System Defaults & Gateway Permissions</span>
+                            </h4>
+                            <p class="text-muted small mb-3">
+                                Control which platform-level services this school is authorized to fall back to when school-specific gateway credentials are not configured.
+                            </p>
+
+                            <div class="row g-3 p-3 rounded-3 mb-3" style="background: rgba(248, 250, 252, 0.8); border: 1px solid rgba(226, 232, 240, 0.8);">
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch p-2">
+                                        {{ form.allow_system_sms }}
+                                        <label class="form-check-label fw-bold ms-2" for="{{ form.allow_system_sms.id_for_label }}">
+                                            <i class="fas fa-sms text-primary me-1"></i> Allow System SMS Default
+                                        </label>
+                                        <div class="small text-muted ms-4">Allows school to send SMS via the platform's central SMS gateway.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch p-2">
+                                        {{ form.allow_system_email }}
+                                        <label class="form-check-label fw-bold ms-2" for="{{ form.allow_system_email.id_for_label }}">
+                                            <i class="fas fa-envelope text-info me-1"></i> Allow System Email Default
+                                        </label>
+                                        <div class="small text-muted ms-4">Allows school to send emails via the platform's global SMTP/Email service.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch p-2">
+                                        {{ form.allow_system_ai }}
+                                        <label class="form-check-label fw-bold ms-2" for="{{ form.allow_system_ai.id_for_label }}">
+                                            <i class="fas fa-robot text-purple me-1" style="color: #8b5cf6;"></i> Allow System AI Assistant
+                                        </label>
+                                        <div class="small text-muted ms-4">Allows school to use platform AI without providing their own OpenAI/Gemini API keys.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch p-2">
+                                        {{ form.allow_system_whatsapp }}
+                                        <label class="form-check-label fw-bold ms-2" for="{{ form.allow_system_whatsapp.id_for_label }}">
+                                            <i class="fab fa-whatsapp text-success me-1"></i> Allow System WhatsApp Default
+                                        </label>
+                                        <div class="small text-muted ms-4">Allows school to utilize the platform's central WhatsApp Business gateway.</div>
+                                    </div>
+                                </div>
+                            </div>
+
                             {% if not object %}
                             <hr class="my-4">
 

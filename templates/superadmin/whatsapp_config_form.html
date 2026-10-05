@@ -15,8 +15,19 @@
                 <a href="{% url 'superadmin:whatsapp_config_list' %}" class="btn btn-sm btn-outline-secondary">
                     <i class="fas fa-arrow-left me-1"></i> Back to Configurations
                 </a>
-                <h5 class="mb-0 fw-bold form-title-text">
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
                     {% if form.instance.pk %}Edit WhatsApp Configuration{% else %}Add WhatsApp Configuration{% endif %}
+                    <button type="button" 
+                            class="more-info-btn ms-2" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="bottom" 
+                            data-bs-html="true" 
+                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fab fa-whatsapp text-success'></i><strong>WhatsApp Best Practices</strong></div>" 
+                            data-bs-content="<ul class='small ps-3 mb-0'><li>Meta Cloud API requires a verified Meta Business Account and registered phone number.</li><li>Keep Access Tokens, App Secrets, and Webhook verification tokens strictly secure.</li><li>Ensure outbound messages comply with WhatsApp Business and template policies.</li><li>Send a test payload to confirm gateway status before enabling live broadcasts.</li></ul>" 
+                            aria-label="WhatsApp Best Practices Info" 
+                            title="WhatsApp Best Practices">
+                        <i class="fas fa-info-circle text-primary"></i>
+                    </button>
                 </h5>
             </div>
             <div class="form-header-actions">
@@ -319,16 +330,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Actions -->
-                <div class="d-flex justify-content-end gap-2 mb-2">
-                    <a href="{% url 'superadmin:whatsapp_config_list' %}" class="btn btn-outline-secondary px-4">
-                        Cancel
-                    </a>
-                    <button type="submit" class="btn btn-primary px-4 fw-semibold">
-                        <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Configuration{% else %}Save Configuration{% endif %}
-                    </button>
                 </div>
             </form>
         </div>

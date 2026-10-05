@@ -245,7 +245,8 @@ class SchoolCreateView(SuperAdminRequiredMixin, CreateView):
     model = School
     template_name = 'superadmin/school_form.html'
     fields = ['name', 'slug', 'email', 'phone', 'address', 'city', 'state', 'country', 
-              'postal_code', 'website', 'institution_type', 'is_active', 'is_trial', 'trial_end_date']
+              'postal_code', 'website', 'institution_type', 'is_active', 'is_trial', 'trial_end_date',
+              'allow_system_sms', 'allow_system_email', 'allow_system_ai', 'allow_system_whatsapp']
     success_url = reverse_lazy('superadmin:schools')
     
     def get_form(self, form_class=None):
@@ -265,6 +266,9 @@ class SchoolCreateView(SuperAdminRequiredMixin, CreateView):
         form.fields['is_active'].widget.attrs.update({'class': 'form-check-input'})
         form.fields['is_trial'].widget.attrs.update({'class': 'form-check-input'})
         form.fields['trial_end_date'].widget.attrs.update({'class': 'form-control', 'type': 'date'})
+        for f in ['allow_system_sms', 'allow_system_email', 'allow_system_ai', 'allow_system_whatsapp']:
+            if f in form.fields:
+                form.fields[f].widget.attrs.update({'class': 'form-check-input'})
         return form
     
     def form_valid(self, form):
@@ -355,7 +359,8 @@ class SchoolUpdateView(SuperAdminRequiredMixin, UpdateView):
     model = School
     template_name = 'superadmin/school_form.html'
     fields = ['name', 'email', 'phone', 'address', 'city', 'state', 'country', 
-              'postal_code', 'website', 'institution_type', 'is_active', 'is_trial', 'trial_end_date']
+              'postal_code', 'website', 'institution_type', 'is_active', 'is_trial', 'trial_end_date',
+              'allow_system_sms', 'allow_system_email', 'allow_system_ai', 'allow_system_whatsapp']
     success_url = reverse_lazy('superadmin:schools')
     
     def get_form(self, form_class=None):
@@ -374,11 +379,57 @@ class SchoolUpdateView(SuperAdminRequiredMixin, UpdateView):
         form.fields['is_active'].widget.attrs.update({'class': 'form-check-input'})
         form.fields['is_trial'].widget.attrs.update({'class': 'form-check-input'})
         form.fields['trial_end_date'].widget.attrs.update({'class': 'form-control', 'type': 'date'})
+        for f in ['allow_system_sms', 'allow_system_email', 'allow_system_ai', 'allow_system_whatsapp']:
+            if f in form.fields:
+                form.fields[f].widget.attrs.update({'class': 'form-check-input'})
         return form
     
     def form_valid(self, form):
         messages.success(self.request, f'School "{self.object.name}" updated successfully!')
         return super().form_valid(form)
+
+
+class SchoolSystemDefaultsToggleView(SuperAdminRequiredMixin, View):
+    """SuperAdmin toggle for enabling/disabling system defaults for a school (SMS, Email, AI, WhatsApp)"""
+
+    def post(self, request, school_slug):
+        school = get_object_or_404(School, slug=school_slug)
+        setting_type = request.POST.get('setting', '').strip().lower()
+
+        allowed_settings = {
+            'sms': ('allow_system_sms', 'SMS'),
+            'email': ('allow_system_email', 'Email'),
+            'ai': ('allow_system_ai', 'AI Assistant'),
+            'whatsapp': ('allow_system_whatsapp', 'WhatsApp'),
+        }
+
+        is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('accept', '')
+
+        if setting_type not in allowed_settings:
+            error_msg = f"Invalid setting type: {setting_type}"
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': error_msg}, status=400)
+            messages.error(request, error_msg)
+            return redirect(request.META.get('HTTP_REFERER') or reverse('superadmin:schools'))
+
+        field_name, display_label = allowed_settings[setting_type]
+        current_val = getattr(school, field_name, False)
+        new_val = not current_val
+        setattr(school, field_name, new_val)
+        school.save(update_fields=[field_name])
+
+        msg = f"System {display_label} default for {school.name} is now {'enabled' if new_val else 'disabled'}."
+
+        if is_ajax:
+            return JsonResponse({
+                'success': True,
+                'setting': setting_type,
+                'enabled': new_val,
+                'message': msg,
+            })
+
+        messages.success(request, msg)
+        return redirect(request.META.get('HTTP_REFERER') or reverse('superadmin:school_detail', kwargs={'pk': school.pk}))
 
 
 class SchoolDeleteView(SuperAdminRequiredMixin, DeleteView):
@@ -2644,7 +2695,10 @@ class SchoolAdminAIConfigurationView(SchoolAdminRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['school_slug'] = self.kwargs.get('school_slug')
+        school_slug = self.kwargs.get('school_slug')
+        school = get_object_or_404(School, slug=school_slug)
+        context['school'] = school
+        context['school_slug'] = school_slug
         # Add global AI configurations to show available providers
         context['global_configs'] = GlobalAIConfiguration.objects.all().order_by('provider')
         return context

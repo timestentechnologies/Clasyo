@@ -22,7 +22,7 @@ class SchoolAIConfigurationForm(forms.ModelForm):
 
     class Meta:
         model = SchoolAIConfiguration
-        exclude = ['school', 'created_at', 'updated_at']
+        exclude = ['school', 'use_global_settings', 'created_at', 'updated_at']
         widgets = {
             'openai_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),
             'azure_openai_api_key': forms.PasswordInput(render_value=True, attrs={'class': 'form-control'}),

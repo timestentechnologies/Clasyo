@@ -3343,13 +3343,15 @@ class AiChatApiView(LoginRequiredMixin, View):
             if school_config and school_config.is_active:
                 config = school_config.get_effective_config()
                 print("Using school config")
-            else:
+            elif getattr(school, 'allow_system_ai', False):
                 global_config = GlobalAIConfiguration.objects.filter(is_active=True).first()
                 config = global_config.get_config_data() if global_config else None
                 print("Using global config" if global_config else "No global config")
+            else:
+                config = None
             print("Final config:", config)
             if not config:
-                return JsonResponse({'success': False, 'error': 'AI is not configured'}, status=503)
+                return JsonResponse({'success': False, 'error': 'AI is not configured or platform AI permission is not granted for this school.'}, status=503)
 
             # Gather school context data
             context_data = self.get_school_context(school, school_config)

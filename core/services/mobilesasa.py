@@ -321,24 +321,24 @@ class MobileSasaClient:
 def get_mobilesasa_sms_client(school=None) -> Optional[MobileSasaClient]:
     """
     Resolve active MobileSasa SMS configuration for a school or globally.
-    Returns None if MobileSasa is not active or credentials missing.
+    School admins use their own credentials if configured, or fall back to platform
+    global settings ONLY if SuperAdmin granted allow_system_sms.
     """
     from superadmin.models import GlobalSMSConfiguration, SchoolSMSConfiguration
 
     # 1. Check school-specific configuration if school provided
     if school:
         school_config = SchoolSMSConfiguration.objects.filter(school=school, provider='mobilesasa', is_active=True).first()
-        if school_config:
-            if school_config.use_global_settings:
-                # Fall through to global config
-                pass
-            elif school_config.mobilesasa_api_token:
-                return MobileSasaClient(
-                    api_token=school_config.mobilesasa_api_token,
-                    sender_id=school_config.mobilesasa_sender_id or school_config.custom_sender_id,
-                )
+        if school_config and school_config.mobilesasa_api_token:
+            return MobileSasaClient(
+                api_token=school_config.mobilesasa_api_token,
+                sender_id=school_config.mobilesasa_sender_id or school_config.custom_sender_id,
+            )
+        # If school does not have custom active credentials, only allow fallback if Superadmin enabled it
+        if not getattr(school, 'allow_system_sms', False):
+            return None
 
-    # 2. Check global configuration
+    # 2. Check global configuration (platform level or allowed school fallback)
     global_config = GlobalSMSConfiguration.objects.filter(provider='mobilesasa', is_active=True).first()
     if global_config and global_config.mobilesasa_api_token:
         return MobileSasaClient(
@@ -352,25 +352,25 @@ def get_mobilesasa_sms_client(school=None) -> Optional[MobileSasaClient]:
 def get_mobilesasa_whatsapp_client(school=None) -> Optional[MobileSasaClient]:
     """
     Resolve active MobileSasa WhatsApp configuration for a school or globally.
-    Returns None if MobileSasa WhatsApp is not active or credentials missing.
+    School admins use their own credentials if configured, or fall back to platform
+    global settings ONLY if SuperAdmin granted allow_system_whatsapp.
     """
     from superadmin.models import GlobalWhatsAppConfiguration, SchoolWhatsAppConfiguration
 
     # 1. Check school-specific configuration
     if school:
         school_config = SchoolWhatsAppConfiguration.objects.filter(school=school, provider='mobilesasa', is_active=True).first()
-        if school_config:
-            if school_config.use_global_settings:
-                # Fall through to global config
-                pass
-            elif school_config.mobilesasa_api_token:
-                return MobileSasaClient(
-                    api_token=school_config.mobilesasa_api_token,
-                    account_uuid=school_config.mobilesasa_account_uuid,
-                    sender_phone=school_config.mobilesasa_sender_phone or school_config.custom_sender_phone,
-                )
+        if school_config and school_config.mobilesasa_api_token:
+            return MobileSasaClient(
+                api_token=school_config.mobilesasa_api_token,
+                account_uuid=school_config.mobilesasa_account_uuid,
+                sender_phone=school_config.mobilesasa_sender_phone or school_config.custom_sender_phone,
+            )
+        # If school does not have custom active credentials, only allow fallback if Superadmin enabled it
+        if not getattr(school, 'allow_system_whatsapp', False):
+            return None
 
-    # 2. Check global configuration
+    # 2. Check global configuration (platform level or allowed school fallback)
     global_config = GlobalWhatsAppConfiguration.objects.filter(provider='mobilesasa', is_active=True).first()
     if global_config and global_config.mobilesasa_api_token:
         return MobileSasaClient(

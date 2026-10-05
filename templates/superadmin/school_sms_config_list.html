@@ -13,6 +13,59 @@
 {% endblock %}
 
 {% block content %}
+<!-- Platform SMS Default Status Banner -->
+{% if request.user.role == 'superadmin' or request.user.is_superuser %}
+<div class="modern-card mb-4 p-3 p-md-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="avatar-circle" style="width: 44px; height: 44px; font-size: 18px; background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+                <i class="fas fa-satellite-dish"></i>
+            </div>
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <h6 class="mb-0 fw-bold">Platform System SMS Default</h6>
+                    <span id="badge-sms-list" class="badge {% if school.allow_system_sms %}bg-success{% else %}bg-secondary{% endif %}">
+                        {% if school.allow_system_sms %}Allowed{% else %}Denied (Custom Only){% endif %}
+                    </span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle small">Superadmin Control</span>
+                </div>
+                <small class="text-muted">
+                    When enabled, this school can send SMS using the system's global SMS gateway whenever no school-specific credentials are active.
+                </small>
+            </div>
+        </div>
+        <div>
+            <form method="post" action="{% url 'superadmin:school_toggle_system_default' school_slug=school.slug %}" class="m-0" id="sms-toggle-form">
+                {% csrf_token %}
+                <input type="hidden" name="setting" value="sms">
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input fs-5" type="checkbox" role="switch" id="toggle-system-sms-switch" {% if school.allow_system_sms %}checked{% endif %} onchange="this.form.submit()">
+                    <label class="form-check-label fw-bold ms-2 mt-1" for="toggle-system-sms-switch">
+                        {% if school.allow_system_sms %}Enabled for School{% else %}Disabled for School{% endif %}
+                    </label>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% else %}
+    {% if school.allow_system_sms %}
+    <div class="alert alert-success d-flex align-items-center mb-4">
+        <i class="fas fa-check-circle me-3 fs-5"></i>
+        <div>
+            <strong>Platform SMS Default Enabled:</strong> Your school is authorized to send SMS via the platform's central SMS gateway as default fallback whenever you haven't set up custom credentials below.
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info d-flex align-items-center mb-4">
+        <i class="fas fa-info-circle me-3 fs-5"></i>
+        <div>
+            <strong>Custom Configuration Required:</strong> System SMS default fallback is not granted for this school. Please add and enable your own SMS provider credentials below to send SMS.
+        </div>
+    </div>
+    {% endif %}
+{% endif %}
+
 <!-- SMS Configurations List -->
 <div class="modern-card mb-4">
     <div class="d-flex justify-content-between align-items-center p-3 p-md-4 border-bottom">
@@ -82,9 +135,6 @@
                             <span class="badge bg-success">Active</span>
                         {% else %}
                             <span class="badge bg-secondary">Inactive</span>
-                        {% endif %}
-                        {% if config.use_global_settings %}
-                            <span class="badge bg-info ms-1">Global</span>
                         {% endif %}
                     </td>
                     <td>

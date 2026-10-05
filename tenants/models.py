@@ -74,6 +74,28 @@ class School(models.Model):
     enable_dormitory = models.BooleanField(_("Enable Dormitory"), default=True)
     enable_inventory = models.BooleanField(_("Enable Inventory"), default=True)
 
+    # Platform / System Defaults Access (Controlled by Superadmin)
+    allow_system_sms = models.BooleanField(
+        _("Allow System SMS"), 
+        default=False, 
+        help_text=_("Allow this school to use the platform's central SMS gateway as default")
+    )
+    allow_system_email = models.BooleanField(
+        _("Allow System Email"), 
+        default=False, 
+        help_text=_("Allow this school to use the platform's central Email gateway as default")
+    )
+    allow_system_ai = models.BooleanField(
+        _("Allow System AI"), 
+        default=False, 
+        help_text=_("Allow this school to use the platform's central AI models as default")
+    )
+    allow_system_whatsapp = models.BooleanField(
+        _("Allow System WhatsApp"), 
+        default=False, 
+        help_text=_("Allow this school to use the platform's central WhatsApp gateway as default")
+    )
+
     objects = models.Manager()
 
     class Meta:

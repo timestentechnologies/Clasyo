@@ -15,8 +15,19 @@
                 <a href="{% url 'superadmin:notification_template_list' %}" class="btn btn-sm btn-outline-secondary">
                     <i class="fas fa-arrow-left me-1"></i> Back to Templates
                 </a>
-                <h5 class="mb-0 fw-bold form-title-text">
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
                     {% if form.instance.pk %}Edit: {{ form.instance.name }}{% else %}Create Notification Template{% endif %}
+                    <button type="button" 
+                            class="more-info-btn ms-2" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="bottom" 
+                            data-bs-html="true" 
+                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>Template Guidelines</strong></div>" 
+                            data-bs-content="<ul class='small ps-3 mb-0'><li>Placeholders like <code>&#123;&#123; student_name &#125;&#125;</code> and <code>&#123;&#123; balance &#125;&#125;</code> are dynamically populated upon sending.</li><li>For SMS templates, keep messages within 160 characters to optimize single-segment billing.</li><li>Email templates automatically inherit school branding, header logos, and footers.</li></ul>" 
+                            aria-label="Template Guidelines Info" 
+                            title="Template Guidelines">
+                        <i class="fas fa-info-circle text-primary"></i>
+                    </button>
                 </h5>
             </div>
             <div class="form-header-actions">

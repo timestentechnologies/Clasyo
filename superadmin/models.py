@@ -1689,7 +1689,18 @@ class SchoolAIConfiguration(models.Model):
         """Get the effective configuration, merging global and school-specific settings"""
         global_config = GlobalAIConfiguration.objects.first()
         
-        # If no global config, build from school config only
+        has_custom_key = bool(
+            self.openai_api_key or self.azure_openai_api_key or 
+            self.anthropic_api_key or self.google_api_key or self.local_model_path
+        )
+
+        # If school has no custom credentials, only fall back if Superadmin granted allow_system_ai
+        if not has_custom_key:
+            if getattr(self.school, 'allow_system_ai', False) and global_config:
+                return global_config.get_config_data()
+            return None
+
+        # School has custom credentials
         if not global_config:
             config = {
                 'provider': self.provider or 'openai',
@@ -1708,10 +1719,7 @@ class SchoolAIConfiguration(models.Model):
                 'max_tokens': self.max_tokens if self.max_tokens is not None else 1000,
             }
             return config
-            
-        if self.use_global_settings:
-            return global_config.get_config_data()
-            
+
         config = global_config.get_config_data()
         
         # Override with school-specific settings if they exist

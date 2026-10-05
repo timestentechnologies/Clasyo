@@ -15,8 +15,19 @@
                 <a href="{% url 'superadmin:email_config_list' %}?tab=outgoing" class="btn btn-sm btn-outline-secondary">
                     <i class="fas fa-arrow-left me-1"></i> Back to Configurations
                 </a>
-                <h5 class="mb-0 fw-bold form-title-text">
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
                     {% if form.instance.pk %}Edit Email Configuration{% else %}Add Email Configuration{% endif %}
+                    <button type="button" 
+                            class="more-info-btn ms-2" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="bottom" 
+                            data-bs-html="true" 
+                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-shield-alt text-primary'></i><strong>Email Best Practices</strong></div>" 
+                            data-bs-content="<ul class='small ps-3 mb-0'><li>Configure SPF, DKIM, and DMARC DNS records for your sender domain to ensure deliverability.</li><li>Test connection settings using test emails before enabling live notifications.</li><li>Keep API credentials, tokens, and SMTP passwords confidential.</li><li>When using Gmail SMTP, generate an App Password instead of your regular password.</li></ul>" 
+                            aria-label="Email Best Practices Info" 
+                            title="Email Best Practices">
+                        <i class="fas fa-info-circle text-primary"></i>
+                    </button>
                 </h5>
             </div>
             <div class="form-header-actions">
@@ -261,16 +272,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Form Actions Bottom -->
-                <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-                    <a href="{% url 'superadmin:email_config_list' %}?tab=outgoing" class="btn btn-outline-secondary px-4">
-                        Cancel
-                    </a>
-                    <button type="submit" class="btn btn-primary px-4 fw-semibold">
-                        <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Configuration{% else %}Save Configuration{% endif %}
-                    </button>
                 </div>
             </form>
         </div>

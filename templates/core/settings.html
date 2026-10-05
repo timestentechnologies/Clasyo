@@ -16,7 +16,15 @@
                 data-bs-target="#tab-profile-pane" type="button" role="tab" aria-controls="tab-profile-pane"
                 aria-selected="true">
                 <i class="fas fa-school"></i>
-                <span>School Profile & Layout</span>
+                <span>School Profile</span>
+            </button>
+        </li>
+        <li class="page-tab-item" role="presentation">
+            <button class="page-tab-link" id="tab-layout-link" data-bs-toggle="tab"
+                data-bs-target="#tab-layout-pane" type="button" role="tab" aria-controls="tab-layout-pane"
+                aria-selected="false">
+                <i class="fas fa-bars-staggered"></i>
+                <span>Layout</span>
             </button>
         </li>
         <li class="page-tab-item" role="presentation">
@@ -50,14 +58,25 @@
 <div class="tab-content" id="schoolSettingsTabsContent">
 
     <!-- ================================================================= -->
-    <!-- TAB PANE 1: School Profile & Layout                               -->
+    <!-- TAB PANE 1: School Profile                                        -->
     <!-- ================================================================= -->
     <div class="tab-pane fade show active" id="tab-profile-pane" role="tabpanel" aria-labelledby="tab-profile-link">
         <div class="form-panel-view mb-4" id="schoolProfilePanel">
             <div class="form-header-bar">
                 <div class="form-header-title-group">
-                    <h5 class="mb-0 fw-bold form-title-text">
+                    <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
                         <i class="fas fa-school text-primary me-2"></i> School Information
+                        <button type="button" 
+                                class="more-info-btn ms-2" 
+                                data-bs-toggle="popover" 
+                                data-bs-placement="bottom" 
+                                data-bs-html="true" 
+                                data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-school text-primary'></i><strong>School Information</strong></div>" 
+                                data-bs-content="<ul class='small ps-3 mb-0'><li>Official contact details appear on student report cards, fee invoices, and receipts.</li><li>Institution type configures grade terminology and curriculum structures.</li></ul>" 
+                                aria-label="School Information Info" 
+                                title="School Information">
+                            <i class="fas fa-info-circle text-primary"></i>
+                        </button>
                     </h5>
                 </div>
                 <div class="form-header-actions">
@@ -103,21 +122,32 @@
                             </small>
                         </div>
                         {% endif %}
-                        <div class="col-12 pt-2 d-flex justify-content-end">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-1"></i> Save School Info
-                            </button>
-                        </div>
                     </div>
                 </form>
             </div>
         </div>
+    </div>
 
+    <!-- ================================================================= -->
+    <!-- TAB PANE 2: Layout                                                -->
+    <!-- ================================================================= -->
+    <div class="tab-pane fade" id="tab-layout-pane" role="tabpanel" aria-labelledby="tab-layout-link">
         <div class="form-panel-view mb-4" id="navigationLayoutPanel">
             <div class="form-header-bar">
                 <div class="form-header-title-group">
-                    <h5 class="mb-0 fw-bold form-title-text">
+                    <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
                         <i class="fas fa-bars-staggered text-primary me-2"></i> Default Navigation Layout
+                        <button type="button" 
+                                class="more-info-btn ms-2" 
+                                data-bs-toggle="popover" 
+                                data-bs-placement="bottom" 
+                                data-bs-html="true" 
+                                data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-bars-staggered text-primary'></i><strong>Navigation Layout</strong></div>" 
+                                data-bs-content="<ul class='small ps-3 mb-0'><li>Choose how menu items are structured across teacher, student, and admin workspaces.</li><li>Changes take effect immediately for newly opened dashboard sessions.</li></ul>" 
+                                aria-label="Navigation Layout Info" 
+                                title="Navigation Layout">
+                            <i class="fas fa-info-circle text-primary"></i>
+                        </button>
                     </h5>
                 </div>
                 <div class="form-header-actions">
@@ -130,11 +160,11 @@
                 <p class="text-muted small mb-3">Choose the default navigation layout style across your school. New users or users without a personal preference will inherit this setting.</p>
                 <form id="navigationLayoutForm">
                     {% csrf_token %}
-                    <div class="row g-3 mb-3">
+                    <div class="row g-3">
                         <div class="col-sm-6">
-                            <div class="p-3 rounded border {% if settings.default_navigation_layout == 'sidebar' or not settings.default_navigation_layout %}border-primary bg-light-subtle{% endif %}" style="cursor: pointer;" onclick="document.getElementById('layout_sidebar').checked = true;">
+                            <div class="p-3 rounded border {% if settings.default_navigation_layout == 'sidebar' or not settings.default_navigation_layout %}border-primary bg-light-subtle{% endif %} layout-card-option" style="cursor: pointer;" onclick="selectNavigationLayout('sidebar');">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="default_navigation_layout" id="layout_sidebar" value="sidebar" {% if settings.default_navigation_layout == 'sidebar' or not settings.default_navigation_layout %}checked{% endif %}>
+                                    <input class="form-check-input" type="radio" name="default_navigation_layout" id="layout_sidebar" value="sidebar" {% if settings.default_navigation_layout == 'sidebar' or not settings.default_navigation_layout %}checked{% endif %} onchange="updateLayoutCards();">
                                     <label class="form-check-label fw-bold ms-1" for="layout_sidebar">
                                         <i class="fas fa-columns me-1 text-primary"></i> Vertical Sidebar
                                     </label>
@@ -143,9 +173,9 @@
                             </div>
                         </div>
                         <div class="col-sm-6">
-                            <div class="p-3 rounded border {% if settings.default_navigation_layout == 'horizontal' %}border-primary bg-light-subtle{% endif %}" style="cursor: pointer;" onclick="document.getElementById('layout_horizontal').checked = true;">
+                            <div class="p-3 rounded border {% if settings.default_navigation_layout == 'horizontal' %}border-primary bg-light-subtle{% endif %} layout-card-option" style="cursor: pointer;" onclick="selectNavigationLayout('horizontal');">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="default_navigation_layout" id="layout_horizontal" value="horizontal" {% if settings.default_navigation_layout == 'horizontal' %}checked{% endif %}>
+                                    <input class="form-check-input" type="radio" name="default_navigation_layout" id="layout_horizontal" value="horizontal" {% if settings.default_navigation_layout == 'horizontal' %}checked{% endif %} onchange="updateLayoutCards();">
                                     <label class="form-check-label fw-bold ms-1" for="layout_horizontal">
                                         <i class="fas fa-bars-staggered me-1 text-info"></i> Horizontal Tabs
                                     </label>
@@ -154,25 +184,31 @@
                             </div>
                         </div>
                     </div>
-                    <div class="d-flex justify-content-end">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i> Save Default Navigation
-                        </button>
-                    </div>
                 </form>
             </div>
         </div>
     </div>
 
     <!-- ================================================================= -->
-    <!-- TAB PANE 2: Academic Settings                                     -->
+    <!-- TAB PANE 3: Academic Settings                                     -->
     <!-- ================================================================= -->
     <div class="tab-pane fade" id="tab-academic-pane" role="tabpanel" aria-labelledby="tab-academic-link">
         <div class="form-panel-view mb-4" id="academicSettingsPanel">
             <div class="form-header-bar">
                 <div class="form-header-title-group">
-                    <h5 class="mb-0 fw-bold form-title-text">
+                    <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
                         <i class="fas fa-graduation-cap text-primary me-2"></i> Academic Settings
+                        <button type="button" 
+                                class="more-info-btn ms-2" 
+                                data-bs-toggle="popover" 
+                                data-bs-placement="bottom" 
+                                data-bs-html="true" 
+                                data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-graduation-cap text-primary'></i><strong>Academic Guidelines</strong></div>" 
+                                data-bs-content="<ul class='small ps-3 mb-0'><li>Only one academic year can be active at a time. Active year governs attendance, timetables, and reports.</li><li>Grading system defines GPA calculation and grade boundary thresholds.</li></ul>" 
+                                aria-label="Academic Guidelines Info" 
+                                title="Academic Guidelines">
+                            <i class="fas fa-info-circle text-primary"></i>
+                        </button>
                     </h5>
                 </div>
                 <div class="form-header-actions">
@@ -209,11 +245,6 @@
                                 <i class="fas fa-info-circle me-1"></i> Choose how grades are displayed and calculated.
                             </small>
                         </div>
-                        <div class="col-12 pt-2 d-flex justify-content-end">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-1"></i> Save Academic Settings
-                            </button>
-                        </div>
                     </div>
                 </form>
             </div>
@@ -221,14 +252,25 @@
     </div>
 
     <!-- ================================================================= -->
-    <!-- TAB PANE 3: Notifications                                         -->
+    <!-- TAB PANE 4: Notifications                                         -->
     <!-- ================================================================= -->
     <div class="tab-pane fade" id="tab-notifications-pane" role="tabpanel" aria-labelledby="tab-notifications-link">
         <div class="form-panel-view mb-4" id="notificationSettingsPanel">
             <div class="form-header-bar">
                 <div class="form-header-title-group">
-                    <h5 class="mb-0 fw-bold form-title-text">
+                    <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
                         <i class="fas fa-bell text-primary me-2"></i> Notification Settings
+                        <button type="button" 
+                                class="more-info-btn ms-2" 
+                                data-bs-toggle="popover" 
+                                data-bs-placement="bottom" 
+                                data-bs-html="true" 
+                                data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-bell text-primary'></i><strong>Notification Guidelines</strong></div>" 
+                                data-bs-content="<ul class='small ps-3 mb-0'><li>Enable channels to deliver real-time fee alerts, attendance updates, and exam results.</li><li>Ensure corresponding SMS/Email gateway credentials are active in Settings.</li></ul>" 
+                                aria-label="Notification Guidelines Info" 
+                                title="Notification Guidelines">
+                            <i class="fas fa-info-circle text-primary"></i>
+                        </button>
                     </h5>
                 </div>
                 <div class="form-header-actions">
@@ -285,11 +327,6 @@
                                 <small class="text-muted d-block ms-1">Send schedule changes, lesson assignments, and staff alerts.</small>
                             </div>
                         </div>
-                        <div class="col-12 pt-2 d-flex justify-content-end">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-1"></i> Save Notification Settings
-                            </button>
-                        </div>
                     </div>
                 </form>
             </div>
@@ -297,7 +334,7 @@
     </div>
 
     <!-- ================================================================= -->
-    <!-- TAB PANE 4: System & Maintenance                                  -->
+    <!-- TAB PANE 5: System & Maintenance                                  -->
     <!-- ================================================================= -->
     <div class="tab-pane fade" id="tab-system-pane" role="tabpanel" aria-labelledby="tab-system-link">
         <div class="row g-4">
@@ -339,8 +376,19 @@
                 <div class="form-panel-view mb-4" id="maintenanceModePanel">
                     <div class="form-header-bar">
                         <div class="form-header-title-group">
-                            <h5 class="mb-0 fw-bold form-title-text">
+                            <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
                                 <i class="fas fa-tools text-primary me-2"></i> Maintenance Mode
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-tools text-primary'></i><strong>Maintenance Info</strong></div>" 
+                                        data-bs-content="<ul class='small ps-3 mb-0'><li>When enabled, students and parents are presented with a friendly maintenance screen.</li><li>School administrators retain uninterrupted system access.</li></ul>" 
+                                        aria-label="Maintenance Info" 
+                                        title="Maintenance Info">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h5>
                         </div>
                         <div class="form-header-actions">
@@ -382,8 +430,19 @@
                 <div class="form-panel-view mb-4" id="databaseActionsPanel">
                     <div class="form-header-bar">
                         <div class="form-header-title-group">
-                            <h5 class="mb-0 fw-bold form-title-text">
+                            <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
                                 <i class="fas fa-database text-primary me-2"></i> Database Actions
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-database text-primary'></i><strong>Database Maintenance</strong></div>" 
+                                        data-bs-content="<ul class='small ps-3 mb-0'><li>Quick backups export SQL dumps directly to encrypted cloud storage.</li><li>Full backup management allows point-in-time restoration and archive downloads.</li></ul>" 
+                                        aria-label="Database Maintenance Info" 
+                                        title="Database Maintenance">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h5>
                         </div>
                     </div>
@@ -526,6 +585,29 @@ document.getElementById('btn-backup-db')?.addEventListener('click', () => callDa
 document.getElementById('btn-clear-cache')?.addEventListener('click', () => callDatabaseAction('clear_cache'));
 document.getElementById('btn-sync-data')?.addEventListener('click', () => callDatabaseAction('sync'));
 
+// Navigation Layout interactive selection & styling
+function selectNavigationLayout(layout) {
+    const radio = document.getElementById('layout_' + layout);
+    if (radio) {
+        radio.checked = true;
+        updateLayoutCards();
+    }
+}
+
+function updateLayoutCards() {
+    const isSidebar = document.getElementById('layout_sidebar')?.checked;
+    const cards = document.querySelectorAll('.layout-card-option');
+    if (cards.length >= 2) {
+        if (isSidebar) {
+            cards[0].classList.add('border-primary', 'bg-light-subtle');
+            cards[1].classList.remove('border-primary', 'bg-light-subtle');
+        } else {
+            cards[1].classList.add('border-primary', 'bg-light-subtle');
+            cards[0].classList.remove('border-primary', 'bg-light-subtle');
+        }
+    }
+}
+
 // Navigation Layout submit
 document.getElementById('navigationLayoutForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
@@ -538,11 +620,57 @@ document.getElementById('navigationLayoutForm')?.addEventListener('submit', func
       .then(data => {
           if (data.success) {
               if (window.showSuccess) window.showSuccess(data.message || 'Default navigation layout updated successfully.');
+              localStorage.setItem('schoolSettingsActiveTab', '#tab-layout-pane');
+              if (history.replaceState) history.replaceState(null, null, '#layout');
               setTimeout(() => window.location.reload(), 800);
           } else if (window.showError) {
               window.showError(data.error || 'Failed to update navigation layout');
           }
       });
+});
+
+// Tab state persistence across reloads
+document.addEventListener('DOMContentLoaded', function() {
+    const hash = window.location.hash;
+    const savedTab = localStorage.getItem('schoolSettingsActiveTab');
+    let targetTab = null;
+
+    if (hash === '#layout' || hash === '#tab-layout-pane') {
+        targetTab = document.getElementById('tab-layout-link');
+    } else if (hash === '#academic' || hash === '#tab-academic-pane') {
+        targetTab = document.getElementById('tab-academic-link');
+    } else if (hash === '#notifications' || hash === '#tab-notifications-pane') {
+        targetTab = document.getElementById('tab-notifications-link');
+    } else if (hash === '#system' || hash === '#tab-system-pane') {
+        targetTab = document.getElementById('tab-system-link');
+    } else if (hash === '#profile' || hash === '#tab-profile-pane') {
+        targetTab = document.getElementById('tab-profile-link');
+    } else if (savedTab) {
+        targetTab = document.querySelector(`[data-bs-target="${savedTab}"]`);
+    }
+
+    if (targetTab && window.bootstrap && window.bootstrap.Tab) {
+        bootstrap.Tab.getOrCreateInstance(targetTab).show();
+    }
+
+    document.querySelectorAll('#schoolSettingsTabs .page-tab-link').forEach(btn => {
+        btn.addEventListener('shown.bs.tab', function(e) {
+            const target = e.target.getAttribute('data-bs-target');
+            if (target) {
+                localStorage.setItem('schoolSettingsActiveTab', target);
+                const hashMapping = {
+                    '#tab-profile-pane': '#profile',
+                    '#tab-layout-pane': '#layout',
+                    '#tab-academic-pane': '#academic',
+                    '#tab-notifications-pane': '#notifications',
+                    '#tab-system-pane': '#system'
+                };
+                if (hashMapping[target] && history.replaceState) {
+                    history.replaceState(null, null, hashMapping[target]);
+                }
+            }
+        });
+    });
 });
 </script>
 {% endblock %}

@@ -16,8 +16,19 @@
                     <i class="fas fa-arrow-left me-1"></i> Back to School Templates
                 </a>
                 <div>
-                    <h5 class="mb-0 fw-bold form-title-text">
+                    <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
                         {% if is_existing %}Edit Custom: {{ form.instance.name }}{% else %}Customize: {{ global_tpl.name }}{% endif %}
+                        <button type="button" 
+                                class="more-info-btn ms-2" 
+                                data-bs-toggle="popover" 
+                                data-bs-placement="bottom" 
+                                data-bs-html="true" 
+                                data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>School Template Guidelines</strong></div>" 
+                                data-bs-content="<ul class='small ps-3 mb-0'><li>Placeholders like <code>&#123;&#123; student_name &#125;&#125;</code> and <code>&#123;&#123; balance &#125;&#125;</code> will be replaced with real recipient details.</li><li>This customized version overrides the system-wide global template for this school.</li><li>For SMS, concise messages minimize multi-segment costs.</li></ul>" 
+                                aria-label="Template Guidelines Info" 
+                                title="School Template Guidelines">
+                            <i class="fas fa-info-circle text-primary"></i>
+                        </button>
                     </h5>
                     <div class="text-muted small">
                         Channel: <strong>{{ channel|upper }}</strong> • School: <strong>{{ school.name }}</strong>

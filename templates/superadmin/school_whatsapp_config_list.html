@@ -13,22 +13,57 @@
 {% endblock %}
 
 {% block content %}
-<!-- Global Fallback Banner -->
-{% if global_config %}
-<div class="modern-card mb-4 p-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div class="d-flex align-items-center gap-2">
-            <div class="avatar-circle" style="width: 36px; height: 36px; font-size: 16px; background: rgba(34, 197, 94, 0.15); color: #22c55e;">
+<!-- Platform WhatsApp Default Status Banner -->
+{% if request.user.role == 'superadmin' or request.user.is_superuser %}
+<div class="modern-card mb-4 p-3 p-md-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="avatar-circle" style="width: 44px; height: 44px; font-size: 18px; background: rgba(34, 197, 94, 0.15); color: #22c55e;">
                 <i class="fab fa-whatsapp"></i>
             </div>
             <div>
-                <h6 class="mb-0 fw-bold">Global System WhatsApp Active: {{ global_config.get_provider_display }}</h6>
-                <small class="text-muted">If a school does not set custom credentials or checks "Use Global Settings", this global gateway is used.</small>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <h6 class="mb-0 fw-bold">Platform System WhatsApp Default</h6>
+                    <span id="badge-whatsapp-list" class="badge {% if school.allow_system_whatsapp %}bg-success{% else %}bg-secondary{% endif %}">
+                        {% if school.allow_system_whatsapp %}Allowed{% else %}Denied (Custom Only){% endif %}
+                    </span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle small">Superadmin Control</span>
+                </div>
+                <small class="text-muted">
+                    When enabled, this school can send WhatsApp notifications using the system's global WhatsApp Business gateway whenever no school-specific credentials are active.
+                </small>
             </div>
         </div>
-        <span class="badge bg-success-subtle text-success">Global Active</span>
+        <div>
+            <form method="post" action="{% url 'superadmin:school_toggle_system_default' school_slug=school.slug %}" class="m-0" id="whatsapp-toggle-form">
+                {% csrf_token %}
+                <input type="hidden" name="setting" value="whatsapp">
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input fs-5" type="checkbox" role="switch" id="toggle-system-whatsapp-switch" {% if school.allow_system_whatsapp %}checked{% endif %} onchange="this.form.submit()">
+                    <label class="form-check-label fw-bold ms-2 mt-1" for="toggle-system-whatsapp-switch">
+                        {% if school.allow_system_whatsapp %}Enabled for School{% else %}Disabled for School{% endif %}
+                    </label>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
+{% else %}
+    {% if school.allow_system_whatsapp %}
+    <div class="alert alert-success d-flex align-items-center mb-4">
+        <i class="fas fa-check-circle me-3 fs-5"></i>
+        <div>
+            <strong>Platform WhatsApp Default Enabled:</strong> Your school is authorized to send WhatsApp messages via the platform's central WhatsApp Business gateway as default fallback whenever you haven't set up custom credentials below.
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info d-flex align-items-center mb-4">
+        <i class="fas fa-info-circle me-3 fs-5"></i>
+        <div>
+            <strong>Custom Configuration Required:</strong> System WhatsApp default fallback is not granted for this school. Please add and enable your own WhatsApp credentials below.
+        </div>
+    </div>
+    {% endif %}
 {% endif %}
 
 <!-- School Configurations List -->

@@ -28,7 +28,20 @@
                     <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(34, 197, 94, 0.15); color: #22c55e;">
                         <i class="fas fa-sliders-h"></i>
                     </div>
-                    <h6 class="mb-0 fw-bold">Provider & Mode</h6>
+                    <h6 class="mb-0 fw-bold d-inline-flex align-items-center">
+                        Provider & Mode
+                        <button type="button" 
+                                class="more-info-btn ms-2" 
+                                data-bs-toggle="popover" 
+                                data-bs-placement="bottom" 
+                                data-bs-html="true" 
+                                data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fab fa-whatsapp text-success'></i><strong>WhatsApp Best Practices</strong></div>" 
+                                data-bs-content="<ul class='small ps-3 mb-0'><li>Meta Cloud API requires a verified Meta Business Account and registered phone number.</li><li>Keep Access Tokens, App Secrets, and Webhook verification tokens strictly secure.</li><li>Ensure outbound messages comply with WhatsApp Business and template policies.</li><li>Send a test payload to confirm gateway status before enabling live broadcasts.</li></ul>" 
+                                aria-label="WhatsApp Best Practices Info" 
+                                title="WhatsApp Best Practices">
+                            <i class="fas fa-info-circle text-primary"></i>
+                        </button>
+                    </h6>
                 </div>
 
                 <div class="row g-3">
@@ -46,15 +59,6 @@
                             <label class="form-check-label fw-semibold" for="{{ form.is_active.id_for_label }}">
                                 Enable this configuration
                             </label>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="form-check p-3 rounded" style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2);">
-                            {{ form.use_global_settings }}
-                            <label class="form-check-label fw-bold ms-2" for="{{ form.use_global_settings.id_for_label }}">
-                                Use Global Super Admin Settings (Default Fallback)
-                            </label>
-                            <div class="small text-muted ms-4">When enabled, the platform's central WhatsApp credentials are used instead of school-specific API credentials.</div>
                         </div>
                     </div>
                 </div>

@@ -478,10 +478,21 @@ body.dark-theme .btn-outline-primary:hover {
             <div class="card border-0 shadow-sm rounded-3 mb-4 custom-backup-card">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center border-bottom">
                     <div>
-                        <h5 class="mb-0 fw-bold">
+                        <h5 class="mb-0 fw-bold d-inline-flex align-items-center">
                             <i class="fas fa-shield-alt text-primary me-2"></i>Master Database (System Core)
+                            <button type="button" 
+                                    class="more-info-btn ms-2" 
+                                    data-bs-toggle="popover" 
+                                    data-bs-placement="bottom" 
+                                    data-bs-html="true" 
+                                    data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-shield-alt text-primary'></i><strong>Master Backup Guidelines</strong></div>" 
+                                    data-bs-content="<ul class='small ps-3 mb-0'><li>Master DB contains system auth, school registries, and configuration keys.</li><li>Always generate a manual snapshot before initiating platform upgrades or schema migrations.</li><li>Backups are compressed with gzip and timestamped automatically.</li></ul>" 
+                                    aria-label="Master Backup Guidelines" 
+                                    title="Master Backup Guidelines">
+                                <i class="fas fa-info-circle text-primary"></i>
+                            </button>
                         </h5>
-                        <small class="text-muted">Primary database housing global schemas, user authentication, and system configs</small>
+                        <small class="text-muted d-block">Primary database housing global schemas, user authentication, and system configs</small>
                     </div>
                     <span class="badge bg-primary text-uppercase px-3 py-2">Master Core ('default')</span>
                 </div>
@@ -578,10 +589,21 @@ body.dark-theme .btn-outline-primary:hover {
             <div class="card border-0 shadow-sm rounded-3 mb-4 custom-backup-card">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center border-bottom">
                     <div>
-                        <h5 class="mb-0 fw-bold">
+                        <h5 class="mb-0 fw-bold d-inline-flex align-items-center">
                             <i class="fas fa-school text-info me-2"></i>School Tenant Databases
+                            <button type="button" 
+                                    class="more-info-btn ms-2" 
+                                    data-bs-toggle="popover" 
+                                    data-bs-placement="bottom" 
+                                    data-bs-html="true" 
+                                    data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-school text-info'></i><strong>Tenant Backup Guidelines</strong></div>" 
+                                    data-bs-content="<ul class='small ps-3 mb-0'><li>Each tenant database contains isolated school records (students, staff, finance, exams).</li><li>Individual schools can be backed up or restored without affecting other tenants.</li><li>Scheduled nightly backups run automatically for all active school databases.</li></ul>" 
+                                    aria-label="Tenant Backup Guidelines" 
+                                    title="Tenant Backup Guidelines">
+                                <i class="fas fa-info-circle text-primary"></i>
+                            </button>
                         </h5>
-                        <small class="text-muted">Individual dedicated databases provisioned for schools and user
+                        <small class="text-muted d-block">Individual dedicated databases provisioned for schools and user
                             tenants</small>
                     </div>
                     <span class="badge badge-theme-subtle">{{ tenant_databases|length }} Provisioned</span>

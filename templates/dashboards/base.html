@@ -23,7 +23,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=36.0">
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=37.0">
     <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}?v=46.0">
     <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=26.0">
     <style id="custom-theme-variables">
@@ -803,6 +803,97 @@
         });
 
         window.initSystemWideDynamicFilters = initSystemWideDynamicFilters;
+    })();
+
+    /* ── Global System-Wide More Info Popovers (Bootstrap 5 Integrated) ── */
+    (function() {
+        function initSystemWidePopovers(root) {
+            if (typeof bootstrap === 'undefined' || !bootstrap.Popover) return;
+            const container = root || document;
+            const triggers = container.querySelectorAll ? container.querySelectorAll('[data-bs-toggle="popover"]') : [];
+
+            triggers.forEach(function(el) {
+                if (el.dataset.popoverReady) return;
+                el.dataset.popoverReady = 'true';
+
+                const popover = new bootstrap.Popover(el, {
+                    html: true,
+                    sanitize: false,
+                    trigger: 'manual'
+                });
+
+                let isPinned = false;
+                let hoverTimer = null;
+
+                function showPopover() {
+                    clearTimeout(hoverTimer);
+                    popover.show();
+                    setTimeout(function() {
+                        const popId = el.getAttribute('aria-describedby');
+                        const popEl = popId ? document.getElementById(popId) : null;
+                        if (popEl && !popEl.dataset.hoverWired) {
+                            popEl.dataset.hoverWired = 'true';
+                            popEl.addEventListener('mouseenter', function() {
+                                clearTimeout(hoverTimer);
+                            });
+                            popEl.addEventListener('mouseleave', function() {
+                                if (!isPinned) {
+                                    hoverTimer = setTimeout(function() { popover.hide(); }, 200);
+                                }
+                            });
+                        }
+                    }, 50);
+                }
+
+                function hidePopover() {
+                    if (!isPinned) {
+                        hoverTimer = setTimeout(function() { popover.hide(); }, 200);
+                    }
+                }
+
+                el.addEventListener('mouseenter', showPopover);
+                el.addEventListener('mouseleave', hidePopover);
+
+                el.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isPinned = !isPinned;
+                    if (isPinned) {
+                        showPopover();
+                    } else {
+                        popover.hide();
+                    }
+                });
+
+                // Dismiss when clicking outside
+                document.addEventListener('click', function(e) {
+                    const popId = el.getAttribute('aria-describedby');
+                    const popEl = popId ? document.getElementById(popId) : null;
+                    if (!el.contains(e.target) && (!popEl || !popEl.contains(e.target))) {
+                        isPinned = false;
+                        popover.hide();
+                    }
+                });
+
+                // Dismiss on Escape
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        isPinned = false;
+                        popover.hide();
+                    }
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initSystemWidePopovers();
+        });
+
+        document.addEventListener('shown.bs.modal', function(e) {
+            initSystemWidePopovers(e.target);
+        });
+
+        window.initSystemWidePopovers = initSystemWidePopovers;
     })();
     </script>
 

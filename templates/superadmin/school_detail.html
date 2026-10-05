@@ -46,6 +46,14 @@
                 <span>Subscription & Limits</span>
             </button>
         </li>
+        <li class="page-tab-item" role="presentation">
+            <button class="page-tab-link" id="tab-system-defaults-link" data-bs-toggle="tab"
+                data-bs-target="#tab-system-defaults-pane" type="button" role="tab" aria-controls="tab-system-defaults-pane"
+                aria-selected="false">
+                <i class="fas fa-sliders-h"></i>
+                <span>System Defaults & Gateways</span>
+            </button>
+        </li>
     </ul>
 </div>
 
@@ -202,6 +210,206 @@
         </div>
     </div>
 
+    <!-- ================================================================= -->
+    <!-- TAB PANE 3: System Defaults & Gateways (Superadmin Control)        -->
+    <!-- ================================================================= -->
+    <div class="tab-pane fade" id="tab-system-defaults-pane" role="tabpanel" aria-labelledby="tab-system-defaults-link">
+        <div class="modern-card mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom flex-wrap gap-3">
+                <div>
+                    <h4 class="mb-1 fw-bold">Platform System Defaults & Gateway Fallbacks</h4>
+                    <p class="text-muted small mb-0">
+                        Control whether <strong>{{ school.name }}</strong> is permitted to use the platform's central credentials as a default fallback when no school-level credentials are configured.
+                    </p>
+                </div>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">
+                    <i class="fas fa-shield-alt me-1"></i> Superadmin Managed
+                </span>
+            </div>
+
+            <div class="row g-4">
+                <!-- 1. SMS Gateway Default -->
+                <div class="col-md-6">
+                    <div class="border rounded-3 p-3 h-100 d-flex flex-column justify-content-between" style="background: rgba(248, 250, 252, 0.6);">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar-circle" style="width: 36px; height: 36px; font-size: 15px; background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+                                        <i class="fas fa-sms"></i>
+                                    </div>
+                                    <h6 class="mb-0 fw-bold">System SMS Gateway</h6>
+                                </div>
+                                <span id="badge-sms" class="badge {% if school.allow_system_sms %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {% if school.allow_system_sms %}Allowed{% else %}Denied (Custom Only){% endif %}
+                                </span>
+                            </div>
+                            <p class="text-muted small mb-3">
+                                When enabled, automated SMS notifications for this school fall back to the platform's central MobileSasa/SMS gateway if school credentials are unset.
+                            </p>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                            <a href="{% url 'superadmin:school_sms_config_list' school_slug=school.slug %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-cog me-1"></i> School SMS Config
+                            </a>
+                            <form method="post" action="{% url 'superadmin:school_toggle_system_default' school_slug=school.slug %}" class="toggle-default-form m-0" data-setting="sms">
+                                {% csrf_token %}
+                                <input type="hidden" name="setting" value="sms">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input default-toggle-switch" type="checkbox" role="switch" id="toggle-sms" {% if school.allow_system_sms %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold small ms-1" for="toggle-sms">Allow Platform SMS</label>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Email Gateway Default -->
+                <div class="col-md-6">
+                    <div class="border rounded-3 p-3 h-100 d-flex flex-column justify-content-between" style="background: rgba(248, 250, 252, 0.6);">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar-circle" style="width: 36px; height: 36px; font-size: 15px; background: rgba(14, 165, 233, 0.15); color: #0ea5e9;">
+                                        <i class="fas fa-envelope"></i>
+                                    </div>
+                                    <h6 class="mb-0 fw-bold">System Email Service</h6>
+                                </div>
+                                <span id="badge-email" class="badge {% if school.allow_system_email %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {% if school.allow_system_email %}Allowed{% else %}Denied (Custom Only){% endif %}
+                                </span>
+                            </div>
+                            <p class="text-muted small mb-3">
+                                When enabled, automated email notifications fall back to the central platform SMTP/Postmark server if school SMTP is unconfigured.
+                            </p>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                            <a href="{% url 'superadmin:school_email_config_list' school_slug=school.slug %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-cog me-1"></i> School Email Config
+                            </a>
+                            <form method="post" action="{% url 'superadmin:school_toggle_system_default' school_slug=school.slug %}" class="toggle-default-form m-0" data-setting="email">
+                                {% csrf_token %}
+                                <input type="hidden" name="setting" value="email">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input default-toggle-switch" type="checkbox" role="switch" id="toggle-email" {% if school.allow_system_email %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold small ms-1" for="toggle-email">Allow Platform Email</label>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. AI Assistant Default -->
+                <div class="col-md-6">
+                    <div class="border rounded-3 p-3 h-100 d-flex flex-column justify-content-between" style="background: rgba(248, 250, 252, 0.6);">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar-circle" style="width: 36px; height: 36px; font-size: 15px; background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
+                                        <i class="fas fa-robot"></i>
+                                    </div>
+                                    <h6 class="mb-0 fw-bold">System AI Assistant</h6>
+                                </div>
+                                <span id="badge-ai" class="badge {% if school.allow_system_ai %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {% if school.allow_system_ai %}Allowed{% else %}Denied (Custom Only){% endif %}
+                                </span>
+                            </div>
+                            <p class="text-muted small mb-3">
+                                When enabled, school administrators and staff can use the AI Assistant powered by the Superadmin's global AI API keys.
+                            </p>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                            <a href="{% url 'superadmin:school_admin_ai_config' school_slug=school.slug %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-cog me-1"></i> School AI Config
+                            </a>
+                            <form method="post" action="{% url 'superadmin:school_toggle_system_default' school_slug=school.slug %}" class="toggle-default-form m-0" data-setting="ai">
+                                {% csrf_token %}
+                                <input type="hidden" name="setting" value="ai">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input default-toggle-switch" type="checkbox" role="switch" id="toggle-ai" {% if school.allow_system_ai %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold small ms-1" for="toggle-ai">Allow Platform AI</label>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. WhatsApp Gateway Default -->
+                <div class="col-md-6">
+                    <div class="border rounded-3 p-3 h-100 d-flex flex-column justify-content-between" style="background: rgba(248, 250, 252, 0.6);">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar-circle" style="width: 36px; height: 36px; font-size: 15px; background: rgba(34, 197, 94, 0.15); color: #22c55e;">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </div>
+                                    <h6 class="mb-0 fw-bold">System WhatsApp Gateway</h6>
+                                </div>
+                                <span id="badge-whatsapp" class="badge {% if school.allow_system_whatsapp %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {% if school.allow_system_whatsapp %}Allowed{% else %}Denied (Custom Only){% endif %}
+                                </span>
+                            </div>
+                            <p class="text-muted small mb-3">
+                                When enabled, automated WhatsApp messages fall back to the platform's central WhatsApp Business gateway.
+                            </p>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                            <a href="{% url 'superadmin:school_whatsapp_config_list' school_slug=school.slug %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-cog me-1"></i> School WhatsApp Config
+                            </a>
+                            <form method="post" action="{% url 'superadmin:school_toggle_system_default' school_slug=school.slug %}" class="toggle-default-form m-0" data-setting="whatsapp">
+                                {% csrf_token %}
+                                <input type="hidden" name="setting" value="whatsapp">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input default-toggle-switch" type="checkbox" role="switch" id="toggle-whatsapp" {% if school.allow_system_whatsapp %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold small ms-1" for="toggle-whatsapp">Allow Platform WhatsApp</label>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.default-toggle-switch').forEach(function(switchEl) {
+        switchEl.addEventListener('change', function() {
+            const form = this.closest('form');
+            const setting = form.getAttribute('data-setting');
+            const badge = document.getElementById('badge-' + setting);
+            const isChecked = this.checked;
+            
+            const formData = new FormData(form);
+            
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (badge) {
+                        badge.className = 'badge ' + (data.enabled ? 'bg-success' : 'bg-secondary');
+                        badge.textContent = data.enabled ? 'Allowed' : 'Denied (Custom Only)';
+                    }
+                } else {
+                    switchEl.checked = !isChecked;
+                    alert(data.error || 'Failed to update system default permission');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                form.submit(); // fallback to standard POST
+            });
+        });
+    });
+});
+</script>
 
 {% endblock %}

@@ -107,6 +107,9 @@ urlpatterns = [
     path('settings/whatsapp/<int:pk>/edit/', views.GlobalWhatsAppConfigurationUpdateView.as_view(), name='whatsapp_config_update'),
     path('settings/whatsapp/<int:pk>/delete/', views.GlobalWhatsAppConfigurationDeleteView.as_view(), name='whatsapp_config_delete'),
     
+    # School System Defaults Toggle (SuperAdmin)
+    path('school/<slug:school_slug>/toggle-system-default/', views.SchoolSystemDefaultsToggleView.as_view(), name='school_toggle_system_default'),
+
     # School SMS Configurations
     path('school/<slug:school_slug>/settings/sms/', views.SchoolSMSConfigurationListView.as_view(), name='school_sms_config_list'),
     path('school/<slug:school_slug>/settings/sms/create/', views.SchoolSMSConfigurationCreateView.as_view(), name='school_sms_config_create'),

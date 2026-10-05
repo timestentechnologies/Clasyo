@@ -22,7 +22,20 @@
         <div class="col-12">
             <div class="card modern-card">
                 <div class="card-header modern-card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 card-title-modern"><i class="fas fa-tools text-warning me-2"></i>System Status & Schedule</h5>
+                    <h5 class="mb-0 card-title-modern d-inline-flex align-items-center">
+                        <i class="fas fa-tools text-warning me-2"></i>System Status & Schedule
+                        <button type="button" 
+                                class="more-info-btn ms-2" 
+                                data-bs-toggle="popover" 
+                                data-bs-placement="bottom" 
+                                data-bs-html="true" 
+                                data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-tools text-warning'></i><strong>Maintenance Modes</strong></div>" 
+                                data-bs-content="<ul class='small ps-3 mb-0'><li><strong>Online:</strong> All school portals, student portals, and parent portals are accessible.</li><li><strong>Staff Maintenance:</strong> Access restricted to Super Admins and School Admins only.</li><li><strong>Strict Maintenance:</strong> All access blocked except Super Admin; visitors see 503 splash.</li></ul>" 
+                                aria-label="Maintenance Modes Info" 
+                                title="Maintenance Modes">
+                            <i class="fas fa-info-circle text-primary"></i>
+                        </button>
+                    </h5>
                     {% if system_settings.maintenance_mode %}
                         <span class="badge badge-soft-danger">MAINTENANCE ACTIVE</span>
                     {% else %}

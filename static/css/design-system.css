@@ -8530,7 +8530,7 @@ footer a:hover {
     border-radius: var(--radius-lg, 0.75rem);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
     margin-bottom: 1.5rem;
-    overflow: hidden;
+    overflow: visible;
     transition: all 0.25s ease-in-out;
 }
 
@@ -8538,6 +8538,8 @@ footer a:hover {
     padding: 1rem 1.5rem;
     background-color: var(--header-bg, #F8FAFC);
     border-bottom: 1px solid var(--border-color, #E2E8F0);
+    border-top-left-radius: calc(var(--radius-lg, 0.75rem) - 1px);
+    border-top-right-radius: calc(var(--radius-lg, 0.75rem) - 1px);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -9400,4 +9402,163 @@ body.theme-light .table thead th {
     background-color: var(--primary, #4361ee) !important;
     color: #ffffff !important;
 }
+
+/* ==========================================================================
+   Global Interactive "More Info" Popover Component (Bootstrap 5 Integrated)
+   Allows tips, guidelines, and best practices to be accessed via a sleek info icon
+   without cluttering views with walls of static text.
+   ========================================================================== */
+
+.more-info-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    color: var(--primary, #4361ee);
+    cursor: pointer;
+    line-height: 1;
+    vertical-align: middle;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.more-info-btn i {
+    display: inline-block !important;
+    font-size: 1.15rem;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.more-info-btn:hover i,
+.more-info-btn:focus i {
+    color: #3b82f6;
+    transform: scale(1.15);
+}
+
+/* Global Popover Visual Enhancements */
+.popover {
+    border-radius: 0.85rem !important;
+    border: 1px solid var(--border-color, #E2E8F0) !important;
+    background-color: var(--card-bg, #FFFFFF) !important;
+    box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.15), 0 4px 12px -2px rgba(15, 23, 42, 0.08) !important;
+    max-width: 380px !important;
+    min-width: 280px !important;
+    z-index: 1080 !important;
+    padding: 0 !important;
+    overflow: hidden;
+}
+
+.popover .popover-header {
+    background: var(--header-bg, #F8FAFC) !important;
+    border-bottom: 1px solid var(--border-color, #E2E8F0) !important;
+    font-weight: 700 !important;
+    font-size: 0.875rem !important;
+    color: var(--text-primary, #0F172A) !important;
+    padding: 0.85rem 1.15rem !important;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.popover .popover-header i {
+    display: inline-block !important;
+}
+
+.popover .popover-body {
+    padding: 0.95rem 1.15rem !important;
+    font-size: 0.825rem !important;
+    line-height: 1.55 !important;
+    color: var(--text-muted, #475569) !important;
+}
+
+.popover .popover-body ul {
+    margin-bottom: 0 !important;
+    padding-left: 1.25rem !important;
+}
+
+.popover .popover-body li {
+    margin-bottom: 0.45rem;
+    color: var(--text-muted, #475569);
+}
+
+.popover .popover-body li:last-child {
+    margin-bottom: 0;
+}
+
+/* ── Dark Mode Overrides ── */
+[data-theme="dark"] .more-info-btn,
+[data-bs-theme="dark"] .more-info-btn,
+.theme-dark .more-info-btn,
+.dark-theme .more-info-btn,
+body.dark-theme .more-info-btn,
+body.theme-dark .more-info-btn {
+    color: #4DD0E1 !important;
+}
+
+[data-theme="dark"] .more-info-btn:hover i,
+[data-theme="dark"] .more-info-btn:focus i {
+    color: #80DEEA !important;
+}
+
+[data-theme="dark"] .popover,
+[data-bs-theme="dark"] .popover,
+.theme-dark .popover,
+.dark-theme .popover,
+body.dark-theme .popover,
+body.theme-dark .popover {
+    background-color: #0F172A !important;
+    border-color: #334155 !important;
+    box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.65), 0 4px 12px -2px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .popover .popover-header,
+[data-bs-theme="dark"] .popover .popover-header,
+.theme-dark .popover .popover-header,
+.dark-theme .popover .popover-header,
+body.dark-theme .popover .popover-header,
+body.theme-dark .popover .popover-header {
+    background: #1E293B !important;
+    border-bottom-color: #334155 !important;
+    color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .popover .popover-body,
+[data-bs-theme="dark"] .popover .popover-body,
+.theme-dark .popover .popover-body,
+.dark-theme .popover .popover-body,
+body.dark-theme .popover .popover-body,
+body.theme-dark .popover .popover-body {
+    background-color: #0F172A !important;
+    color: #CBD5E1 !important;
+}
+
+[data-theme="dark"] .popover .popover-body li,
+[data-bs-theme="dark"] .popover .popover-body li,
+.theme-dark .popover .popover-body li,
+.dark-theme .popover .popover-body li,
+body.dark-theme .popover .popover-body li,
+body.theme-dark .popover .popover-body li {
+    color: #CBD5E1 !important;
+}
+
+/* Arrow styling in dark mode */
+[data-theme="dark"] .bs-popover-auto[data-popper-placement^=left] > .popover-arrow::after,
+[data-theme="dark"] .bs-popover-start > .popover-arrow::after {
+    border-left-color: #0F172A !important;
+}
+[data-theme="dark"] .bs-popover-auto[data-popper-placement^=right] > .popover-arrow::after,
+[data-theme="dark"] .bs-popover-end > .popover-arrow::after {
+    border-right-color: #0F172A !important;
+}
+[data-theme="dark"] .bs-popover-auto[data-popper-placement^=top] > .popover-arrow::after,
+[data-theme="dark"] .bs-popover-top > .popover-arrow::after {
+    border-top-color: #0F172A !important;
+}
+[data-theme="dark"] .bs-popover-auto[data-popper-placement^=bottom] > .popover-arrow::after,
+[data-theme="dark"] .bs-popover-bottom > .popover-arrow::after {
+    border-bottom-color: #1E293B !important;
+}
+
 

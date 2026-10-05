@@ -8,13 +8,77 @@
 {% block page_subtitle %}Configure AI provider and API keys for {{ form.instance.school.name }}{% endblock %}
 
 {% block content %}
+<!-- Platform AI Default Status Banner -->
+{% if request.user.role == 'superadmin' or request.user.is_superuser %}
+<div class="modern-card mb-4 p-3 p-md-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="avatar-circle" style="width: 44px; height: 44px; font-size: 18px; background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
+                <i class="fas fa-brain"></i>
+            </div>
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <h6 class="mb-0 fw-bold">Platform System AI Default</h6>
+                    <span id="badge-ai-list" class="badge {% if school.allow_system_ai %}bg-success{% else %}bg-secondary{% endif %}">
+                        {% if school.allow_system_ai %}Allowed{% else %}Denied (Custom Only){% endif %}
+                    </span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle small">Superadmin Control</span>
+                </div>
+                <small class="text-muted">
+                    When enabled, this school can utilize the central platform AI assistant and platform API keys when no school-specific API keys are provided below.
+                </small>
+            </div>
+        </div>
+        <div>
+            <form method="post" action="{% url 'superadmin:school_toggle_system_default' school_slug=school.slug %}" class="m-0" id="ai-toggle-form">
+                {% csrf_token %}
+                <input type="hidden" name="setting" value="ai">
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input fs-5" type="checkbox" role="switch" id="toggle-system-ai-switch" {% if school.allow_system_ai %}checked{% endif %} onchange="this.form.submit()">
+                    <label class="form-check-label fw-bold ms-2 mt-1" for="toggle-system-ai-switch">
+                        {% if school.allow_system_ai %}Enabled for School{% else %}Disabled for School{% endif %}
+                    </label>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% else %}
+    {% if school.allow_system_ai %}
+    <div class="alert alert-success d-flex align-items-center mb-4">
+        <i class="fas fa-check-circle me-3 fs-5"></i>
+        <div>
+            <strong>Platform AI Default Enabled:</strong> Your school is authorized to utilize the platform's central AI Assistant as default fallback whenever you haven't entered your own custom API keys below.
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info d-flex align-items-center mb-4">
+        <i class="fas fa-info-circle me-3 fs-5"></i>
+        <div>
+            <strong>Custom Configuration Required:</strong> Platform AI default access is not enabled for this school by Superadmin. Please enter your school's own provider API key below to activate AI features.
+        </div>
+    </div>
+    {% endif %}
+{% endif %}
+
 <div class="row g-4">
     <div class="col-lg-8">
         <div class="form-panel-view mb-4">
             <div class="form-header-bar">
                 <div class="form-header-title-group">
-                    <h5 class="mb-0 fw-bold form-title-text">
+                    <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
                         <i class="fas fa-robot text-primary me-2"></i> AI Provider & Settings
+                        <button type="button" 
+                                class="more-info-btn ms-2" 
+                                data-bs-toggle="popover" 
+                                data-bs-placement="bottom" 
+                                data-bs-html="true" 
+                                data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-robot text-primary'></i><strong>How AI Settings Work</strong></div>" 
+                                data-bs-content="<ul class='small ps-3 mb-0'><li>If permitted by Superadmin, empty fields fallback to the system default AI configuration.</li><li>School-specific API keys take precedence over global platform defaults.</li><li>Only one AI provider is active at a time for your school.</li></ul>" 
+                                aria-label="AI Settings Info" 
+                                title="How AI Settings Work">
+                            <i class="fas fa-info-circle text-primary"></i>
+                        </button>
                     </h5>
                 </div>
             </div>
@@ -48,18 +112,6 @@
                                 </div>
                                 {% if form.is_active.errors %}
                                 <div class="invalid-feedback d-block">{{ form.is_active.errors.0 }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6">
-                                <label for="{{ form.use_global_settings.id_for_label }}" class="form-label">Use Global Settings</label>
-                                <div class="form-check mt-2">
-                                    {{ form.use_global_settings|add_class:"form-check-input" }}
-                                    <label class="form-check-label" for="{{ form.use_global_settings.id_for_label }}">
-                                        Inherit from global AI configuration when overrides are empty
-                                    </label>
-                                </div>
-                                {% if form.use_global_settings.errors %}
-                                <div class="invalid-feedback d-block">{{ form.use_global_settings.errors.0 }}</div>
                                 {% endif %}
                             </div>
                         </div>
@@ -256,18 +308,7 @@
         </div>
 
         <div class="col-lg-4">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">How it works</h5>
-                </div>
-                <div class="card-body">
-                    <ul class="list-unstyled mb-0">
-                        <li class="mb-2">If <strong>Use Global Settings</strong> is enabled, any empty fields here will fall back to global AI configuration.</li>
-                        <li class="mb-2">If you provide an <strong>OpenAI API Key</strong> here, it will be used instead of global key for this school.</li>
-                        <li class="mb-2">Only one provider is used at a time, based on <strong>Provider</strong> selection above.</li>
-                    </ul>
-                </div>
-            </div>
+
 
             {% if global_configs %}
             <div class="card mb-4">

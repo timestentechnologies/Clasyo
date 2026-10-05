@@ -212,11 +212,17 @@ def send_notification_by_template(
                 if school_email_cfg and school_email_cfg.default_from_email:
                     from_email = f"{school_email_cfg.default_from_name or school.name} <{school_email_cfg.default_from_email}>"
             if not from_email:
-                global_email_cfg = GlobalEmailConfiguration.objects.filter(is_active=True).first()
-                if global_email_cfg and global_email_cfg.default_from_email:
-                    from_email = f"{global_email_cfg.default_from_name or 'Clasyo'} <{global_email_cfg.default_from_email}>"
-                else:
-                    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'notifications@schoolsaas.com')
+                # Only fall back to platform default if no school specified or Superadmin granted allow_system_email
+                if not school or getattr(school, 'allow_system_email', False):
+                    global_email_cfg = GlobalEmailConfiguration.objects.filter(is_active=True).first()
+                    if global_email_cfg and global_email_cfg.default_from_email:
+                        from_email = f"{global_email_cfg.default_from_name or 'Clasyo'} <{global_email_cfg.default_from_email}>"
+                    else:
+                        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'notifications@schoolsaas.com')
+
+        if not from_email:
+            logger.warning("No email provider configured and system email default not permitted for school")
+            return {'success': False, 'channel': 'email', 'error': 'No email configuration configured and system email default not granted.'}
 
         msg = EmailMultiAlternatives(
             subject=subject,
@@ -247,12 +253,14 @@ def send_notification_by_template(
                 )
 
         if not client:
-            global_sms = GlobalSMSConfiguration.objects.filter(provider='mobilesasa', is_active=True).first()
-            if global_sms and global_sms.mobilesasa_api_token:
-                client = MobileSasaClient(
-                    api_token=global_sms.mobilesasa_api_token,
-                    sender_id=global_sms.mobilesasa_sender_id or global_sms.default_sender_id
-                )
+            # Fall back to global SMS only if system-level or Superadmin granted allow_system_sms
+            if not school or getattr(school, 'allow_system_sms', False):
+                global_sms = GlobalSMSConfiguration.objects.filter(provider='mobilesasa', is_active=True).first()
+                if global_sms and global_sms.mobilesasa_api_token:
+                    client = MobileSasaClient(
+                        api_token=global_sms.mobilesasa_api_token,
+                        sender_id=global_sms.mobilesasa_sender_id or global_sms.default_sender_id
+                    )
 
         if client:
             success_count = 0
@@ -266,7 +274,7 @@ def send_notification_by_template(
             return {'success': True, 'channel': 'sms', 'sent': success_count, 'message': message_text}
         else:
             logger.warning("No active SMS provider configured for sending SMS template")
-            return {'success': False, 'channel': 'sms', 'error': 'No active SMS provider configured.'}
+            return {'success': False, 'channel': 'sms', 'error': 'No active SMS provider configured and system SMS default not granted.'}
 
     elif channel == 'whatsapp':
         if template:
@@ -288,13 +296,15 @@ def send_notification_by_template(
                 )
 
         if not client:
-            global_wa = GlobalWhatsAppConfiguration.objects.filter(provider='mobilesasa', is_active=True).first()
-            if global_wa and global_wa.mobilesasa_api_token:
-                client = MobileSasaClient(
-                    api_token=global_wa.mobilesasa_api_token,
-                    account_uuid=global_wa.mobilesasa_account_uuid,
-                    sender_phone=global_wa.mobilesasa_sender_phone or global_wa.default_sender_phone
-                )
+            # Fall back to global WhatsApp only if system-level or Superadmin granted allow_system_whatsapp
+            if not school or getattr(school, 'allow_system_whatsapp', False):
+                global_wa = GlobalWhatsAppConfiguration.objects.filter(provider='mobilesasa', is_active=True).first()
+                if global_wa and global_wa.mobilesasa_api_token:
+                    client = MobileSasaClient(
+                        api_token=global_wa.mobilesasa_api_token,
+                        account_uuid=global_wa.mobilesasa_account_uuid,
+                        sender_phone=global_wa.mobilesasa_sender_phone or global_wa.default_sender_phone
+                    )
 
         if client:
             success_count = 0

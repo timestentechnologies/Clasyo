@@ -13,8 +13,19 @@
         <div class="form-panel-view mb-4">
             <div class="form-header-bar">
                 <div class="form-header-title-group">
-                    <h5 class="mb-0 fw-bold form-title-text">
+                    <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
                         <i class="fas fa-envelope text-primary me-2"></i> Email Configuration Details
+                        <button type="button" 
+                                class="more-info-btn ms-2" 
+                                data-bs-toggle="popover" 
+                                data-bs-placement="bottom" 
+                                data-bs-html="true" 
+                                data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-shield-alt text-primary'></i><strong>Email Best Practices</strong></div>" 
+                                data-bs-content="<ul class='small ps-3 mb-0'><li>Always use encrypted connections (TLS/SSL)</li><li>Verify SPF and DKIM records on your school domain to prevent emails from landing in spam</li><li>Set realistic daily limits to safeguard sender reputation</li><li>Ensure <code>From Email</code> matches the authenticated sending domain</li></ul>" 
+                                aria-label="Email Best Practices Info" 
+                                title="Email Best Practices">
+                            <i class="fas fa-info-circle text-primary"></i>
+                        </button>
                     </h5>
                 </div>
                 <div class="form-header-actions">
@@ -247,10 +258,6 @@
                             {{ form.is_active }}
                             <label class="form-check-label ms-2" for="{{ form.is_active.id_for_label }}">Enable this configuration</label>
                         </div>
-                        <div class="form-check form-switch mb-0">
-                            {{ form.use_global_settings }}
-                            <label class="form-check-label ms-2" for="{{ form.use_global_settings.id_for_label }}">Use global settings as fallback</label>
-                        </div>
                     </div>
 
                     <!-- Hidden school field if present -->
@@ -326,32 +333,12 @@
                 </div>
             </div>
         </div>
-
-        <!-- Best Practices Card -->
-        <div class="form-panel-view mb-4">
-            <div class="form-header-bar">
-                <div class="form-header-title-group">
-                    <h6 class="mb-0 fw-bold form-title-text">
-                        <i class="fas fa-shield-alt text-primary me-2"></i> Email Best Practices
-                    </h6>
-                </div>
-            </div>
-            <div class="form-card-body">
-                <ul class="small text-muted ps-3 mb-0">
-                    <li class="mb-1">Always use encrypted connections (TLS/SSL)</li>
-                    <li class="mb-1">Verify SPF and DKIM records on your school domain to prevent emails from landing in spam</li>
-                    <li class="mb-1">Set realistic daily limits to safeguard sender reputation</li>
-                    <li>Ensure <code>From Email</code> matches the authenticated sending domain</li>
-                </ul>
-            </div>
-        </div>
     </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const providerSelect = document.getElementById('{{ form.provider.id_for_label }}');
-    const useGlobalCheckbox = document.getElementById('{{ form.use_global_settings.id_for_label }}');
     
     function toggleProviderFields() {
         if (!providerSelect) return;
@@ -388,35 +375,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    function toggleGlobalSettings() {
-        if (!useGlobalCheckbox) return;
-        const useGlobal = useGlobalCheckbox.checked;
-        const providerFields = document.getElementById('provider-fields');
-        if (!providerFields) return;
-        
-        if (useGlobal) {
-            providerFields.style.opacity = '0.6';
-            providerFields.querySelectorAll('input, select').forEach(field => {
-                field.disabled = true;
-            });
-        } else {
-            providerFields.style.opacity = '1';
-            providerFields.querySelectorAll('input, select').forEach(field => {
-                field.disabled = false;
-            });
-        }
-    }
-    
     // Initialize
     toggleProviderFields();
-    toggleGlobalSettings();
     
     // Event listeners
     if (providerSelect) {
         providerSelect.addEventListener('change', toggleProviderFields);
-    }
-    if (useGlobalCheckbox) {
-        useGlobalCheckbox.addEventListener('change', toggleGlobalSettings);
     }
 });
 </script>
