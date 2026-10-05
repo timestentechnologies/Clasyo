@@ -4,11 +4,12 @@ import django.db.models.deletion
 
 
 def backfill_student_school(apps, schema_editor):
+    db_alias = schema_editor.connection.alias
     Student = apps.get_model('students', 'Student')
     Class = apps.get_model('academics', 'Class')
     User = apps.get_model('accounts', 'User')
 
-    qs = Student.objects.filter(school__isnull=True)
+    qs = Student.objects.using(db_alias).filter(school__isnull=True)
     for s in qs.iterator():
         school_id = None
         try:
@@ -43,7 +44,7 @@ def backfill_student_school(apps, schema_editor):
         except Exception:
             school_id = None
         if school_id:
-            Student.objects.filter(id=s.id).update(school_id=school_id)
+            Student.objects.using(db_alias).filter(id=s.id).update(school_id=school_id)
 
 
 def noop_reverse(apps, schema_editor):

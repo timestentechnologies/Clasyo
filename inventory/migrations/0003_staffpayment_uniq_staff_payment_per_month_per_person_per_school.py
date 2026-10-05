@@ -4,12 +4,13 @@ from django.db import migrations, models
 
 
 def dedupe_staff_payments(apps, schema_editor):
+    db_alias = schema_editor.connection.alias
     StaffPayment = apps.get_model('inventory', 'StaffPayment')
     Expense = apps.get_model('inventory', 'Expense')
 
     # Build groups keyed by (school_id, staff_type, staff_id, payment_month)
     groups = {}
-    for sp in StaffPayment.objects.all().only(
+    for sp in StaffPayment.objects.using(db_alias).all().only(
         'id', 'school_id', 'staff_type', 'staff_id', 'payment_month', 'status', 'payment_date', 'created_at', 'expense_id'
     ):
         key = (sp.school_id, sp.staff_type, sp.staff_id, sp.payment_month)
@@ -36,12 +37,12 @@ def dedupe_staff_payments(apps, schema_editor):
             # If duplicate has an attached expense, delete it to avoid double-counting
             if getattr(sp, 'expense_id', None):
                 try:
-                    Expense.objects.filter(id=sp.expense_id).delete()
+                    Expense.objects.using(db_alias).filter(id=sp.expense_id).delete()
                 except Exception:
                     pass
             # Delete the duplicate StaffPayment
             try:
-                sp.delete()
+                sp.delete(using=db_alias)
             except Exception:
                 pass
 
