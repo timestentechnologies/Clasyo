@@ -104,8 +104,10 @@ class TenantDatabaseRouter:
         if db == 'default':
             return True
             
-        # Allow 'tenants' table on tenant DBs so foreign key constraints to School can resolve
-        if app_label == 'tenants':
+        # Allow base tenant compatibility schemas so foreign key constraints resolve:
+        # - 'tenants': School model for tenant data isolation
+        # - 'contenttypes', 'auth', 'accounts': User model for local user FKs (students, staff, audit)
+        if app_label in ('contenttypes', 'auth', 'accounts', 'tenants'):
             return True
 
         # On a tenant database, do not migrate master-only apps

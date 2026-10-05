@@ -35,7 +35,7 @@ class School(models.Model):
     
     # Subscription Details
     subscription_plan = models.ForeignKey('subscriptions.SubscriptionPlan', 
-                                         on_delete=models.SET_NULL, 
+                                         on_delete=models.SET_NULL, db_constraint=False, 
                                          null=True, blank=True,
                                          related_name='schools')
     subscription_start_date = models.DateField(_("Subscription Start Date"), null=True, blank=True)

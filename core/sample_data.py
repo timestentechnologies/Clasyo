@@ -65,17 +65,21 @@ def _generate_all_sample_data_internal(school, db_alias):
     if not school_obj:
         school_obj = School.objects.using('default').get(pk=school.pk)
 
-    plan_obj = SubscriptionPlan.objects.using(db_alias).filter(id=3).first() or SubscriptionPlan.objects.using(db_alias).first()
-    school_obj.subscription_plan = plan_obj
-    school_obj.subscription_start_date = date(2026, 1, 1)
-    school_obj.subscription_end_date = date(2027, 12, 31)
-    school_obj.is_trial = False
-    school_obj.is_active = True
-    school_obj.save(using=db_alias)
+    master_school = School.objects.using('default').filter(pk=school.pk).first()
+    plan_obj = (
+        SubscriptionPlan.objects.using('default').filter(id=3).first()
+        or SubscriptionPlan.objects.using('default').first()
+    )
+    if master_school and plan_obj:
+        master_school.subscription_plan = plan_obj
+        master_school.subscription_start_date = date(2026, 1, 1)
+        master_school.subscription_end_date = date(2027, 12, 31)
+        master_school.is_trial = False
+        master_school.is_active = True
+        master_school.save(using='default')
 
-    if plan_obj:
-        sub_obj, _ = Subscription.objects.using(db_alias).get_or_create(
-            school=school_obj,
+        sub_obj, _ = Subscription.objects.using('default').get_or_create(
+            school=master_school,
             plan=plan_obj,
             defaults={
                 'start_date': date(2026, 1, 1),
@@ -88,7 +92,14 @@ def _generate_all_sample_data_internal(school, db_alias):
         sub_obj.status = 'active'
         sub_obj.start_date = date(2026, 1, 1)
         sub_obj.end_date = date(2027, 12, 31)
-        sub_obj.save(using=db_alias)
+        sub_obj.save(using='default')
+
+    school_obj.subscription_plan = None
+    school_obj.subscription_start_date = date(2026, 1, 1)
+    school_obj.subscription_end_date = date(2027, 12, 31)
+    school_obj.is_trial = False
+    school_obj.is_active = True
+    school_obj.save(using=db_alias)
 
     stats = {}
 

@@ -9,7 +9,6 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('subscriptions', '0001_initial'),
     ]
 
     operations = [
@@ -55,7 +54,7 @@ class Migration(migrations.Migration):
                 ('enable_transport', models.BooleanField(default=True, verbose_name='Enable Transport')),
                 ('enable_dormitory', models.BooleanField(default=True, verbose_name='Enable Dormitory')),
                 ('enable_inventory', models.BooleanField(default=True, verbose_name='Enable Inventory')),
-                ('subscription_plan', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='schools', to='subscriptions.subscriptionplan')),
+                ('subscription_plan', models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='schools', to='subscriptions.subscriptionplan')),
             ],
             options={
                 'verbose_name': 'School',
