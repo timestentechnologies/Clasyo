@@ -17,6 +17,9 @@ sitemaps = {
 from django.views.generic import RedirectView
 
 urlpatterns = [
+    # Favicon route
+    path('favicon.ico', RedirectView.as_view(url='/static/images/favicon.ico', permanent=True)),
+    
     # Health checks (for Cron-job.org, UptimeRobot, Render Health Check)
     path('health/', health_check, name='health_check'),
     path('healthz/', health_check, name='healthz_check'),

@@ -23,6 +23,21 @@
     <meta name="geo.region" content="KE">
     <meta name="geo.placename" content="Nairobi">
     <meta name="theme-color" content="#4DD0E1">
+    <!-- Early theme apply: prevents flash of wrong theme on page load -->
+    <script>
+        (function() {
+            var saved = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', saved);
+            document.documentElement.setAttribute('data-bs-theme', saved);
+            if (saved === 'dark') {
+                document.documentElement.classList.add('theme-dark', 'dark-theme');
+                document.documentElement.classList.remove('theme-light', 'light-theme');
+            } else {
+                document.documentElement.classList.remove('theme-dark', 'dark-theme');
+                document.documentElement.classList.add('theme-light', 'light-theme');
+            }
+        })();
+    </script>
     {% if system_settings.school_favicon %}
     <link rel="icon" type="image/png" href="{{ system_settings.school_favicon.url }}">
     <link rel="shortcut icon" href="{{ system_settings.school_favicon.url }}" type="image/x-icon">
@@ -40,7 +55,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=9.0">
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=42.0">
+    <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=31.0">
     <style id="custom-theme-variables">
         :root {
             /* Light Theme Brand Variables */
@@ -56,6 +72,244 @@
             --dark-brand-accent: {{ system_settings.dark_accent_color|default:'#4DD0E1' }};
             --dark-bg-body: {{ system_settings.dark_bg_color|default:'#0F172A' }};
             --dark-system-icon-color: {{ system_settings.dark_icon_color|default:system_settings.icon_color|default:'#38BDF8' }};
+        }
+
+        /* =====================================================================
+           SYSTEM-WIDE FLAWLESS BLENDED INPUT GROUPS (ONE CONTINUOUS FIELD)
+           ===================================================================== */
+        .input-group,
+        .input-group.input-group-lg,
+        .input-group.input-group-sm {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            align-items: stretch !important;
+            width: 100% !important;
+            min-height: 44px !important;
+            background-color: var(--input-bg, #FFFFFF) !important;
+            border: 1px solid var(--input-border, #CBD5E1) !important;
+            border-radius: 10px !important;
+            overflow: hidden !important;
+            position: relative !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+        }
+
+        .input-group.input-group-lg {
+            min-height: 50px !important;
+            border-radius: 10px !important;
+        }
+
+        .input-group.input-group-sm {
+            min-height: 32px !important;
+            border-radius: 6px !important;
+        }
+
+        [data-theme="dark"] .input-group,
+        [data-bs-theme="dark"] .input-group,
+        .theme-dark .input-group,
+        .dark-theme .input-group,
+        body.dark-theme .input-group,
+        body.theme-dark .input-group {
+            background-color: var(--input-bg, #0F172A) !important;
+            border: 1px solid var(--input-border, #334155) !important;
+            border-color: #334155 !important;
+        }
+
+        .input-group:focus-within {
+            border-color: var(--brand-primary, #0284C7) !important;
+        }
+
+        [data-theme="dark"] .input-group:focus-within,
+        [data-bs-theme="dark"] .input-group:focus-within,
+        .theme-dark .input-group:focus-within,
+        .dark-theme .input-group:focus-within,
+        body.dark-theme .input-group:focus-within,
+        body.theme-dark .input-group:focus-within {
+            border-color: #38BDF8 !important;
+        }
+
+        /* ZERO INTERNAL BORDERS, NO VERTICAL DIVIDERS, TRANSPARENT ON ALL CHILDREN */
+        .input-group > *,
+        .input-group > .form-control,
+        .input-group > .form-select,
+        .input-group > .input-group-text,
+        .input-group > .input-group-append,
+        .input-group > .input-group-prepend,
+        .input-group > span,
+        .input-group > input,
+        .input-group > select,
+        .input-group > button,
+        .input-group > .btn,
+        .input-group > .password-toggle-btn,
+        .input-group .form-control,
+        .input-group .form-select,
+        .input-group .input-group-text,
+        .input-group span,
+        .input-group input,
+        .input-group select,
+        .input-group button,
+        .input-group .form-control:disabled,
+        .input-group input:disabled,
+        .input-group .form-control[readonly],
+        .input-group input[readonly],
+        [data-theme="dark"] .input-group .form-control:disabled,
+        [data-theme="dark"] .input-group input:disabled,
+        [data-theme="dark"] .input-group .form-control[readonly],
+        [data-theme="dark"] .input-group input[readonly],
+        [data-bs-theme="dark"] .input-group .form-control:disabled,
+        [data-bs-theme="dark"] .input-group input:disabled,
+        [data-bs-theme="dark"] .input-group .form-control[readonly],
+        [data-bs-theme="dark"] .input-group input[readonly],
+        .theme-dark .input-group .form-control:disabled,
+        .theme-dark .input-group input:disabled,
+        .theme-dark .input-group .form-control[readonly],
+        .theme-dark .input-group input[readonly],
+        .dark-theme .input-group .form-control:disabled,
+        .dark-theme .input-group input:disabled,
+        .dark-theme .input-group .form-control[readonly],
+        .dark-theme .input-group input[readonly],
+        body.dark-theme .input-group .form-control:disabled,
+        body.dark-theme .input-group input:disabled,
+        body.dark-theme .input-group .form-control[readonly],
+        body.dark-theme .input-group input[readonly],
+        body.theme-dark .input-group .form-control:disabled,
+        body.theme-dark .input-group input:disabled,
+        body.theme-dark .input-group .form-control[readonly],
+        body.theme-dark .input-group input[readonly] {
+            border: 0 !important;
+            border-top: 0 !important;
+            border-right: 0 !important;
+            border-bottom: 0 !important;
+            border-left: 0 !important;
+            border-width: 0 !important;
+            border-style: none !important;
+            border-color: transparent !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            background-color: transparent !important;
+            outline: none !important;
+            box-shadow: none !important;
+            -webkit-box-shadow: none !important;
+            margin: 0 !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+
+        /* Inner form-control sizing & text color */
+        .input-group > .form-control,
+        .input-group > input,
+        .input-group > select,
+        .input-group > .form-select {
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+            width: auto !important;
+            height: auto !important;
+            padding: 0.625rem 0.875rem !important;
+            font-size: 0.9375rem !important;
+            line-height: 1.5 !important;
+            color: var(--input-text, #0F172A) !important;
+        }
+
+        [data-theme="dark"] .input-group > .form-control,
+        [data-theme="dark"] .input-group > input,
+        [data-bs-theme="dark"] .input-group > .form-control,
+        [data-bs-theme="dark"] .input-group > input,
+        .theme-dark .input-group > .form-control,
+        .theme-dark .input-group > input,
+        .dark-theme .input-group > .form-control,
+        .dark-theme .input-group > input,
+        body.dark-theme .input-group > .form-control,
+        body.dark-theme .input-group > input,
+        body.theme-dark .input-group > .form-control,
+        body.theme-dark .input-group > input {
+            color: var(--input-text, #F8FAFC) !important;
+        }
+
+        /* Leading Addon / Icon */
+        .input-group > .input-group-text:first-child,
+        .input-group > span:first-child {
+            padding-left: 1rem !important;
+            padding-right: 0.4rem !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: var(--text-muted, #64748B) !important;
+            flex-shrink: 0 !important;
+        }
+
+        .input-group > .input-group-text:first-child + .form-control,
+        .input-group > .input-group-text:first-child + input,
+        .input-group > span:first-child + .form-control,
+        .input-group > span:first-child + input {
+            padding-left: 0.35rem !important;
+        }
+
+        /* Trailing Addon / Text */
+        .input-group > .input-group-text:last-child,
+        .input-group > span:last-child {
+            padding-left: 0.35rem !important;
+            padding-right: 1.15rem !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: var(--text-muted, #64748B) !important;
+            font-weight: 500 !important;
+            font-size: 0.9375rem !important;
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+            user-select: none !important;
+        }
+
+        .input-group > .form-control:not(:last-child),
+        .input-group > input:not(:last-child) {
+            padding-right: 0.35rem !important;
+        }
+
+        /* Trailing Button */
+        .input-group > button,
+        .input-group > .btn,
+        .input-group > .input-group-append > button,
+        .input-group > .password-toggle-btn {
+            padding-left: 0.75rem !important;
+            padding-right: 1rem !important;
+            color: var(--text-muted, #64748B) !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            flex-shrink: 0 !important;
+        }
+
+        /* =====================================================================
+           FRONTEND PUBLIC PAGE HERO BANNERS (ABOUT, PRICING, FAQ, CONTACT, ETC.)
+           ===================================================================== */
+        section.page-header,
+        .frontend-page-header {
+            background: linear-gradient(135deg, #0F172A 0%, #1E3A5F 60%, #0369A1 100%) !important;
+            background-color: #0F172A !important;
+            color: #FFFFFF !important;
+            padding: 70px 0 60px !important;
+            position: relative !important;
+            overflow: hidden !important;
+            text-align: center !important;
+        }
+
+        section.page-header .page-title,
+        .frontend-page-header .page-title {
+            font-size: 2.75rem !important;
+            font-weight: 800 !important;
+            letter-spacing: -0.5px !important;
+            margin-bottom: 0.75rem !important;
+            color: #FFFFFF !important;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        section.page-header .page-subtitle,
+        .frontend-page-header .page-subtitle {
+            font-size: 1.15rem !important;
+            color: rgba(255, 255, 255, 0.9) !important;
+            margin-bottom: 0 !important;
         }
     </style>
     <script type="application/ld+json">
@@ -546,6 +800,20 @@
     });
     </script>
     <script src="{% static 'js/global-messages.js' %}?v=12.0"></script>
+    <script>
+    (function() {
+        var saved = localStorage.getItem('theme') || 'light';
+        if (saved === 'dark') {
+            document.body.classList.add('dark-theme');
+            document.body.setAttribute('data-theme', 'dark');
+            document.body.setAttribute('data-bs-theme', 'dark');
+        } else {
+            document.body.classList.remove('dark-theme');
+            document.body.removeAttribute('data-theme');
+            document.body.removeAttribute('data-bs-theme');
+        }
+    })();
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -3,24 +3,603 @@
 
 {% block title %}Set Up Your School Workspace - Clasyo{% endblock %}
 
+{% block extra_css %}
+<style>
+/* ==========================================================================
+   Workspace Setup Page - Solid Modern Styling (Zero Gradients)
+   Light & Dark Theme Adaptive
+   ========================================================================== */
+
+.workspace-setup-container {
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+/* Card Container */
+.setup-workspace-card {
+    background-color: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 18px !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06) !important;
+    overflow: hidden;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Header - Solid Deep Navy (NO gradients) */
+.setup-workspace-header {
+    background-color: #0F172A !important;
+    background: #0F172A !important;
+    border-bottom: 1px solid #1E293B !important;
+    padding: 2rem 1.5rem !important;
+    text-align: center;
+}
+
+.setup-logo-badge {
+    background-color: #FFFFFF !important;
+    border-radius: 14px;
+    padding: 8px 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    margin-bottom: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.setup-logo-img {
+    height: 50px;
+    width: auto;
+    max-width: 180px;
+    object-fit: contain;
+    display: block;
+}
+
+.setup-workspace-title {
+    color: #FFFFFF !important;
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.3px;
+    margin-bottom: 6px;
+}
+
+.setup-workspace-subtitle {
+    color: #94A3B8 !important;
+    font-size: 0.925rem !important;
+    margin-bottom: 0;
+}
+
+/* Body */
+.setup-workspace-body {
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+    padding: 2.25rem !important;
+}
+
+@media (max-width: 576px) {
+    .setup-workspace-body {
+        padding: 1.5rem !important;
+    }
+}
+
+/* Google Connected Banner */
+.google-account-banner {
+    background-color: #F0F9FF !important;
+    border: 1px solid #BAE6FD !important;
+    border-radius: 12px !important;
+    padding: 1rem 1.25rem !important;
+    margin-bottom: 1.75rem;
+    display: flex;
+    align-items: center;
+    color: #0C4A6E !important;
+}
+
+.google-account-banner .google-icon-box {
+    background-color: #FFFFFF;
+    border-radius: 10px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    margin-right: 14px;
+    border: 1px solid #E2E8F0;
+}
+
+.google-account-banner .banner-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #0369A1 !important;
+    margin-bottom: 2px;
+}
+
+.google-account-banner .banner-desc {
+    font-size: 0.85rem;
+    color: #0C4A6E !important;
+    line-height: 1.4;
+    margin: 0;
+}
+
+/* Form Labels */
+.setup-label {
+    display: block;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    color: #0F172A !important;
+    margin-bottom: 0.45rem;
+}
+
+.setup-label .req {
+    color: #EF4444;
+    margin-left: 2px;
+}
+
+/* Inputs & Selects - Standalone inputs only, explicitly EXCLUDING input-group children */
+.setup-workspace-body .form-control:not(.input-group *),
+.setup-workspace-body .form-select:not(.input-group *),
+.setup-input:not(.input-group *) {
+    background-color: #FFFFFF !important;
+    border: 1px solid #CBD5E1 !important;
+    color: #0F172A !important;
+    border-radius: 10px !important;
+    font-size: 0.9375rem !important;
+    padding: 0.65rem 0.95rem !important;
+    min-height: 46px !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.setup-workspace-body .form-control-lg:not(.input-group *) {
+    min-height: 50px !important;
+    font-size: 1rem !important;
+}
+
+.setup-input:not(.input-group *):focus,
+.setup-workspace-body .form-control:not(.input-group *):focus,
+.setup-workspace-body .form-select:not(.input-group *):focus {
+    border-color: #0284C7 !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.setup-workspace-body .form-control::placeholder {
+    color: #94A3B8 !important;
+    opacity: 1 !important;
+}
+
+/* Seamless Unified Input Group (.input-group & .setup-subdomain-group) */
+.setup-subdomain-group,
+.setup-workspace-body .input-group {
+    background-color: #FFFFFF !important;
+    border: 1px solid #CBD5E1 !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    min-height: 50px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    transition: border-color 0.15s ease !important;
+}
+
+.setup-subdomain-group:focus-within,
+.setup-workspace-body .input-group:focus-within {
+    border-color: #0284C7 !important;
+    box-shadow: none !important;
+}
+
+.setup-subdomain-group .form-control,
+.setup-subdomain-group input,
+#schoolSlug,
+.setup-workspace-body .input-group .form-control,
+.setup-workspace-body .input-group input {
+    border: 0 !important;
+    border-top: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+    border-left: 0 !important;
+    border-width: 0 !important;
+    border-style: none !important;
+    border-color: transparent !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    padding: 0.7rem 0.35rem 0.7rem 1rem !important;
+    min-height: 48px !important;
+    flex: 1 1 auto !important;
+    width: auto !important;
+    color: #0F172A !important;
+    margin: 0 !important;
+}
+
+/* Input Group Addon (.clasyo.com) - Perfectly Blended inside the field */
+.setup-subdomain-group .input-group-text,
+.setup-subdomain-group span,
+.setup-workspace-body .input-group .input-group-text,
+.setup-workspace-body .setup-input-addon {
+    border: 0 !important;
+    border-top: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+    border-left: 0 !important;
+    border-width: 0 !important;
+    border-style: none !important;
+    border-color: transparent !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    color: #64748B !important;
+    font-weight: 500 !important;
+    font-size: 0.95rem !important;
+    padding: 0 1.25rem 0 0.25rem !important;
+    display: flex !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+    user-select: none !important;
+    margin: 0 !important;
+}
+
+/* Subdomain Address Preview */
+.subdomain-preview-text {
+    font-size: 0.825rem;
+    color: #64748B !important;
+    margin-top: 0.4rem;
+}
+
+.subdomain-preview-text strong {
+    color: #0284C7 !important;
+}
+
+/* Helper / Small text */
+.setup-hint {
+    font-size: 0.8rem;
+    color: #64748B !important;
+    margin-top: 0.35rem;
+    display: block;
+}
+
+/* Database Provisioning Info Notice */
+.setup-info-notice {
+    background-color: #F8FAFC !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 10px !important;
+    padding: 0.85rem 1rem !important;
+    font-size: 0.85rem !important;
+    color: #334155 !important;
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1.75rem;
+}
+
+.setup-info-notice i {
+    color: #0284C7 !important;
+    font-size: 1.1rem;
+    margin-right: 0.75rem;
+    margin-top: 2px;
+}
+
+/* Submit Action Button - Solid (NO gradients) */
+.setup-submit-btn {
+    background-color: #0284C7 !important;
+    background: #0284C7 !important;
+    border: none !important;
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    border-radius: 10px !important;
+    padding: 0.875rem 1.5rem !important;
+    width: 100%;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25) !important;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.setup-submit-btn:hover {
+    background-color: #0369A1 !important;
+    background: #0369A1 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35) !important;
+}
+
+.setup-submit-btn:disabled {
+    background-color: #94A3B8 !important;
+    background: #94A3B8 !important;
+    cursor: not-allowed;
+    box-shadow: none !important;
+}
+
+/* ==========================================================================
+   DARK THEME OVERRIDES (Solid Dark Surfaces - Zero Gradients)
+   ========================================================================== */
+[data-theme="dark"] .setup-workspace-card,
+[data-bs-theme="dark"] .setup-workspace-card,
+.theme-dark .setup-workspace-card,
+.dark-theme .setup-workspace-card,
+body.dark-theme .setup-workspace-card,
+body.theme-dark .setup-workspace-card {
+    background-color: #1E293B !important;
+    border-color: #334155 !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .setup-workspace-header,
+[data-bs-theme="dark"] .setup-workspace-header,
+.theme-dark .setup-workspace-header,
+.dark-theme .setup-workspace-header,
+body.dark-theme .setup-workspace-header,
+body.theme-dark .setup-workspace-header {
+    background-color: #0F172A !important;
+    background: #0F172A !important;
+    border-bottom: 1px solid #334155 !important;
+}
+
+[data-theme="dark"] .setup-workspace-body,
+[data-bs-theme="dark"] .setup-workspace-body,
+.theme-dark .setup-workspace-body,
+.dark-theme .setup-workspace-body,
+body.dark-theme .setup-workspace-body,
+body.theme-dark .setup-workspace-body {
+    background-color: #1E293B !important;
+    color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .google-account-banner,
+[data-bs-theme="dark"] .google-account-banner,
+.theme-dark .google-account-banner,
+.dark-theme .google-account-banner,
+body.dark-theme .google-account-banner,
+body.theme-dark .google-account-banner {
+    background-color: #082F49 !important;
+    border-color: #0369A1 !important;
+    color: #E0F2FE !important;
+}
+
+[data-theme="dark"] .google-account-banner .google-icon-box,
+[data-bs-theme="dark"] .google-account-banner .google-icon-box,
+.theme-dark .google-account-banner .google-icon-box,
+.dark-theme .google-account-banner .google-icon-box,
+body.dark-theme .google-account-banner .google-icon-box,
+body.theme-dark .google-account-banner .google-icon-box {
+    background-color: #0F172A !important;
+    border-color: #334155 !important;
+}
+
+[data-theme="dark"] .google-account-banner .banner-title,
+[data-bs-theme="dark"] .google-account-banner .banner-title,
+.theme-dark .google-account-banner .banner-title,
+.dark-theme .google-account-banner .banner-title,
+body.dark-theme .google-account-banner .banner-title,
+body.theme-dark .google-account-banner .banner-title {
+    color: #38BDF8 !important;
+}
+
+[data-theme="dark"] .google-account-banner .banner-desc,
+[data-bs-theme="dark"] .google-account-banner .banner-desc,
+.theme-dark .google-account-banner .banner-desc,
+.dark-theme .google-account-banner .banner-desc,
+body.dark-theme .google-account-banner .banner-desc,
+body.theme-dark .google-account-banner .banner-desc {
+    color: #E0F2FE !important;
+}
+
+[data-theme="dark"] .setup-label,
+[data-bs-theme="dark"] .setup-label,
+.theme-dark .setup-label,
+.dark-theme .setup-label,
+body.dark-theme .setup-label,
+body.theme-dark .setup-label {
+    color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .setup-input:not(.input-group *),
+[data-theme="dark"] .setup-workspace-body .form-control:not(.input-group *),
+[data-theme="dark"] .setup-workspace-body .form-select:not(.input-group *),
+[data-bs-theme="dark"] .setup-input:not(.input-group *),
+[data-bs-theme="dark"] .setup-workspace-body .form-control:not(.input-group *),
+[data-bs-theme="dark"] .setup-workspace-body .form-select:not(.input-group *),
+.theme-dark .setup-input:not(.input-group *),
+.theme-dark .setup-workspace-body .form-control:not(.input-group *),
+.theme-dark .setup-workspace-body .form-select:not(.input-group *),
+.dark-theme .setup-input:not(.input-group *),
+.dark-theme .setup-workspace-body .form-control:not(.input-group *),
+.dark-theme .setup-workspace-body .form-select:not(.input-group *),
+body.dark-theme .setup-input:not(.input-group *),
+body.dark-theme .setup-workspace-body .form-control:not(.input-group *),
+body.dark-theme .setup-workspace-body .form-select:not(.input-group *),
+body.theme-dark .setup-input:not(.input-group *),
+body.theme-dark .setup-workspace-body .form-control:not(.input-group *),
+body.theme-dark .setup-workspace-body .form-select:not(.input-group *) {
+    background-color: #0F172A !important;
+    border-color: #334155 !important;
+    color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .setup-workspace-body .form-control::placeholder,
+[data-bs-theme="dark"] .setup-workspace-body .form-control::placeholder,
+.theme-dark .setup-workspace-body .form-control::placeholder,
+.dark-theme .setup-workspace-body .form-control::placeholder,
+body.dark-theme .setup-workspace-body .form-control::placeholder,
+body.theme-dark .setup-workspace-body .form-control::placeholder {
+    color: #64748B !important;
+}
+
+[data-theme="dark"] .setup-workspace-body select option,
+[data-bs-theme="dark"] .setup-workspace-body select option,
+body.dark-theme .setup-workspace-body select option {
+    background-color: #0F172A !important;
+    color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .setup-subdomain-group,
+[data-theme="dark"] .setup-workspace-body .input-group,
+[data-bs-theme="dark"] .setup-subdomain-group,
+[data-bs-theme="dark"] .setup-workspace-body .input-group,
+.theme-dark .setup-subdomain-group,
+.theme-dark .setup-workspace-body .input-group,
+.dark-theme .setup-subdomain-group,
+.dark-theme .setup-workspace-body .input-group,
+body.dark-theme .setup-subdomain-group,
+body.dark-theme .setup-workspace-body .input-group,
+body.theme-dark .setup-subdomain-group,
+body.theme-dark .setup-workspace-body .input-group {
+    background-color: #0F172A !important;
+    border: 1px solid #334155 !important;
+    border-color: #334155 !important;
+}
+
+[data-theme="dark"] .setup-subdomain-group:focus-within,
+[data-theme="dark"] .setup-workspace-body .input-group:focus-within,
+[data-bs-theme="dark"] .setup-subdomain-group:focus-within,
+[data-bs-theme="dark"] .setup-workspace-body .input-group:focus-within,
+.theme-dark .setup-subdomain-group:focus-within,
+.theme-dark .setup-workspace-body .input-group:focus-within,
+.dark-theme .setup-subdomain-group:focus-within,
+.dark-theme .setup-workspace-body .input-group:focus-within,
+body.dark-theme .setup-subdomain-group:focus-within,
+body.dark-theme .setup-workspace-body .input-group:focus-within,
+body.theme-dark .setup-subdomain-group:focus-within,
+body.theme-dark .setup-workspace-body .input-group:focus-within {
+    border-color: #38BDF8 !important;
+}
+
+[data-theme="dark"] .setup-subdomain-group .form-control,
+[data-theme="dark"] .setup-subdomain-group input,
+[data-theme="dark"] #schoolSlug,
+[data-theme="dark"] .setup-workspace-body .input-group .form-control,
+[data-theme="dark"] .setup-workspace-body .input-group input,
+[data-bs-theme="dark"] .setup-subdomain-group .form-control,
+[data-bs-theme="dark"] .setup-subdomain-group input,
+[data-bs-theme="dark"] .setup-workspace-body .input-group .form-control,
+[data-bs-theme="dark"] .setup-workspace-body .input-group input,
+.theme-dark .setup-subdomain-group .form-control,
+.theme-dark .setup-subdomain-group input,
+.theme-dark .setup-workspace-body .input-group .form-control,
+.theme-dark .setup-workspace-body .input-group input,
+.dark-theme .setup-subdomain-group .form-control,
+.dark-theme .setup-subdomain-group input,
+.dark-theme .setup-workspace-body .input-group .form-control,
+.dark-theme .setup-workspace-body .input-group input,
+body.dark-theme .setup-subdomain-group .form-control,
+body.dark-theme .setup-subdomain-group input,
+body.dark-theme .setup-workspace-body .input-group .form-control,
+body.dark-theme .setup-workspace-body .input-group input,
+body.theme-dark .setup-subdomain-group .form-control,
+body.theme-dark .setup-subdomain-group input,
+body.theme-dark .setup-workspace-body .input-group .form-control,
+body.theme-dark .setup-workspace-body .input-group input {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .setup-subdomain-group .input-group-text,
+[data-theme="dark"] .setup-subdomain-group span,
+[data-theme="dark"] .setup-input-addon,
+[data-bs-theme="dark"] .setup-subdomain-group .input-group-text,
+[data-bs-theme="dark"] .setup-subdomain-group span,
+[data-bs-theme="dark"] .setup-input-addon,
+.theme-dark .setup-subdomain-group .input-group-text,
+.theme-dark .setup-subdomain-group span,
+.theme-dark .setup-input-addon,
+.dark-theme .setup-subdomain-group .input-group-text,
+.dark-theme .setup-subdomain-group span,
+.dark-theme .setup-input-addon,
+body.dark-theme .setup-subdomain-group .input-group-text,
+body.dark-theme .setup-subdomain-group span,
+body.dark-theme .setup-input-addon,
+body.theme-dark .setup-subdomain-group .input-group-text,
+body.theme-dark .setup-subdomain-group span,
+body.theme-dark .setup-input-addon {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    color: #94A3B8 !important;
+}
+
+[data-theme="dark"] .subdomain-preview-text,
+[data-bs-theme="dark"] .subdomain-preview-text,
+.theme-dark .subdomain-preview-text,
+.dark-theme .subdomain-preview-text,
+body.dark-theme .subdomain-preview-text,
+body.theme-dark .subdomain-preview-text {
+    color: #94A3B8 !important;
+}
+
+[data-theme="dark"] .subdomain-preview-text strong,
+[data-bs-theme="dark"] .subdomain-preview-text strong,
+.theme-dark .subdomain-preview-text strong,
+.dark-theme .subdomain-preview-text strong,
+body.dark-theme .subdomain-preview-text strong,
+body.theme-dark .subdomain-preview-text strong {
+    color: #38BDF8 !important;
+}
+
+[data-theme="dark"] .setup-hint,
+[data-bs-theme="dark"] .setup-hint,
+.theme-dark .setup-hint,
+.dark-theme .setup-hint,
+body.dark-theme .setup-hint,
+body.theme-dark .setup-hint {
+    color: #94A3B8 !important;
+}
+
+[data-theme="dark"] .setup-info-notice,
+[data-bs-theme="dark"] .setup-info-notice,
+.theme-dark .setup-info-notice,
+.dark-theme .setup-info-notice,
+body.dark-theme .setup-info-notice,
+body.theme-dark .setup-info-notice {
+    background-color: #0F172A !important;
+    border-color: #334155 !important;
+    color: #CBD5E1 !important;
+}
+
+[data-theme="dark"] .setup-info-notice i,
+[data-bs-theme="dark"] .setup-info-notice i,
+body.dark-theme .setup-info-notice i {
+    color: #38BDF8 !important;
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container py-5 my-4">
+<div class="container py-5 my-3">
     <div class="row justify-content-center">
-        <div class="col-lg-7 col-md-9">
-            <div class="card shadow-lg border-0" style="border-radius: 20px; overflow: hidden; background: #ffffff;">
-                <div class="card-header text-center py-4" style="background-color: #0f172a; color: white;">
-                    <img src="{% static 'images/erpupdated.png' %}" alt="Clasyo Logo" style="height: 55px; width: auto; margin: 0 auto 12px; display: block;">
-                    <h4 class="fw-bold mb-1">Set Up Your School Workspace</h4>
-                    <p class="text-white-50 small mb-0">Create your dedicated tenant database & institution portal</p>
+        <div class="col-12 col-md-10 col-lg-8 workspace-setup-container">
+            <div class="card setup-workspace-card border-0">
+                <!-- Header -->
+                <div class="card-header setup-workspace-header">
+                    <div class="setup-logo-badge">
+                        <img src="{% static 'images/erpupdated.png' %}" alt="Clasyo Logo" class="setup-logo-img">
+                    </div>
+                    <h1 class="setup-workspace-title">Set Up Your School Workspace</h1>
+                    <p class="setup-workspace-subtitle">Create your dedicated tenant database & institution portal</p>
                 </div>
                 
-                <div class="card-body p-4 p-md-5">
+                <!-- Body -->
+                <div class="card-body setup-workspace-body">
                     {% if is_google_user %}
-                    <div class="alert alert-info d-flex align-items-center mb-4 py-3 px-3 rounded-3" style="background-color: rgba(13, 202, 240, 0.08); border: 1px solid rgba(13, 202, 240, 0.25);">
-                        <i class="fab fa-google text-danger fs-3 me-3"></i>
-                        <div class="small">
-                            <strong>Google Account Connected:</strong> {{ user.email }}<br>
-                            Welcome, <strong>{{ user.get_full_name|default:user.email }}</strong>! We just need a few details about your institution to provision your dedicated school database.
+                    <div class="google-account-banner">
+                        <div class="google-icon-box">
+                            <svg width="22" height="22" viewBox="0 0 18 18">
+                                <path fill="#4285F4" d="M16.51 8.846c-.018-.123-.041-.244-.067-.363h-7.93v2.145h4.544a3.877 3.877 0 0 1-1.667 2.545v1.394h2.698c1.576-1.452 2.485-3.597 2.422-5.721z"/>
+                                <path fill="#34A853" d="M8.513 17.965c2.26 0 4.157-.748 5.545-2.031l-2.698-1.394a5.04 5.04 0 0 1-2.847.803 5.04 5.04 0 0 1-4.734-3.317H1.327v1.438a8.497 8.497 0 0 0 7.186 4.497z"/>
+                                <path fill="#FBBC05" d="M3.777 11.726a5.04 5.04 0 0 1 0-3.207V7.081H1.327a8.497 8.497 0 0 0 0 7.083l2.45-1.438z"/>
+                                <path fill="#EA4335" d="M8.513 6.5a4.55 4.55 0 0 1 3.204 1.25l2.394-2.393A8.033 8.033 0 0 0 8.513 3.5a8.497 8.497 0 0 0-7.186 4.581l2.45 1.438a5.04 5.04 0 0 1 4.736-3.317z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="banner-title">Google Account Connected: {{ user.email }}</div>
+                            <p class="banner-desc">
+                                Welcome, <strong>{{ user.get_full_name|default:user.email }}</strong>! We just need a few details about your institution to provision your dedicated school database.
+                            </p>
                         </div>
                     </div>
                     {% endif %}
@@ -37,69 +616,78 @@
                     <form method="post" action="{% url 'accounts:workspace_setup' %}" id="workspaceSetupForm">
                         {% csrf_token %}
                         
+                        <!-- School / Institution Name -->
                         <div class="mb-4">
-                            <label class="form-label fw-bold">
-                                School / Institution Name <span class="text-danger">*</span>
+                            <label class="setup-label" for="schoolName">
+                                School / Institution Name <span class="req">*</span>
                             </label>
-                            <input type="text" name="school_name" id="schoolName" class="form-control form-control-lg" placeholder="e.g., Sunrise Academy" required autofocus>
-                            <small class="text-muted">The official name of your school or institution.</small>
+                            <input type="text" name="school_name" id="schoolName" class="form-control form-control-lg setup-input" placeholder="e.g., Sunrise Academy" required autofocus>
+                            <span class="setup-hint">The official name of your school or institution.</span>
                         </div>
 
+                        <!-- School Subdomain / Slug -->
                         <div class="mb-4">
-                            <label class="form-label fw-bold">
-                                School Subdomain / Slug <span class="text-danger">*</span>
+                            <label class="setup-label" for="schoolSlug">
+                                School Subdomain / Slug <span class="req">*</span>
                             </label>
-                            <div class="input-group input-group-lg">
-                                <input type="text" name="school_slug" id="schoolSlug" class="form-control" placeholder="sunrise-academy" required pattern="[a-z0-9\-]+" title="Lowercase letters, numbers, and hyphens only">
-                                <span class="input-group-text bg-light text-muted">.clasyo.com</span>
+                            <div class="input-group input-group-lg setup-subdomain-group" style="background-color: #FFFFFF !important; border: 1px solid #CBD5E1 !important; border-radius: 10px !important; overflow: hidden !important; display: flex !important; flex-wrap: nowrap !important; align-items: stretch !important; margin: 0 !important; padding: 0 !important; min-height: 50px !important;">
+                                <input type="text" name="school_slug" id="schoolSlug" class="form-control" placeholder="sunrise-academy" required pattern="[a-z0-9\-]+" title="Lowercase letters, numbers, and hyphens only" style="border: 0 !important; border-width: 0 !important; border-style: none !important; border-radius: 0 !important; background: transparent !important; background-color: transparent !important; box-shadow: none !important; outline: none !important; margin: 0 !important; padding: 0.7rem 0.35rem 0.7rem 1rem !important; flex: 1 1 auto !important; width: auto !important; min-height: 48px !important;">
+                                <span class="input-group-text" style="border: 0 !important; border-width: 0 !important; border-style: none !important; border-radius: 0 !important; background: transparent !important; background-color: transparent !important; box-shadow: none !important; outline: none !important; margin: 0 !important; padding: 0 1.25rem 0 0.25rem !important; color: #64748B !important; font-weight: 500 !important; font-size: 0.95rem !important; display: flex !important; align-items: center !important; white-space: nowrap !important; flex-shrink: 0 !important;">.clasyo.com</span>
                             </div>
-                            <div class="small text-muted mt-1">
-                                Your school portal address: <strong class="text-primary">https://<span id="slugPreview">sunrise-academy</span>.clasyo.com</strong>
+                            <div class="subdomain-preview-text">
+                                Your school portal address: <strong>https://<span id="slugPreview">sunrise-academy</span>.clasyo.com</strong>
                             </div>
                         </div>
 
+                        <!-- Institution Type & Phone Number -->
                         <div class="row g-3 mb-4">
                             <div class="col-12 col-md-6">
-                                <label class="form-label fw-bold">
-                                    Institution Type <span class="text-danger">*</span>
+                                <label class="setup-label" for="institutionType">
+                                    Institution Type <span class="req">*</span>
                                 </label>
-                                <select name="institution_type" class="form-select" required>
+                                <select name="institution_type" id="institutionType" class="form-select setup-input no-tomselect" required>
                                     {% for val, label in institution_type_choices %}
                                     <option value="{{ val }}" {% if val == 'pre_primary_primary' %}selected{% endif %}>{{ label }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
                             <div class="col-12 col-md-6">
-                                <label class="form-label fw-bold">
-                                    Official Phone Number <span class="text-danger">*</span>
+                                <label class="setup-label" for="officialPhone">
+                                    Official Phone Number <span class="req">*</span>
                                 </label>
-                                <input type="text" name="phone" class="form-control" value="{{ user.phone|default:'' }}" placeholder="+254 7XX XXX XXX" required>
+                                <input type="text" name="phone" id="officialPhone" class="form-control setup-input" value="{{ user.phone|default:'' }}" placeholder="+254 7XX XXX XXX" required>
                             </div>
                         </div>
 
+                        <!-- Country & City -->
                         <div class="row g-3 mb-4">
                             <div class="col-12 col-md-6">
-                                <label class="form-label fw-bold">Country</label>
-                                <input type="text" name="country" class="form-control" value="Kenya" placeholder="Kenya" required>
+                                <label class="setup-label" for="countryField">Country</label>
+                                <input type="text" name="country" id="countryField" class="form-control setup-input" value="Kenya" placeholder="Kenya" required>
                             </div>
                             <div class="col-12 col-md-6">
-                                <label class="form-label fw-bold">City / Town</label>
-                                <input type="text" name="city" class="form-control" value="Nairobi" placeholder="Nairobi" required>
+                                <label class="setup-label" for="cityField">City / Town</label>
+                                <input type="text" name="city" id="cityField" class="form-control setup-input" value="Nairobi" placeholder="Nairobi" required>
                             </div>
                         </div>
 
+                        <!-- Physical Address -->
                         <div class="mb-4">
-                            <label class="form-label fw-bold">Physical Address / Campus Location</label>
-                            <input type="text" name="address" class="form-control" placeholder="e.g., Along Ngong Road, Nairobi">
+                            <label class="setup-label" for="addressField">Physical Address / Campus Location</label>
+                            <input type="text" name="address" id="addressField" class="form-control setup-input" placeholder="e.g., Along Ngong Road, Nairobi">
                         </div>
 
-                        <div class="alert alert-light border small text-muted mb-4 py-2 px-3">
-                            <i class="fas fa-database text-primary me-2"></i>
-                            Submitting this form creates your school, provisions an isolated database schema, and starts your <strong>7-day free trial</strong> with zero credit card required.
+                        <!-- Provisioning Information Banner -->
+                        <div class="setup-info-notice">
+                            <i class="fas fa-database"></i>
+                            <div>
+                                Submitting this form creates your school, provisions an isolated database schema, and starts your <strong>7-day free trial</strong> with zero credit card required.
+                            </div>
                         </div>
 
-                        <button type="submit" id="submitBtn" class="btn btn-primary w-100 py-3 fw-bold fs-6 shadow-sm" style="background-color: #0284c7; border: 1px solid #0284c7; border-radius: 10px;">
-                            <i class="fas fa-rocket me-2"></i> Create Workspace & Launch Database
+                        <!-- Submit Button -->
+                        <button type="submit" id="submitBtn" class="setup-submit-btn">
+                            <i class="fas fa-rocket me-2"></i> Create Workspace &amp; Launch Database
                         </button>
                     </form>
                 </div>

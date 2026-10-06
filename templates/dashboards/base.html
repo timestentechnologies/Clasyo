@@ -10,6 +10,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="{% static 'manifest.json' %}">
+    {% if system_settings.school_favicon %}
+    <link rel="icon" type="image/png" href="{{ system_settings.school_favicon.url }}">
+    <link rel="shortcut icon" href="{{ system_settings.school_favicon.url }}" type="image/x-icon">
+    {% else %}
     <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
     <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
     <link rel="icon" type="image/png" href="{% static 'images/erpupdated.png' %}">
@@ -17,15 +21,16 @@
     <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/erpupdated.png' %}">
     <link rel="apple-touch-icon" sizes="192x192" href="{% static 'images/erpupdated.png' %}">
     <link rel="apple-touch-icon" sizes="512x512" href="{% static 'images/erpupdated.png' %}">
+    {% endif %}
     <title>{% block title %}Dashboard{% endblock %} - Clasyo</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=37.0">
-    <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}?v=46.0">
-    <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=26.0">
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=42.0">
+    <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}?v=52.0">
+    <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=31.0">
     <style id="custom-theme-variables">
         /* Universal Outline & Focus-Glow Suppression Across All Inputs, Groups & Controls */
         *:focus,
@@ -59,22 +64,237 @@
             -webkit-box-shadow: none !important;
         }
 
-        [data-bs-theme="dark"] .input-group:focus-within,
-        [data-theme="dark"] .input-group:focus-within,
-        .theme-dark .input-group:focus-within,
-        body.dark-theme .input-group:focus-within {
-            border-color: var(--input-border, #475569) !important;
+        /* =====================================================================
+           SYSTEM-WIDE FLAWLESS BLENDED INPUT GROUPS (ONE CONTINUOUS FIELD)
+           ===================================================================== */
+        .input-group,
+        .input-group.input-group-lg,
+        .input-group.input-group-sm {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            align-items: stretch !important;
+            width: 100% !important;
+            min-height: 44px !important;
+            background-color: var(--input-bg, #FFFFFF) !important;
+            border: 1px solid var(--input-border, #CBD5E1) !important;
+            border-radius: 10px !important;
+            overflow: hidden !important;
+            position: relative !important;
             box-shadow: none !important;
-            outline: none !important;
+            margin: 0 !important;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
         }
 
-        [data-bs-theme="light"] .input-group:focus-within,
-        [data-theme="light"] .input-group:focus-within,
-        .theme-light .input-group:focus-within,
-        body.theme-light .input-group:focus-within {
-            border-color: var(--input-border, #CBD5E1) !important;
-            box-shadow: none !important;
+        .input-group.input-group-lg {
+            min-height: 50px !important;
+            border-radius: 10px !important;
+        }
+
+        .input-group.input-group-sm {
+            min-height: 32px !important;
+            border-radius: 6px !important;
+        }
+
+        [data-theme="dark"] .input-group,
+        [data-bs-theme="dark"] .input-group,
+        .theme-dark .input-group,
+        .dark-theme .input-group,
+        body.dark-theme .input-group,
+        body.theme-dark .input-group {
+            background-color: var(--input-bg, #0F172A) !important;
+            border: 1px solid var(--input-border, #334155) !important;
+            border-color: #334155 !important;
+        }
+
+        .input-group:focus-within {
+            border-color: var(--brand-primary, #0284C7) !important;
+        }
+
+        [data-theme="dark"] .input-group:focus-within,
+        [data-bs-theme="dark"] .input-group:focus-within,
+        .theme-dark .input-group:focus-within,
+        .dark-theme .input-group:focus-within,
+        body.dark-theme .input-group:focus-within,
+        body.theme-dark .input-group:focus-within {
+            border-color: #38BDF8 !important;
+        }
+
+        /* ZERO INTERNAL BORDERS, NO VERTICAL DIVIDERS, TRANSPARENT ON ALL CHILDREN */
+        .input-group > *,
+        .input-group > .form-control,
+        .input-group > .form-select,
+        .input-group > .input-group-text,
+        .input-group > .input-group-append,
+        .input-group > .input-group-prepend,
+        .input-group > span,
+        .input-group > input,
+        .input-group > select,
+        .input-group > button,
+        .input-group > .btn,
+        .input-group > .password-toggle-btn,
+        .input-group .form-control,
+        .input-group .form-select,
+        .input-group .input-group-text,
+        .input-group span,
+        .input-group input,
+        .input-group select,
+        .input-group button,
+        .input-group .form-control:disabled,
+        .input-group input:disabled,
+        .input-group .form-control[readonly],
+        .input-group input[readonly],
+        [data-theme="dark"] .input-group .form-control:disabled,
+        [data-theme="dark"] .input-group input:disabled,
+        [data-theme="dark"] .input-group .form-control[readonly],
+        [data-theme="dark"] .input-group input[readonly],
+        [data-bs-theme="dark"] .input-group .form-control:disabled,
+        [data-bs-theme="dark"] .input-group input:disabled,
+        [data-bs-theme="dark"] .input-group .form-control[readonly],
+        [data-bs-theme="dark"] .input-group input[readonly],
+        .theme-dark .input-group .form-control:disabled,
+        .theme-dark .input-group input:disabled,
+        .theme-dark .input-group .form-control[readonly],
+        .theme-dark .input-group input[readonly],
+        .dark-theme .input-group .form-control:disabled,
+        .dark-theme .input-group input:disabled,
+        .dark-theme .input-group .form-control[readonly],
+        .dark-theme .input-group input[readonly],
+        body.dark-theme .input-group .form-control:disabled,
+        body.dark-theme .input-group input:disabled,
+        body.dark-theme .input-group .form-control[readonly],
+        body.dark-theme .input-group input[readonly],
+        body.theme-dark .input-group .form-control:disabled,
+        body.theme-dark .input-group input:disabled,
+        body.theme-dark .input-group .form-control[readonly],
+        body.theme-dark .input-group input[readonly] {
+            border: 0 !important;
+            border-top: 0 !important;
+            border-right: 0 !important;
+            border-bottom: 0 !important;
+            border-left: 0 !important;
+            border-width: 0 !important;
+            border-style: none !important;
+            border-color: transparent !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            background-color: transparent !important;
             outline: none !important;
+            box-shadow: none !important;
+            -webkit-box-shadow: none !important;
+            margin: 0 !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+
+        /* Inner form-control sizing & text color */
+        .input-group > .form-control,
+        .input-group > input,
+        .input-group > select,
+        .input-group > .form-select {
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+            width: auto !important;
+            height: auto !important;
+            padding: 0.625rem 0.875rem !important;
+            font-size: 0.9375rem !important;
+            line-height: 1.5 !important;
+            color: var(--input-text, #0F172A) !important;
+        }
+
+        [data-theme="dark"] .input-group > .form-control,
+        [data-theme="dark"] .input-group > input,
+        [data-bs-theme="dark"] .input-group > .form-control,
+        [data-bs-theme="dark"] .input-group > input,
+        .theme-dark .input-group > .form-control,
+        .theme-dark .input-group > input,
+        .dark-theme .input-group > .form-control,
+        .dark-theme .input-group > input,
+        body.dark-theme .input-group > .form-control,
+        body.dark-theme .input-group > input,
+        body.theme-dark .input-group > .form-control,
+        body.theme-dark .input-group > input {
+            color: var(--input-text, #F8FAFC) !important;
+        }
+
+        /* Leading Addon / Icon */
+        .input-group > .input-group-text:first-child,
+        .input-group > span:first-child {
+            padding-left: 1rem !important;
+            padding-right: 0.4rem !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: var(--text-muted, #64748B) !important;
+            flex-shrink: 0 !important;
+        }
+
+        .input-group > .input-group-text:first-child + .form-control,
+        .input-group > .input-group-text:first-child + input,
+        .input-group > span:first-child + .form-control,
+        .input-group > span:first-child + input {
+            padding-left: 0.35rem !important;
+        }
+
+        /* Trailing Addon / Text */
+        .input-group > .input-group-text:last-child,
+        .input-group > span:last-child {
+            padding-left: 0.35rem !important;
+            padding-right: 1.15rem !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: var(--text-muted, #64748B) !important;
+            font-weight: 500 !important;
+            font-size: 0.9375rem !important;
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+            user-select: none !important;
+        }
+
+        .input-group > .form-control:not(:last-child),
+        .input-group > input:not(:last-child) {
+            padding-right: 0.35rem !important;
+        }
+
+        /* Trailing Button */
+        .input-group > button,
+        .input-group > .btn,
+        .input-group > .input-group-append > button,
+        .input-group > .password-toggle-btn {
+            padding-left: 0.75rem !important;
+            padding-right: 1rem !important;
+            color: var(--text-muted, #64748B) !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            flex-shrink: 0 !important;
+        }
+
+        /* Disabled container state */
+        .input-group:has(.form-control:disabled),
+        .input-group:has(input:disabled),
+        .input-group.is-disabled {
+            background-color: var(--bg-hover, #F8FAFC) !important;
+            border-color: var(--input-border, #CBD5E1) !important;
+            opacity: 0.85 !important;
+            cursor: not-allowed !important;
+        }
+
+        [data-theme="dark"] .input-group:has(.form-control:disabled),
+        [data-theme="dark"] .input-group:has(input:disabled),
+        [data-bs-theme="dark"] .input-group:has(.form-control:disabled),
+        [data-bs-theme="dark"] .input-group:has(input:disabled),
+        .theme-dark .input-group:has(.form-control:disabled),
+        .theme-dark .input-group:has(input:disabled),
+        .dark-theme .input-group:has(.form-control:disabled),
+        .dark-theme .input-group:has(input:disabled),
+        body.dark-theme .input-group:has(.form-control:disabled),
+        body.dark-theme .input-group:has(input:disabled),
+        body.theme-dark .input-group:has(.form-control:disabled),
+        body.theme-dark .input-group:has(input:disabled) {
+            background-color: rgba(15, 23, 42, 0.7) !important;
+            border-color: #334155 !important;
         }
 
         /* Universal Range Slider Box/Border Removal */
