@@ -28,7 +28,7 @@ class StaticViewSitemap(Sitemap):
         # Define URLs with their metadata
         url_configs = [
             {'viewname': 'frontend:home', 'priority': 1.0, 'changefreq': 'daily'},
-            {'viewname': 'frontend:about', 'priority': 0.8, 'changefreq': 'weekly'},
+            {'viewname': 'frontend:features', 'priority': 0.8, 'changefreq': 'weekly'},
             {'viewname': 'frontend:pricing', 'priority': 0.7, 'changefreq': 'weekly'},
             {'viewname': 'frontend:contact', 'priority': 0.5, 'changefreq': 'monthly'},
             {'viewname': 'frontend:faq', 'priority': 0.6, 'changefreq': 'weekly'},

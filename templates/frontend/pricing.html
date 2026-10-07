@@ -7,30 +7,222 @@
 
 
 
-{% block content %}
-<!-- Page Header -->
-<section class="page-header" style="background: linear-gradient(135deg, #0F172A 0%, #1E3A5F 60%, #0369A1 100%) !important; background-color: #0F172A !important; color: #FFFFFF !important; padding: 75px 0 65px !important; text-align: center !important; position: relative !important; overflow: hidden !important;">
-    <div class="container text-center" style="position: relative; z-index: 2;">
-        <h1 class="page-title" style="color: #FFFFFF !important; font-size: 2.75rem !important; font-weight: 800 !important; margin-bottom: 0.75rem !important; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4) !important;">Choose Your Plan</h1>
-        <p class="page-subtitle" style="color: rgba(255, 255, 255, 0.92) !important; font-size: 1.15rem !important; margin-bottom: 0 !important;">Flexible pricing to fit schools of all sizes</p>
-    </div>
-</section>
+{% block extra_css %}
+<style>
+    /* Completely remove any top edge bar line on pricing cards */
+    .pricing-card::before,
+    .pricing-card:hover::before,
+    .pricing-card.popular::before {
+        display: none !important;
+        content: none !important;
+    }
 
+    /* Pricing Card Base */
+    .pricing-card {
+        margin: 0 !important;
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        position: relative !important;
+    }
+
+    /* Popular Tier Card: Perfectly aligned at the top with other cards */
+    .pricing-card.popular {
+        border: 2px solid var(--brand-primary, #0284c7) !important;
+        box-shadow: 0 16px 36px -10px rgba(2, 132, 199, 0.22) !important;
+        position: relative !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+        transform: none !important;
+    }
+
+    .pricing-card.popular:hover {
+        transform: translateY(-6px) !important;
+        box-shadow: 0 24px 44px -10px rgba(2, 132, 199, 0.35) !important;
+    }
+
+    /* Clean, Centered Pill Badge for Most Popular */
+    .pricing-card .popular-badge {
+        position: absolute !important;
+        top: -14px !important;
+        left: 50% !important;
+        right: auto !important;
+        bottom: auto !important;
+        transform: translateX(-50%) !important;
+        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+        color: #ffffff !important;
+        padding: 0.35rem 1.15rem !important;
+        font-size: 0.72rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.05em !important;
+        text-transform: uppercase !important;
+        border-radius: 9999px !important;
+        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4) !important;
+        z-index: 10 !important;
+        white-space: nowrap !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.35rem !important;
+        border: 1px solid rgba(255, 255, 255, 0.35) !important;
+        width: auto !important;
+        height: auto !important;
+    }
+
+    .pricing-card .popular-badge i {
+        font-size: 0.7rem !important;
+        color: #fef08a !important;
+    }
+
+    /* Row breathing room so top: -14px badge is fully visible without shifting the card box */
+    .pricing-cards-row {
+        padding-top: 1.25rem !important;
+    }
+
+    /* Billing cycle toggle & calculator styles */
+    .billing-toggle-wrapper {
+        display: inline-flex;
+        align-items: center;
+        background: #f1f5f9;
+        padding: 5px;
+        border-radius: 9999px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        margin: 0 auto;
+    }
+
+    .billing-toggle-btn {
+        border: none;
+        background: transparent;
+        padding: 0.6rem 1.35rem;
+        border-radius: 9999px;
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+    }
+
+    .billing-toggle-btn.active {
+        background: #ffffff;
+        color: #0284c7;
+        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.18);
+    }
+
+    .save-badge-pill {
+        background: #ecfdf5;
+        color: #059669;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 0.18rem 0.55rem;
+        border-radius: 9999px;
+        border: 1px solid #a7f3d0;
+    }
+
+    .price-strike {
+        text-decoration: line-through;
+        color: #94a3b8;
+        font-size: 0.95rem;
+        font-weight: 500;
+        margin-right: 0.25rem;
+    }
+
+    .annual-savings-tag {
+        display: inline-block;
+        background: #dcfce7;
+        color: #15803d;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.25rem 0.65rem;
+        border-radius: 6px;
+        margin-top: 0.4rem;
+        border: 1px solid #bbf7d0;
+    }
+
+    .per-term-equiv {
+        font-size: 0.8rem;
+        color: #64748b;
+        margin-top: 0.35rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
 <!-- Pricing Section -->
-<section class="py-5" style="padding: 5rem 0 !important;">
+<section class="py-5" style="padding: 3rem 0 !important;">
     <div class="container">
-        <div class="row g-4 justify-content-center">
+        <div class="text-center mb-4">
+            <h1 class="fw-bold mb-2" style="font-size: 2.2rem; color: var(--text-primary, #0f172a);">Choose Your Plan</h1>
+            <p class="text-muted mb-4" style="font-size: 1.05rem;">Flexible pricing to fit schools of all sizes</p>
+
+            <!-- Billing Period Calculator Switcher -->
+            <div class="billing-toggle-wrapper">
+                <button type="button" class="billing-toggle-btn active" id="btnBillingTermly" onclick="setBillingCycle('termly')">
+                    <i class="fas fa-calendar-check me-1"></i> Per Term (3 Terms/Year)
+                </button>
+                <button type="button" class="billing-toggle-btn" id="btnBillingYearly" onclick="setBillingCycle('yearly')">
+                    <i class="fas fa-calendar-alt me-1"></i> Pay Annually (Per Year)
+                    <span class="save-badge-pill">Save up to 20%</span>
+                </button>
+            </div>
+            <p class="text-muted small mt-2 mb-0" id="billingCycleExplainer">
+                Standard termly billing cycle for Kenyan primary, secondary, and CBC institutions.
+            </p>
+        </div>
+
+        <div class="row g-4 justify-content-center pricing-cards-row">
             {% for plan in plans %}
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
-                <div class="pricing-card {% if plan.is_popular %}popular{% endif %}">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
+                <div class="pricing-card w-100 {% if plan.is_popular %}popular{% endif %}">
                     {% if plan.is_popular %}
                     <div class="popular-badge">
                         <i class="fas fa-star me-1"></i> Most Popular
                     </div>
                     {% endif %}
                     <div class="plan-name">{{ plan.name }}</div>
-                    <div class="plan-price">Ksh {{ plan.price|intcomma }}</div>
-                    <div class="plan-duration">per {{ plan.get_billing_cycle_display|lower }}</div>
+
+                    <!-- Dynamic Pricing Display Block -->
+                    <div class="plan-price-block mb-2">
+                        <!-- Termly Pricing -->
+                        <div class="cycle-view-termly">
+                            {% if plan.discount_percentage > 0 %}
+                            <div class="d-flex align-items-baseline gap-1">
+                                <span class="price-strike">Ksh {{ plan.price|intcomma }}</span>
+                                <span class="plan-price">Ksh {{ plan.get_period_price|intcomma }}</span>
+                            </div>
+                            <div class="plan-duration">per {{ plan.get_billing_cycle_display|lower }} <span class="save-badge-pill ms-1">{{ plan.discount_percentage|floatformat:0 }}% off</span></div>
+                            {% else %}
+                            <div class="plan-price">Ksh {{ plan.price|intcomma }}</div>
+                            <div class="plan-duration">per {{ plan.get_billing_cycle_display|lower }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Yearly Pricing (Calculated) -->
+                        <div class="cycle-view-yearly d-none">
+                            <div class="d-flex align-items-baseline gap-1">
+                                {% if plan.yearly_discount_percentage > 0 %}
+                                <span class="price-strike">Ksh {{ plan.get_annual_base_price|intcomma }}</span>
+                                <span class="plan-price">Ksh {{ plan.get_annual_price|intcomma }}</span>
+                                {% else %}
+                                <span class="plan-price">Ksh {{ plan.get_annual_base_price|intcomma }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="plan-duration">per year (billed annually)</div>
+                            {% if plan.yearly_discount_percentage > 0 %}
+                            <div>
+                                <span class="annual-savings-tag">
+                                    <i class="fas fa-check-circle me-1"></i>Save {{ plan.yearly_discount_percentage|floatformat:0 }}% (Ksh {{ plan.get_annual_savings|intcomma }})
+                                </span>
+                            </div>
+                            {% endif %}
+                            <div class="per-term-equiv">
+                                <i class="fas fa-calculator text-muted me-1"></i>Equivalent to <strong>Ksh {{ plan.get_annual_term_equivalent|intcomma }}</strong> / term
+                            </div>
+                        </div>
+                    </div>
                     
                     <div class="one-time-section">
                         {% if plan.trial_days and plan.trial_days > 0 %}
@@ -73,29 +265,19 @@
                         </div>
                     </div>
                     
-                    <ul class="plan-features">
+                    <ul class="plan-desc-list">
                         {% for feature in plan.get_features_list %}
                         <li>
-                            <i class="fas fa-check-circle"></i>
+                            <i class="fas fa-check"></i>
                             <span>{{ feature }}</span>
                         </li>
+                        {% empty %}
+                            {% if plan.description %}
+                            <li class="text-muted">{{ plan.description }}</li>
+                            {% endif %}
                         {% endfor %}
                     </ul>
-                    {% with desc_points=plan.get_description_points %}
-                        {% if desc_points %}
-                        <ul class="plan-desc-list">
-                            {% for point in desc_points %}
-                            <li>
-                                <i class="fas fa-check"></i>
-                                <span>{{ point }}</span>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                        {% elif plan.description %}
-                        <div class="plan-description text-muted small mb-2">{{ plan.description }}</div>
-                        {% endif %}
-                    {% endwith %}
-                    <a href="{% url 'accounts:login' %}" class="btn {% if plan.is_popular %}btn-plan{% else %}btn-outline-primary{% endif %} btn-plan">
+                    <a href="{% url 'accounts:login' %}" class="btn {% if plan.is_popular %}btn-plan{% else %}btn-outline-primary{% endif %} btn-plan mt-auto">
                         Get Started
                     </a>
                 </div>
@@ -185,7 +367,7 @@
 
 
 <!-- CTA Section -->
-<section class="py-5" style="padding: 5rem 0 !important; background-color: #0f172a; color: white; position: relative; overflow: hidden;">
+<section class="py-5" style="padding: 5rem 0 !important; background: linear-gradient(135deg, #1E3A5F 0%, #4DD0E1 100%); color: white; position: relative; overflow: hidden;">
     <div class="container position-relative z-index-1">
         <div class="row justify-content-center">
             <div class="col-lg-8 text-center">
@@ -193,22 +375,16 @@
                 <p class="lead mb-5" style="opacity: 0.9; max-width: 700px; margin: 0 auto 2rem;">
                     Contact us for enterprise solutions tailored to your school's specific needs and requirements
                 </p>
-                <a href="{% url 'frontend:contact' %}" class="btn btn-light btn-lg" 
-                   style="border-radius: 8px; 
-                          padding: 0.9rem 2.5rem; 
-                          font-weight: 600;
-                          letter-spacing: 0.5px;
-                          text-transform: uppercase;
-                          font-size: 0.95rem;
-                          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-                          transition: all 0.3s ease;
-                          background: white;
-                          color: #1E3A5F;
-                          border: none;">
-                    Contact Sales <i class="fas fa-arrow-right ms-2" style="transition: transform 0.3s ease;"></i>
+                <a href="{% url 'frontend:contact' %}" class="btn btn-light btn-lg rounded-pill px-4 py-2 fw-semibold shadow-sm" style="color: #1E3A5F;">
+                    Contact Sales
                 </a>
             </div>
         </div>
+    </div>
+    <!-- Decorative elements -->
+    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.1; z-index: 0;">
+        <div style="position: absolute; top: -50px; right: -50px; width: 300px; height: 300px; border-radius: 50%; background: white;"></div>
+        <div style="position: absolute; bottom: -100px; left: -50px; width: 400px; height: 400px; border-radius: 50%; background: rgba(255, 255, 255, 0.3);"></div>
     </div>
 </section>
 
@@ -217,6 +393,31 @@
 
 {% block extra_js %}
 <script>
+    function setBillingCycle(cycle) {
+        const isYearly = cycle === 'yearly';
+        const btnTermly = document.getElementById('btnBillingTermly');
+        const btnYearly = document.getElementById('btnBillingYearly');
+        const explainer = document.getElementById('billingCycleExplainer');
+        
+        if (isYearly) {
+            if (btnTermly) btnTermly.classList.remove('active');
+            if (btnYearly) btnYearly.classList.add('active');
+            if (explainer) {
+                explainer.innerHTML = '<span class="text-success fw-semibold"><i class="fas fa-tag me-1"></i>Annual rates with discounts applied. Pay once and save for the entire school year.</span>';
+            }
+            document.querySelectorAll('.cycle-view-termly').forEach(el => el.classList.add('d-none'));
+            document.querySelectorAll('.cycle-view-yearly').forEach(el => el.classList.remove('d-none'));
+        } else {
+            if (btnYearly) btnYearly.classList.remove('active');
+            if (btnTermly) btnTermly.classList.add('active');
+            if (explainer) {
+                explainer.textContent = 'Standard termly billing cycle for Kenyan primary, secondary, and CBC institutions.';
+            }
+            document.querySelectorAll('.cycle-view-yearly').forEach(el => el.classList.add('d-none'));
+            document.querySelectorAll('.cycle-view-termly').forEach(el => el.classList.remove('d-none'));
+        }
+    }
+
     // FAQ Toggle
     document.querySelectorAll('.faq-question').forEach(question => {
         question.addEventListener('click', () => {

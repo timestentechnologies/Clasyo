@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator
 from django.utils import timezone
+from decimal import Decimal
 import re
 import uuid
 from datetime import timedelta
@@ -33,6 +34,10 @@ class SubscriptionPlan(models.Model):
     price = models.DecimalField(_("Price"), max_digits=10, decimal_places=2, 
                                 validators=[MinValueValidator(0)])
     billing_cycle = models.CharField(_("Billing Cycle"), max_length=20, choices=BILLING_CYCLE_CHOICES)
+    discount_percentage = models.DecimalField(_("Period Discount (%)"), max_digits=5, decimal_places=2,
+                                              default=0, validators=[MinValueValidator(0)])
+    yearly_discount_percentage = models.DecimalField(_("Yearly Discount (%)"), max_digits=5, decimal_places=2,
+                                                     default=0, validators=[MinValueValidator(0)])
     trial_days = models.IntegerField(_("Trial Days"), default=0)
     setup_fee = models.DecimalField(_("One-time Setup Fee"), max_digits=10, decimal_places=2,
                                     default=0, validators=[MinValueValidator(0)])
@@ -82,8 +87,8 @@ class SubscriptionPlan(models.Model):
         """Return features as a flat list of strings for display.
 
         The JSON `features` field may be stored as a list of strings or as a
-        dict. This helper tries to handle both gracefully so that templates
-        can always iterate over a simple list.
+        dict. If `features` is empty, it falls back to parsing bullet points
+        from `description`.
         """
         items = []
         data = self.features or {}
@@ -103,39 +108,50 @@ class SubscriptionPlan(models.Model):
                         return match.group(0)
 
                 text = re.sub(r"\\u([0-9a-fA-F]{4})", _repl, text)
-                text = text.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t")
+                text = text.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\r", "\n").replace("\\t", " ")
                 text = text.replace("\\\\", "\\")
                 return text
             except Exception:
                 return str(value)
 
+        def _clean_bullet(s: str) -> str:
+            if not s:
+                return ""
+            return re.sub(r"^[\s\-\u2022•\*\u2013\u2014]+", "", s.strip()).strip()
+
         try:
             # If it's already a list, normalise it to strings
             if isinstance(data, list):
-                items.extend(_decode_escaped_text(f).strip() for f in data if _decode_escaped_text(f).strip())
+                for f in data:
+                    c = _clean_bullet(_decode_escaped_text(f))
+                    if c:
+                        items.append(c)
             # If it's a dict, either treat truthy keys as feature labels or
             # use non-empty values as labels.
-            elif isinstance(data, dict):
+            elif isinstance(data, dict) and data:
                 for key, value in data.items():
                     if isinstance(value, bool):
                         if value:
                             items.append(str(key).replace('_', ' ').title())
                     else:
-                        text = _decode_escaped_text(value).strip()
+                        text = _clean_bullet(_decode_escaped_text(value))
                         if text:
                             items.append(text)
         except Exception:
-            # Never break the page because of malformed JSON; just return
-            # whatever we safely collected.
             pass
+
+        # If no explicit JSON features list found, fall back to description bullet points
+        if not items:
+            items = self.get_description_points()
 
         return items
 
     def get_description_points(self):
         """Return description split into bullet points.
 
-        Splits on newlines, bullet characters (•), semicolons, or pipes. Trims
-        whitespace and drops empty entries. Safe to call in templates.
+        Splits on newlines, bullet characters (•), semicolons, or pipes.
+        Does NOT split on commas so natural descriptions with commas remain intact.
+        Trims whitespace and leading bullet characters. Safe to call in templates.
         """
         text = self.description or ""
         if not text:
@@ -149,18 +165,96 @@ class SubscriptionPlan(models.Model):
 
             if "\\u" in text or "\\n" in text or "\\r" in text or "\\t" in text or "\\\\" in text:
                 text = re.sub(r"\\u([0-9a-fA-F]{4})", _repl, str(text))
-                text = text.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t")
+                text = text.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\r", "\n").replace("\\t", " ")
                 text = text.replace("\\\\", "\\")
-            parts = re.split(r"\r?\n|\u2022|•|;|\||,", text)
-            return [p.strip() for p in parts if p and p.strip()]
+            text = text.replace('\ufffd', "'")
+
+            # Split only on newlines, bullet chars, semicolons, or pipes - NEVER on commas
+            parts = re.split(r"\r?\n|\u2022|•|;|\|", str(text))
+            cleaned = []
+            for p in parts:
+                if not p or not p.strip():
+                    continue
+                item = re.sub(r"^[\s\-\u2022•\*\u2013\u2014]+", "", p.strip()).strip()
+                if item:
+                    cleaned.append(item)
+            return cleaned
         except Exception:
-            # Fallback: show whole description as one item
-            return [text.strip()] if text.strip() else []
+            clean_fallback = re.sub(r"^[\s\-\u2022•\*\u2013\u2014]+", "", text.strip()).strip()
+            return [clean_fallback] if clean_fallback else []
+
+    @property
+    def get_features_as_text(self):
+        """Helper to get features formatted with one item per line for forms."""
+        features = self.get_features_list()
+        return "\n".join(features)
 
     @property
     def one_time_total(self):
         """Total of all one-time fees for this plan."""
         return self.setup_fee + self.data_migration_fee + self.license_fee + self.training_fee
+
+    def get_cycles_per_year(self):
+        """Return number of billing periods in an academic school year."""
+        cycle = (self.billing_cycle or '').lower()
+        if cycle == 'termly':
+            return 3  # Kenya academic school year has 3 terms
+        elif cycle == 'monthly':
+            return 12
+        elif cycle == 'quarterly':
+            return 4
+        elif cycle == 'half_yearly':
+            return 2
+        elif cycle in ('yearly', 'annually'):
+            return 1
+        return 1
+
+    @property
+    def get_period_price(self):
+        """Standard period price after normal period discount (if any)."""
+        base = self.price or Decimal('0.00')
+        disc = self.discount_percentage or Decimal('0.00')
+        if disc > 0:
+            return round(base * (Decimal('1') - (disc / Decimal('100'))), 2)
+        return base
+
+    @property
+    def get_period_savings(self):
+        """Amount saved per regular period under normal discount."""
+        base = self.price or Decimal('0.00')
+        period_price = self.get_period_price
+        return max(Decimal('0.00'), base - period_price)
+
+    @property
+    def get_annual_base_price(self):
+        """Base annualized price before annual discount."""
+        base = self.price or Decimal('0.00')
+        cycles = Decimal(str(self.get_cycles_per_year()))
+        return round(base * cycles, 2)
+
+    @property
+    def get_annual_price(self):
+        """Annual price with yearly discount applied."""
+        annual_base = self.get_annual_base_price
+        disc = self.yearly_discount_percentage or Decimal('0.00')
+        if disc > 0:
+            return round(annual_base * (Decimal('1') - (disc / Decimal('100'))), 2)
+        return annual_base
+
+    @property
+    def get_annual_savings(self):
+        """Total savings per year when paying annually."""
+        annual_base = self.get_annual_base_price
+        annual_price = self.get_annual_price
+        return max(Decimal('0.00'), annual_base - annual_price)
+
+    @property
+    def get_annual_term_equivalent(self):
+        """Equivalent price per term/cycle when billed annually."""
+        cycles = Decimal(str(self.get_cycles_per_year()))
+        if cycles > 0:
+            return round(self.get_annual_price / cycles, 2)
+        return self.get_annual_price
 
 
 class Subscription(models.Model):
@@ -175,6 +269,10 @@ class Subscription(models.Model):
     
     school = models.ForeignKey('tenants.School', on_delete=models.CASCADE, related_name='subscriptions')
     plan = models.ForeignKey(SubscriptionPlan, on_delete=models.PROTECT, related_name='subscriptions')
+    billing_cycle = models.CharField(_("Billing Cycle"), max_length=20, 
+                                     choices=SubscriptionPlan.BILLING_CYCLE_CHOICES, 
+                                     default='termly', blank=True)
+    discount_applied = models.DecimalField(_("Discount Applied"), max_digits=10, decimal_places=2, default=0)
     
     # Subscription Details
     start_date = models.DateField(_("Start Date"))
@@ -532,6 +630,7 @@ class Invoice(models.Model):
     plan_name = models.CharField(max_length=100)
     plan_description = models.TextField(blank=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     
@@ -584,7 +683,7 @@ class Invoice(models.Model):
         
         # Calculate total if not set
         if self.total_amount == 0 and self.amount > 0:
-            self.total_amount = self.amount + self.tax_amount
+            self.total_amount = max(Decimal(0), (self.amount or Decimal(0)) - (self.discount_amount or Decimal(0)) + (self.tax_amount or Decimal(0)))
         
         super().save(*args, **kwargs)
     

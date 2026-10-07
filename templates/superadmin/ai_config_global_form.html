@@ -8,17 +8,39 @@
 {% block page_subtitle %}{% if form.instance.pk %}Update AI provider settings{% else %}Configure a new AI provider for
 all schools{% endif %}{% endblock %}
 
-{% block page_actions %}
-<a href="{% url 'superadmin:ai_config_global_list' %}" class="btn btn-outline-secondary">
-    <i class="fas fa-arrow-left"></i> Back to Configurations
-</a>
-{% endblock %}
-
 {% block content %}
-<div class="modern-card">
-    <div class="card-body">
-        <form method="post" id="aiConfigForm">
-            {% csrf_token %}
+<div class="container-fluid px-0">
+    <div class="form-panel-view mb-4" id="aiConfigGlobalPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <a href="{% url 'superadmin:ai_config_global_list' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Configurations
+                </a>
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
+                    <i class="fas fa-robot text-primary me-2"></i> {% if form.instance.pk %}Edit{% else %}Add{% endif %} Global AI Configuration
+                    <button type="button" 
+                            class="more-info-btn ms-2" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="bottom" 
+                            data-bs-html="true" 
+                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-robot text-primary'></i><strong>Global AI Configuration</strong></div>" 
+                            data-bs-content="<ul class='small ps-3 mb-0'><li>Configures system-wide default AI settings available across tenant schools.</li><li>When enabled, schools permitted to use platform AI defaults will inherit these credentials when their custom keys are empty.</li><li>Temperature controls randomness (0.0 = deterministic, 1.0+ = creative).</li></ul>" 
+                            aria-label="Global AI Info" 
+                            title="Global AI Configuration">
+                        <i class="fas fa-info-circle text-primary"></i>
+                    </button>
+                </h5>
+            </div>
+            <div class="form-header-actions">
+                <a href="{% url 'superadmin:ai_config_global_list' %}" class="btn btn-sm btn-light">Cancel</a>
+                <button type="submit" form="aiConfigForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update{% else %}Create{% endif %} Configuration
+                </button>
+            </div>
+        </div>
+        <div class="form-card-body">
+            <form method="post" id="aiConfigForm">
+                {% csrf_token %}
 
             <!-- Basic Settings -->
             <div class="row mb-4">
@@ -58,7 +80,12 @@ all schools{% endif %}{% endblock %}
             <div id="provider-settings">
                 <!-- OpenAI Settings -->
                 <div id="openai-settings" class="provider-section" style="display: none;">
-                    <h5><i class="fas fa-cog"></i> OpenAI Settings</h5>
+                    <h5 class="d-inline-flex align-items-center mb-3">
+                        <i class="fas fa-cog text-primary me-2"></i> OpenAI Settings
+                        <button type="button" class="more-info-btn ms-2" data-bs-toggle="popover" data-bs-placement="bottom" data-bs-html="true" data-bs-title="OpenAI Global Config" data-bs-content="Enter the platform OpenAI API Secret Key (e.g., sk-...) and default model such as <code>gpt-4o</code>, <code>gpt-4-turbo</code>, or <code>gpt-3.5-turbo</code>." aria-label="OpenAI Info" title="OpenAI Global Config">
+                            <i class="fas fa-info-circle text-primary"></i>
+                        </button>
+                    </h5>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group mb-3">
@@ -85,7 +112,12 @@ all schools{% endif %}{% endblock %}
 
                 <!-- Azure OpenAI Settings -->
                 <div id="azure-settings" class="provider-section" style="display: none;">
-                    <h5><i class="fas fa-cog"></i> Azure OpenAI Settings</h5>
+                    <h5 class="d-inline-flex align-items-center mb-3">
+                        <i class="fas fa-cog text-primary me-2"></i> Azure OpenAI Settings
+                        <button type="button" class="more-info-btn ms-2" data-bs-toggle="popover" data-bs-placement="bottom" data-bs-html="true" data-bs-title="Azure OpenAI Global Config" data-bs-content="Provide Azure API key, resource endpoint URL, and deployed model name." aria-label="Azure OpenAI Info" title="Azure OpenAI Global Config">
+                            <i class="fas fa-info-circle text-primary"></i>
+                        </button>
+                    </h5>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group mb-3">
@@ -122,7 +154,12 @@ all schools{% endif %}{% endblock %}
 
                 <!-- Anthropic Settings -->
                 <div id="anthropic-settings" class="provider-section" style="display: none;">
-                    <h5><i class="fas fa-cog"></i> Anthropic Settings</h5>
+                    <h5 class="d-inline-flex align-items-center mb-3">
+                        <i class="fas fa-cog text-primary me-2"></i> Anthropic Settings
+                        <button type="button" class="more-info-btn ms-2" data-bs-toggle="popover" data-bs-placement="bottom" data-bs-html="true" data-bs-title="Anthropic Global Config" data-bs-content="Enter Anthropic API key (sk-ant-...) and default Claude model (e.g. claude-3-5-sonnet-20241022)." aria-label="Anthropic Info" title="Anthropic Global Config">
+                            <i class="fas fa-info-circle text-primary"></i>
+                        </button>
+                    </h5>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group mb-3">
@@ -149,7 +186,12 @@ all schools{% endif %}{% endblock %}
 
                 <!-- Google Gemini Settings -->
                 <div id="google-settings" class="provider-section" style="display: none;">
-                    <h5><i class="fas fa-cog"></i> Google Gemini Settings</h5>
+                    <h5 class="d-inline-flex align-items-center mb-3">
+                        <i class="fas fa-cog text-primary me-2"></i> Google Gemini Settings
+                        <button type="button" class="more-info-btn ms-2" data-bs-toggle="popover" data-bs-placement="bottom" data-bs-html="true" data-bs-title="Google Gemini Global Config" data-bs-content="Enter platform Google Gemini API key and model (e.g., gemini-1.5-flash or gemini-1.5-pro)." aria-label="Google Gemini Info" title="Google Gemini Global Config">
+                            <i class="fas fa-info-circle text-primary"></i>
+                        </button>
+                    </h5>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group mb-3">
@@ -176,7 +218,12 @@ all schools{% endif %}{% endblock %}
 
                 <!-- Local Model Settings -->
                 <div id="local-settings" class="provider-section" style="display: none;">
-                    <h5><i class="fas fa-cog"></i> Local Model Settings</h5>
+                    <h5 class="d-inline-flex align-items-center mb-3">
+                        <i class="fas fa-cog text-primary me-2"></i> Local Model Settings
+                        <button type="button" class="more-info-btn ms-2" data-bs-toggle="popover" data-bs-placement="bottom" data-bs-html="true" data-bs-title="Local Model Global Config" data-bs-content="Path to local weights or Ollama / vLLM API server URL." aria-label="Local Model Info" title="Local Model Global Config">
+                            <i class="fas fa-info-circle text-primary"></i>
+                        </button>
+                    </h5>
                     <div class="row">
                         <div class="col-md-12">
                             <div class="form-group mb-3">
@@ -194,7 +241,12 @@ all schools{% endif %}{% endblock %}
             </div>
 
             <!-- General Settings -->
-            <h5 class="mt-4"><i class="fas fa-sliders-h"></i> General Settings</h5>
+            <h5 class="mt-4 d-inline-flex align-items-center mb-3">
+                <i class="fas fa-sliders-h text-primary me-2"></i> General Settings
+                <button type="button" class="more-info-btn ms-2" data-bs-toggle="popover" data-bs-placement="bottom" data-bs-html="true" data-bs-title="Inference Parameters" data-bs-content="Temperature (0.0 - 2.0) sets creativity vs determinism. Max tokens restricts response length." aria-label="General Settings Info" title="Inference Parameters">
+                    <i class="fas fa-info-circle text-primary"></i>
+                </button>
+            </h5>
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group mb-3">
@@ -218,21 +270,8 @@ all schools{% endif %}{% endblock %}
                 </div>
             </div>
 
-            <!-- Form Actions -->
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="d-flex justify-content-between">
-                        <a href="{% url 'superadmin:ai_config_global_list' %}" class="btn btn-outline-secondary">
-                            <i class="fas fa-times"></i> Cancel
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> {% if form.instance.pk %}Update{% else %}Create{% endif %}
-                            Configuration
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
 

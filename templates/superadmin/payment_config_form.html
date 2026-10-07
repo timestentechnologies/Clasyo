@@ -8,12 +8,40 @@
 {% block page_subtitle %}Configure global payment gateway settings{% endblock %}
 
 {% block content %}
-<div class="row g-4">
-    <!-- Main Form Panel -->
-    <div class="col-lg-8">
-        <div class="form-panel-view mb-4">
-            <div class="form-card-body">
-                <form method="post" id="paymentConfigForm" novalidate>
+<div class="container-fluid px-0">
+    <!-- Shared In-Page Single Form Panel -->
+    <div class="form-panel-view mb-4" id="paymentConfigPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <a href="{% url 'superadmin:payment_config_list' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Configurations
+                </a>
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
+                    <i class="fas fa-credit-card text-primary me-2"></i> {% if form.instance.pk %}Edit Payment Configuration{% else %}Add Payment Configuration{% endif %}
+                    <button type="button" 
+                            class="more-info-btn ms-2" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="bottom" 
+                            data-bs-html="true" 
+                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-shield-alt text-primary'></i><strong>Payment Best Practices</strong></div>" 
+                            data-bs-content="<ul class='small ps-3 mb-0'><li>Always test new payment gateways using sandbox mode with minimal transaction amounts first.</li><li>Verify bank account and paybill details carefully to prevent misrouted transactions.</li><li>Ensure Consumer Secrets, Passkeys, and Private Keys are kept strictly confidential.</li><li>Receipts and automated webhooks are dispatched once gateway confirmation is verified.</li></ul>" 
+                            aria-label="Payment Best Practices Info" 
+                            title="Payment Best Practices">
+                        <i class="fas fa-info-circle text-primary"></i>
+                    </button>
+                </h5>
+            </div>
+            <div class="form-header-actions">
+                <a href="{% url 'superadmin:payment_config_list' %}" class="btn btn-sm btn-light">
+                    Cancel
+                </a>
+                <button type="submit" form="paymentConfigForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Configuration{% else %}Save Configuration{% endif %}
+                </button>
+            </div>
+        </div>
+        <div class="form-card-body">
+            <form method="post" id="paymentConfigForm" novalidate>
                     {% csrf_token %}
 
                     {% if form.non_field_errors %}
@@ -26,7 +54,7 @@
 
                     <!-- Basic Settings Section -->
                     <div class="mb-4">
-                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                        <div class="d-flex align-items-center gap-2 mb-3">
                             <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(56, 189, 248, 0.15); color: var(--accent-cyan, #38BDF8);">
                                 <i class="fas fa-sliders-h"></i>
                             </div>
@@ -78,11 +106,24 @@
                     <div id="gatewayFields">
                         <!-- M-Pesa STK Push -->
                         <div id="mpesa_stk-config" class="gateway-config mb-4" style="display: none;">
-                            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <div class="d-flex align-items-center gap-2 mb-3">
                                 <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(16, 185, 129, 0.15); color: #10b981;">
                                     <i class="fas fa-mobile-alt"></i>
                                 </div>
-                                <h6 class="mb-0 fw-bold">M-Pesa STK Push Configuration</h6>
+                                <h6 class="mb-0 fw-bold d-inline-flex align-items-center">
+                                    M-Pesa STK Push Configuration
+                                    <button type="button" 
+                                            class="more-info-btn ms-2" 
+                                            data-bs-toggle="popover" 
+                                            data-bs-placement="bottom" 
+                                            data-bs-html="true" 
+                                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-mobile-alt text-primary'></i><strong>M-Pesa STK Push Setup</strong></div>" 
+                                            data-bs-content="<div class='small'><ol class='ps-3 mb-2'><li>Log into Safaricom Developer Portal</li><li>Create a new App to obtain Consumer Key &amp; Secret</li><li>Apply for Lipa na M-Pesa Online Passkey</li><li>Configure Business Shortcode (e.g. 174379)</li><li>Test in Sandbox before toggling Environment to Live</li></ol><div class='alert alert-info py-1 px-2 small mb-0'>STK Push triggers instant PIN prompts directly on users' mobile phones.</div></div>" 
+                                            aria-label="M-Pesa STK Push Setup" 
+                                            title="M-Pesa STK Push Setup">
+                                        <i class="fas fa-info-circle text-primary"></i>
+                                    </button>
+                                </h6>
                             </div>
                             <div class="alert alert-info py-2 px-3 mb-3 small d-flex align-items-center gap-2">
                                 <i class="fas fa-info-circle text-primary"></i>
@@ -126,11 +167,24 @@
 
                         <!-- M-Pesa Manual Paybill -->
                         <div id="mpesa_paybill-config" class="gateway-config mb-4" style="display: none;">
-                            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <div class="d-flex align-items-center gap-2 mb-3">
                                 <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
                                     <i class="fas fa-file-invoice-dollar"></i>
                                 </div>
-                                <h6 class="mb-0 fw-bold">M-Pesa Manual Paybill Configuration</h6>
+                                <h6 class="mb-0 fw-bold d-inline-flex align-items-center">
+                                    M-Pesa Manual Paybill Configuration
+                                    <button type="button" 
+                                            class="more-info-btn ms-2" 
+                                            data-bs-toggle="popover" 
+                                            data-bs-placement="bottom" 
+                                            data-bs-html="true" 
+                                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-file-invoice-dollar text-primary'></i><strong>Manual Paybill Setup</strong></div>" 
+                                            data-bs-content="<div class='small'><ol class='ps-3 mb-2'><li>Enter your registered M-Pesa Paybill number</li><li>Specify Account reference format</li><li>Add clear payment instructions for customers</li></ol><div class='alert alert-warning py-1 px-2 small mb-0'>Users will enter these payment details manually via SIM menu.</div></div>" 
+                                            aria-label="Manual Paybill Setup" 
+                                            title="Manual Paybill Setup">
+                                        <i class="fas fa-info-circle text-primary"></i>
+                                    </button>
+                                </h6>
                             </div>
                             <div class="alert alert-info py-2 px-3 mb-3 small d-flex align-items-center gap-2">
                                 <i class="fas fa-info-circle text-primary"></i>
@@ -163,11 +217,24 @@
 
                         <!-- M-Pesa Buy Goods & Services (Till) -->
                         <div id="mpesa_buygoods-config" class="gateway-config mb-4" style="display: none;">
-                            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <div class="d-flex align-items-center gap-2 mb-3">
                                 <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(16, 185, 129, 0.15); color: #10b981;">
                                     <i class="fas fa-shopping-basket"></i>
                                 </div>
-                                <h6 class="mb-0 fw-bold">M-Pesa Buy Goods & Services (Till)</h6>
+                                <h6 class="mb-0 fw-bold d-inline-flex align-items-center">
+                                    M-Pesa Buy Goods &amp; Services (Till)
+                                    <button type="button" 
+                                            class="more-info-btn ms-2" 
+                                            data-bs-toggle="popover" 
+                                            data-bs-placement="bottom" 
+                                            data-bs-html="true" 
+                                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-shopping-basket text-primary'></i><strong>Buy Goods &amp; Services Setup</strong></div>" 
+                                            data-bs-content="<div class='small'><ol class='ps-3 mb-0'><li>Provide your Safaricom Merchant Till Number</li><li>Instructions guide payers to select 'Buy Goods and Services'</li><li>Verify transaction reference confirmations in accounts</li></ol></div>" 
+                                            aria-label="Buy Goods &amp; Services Setup" 
+                                            title="Buy Goods &amp; Services Setup">
+                                        <i class="fas fa-info-circle text-primary"></i>
+                                    </button>
+                                </h6>
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-6">
@@ -189,11 +256,24 @@
 
                         <!-- M-Pesa Send Money -->
                         <div id="mpesa_send_money-config" class="gateway-config mb-4" style="display: none;">
-                            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <div class="d-flex align-items-center gap-2 mb-3">
                                 <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(14, 165, 233, 0.15); color: #0ea5e9;">
                                     <i class="fas fa-paper-plane"></i>
                                 </div>
-                                <h6 class="mb-0 fw-bold">M-Pesa Send Money</h6>
+                                <h6 class="mb-0 fw-bold d-inline-flex align-items-center">
+                                    M-Pesa Send Money
+                                    <button type="button" 
+                                            class="more-info-btn ms-2" 
+                                            data-bs-toggle="popover" 
+                                            data-bs-placement="bottom" 
+                                            data-bs-html="true" 
+                                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-paper-plane text-primary'></i><strong>Send Money Setup</strong></div>" 
+                                            data-bs-content="<div class='small'><ol class='ps-3 mb-0'><li>Provide designated recipient phone number</li><li>Provide instructions requesting reference ID or note</li></ol></div>" 
+                                            aria-label="Send Money Setup" 
+                                            title="Send Money Setup">
+                                        <i class="fas fa-info-circle text-primary"></i>
+                                    </button>
+                                </h6>
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-6">
@@ -215,11 +295,24 @@
 
                         <!-- M-Pesa Pochi la Biashara -->
                         <div id="mpesa_pochi-config" class="gateway-config mb-4" style="display: none;">
-                            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <div class="d-flex align-items-center gap-2 mb-3">
                                 <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(168, 85, 247, 0.15); color: #a855f7;">
                                     <i class="fas fa-store"></i>
                                 </div>
-                                <h6 class="mb-0 fw-bold">M-Pesa Pochi la Biashara</h6>
+                                <h6 class="mb-0 fw-bold d-inline-flex align-items-center">
+                                    M-Pesa Pochi la Biashara
+                                    <button type="button" 
+                                            class="more-info-btn ms-2" 
+                                            data-bs-toggle="popover" 
+                                            data-bs-placement="bottom" 
+                                            data-bs-html="true" 
+                                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-store text-primary'></i><strong>Pochi la Biashara Setup</strong></div>" 
+                                            data-bs-content="<div class='small'><ol class='ps-3 mb-0'><li>Provide registered Pochi la Biashara mobile number</li><li>Payments are separated from personal funds without merchant charges</li></ol></div>" 
+                                            aria-label="Pochi la Biashara Setup" 
+                                            title="Pochi la Biashara Setup">
+                                        <i class="fas fa-info-circle text-primary"></i>
+                                    </button>
+                                </h6>
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-6">
@@ -241,15 +334,28 @@
 
                         <!-- PayPal Configuration -->
                         <div id="paypal-config" class="gateway-config mb-4" style="display: none;">
-                            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <div class="d-flex align-items-center gap-2 mb-3">
                                 <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(37, 99, 235, 0.15); color: #2563eb;">
                                     <i class="fab fa-paypal"></i>
                                 </div>
-                                <h6 class="mb-0 fw-bold">PayPal Configuration</h6>
+                                <h6 class="mb-0 fw-bold d-inline-flex align-items-center">
+                                    PayPal Configuration
+                                    <button type="button" 
+                                            class="more-info-btn ms-2" 
+                                            data-bs-toggle="popover" 
+                                            data-bs-placement="bottom" 
+                                            data-bs-html="true" 
+                                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fab fa-paypal text-primary'></i><strong>PayPal REST API Setup</strong></div>" 
+                                            data-bs-content="<div class='small'><ol class='ps-3 mb-0'><li>Log in to PayPal Developer Dashboard</li><li>Create a REST API App under My Apps &amp; Credentials</li><li>Copy Client ID and Client Secret</li><li>Set up Webhooks for payment capture callbacks</li></ol></div>" 
+                                            aria-label="PayPal REST API Setup" 
+                                            title="PayPal REST API Setup">
+                                        <i class="fas fa-info-circle text-primary"></i>
+                                    </button>
+                                </h6>
                             </div>
                             <div class="alert alert-info py-2 px-3 mb-3 small d-flex align-items-center gap-2">
                                 <i class="fas fa-info-circle text-primary"></i>
-                                <div>Configure your PayPal REST API credentials for secure online card & wallet payments.</div>
+                                <div>Configure your PayPal REST API credentials for secure online card &amp; wallet payments.</div>
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-6">
@@ -278,15 +384,28 @@
 
                         <!-- Stripe Configuration -->
                         <div id="stripe-config" class="gateway-config mb-4" style="display: none;">
-                            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <div class="d-flex align-items-center gap-2 mb-3">
                                 <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(99, 102, 241, 0.15); color: #6366f1;">
                                     <i class="fab fa-stripe"></i>
                                 </div>
-                                <h6 class="mb-0 fw-bold">Stripe Configuration</h6>
+                                <h6 class="mb-0 fw-bold d-inline-flex align-items-center">
+                                    Stripe Configuration
+                                    <button type="button" 
+                                            class="more-info-btn ms-2" 
+                                            data-bs-toggle="popover" 
+                                            data-bs-placement="bottom" 
+                                            data-bs-html="true" 
+                                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fab fa-stripe text-primary'></i><strong>Stripe API Setup</strong></div>" 
+                                            data-bs-content="<div class='small'><ol class='ps-3 mb-0'><li>Access Stripe Dashboard &rarr; API Keys</li><li>Retrieve Publishable Key and Secret Key</li><li>Configure Webhook Endpoint Secret for live payment events</li></ol></div>" 
+                                            aria-label="Stripe API Setup" 
+                                            title="Stripe API Setup">
+                                        <i class="fas fa-info-circle text-primary"></i>
+                                    </button>
+                                </h6>
                             </div>
                             <div class="alert alert-info py-2 px-3 mb-3 small d-flex align-items-center gap-2">
                                 <i class="fas fa-info-circle text-primary"></i>
-                                <div>Configure your Stripe API keys for global credit & debit card processing.</div>
+                                <div>Configure your Stripe API keys for global credit &amp; debit card processing.</div>
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-6">
@@ -315,11 +434,24 @@
 
                         <!-- Bank Transfer Configuration -->
                         <div id="bank-config" class="gateway-config mb-4" style="display: none;">
-                            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <div class="d-flex align-items-center gap-2 mb-3">
                                 <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(71, 85, 105, 0.15); color: #475569;">
                                     <i class="fas fa-university"></i>
                                 </div>
-                                <h6 class="mb-0 fw-bold">Bank Transfer Configuration</h6>
+                                <h6 class="mb-0 fw-bold d-inline-flex align-items-center">
+                                    Bank Transfer Configuration
+                                    <button type="button" 
+                                            class="more-info-btn ms-2" 
+                                            data-bs-toggle="popover" 
+                                            data-bs-placement="bottom" 
+                                            data-bs-html="true" 
+                                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-university text-primary'></i><strong>Bank Transfer Setup</strong></div>" 
+                                            data-bs-content="<div class='small'><ol class='ps-3 mb-0'><li>Enter complete Bank Name, Branch, and SWIFT Code</li><li>Enter registered Account Name and Account Number</li><li>Instructions will guide clients for EFT, RTGS, or cash deposits</li></ol></div>" 
+                                            aria-label="Bank Transfer Setup" 
+                                            title="Bank Transfer Setup">
+                                        <i class="fas fa-info-circle text-primary"></i>
+                                    </button>
+                                </h6>
                             </div>
                             <div class="alert alert-info py-2 px-3 mb-3 small d-flex align-items-center gap-2">
                                 <i class="fas fa-info-circle text-primary"></i>
@@ -365,52 +497,9 @@
                         </div>
                     </div>
 
-                    <!-- Bottom Form Actions -->
-                    <div class="d-flex justify-content-between align-items-center pt-3 mt-4 border-top">
-                        <a href="{% url 'superadmin:payment_config_list' %}" class="btn btn-outline-secondary">
-                            <i class="fas fa-arrow-left me-2"></i>Back to List
-                        </a>
-                        <div class="d-flex gap-2">
-                            <button type="reset" class="btn btn-outline-secondary">
-                                <i class="fas fa-undo me-2"></i>Reset
-                            </button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>{% if form.instance.pk %}Update{% else %}Create{% endif %} Configuration
-                            </button>
-                        </div>
-                    </div>
                 </form>
             </div>
         </div>
-    </div>
-
-    <!-- Side Instructions Panel -->
-    <div class="col-lg-4">
-        <!-- Setup Guide Panel -->
-        <div class="form-panel-view mb-4">
-            <div class="form-header-bar">
-                <div class="form-header-title-group">
-                    <h6 class="mb-0 fw-bold form-title-text">
-                        <i class="fas fa-info-circle text-primary me-2"></i> Setup Guide
-                    </h6>
-                </div>
-            </div>
-            <div class="form-card-body">
-                <div id="setupGuide">
-                    <div id="default-guide">
-                        <h6>Getting Started</h6>
-                        <p class="small text-muted mb-2">
-                            Select a payment gateway from the dropdown on the left to see configuration instructions and required fields.
-                        </p>
-                        <div class="alert alert-warning py-2 px-3 small border-0 mb-0">
-                            <i class="fas fa-exclamation-triangle me-1"></i> Always test payment configurations in sandbox mode before going live.
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
     </div>
 </div>
 
@@ -418,7 +507,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     const gatewaySelect = document.getElementById('{{ form.gateway.id_for_label }}');
     const environmentContainer = document.getElementById('environment-container');
-    const setupGuideContainer = document.getElementById('setupGuide');
 
     const configPanels = {
         'mpesa_stk': document.getElementById('mpesa_stk-config'),
@@ -429,89 +517,6 @@ document.addEventListener('DOMContentLoaded', function() {
         'paypal': document.getElementById('paypal-config'),
         'stripe': document.getElementById('stripe-config'),
         'bank': document.getElementById('bank-config')
-    };
-
-    const guideContents = {
-        'mpesa_stk': `
-            <h6 class="fw-bold mb-2">M-Pesa STK Push Setup</h6>
-            <ol class="small text-muted ps-3 mb-2">
-                <li>Log into your <a href="https://developer.safaricom.co.ke" target="_blank" rel="noopener">Safaricom Developer Portal</a></li>
-                <li>Create a new App to obtain Consumer Key & Secret</li>
-                <li>Apply for your Lipa na M-Pesa Online Passkey</li>
-                <li>Configure your Business Shortcode (e.g. 174379)</li>
-                <li>Test in Sandbox before toggling Environment to Live</li>
-            </ol>
-            <div class="alert alert-info py-2 px-3 small border-0 mb-0">
-                <i class="fas fa-info-circle me-1"></i> STK Push triggers instant PIN prompts directly on users' mobile phones.
-            </div>
-        `,
-        'mpesa_paybill': `
-            <h6 class="fw-bold mb-2">Manual Paybill Setup</h6>
-            <ol class="small text-muted ps-3 mb-2">
-                <li>Enter your registered M-Pesa Paybill number</li>
-                <li>Specify Account reference format</li>
-                <li>Add clear payment instructions for customers</li>
-            </ol>
-            <div class="alert alert-warning py-2 px-3 small border-0 mb-0">
-                <i class="fas fa-exclamation-triangle me-1"></i> Users will enter these payment details manually via their SIM menu.
-            </div>
-        `,
-        'mpesa_buygoods': `
-            <h6 class="fw-bold mb-2">Buy Goods & Services (Till)</h6>
-            <ol class="small text-muted ps-3 mb-0">
-                <li>Provide your Safaricom Merchant Till Number</li>
-                <li>Instructions will guide payers to select "Buy Goods and Services"</li>
-                <li>Verify transaction reference confirmations in accounts</li>
-            </ol>
-        `,
-        'mpesa_send_money': `
-            <h6 class="fw-bold mb-2">M-Pesa Send Money</h6>
-            <ol class="small text-muted ps-3 mb-0">
-                <li>Provide designated recipient phone number</li>
-                <li>Provide instructions requesting reference ID or note</li>
-            </ol>
-        `,
-        'mpesa_pochi': `
-            <h6 class="fw-bold mb-2">Pochi la Biashara</h6>
-            <ol class="small text-muted ps-3 mb-0">
-                <li>Provide registered Pochi la Biashara mobile number</li>
-                <li>Payments are separated from personal funds without merchant charges</li>
-            </ol>
-        `,
-        'paypal': `
-            <h6 class="fw-bold mb-2">PayPal REST API Setup</h6>
-            <ol class="small text-muted ps-3 mb-0">
-                <li>Log in to <a href="https://developer.paypal.com" target="_blank" rel="noopener">PayPal Developer Dashboard</a></li>
-                <li>Create a REST API App under My Apps & Credentials</li>
-                <li>Copy Client ID and Client Secret</li>
-                <li>Set up Webhooks for payment capture callbacks</li>
-            </ol>
-        `,
-        'stripe': `
-            <h6 class="fw-bold mb-2">Stripe API Setup</h6>
-            <ol class="small text-muted ps-3 mb-0">
-                <li>Access <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener">Stripe Dashboard &rarr; API Keys</a></li>
-                <li>Retrieve Publishable Key and Secret Key</li>
-                <li>Configure Webhook Endpoint Secret for live payment events</li>
-            </ol>
-        `,
-        'bank': `
-            <h6 class="fw-bold mb-2">Bank Transfer Setup</h6>
-            <ol class="small text-muted ps-3 mb-0">
-                <li>Enter complete Bank Name, Branch, and SWIFT Code</li>
-                <li>Enter registered Account Name and Account Number</li>
-                <li>Instructions will guide clients for EFT, RTGS, or cash deposits</li>
-            </ol>
-        `,
-        'default': `
-            <h6>Getting Started</h6>
-            <p class="small text-muted mb-2">
-                Select a payment gateway from the dropdown on the left to see configuration instructions and required fields.
-            </p>
-            <div class="alert alert-warning py-2 px-3 small border-0 mb-0">
-                <i class="fas fa-exclamation-triangle me-1"></i> Always test payment configurations in sandbox mode before going live.
-            </div>
-        `
     };
 
     function showGatewayConfig(gateway) {
@@ -535,15 +540,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show active gateway panel
         if (gateway && configPanels[gateway]) {
             configPanels[gateway].style.display = 'block';
-        }
-
-        // Update setup guide in side panel
-        if (setupGuideContainer) {
-            if (gateway && guideContents[gateway]) {
-                setupGuideContainer.innerHTML = guideContents[gateway];
-            } else {
-                setupGuideContainer.innerHTML = guideContents['default'];
-            }
         }
     }
 

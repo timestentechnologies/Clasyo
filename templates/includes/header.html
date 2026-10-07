@@ -73,6 +73,29 @@
                 <div class="user-avatar">{{ user.first_name.0|default:"U" }}{{ user.last_name.0|default:"" }}</div>
             </div>
             <ul class="dropdown-menu dropdown-menu-end shadow-lg user-profile-dropdown">
+                {% if is_impersonating %}
+                <!-- Compact Impersonation Card inside Profile Dropdown -->
+                <li class="p-2 border-bottom">
+                    <div class="p-2 rounded-2" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25);">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="fw-bold d-inline-flex align-items-center gap-1" style="font-size: 0.75rem; color: #d97706;">
+                                <i class="fas fa-user-secret"></i> Impersonating
+                            </span>
+                            <span class="badge px-1.5 py-0.5 text-uppercase" style="font-size: 0.62rem; background: #f59e0b; color: #000; font-weight: 700;">Active</span>
+                        </div>
+                        {% if original_user %}
+                        <div class="text-muted text-truncate mb-2" style="font-size: 0.72rem;">
+                            Original: <span class="fw-semibold" style="color: var(--text-primary, #0f172a);">{{ original_user.get_full_name|default:original_user.email }}</span>
+                        </div>
+                        {% endif %}
+                        <a href="{% url 'superadmin:stop_impersonation' %}" 
+                           class="btn btn-sm btn-warning w-100 py-1 fw-semibold text-dark d-flex align-items-center justify-content-center gap-1 shadow-xs"
+                           style="font-size: 0.75rem; border-radius: 4px;">
+                            <i class="fas fa-sign-out-alt"></i> Exit Impersonation
+                        </a>
+                    </div>
+                </li>
+                {% endif %}
                 <!-- User Information Header -->
                 <li class="px-3 py-2 border-bottom">
                     <div class="fw-bold text-truncate user-profile-dropdown-name">

@@ -99,9 +99,9 @@ body.dark-mode input::placeholder,
 body[data-theme="dark"] input::placeholder,
 body[data-theme="dark"] textarea::placeholder,
 body[data-theme="dark"] .form-control::placeholder,
-body:not([data-theme="light"]):not(.theme-light) input::placeholder,
-body:not([data-theme="light"]):not(.theme-light) textarea::placeholder,
-body:not([data-theme="light"]):not(.theme-light) .form-control::placeholder {
+body[data-bs-theme="dark"] input::placeholder,
+body[data-bs-theme="dark"] textarea::placeholder,
+body[data-bs-theme="dark"] .form-control::placeholder {
     color: var(--input-placeholder, #CBD5E1) !important;
     opacity: 1 !important;
 }
@@ -115,7 +115,7 @@ body:not([data-theme="light"]):not(.theme-light) .form-control::placeholder {
 .dark-mode input::-webkit-input-placeholder,
 body.dark-mode input::-webkit-input-placeholder,
 body[data-theme="dark"] input::-webkit-input-placeholder,
-body:not([data-theme="light"]):not(.theme-light) input::-webkit-input-placeholder {
+body[data-bs-theme="dark"] input::-webkit-input-placeholder {
     color: var(--input-placeholder, #CBD5E1) !important;
     opacity: 1 !important;
 }
@@ -128,7 +128,7 @@ body:not([data-theme="light"]):not(.theme-light) input::-webkit-input-placeholde
 .dark-mode input::-moz-placeholder,
 body.dark-mode input::-moz-placeholder,
 body[data-theme="dark"] input::-moz-placeholder,
-body:not([data-theme="light"]):not(.theme-light) input::-moz-placeholder {
+body[data-bs-theme="dark"] input::-moz-placeholder {
     color: var(--input-placeholder, #CBD5E1) !important;
     opacity: 1 !important;
 }
@@ -139,8 +139,29 @@ body:not([data-theme="light"]):not(.theme-light) input::-moz-placeholder {
 [data-bs-theme="dark"] .form-label,
 [data-bs-theme="dark"] .form-check-label,
 .theme-dark .form-label,
-.theme-dark .form-check-label {
+.theme-dark .form-check-label,
+.dark-theme .form-label,
+.dark-theme .form-check-label,
+body.dark-theme .form-label,
+body.dark-theme .form-check-label,
+body.theme-dark .form-label,
+body.theme-dark .form-check-label {
     color: var(--text-primary, #F8FAFC) !important;
+}
+
+[data-theme="dark"] .input-group-text,
+[data-bs-theme="dark"] .input-group-text,
+.theme-dark .input-group-text,
+.dark-theme .input-group-text,
+body.dark-theme .input-group-text,
+body.theme-dark .input-group-text {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    border-color: transparent !important;
+    border-radius: 0 !important;
+    color: var(--text-secondary, #94A3B8) !important;
+    box-shadow: none !important;
 }
 
 /* Dynamic System-Wide Text Muted & Secondary Colors for Dark Mode */
@@ -232,10 +253,37 @@ body.dark-theme small.text-muted,
 body.theme-dark small.text-muted,
 body.dark-mode small.text-muted,
 body[data-theme="dark"] small.text-muted,
-body:not([data-theme="light"]):not(.theme-light) .text-muted,
-body:not([data-theme="light"]):not(.theme-light) .text-secondary,
-body:not([data-theme="light"]):not(.theme-light) .form-text,
-body:not([data-theme="light"]):not(.theme-light) p.text-muted {
+body[data-bs-theme="dark"] small.text-muted,
+[data-theme="dark"] .text-muted,
+[data-bs-theme="dark"] .text-muted,
+.theme-dark .text-muted,
+.dark-theme .text-muted,
+.dark-mode .text-muted,
+body.dark-theme .text-muted,
+body.theme-dark .text-muted,
+body.dark-mode .text-muted,
+body[data-theme="dark"] .text-muted,
+body[data-bs-theme="dark"] .text-muted,
+[data-theme="dark"] .text-secondary,
+[data-bs-theme="dark"] .text-secondary,
+.theme-dark .text-secondary,
+.dark-theme .text-secondary,
+.dark-mode .text-secondary,
+body.dark-theme .text-secondary,
+body.theme-dark .text-secondary,
+body.dark-mode .text-secondary,
+body[data-theme="dark"] .text-secondary,
+body[data-bs-theme="dark"] .text-secondary,
+[data-theme="dark"] .form-text,
+[data-bs-theme="dark"] .form-text,
+.theme-dark .form-text,
+.dark-theme .form-text,
+.dark-mode .form-text,
+body.dark-theme .form-text,
+body.theme-dark .form-text,
+body.dark-mode .form-text,
+body[data-theme="dark"] .form-text,
+body[data-bs-theme="dark"] .form-text {
     color: rgba(255, 255, 255, 0.75) !important;
 }
 
@@ -256,7 +304,7 @@ body[data-theme="dark"] i.text-muted,
 body.dark-theme .empty-state i,
 body.dark-mode .empty-state i,
 body[data-theme="dark"] .empty-state i,
-body:not([data-theme="light"]):not(.theme-light) i.text-muted {
+body[data-bs-theme="dark"] i.text-muted {
     color: rgba(255, 255, 255, 0.45) !important;
 }
 
@@ -279,7 +327,7 @@ body.dark-theme h5.text-muted,
 body.theme-dark h5.text-muted,
 body.dark-mode h5.text-muted,
 body[data-theme="dark"] h5.text-muted,
-body:not([data-theme="light"]):not(.theme-light) h5.text-muted {
+body[data-bs-theme="dark"] h5.text-muted {
     color: #F8FAFC !important;
 }
 
@@ -372,7 +420,6 @@ body.theme-dark .card,
 body.dark-mode .card,
 body[data-theme="dark"] .card,
 body[data-bs-theme="dark"] .card,
-body:not([data-theme="light"]):not(.theme-light) .card,
 [data-theme="dark"] .cms-card,
 [data-bs-theme="dark"] .cms-card,
 .theme-dark .cms-card,
@@ -383,7 +430,6 @@ body.theme-dark .cms-card,
 body.dark-mode .cms-card,
 body[data-theme="dark"] .cms-card,
 body[data-bs-theme="dark"] .cms-card,
-body:not([data-theme="light"]):not(.theme-light) .cms-card,
 [data-theme="dark"] .modern-card,
 [data-bs-theme="dark"] .modern-card,
 .theme-dark .modern-card,
@@ -394,7 +440,6 @@ body.theme-dark .modern-card,
 body.dark-mode .modern-card,
 body[data-theme="dark"] .modern-card,
 body[data-bs-theme="dark"] .modern-card,
-body:not([data-theme="light"]):not(.theme-light) .modern-card,
 [data-theme="dark"] .settings-card,
 [data-bs-theme="dark"] .settings-card,
 .theme-dark .settings-card,
@@ -404,8 +449,7 @@ body.dark-theme .settings-card,
 body.theme-dark .settings-card,
 body.dark-mode .settings-card,
 body[data-theme="dark"] .settings-card,
-body[data-bs-theme="dark"] .settings-card,
-body:not([data-theme="light"]):not(.theme-light) .settings-card {
+body[data-bs-theme="dark"] .settings-card {
     background-color: var(--bg-card, #1E293B) !important;
     background: var(--bg-card, #1E293B) !important;
     border-color: var(--border-color, #334155) !important;
@@ -548,16 +592,22 @@ body.dark-theme .alert-primary {
 /* Dark Mode Input groups - seamless unified group */
 [data-theme="dark"] .input-group,
 [data-bs-theme="dark"] .input-group,
-.theme-dark .input-group {
+.theme-dark .input-group,
+.dark-theme .input-group,
+body.dark-theme .input-group,
+body.theme-dark .input-group {
     background-color: var(--input-bg, #1E293B) !important;
-    border-color: var(--input-border, #475569) !important;
+    border: 1px solid var(--input-border, #334155) !important;
+    border-color: var(--input-border, #334155) !important;
 }
 
 [data-theme="dark"] .input-group:focus-within,
 [data-bs-theme="dark"] .input-group:focus-within,
 .theme-dark .input-group:focus-within,
-body.dark-theme .input-group:focus-within {
-    border-color: var(--input-border, #475569) !important;
+.dark-theme .input-group:focus-within,
+body.dark-theme .input-group:focus-within,
+body.theme-dark .input-group:focus-within {
+    border-color: var(--brand-primary, #38BDF8) !important;
     box-shadow: none !important;
     outline: none !important;
 }
@@ -594,17 +644,54 @@ body.dark-theme .input-icon-group:focus-within > i {
     color: var(--brand-accent, #4DD0E1) !important;
 }
 
+/* Dark Mode children inside input-group: NO borders, NO backgrounds, ZERO border-radius */
+[data-theme="dark"] .input-group > *,
 [data-theme="dark"] .input-group > .input-group-text,
-[data-bs-theme="dark"] .input-group > .input-group-text,
-.theme-dark .input-group > .input-group-text,
+[data-theme="dark"] .input-group > span,
 [data-theme="dark"] .input-group > .password-toggle-btn,
-[data-bs-theme="dark"] .input-group > .password-toggle-btn,
-.theme-dark .input-group > .password-toggle-btn,
+[data-theme="dark"] .input-group > button,
+[data-theme="dark"] .input-group > .btn,
 [data-theme="dark"] .password-toggle-btn,
+[data-bs-theme="dark"] .input-group > *,
+[data-bs-theme="dark"] .input-group > .input-group-text,
+[data-bs-theme="dark"] .input-group > span,
+[data-bs-theme="dark"] .input-group > .password-toggle-btn,
+[data-bs-theme="dark"] .input-group > button,
+[data-bs-theme="dark"] .input-group > .btn,
 [data-bs-theme="dark"] .password-toggle-btn,
-.theme-dark .password-toggle-btn {
+.theme-dark .input-group > *,
+.theme-dark .input-group > .input-group-text,
+.theme-dark .input-group > span,
+.theme-dark .input-group > .password-toggle-btn,
+.theme-dark .input-group > button,
+.theme-dark .input-group > .btn,
+.theme-dark .password-toggle-btn,
+.dark-theme .input-group > *,
+.dark-theme .input-group > .input-group-text,
+.dark-theme .input-group > span,
+.dark-theme .input-group > .password-toggle-btn,
+.dark-theme .input-group > button,
+.dark-theme .input-group > .btn,
+.dark-theme .password-toggle-btn,
+body.dark-theme .input-group > *,
+body.dark-theme .input-group > .input-group-text,
+body.dark-theme .input-group > span,
+body.dark-theme .input-group > .password-toggle-btn,
+body.dark-theme .input-group > button,
+body.dark-theme .input-group > .btn,
+body.dark-theme .password-toggle-btn,
+body.theme-dark .input-group > *,
+body.theme-dark .input-group > .input-group-text,
+body.theme-dark .input-group > span,
+body.theme-dark .input-group > .password-toggle-btn,
+body.theme-dark .input-group > button,
+body.theme-dark .input-group > .btn,
+body.theme-dark .password-toggle-btn {
     background: transparent !important;
+    background-color: transparent !important;
     border: none !important;
+    border-color: transparent !important;
+    border-radius: 0 !important;
     outline: none !important;
     box-shadow: none !important;
     color: var(--text-muted, #94A3B8) !important;
@@ -612,16 +699,60 @@ body.dark-theme .input-icon-group:focus-within > i {
 
 [data-theme="dark"] .password-toggle-btn:hover,
 [data-bs-theme="dark"] .password-toggle-btn:hover,
-.theme-dark .password-toggle-btn:hover {
+.theme-dark .password-toggle-btn:hover,
+.dark-theme .password-toggle-btn:hover,
+body.dark-theme .password-toggle-btn:hover,
+body.theme-dark .password-toggle-btn:hover {
     color: var(--brand-primary, #38BDF8) !important;
 }
 
 [data-theme="dark"] .input-group > .form-control,
+[data-theme="dark"] .input-group > input,
+[data-theme="dark"] .input-group > select,
+[data-theme="dark"] .input-group > .form-select,
 [data-bs-theme="dark"] .input-group > .form-control,
-.theme-dark .input-group > .form-control {
+[data-bs-theme="dark"] .input-group > input,
+[data-bs-theme="dark"] .input-group > select,
+[data-bs-theme="dark"] .input-group > .form-select,
+.theme-dark .input-group > .form-control,
+.theme-dark .input-group > input,
+.theme-dark .input-group > select,
+.theme-dark .input-group > .form-select,
+.dark-theme .input-group > .form-control,
+.dark-theme .input-group > input,
+.dark-theme .input-group > select,
+.dark-theme .input-group > .form-select,
+body.dark-theme .input-group > .form-control,
+body.dark-theme .input-group > input,
+body.dark-theme .input-group > select,
+body.dark-theme .input-group > .form-select,
+body.theme-dark .input-group > .form-control,
+body.theme-dark .input-group > input,
+body.theme-dark .input-group > select,
+body.theme-dark .input-group > .form-select {
     background: transparent !important;
+    background-color: transparent !important;
     border: none !important;
+    border-color: transparent !important;
+    border-radius: 0 !important;
     color: var(--input-text, #F8FAFC) !important;
+}
+
+/* Dark Mode disabled / readonly input groups */
+[data-theme="dark"] .input-group:has(.form-control:disabled),
+[data-theme="dark"] .input-group:has(input:disabled),
+[data-bs-theme="dark"] .input-group:has(.form-control:disabled),
+[data-bs-theme="dark"] .input-group:has(input:disabled),
+.theme-dark .input-group:has(.form-control:disabled),
+.theme-dark .input-group:has(input:disabled),
+.dark-theme .input-group:has(.form-control:disabled),
+.dark-theme .input-group:has(input:disabled),
+body.dark-theme .input-group:has(.form-control:disabled),
+body.dark-theme .input-group:has(input:disabled),
+body.theme-dark .input-group:has(.form-control:disabled),
+body.theme-dark .input-group:has(input:disabled) {
+    background-color: rgba(15, 23, 42, 0.7) !important;
+    border-color: #334155 !important;
 }
 
 /* Custom file upload */
@@ -757,24 +888,297 @@ body.theme-dark input[type="range"]:focus {
     border: 2px solid #FFFFFF !important;
 }
 
-/* Disabled form controls */
-[data-theme="dark"] .form-control:disabled,
-[data-theme="dark"] .form-select:disabled,
-[data-bs-theme="dark"] .form-control:disabled,
-[data-bs-theme="dark"] .form-select:disabled,
-.theme-dark .form-control:disabled,
-.theme-dark .form-select:disabled {
+/* Disabled form controls (Standalone only - excludes input-group children) */
+[data-theme="dark"] .form-control:disabled:not(.input-group *),
+[data-theme="dark"] .form-select:disabled:not(.input-group *),
+[data-bs-theme="dark"] .form-control:disabled:not(.input-group *),
+[data-bs-theme="dark"] .form-select:disabled:not(.input-group *),
+.theme-dark .form-control:disabled:not(.input-group *),
+.theme-dark .form-select:disabled:not(.input-group *) {
     background-color: rgba(15, 23, 42, 0.5) !important;
     color: var(--text-muted, #94A3B8) !important;
     border-color: #334155 !important;
 }
 
-/* Readonly form controls */
-[data-theme="dark"] .form-control[readonly],
-[data-bs-theme="dark"] .form-control[readonly],
-.theme-dark .form-control[readonly] {
+/* Readonly form controls (Standalone only - excludes input-group children) */
+[data-theme="dark"] .form-control[readonly]:not(.input-group *),
+[data-bs-theme="dark"] .form-control[readonly]:not(.input-group *),
+.theme-dark .form-control[readonly]:not(.input-group *) {
     background-color: rgba(15, 23, 42, 0.5) !important;
     color: var(--text-muted, #94A3B8) !important;
+}
+
+/* =====================================================================
+   FLAWLESS UNIFIED INPUT GROUPS (ONE CONTINUOUS BLENDED FIELD)
+   ===================================================================== */
+.input-group,
+.input-group.input-group-lg,
+.input-group.input-group-sm {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    min-height: 44px !important;
+    background-color: var(--input-bg, #FFFFFF) !important;
+    border: 1px solid var(--input-border, #CBD5E1) !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+    position: relative !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.input-group.input-group-lg {
+    min-height: 50px !important;
+    border-radius: 10px !important;
+}
+
+.input-group.input-group-sm {
+    min-height: 32px !important;
+    border-radius: 6px !important;
+}
+
+[data-theme="dark"] .input-group,
+[data-bs-theme="dark"] .input-group,
+.theme-dark .input-group,
+.dark-theme .input-group,
+body.dark-theme .input-group,
+body.theme-dark .input-group {
+    background-color: var(--input-bg, #0F172A) !important;
+    border: 1px solid var(--input-border, #334155) !important;
+    border-color: #334155 !important;
+}
+
+.input-group:focus-within {
+    border-color: var(--brand-primary, #0284C7) !important;
+}
+
+[data-theme="dark"] .input-group:focus-within,
+[data-bs-theme="dark"] .input-group:focus-within,
+.theme-dark .input-group:focus-within,
+.dark-theme .input-group:focus-within,
+body.dark-theme .input-group:focus-within,
+body.theme-dark .input-group:focus-within {
+    border-color: #38BDF8 !important;
+}
+
+/* ZERO INTERNAL BORDERS, NO VERTICAL DIVIDERS, TRANSPARENT ON ALL CHILDREN */
+.input-group > *,
+.input-group > .form-control,
+.input-group > .form-select,
+.input-group > .input-group-text,
+.input-group > .input-group-append,
+.input-group > .input-group-prepend,
+.input-group > span,
+.input-group > input,
+.input-group > input[type="text"],
+.input-group > input[type="email"],
+.input-group > input[type="password"],
+.input-group > input[type="number"],
+.input-group > input[type="tel"],
+.input-group > input[type="url"],
+.input-group > select,
+.input-group > button,
+.input-group > .btn,
+.input-group > .password-toggle-btn,
+.input-group .form-control,
+.input-group .form-select,
+.input-group .input-group-text,
+.input-group span,
+.input-group input,
+.input-group input[type="text"],
+.input-group input[type="email"],
+.input-group input[type="password"],
+.input-group input[type="number"],
+.input-group input[type="tel"],
+.input-group input[type="url"],
+.input-group select,
+.input-group button,
+.input-group .btn,
+.input-group .form-control:disabled,
+.input-group input:disabled,
+.input-group .form-control[readonly],
+.input-group input[readonly],
+.input-group .form-control:focus,
+.input-group input:focus,
+[data-theme="dark"] .input-group > *,
+[data-theme="dark"] .input-group > input,
+[data-theme="dark"] .input-group > input[type="text"],
+[data-theme="dark"] .input-group > .form-control,
+[data-theme="dark"] .input-group > .input-group-text,
+[data-theme="dark"] .input-group > span,
+[data-theme="dark"] .input-group .form-control,
+[data-theme="dark"] .input-group input,
+[data-theme="dark"] .input-group .input-group-text,
+[data-theme="dark"] .input-group span,
+[data-theme="dark"] .input-group input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="range"]):not(.form-range),
+[data-bs-theme="dark"] .input-group input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="range"]):not(.form-range),
+.theme-dark .input-group input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="range"]):not(.form-range),
+.dark-theme .input-group input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="range"]):not(.form-range),
+body.dark-theme .input-group input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="range"]):not(.form-range),
+body.theme-dark .input-group input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="range"]):not(.form-range),
+[data-theme="dark"] .input-group .form-control:disabled,
+[data-theme="dark"] .input-group input:disabled,
+[data-theme="dark"] .input-group .form-control[readonly],
+[data-theme="dark"] .input-group input[readonly],
+[data-bs-theme="dark"] .input-group .form-control:disabled,
+[data-bs-theme="dark"] .input-group input:disabled,
+[data-bs-theme="dark"] .input-group .form-control[readonly],
+[data-bs-theme="dark"] .input-group input[readonly],
+.theme-dark .input-group .form-control:disabled,
+.theme-dark .input-group input:disabled,
+.theme-dark .input-group .form-control[readonly],
+.theme-dark .input-group input[readonly],
+.dark-theme .input-group .form-control:disabled,
+.dark-theme .input-group input:disabled,
+.dark-theme .input-group .form-control[readonly],
+.dark-theme .input-group input[readonly],
+body.dark-theme .input-group .form-control:disabled,
+body.dark-theme .input-group input:disabled,
+body.dark-theme .input-group .form-control[readonly],
+body.dark-theme .input-group input[readonly],
+body.theme-dark .input-group .form-control:disabled,
+body.theme-dark .input-group input:disabled,
+body.theme-dark .input-group .form-control[readonly],
+body.theme-dark .input-group input[readonly] {
+    border: 0 !important;
+    border-top: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+    border-left: 0 !important;
+    border-width: 0 !important;
+    border-style: none !important;
+    border-color: transparent !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    margin: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* Inner input flex layout */
+.input-group > .form-control,
+.input-group > input,
+.input-group > select,
+.input-group > .form-select,
+.input-group .form-control,
+.input-group input {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 0.625rem 0.875rem !important;
+    font-size: 0.9375rem !important;
+    line-height: 1.5 !important;
+    color: var(--input-text, #0F172A) !important;
+}
+
+[data-theme="dark"] .input-group > .form-control,
+[data-theme="dark"] .input-group > input,
+[data-theme="dark"] .input-group .form-control,
+[data-theme="dark"] .input-group input,
+[data-bs-theme="dark"] .input-group > .form-control,
+[data-bs-theme="dark"] .input-group > input,
+[data-bs-theme="dark"] .input-group .form-control,
+[data-bs-theme="dark"] .input-group input,
+.theme-dark .input-group > .form-control,
+.theme-dark .input-group > input,
+.dark-theme .input-group > .form-control,
+.dark-theme .input-group > input,
+body.dark-theme .input-group > .form-control,
+body.dark-theme .input-group > input,
+body.theme-dark .input-group > .form-control,
+body.theme-dark .input-group > input {
+    color: var(--input-text, #F8FAFC) !important;
+}
+
+/* Leading Addon / Icon */
+.input-group > .input-group-text:first-child,
+.input-group > span:first-child {
+    padding-left: 1rem !important;
+    padding-right: 0.4rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: var(--text-muted, #64748B) !important;
+    flex-shrink: 0 !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+.input-group > .input-group-text:first-child + .form-control,
+.input-group > .input-group-text:first-child + input,
+.input-group > span:first-child + .form-control,
+.input-group > span:first-child + input {
+    padding-left: 0.35rem !important;
+}
+
+/* Trailing Addon / Text (.clasyo.com, points, KES) */
+.input-group > .input-group-text:last-child,
+.input-group > span:last-child {
+    padding-left: 0.35rem !important;
+    padding-right: 1.15rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: var(--text-muted, #64748B) !important;
+    font-weight: 500 !important;
+    font-size: 0.9375rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    user-select: none !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+.input-group > .form-control:not(:last-child),
+.input-group > input:not(:last-child) {
+    padding-right: 0.35rem !important;
+}
+
+/* Trailing Button */
+.input-group > button,
+.input-group > .btn,
+.input-group > .password-toggle-btn {
+    padding-left: 0.5rem !important;
+    padding-right: 1rem !important;
+    color: var(--text-muted, #64748B) !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+/* Disabled input-group container */
+.input-group:has(.form-control:disabled),
+.input-group:has(input:disabled),
+.input-group.is-disabled {
+    background-color: var(--bg-hover, #F8FAFC) !important;
+    border-color: var(--input-border, #CBD5E1) !important;
+    opacity: 0.85 !important;
+    cursor: not-allowed !important;
+}
+
+[data-theme="dark"] .input-group:has(.form-control:disabled),
+[data-theme="dark"] .input-group:has(input:disabled),
+[data-bs-theme="dark"] .input-group:has(.form-control:disabled),
+[data-bs-theme="dark"] .input-group:has(input:disabled),
+.theme-dark .input-group:has(.form-control:disabled),
+.theme-dark .input-group:has(input:disabled),
+.dark-theme .input-group:has(.form-control:disabled),
+.dark-theme .input-group:has(input:disabled),
+body.dark-theme .input-group:has(.form-control:disabled),
+body.dark-theme .input-group:has(input:disabled),
+body.theme-dark .input-group:has(.form-control:disabled),
+body.theme-dark .input-group:has(input:disabled) {
+    background-color: rgba(15, 23, 42, 0.7) !important;
+    border-color: #334155 !important;
 }
 
 /* ==========================================================

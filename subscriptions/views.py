@@ -305,6 +305,13 @@ class SubscribeView(View):
                     'slug': plan.slug,
                     'price': float(plan.price),
                     'billing_cycle': plan.billing_cycle,
+                    'discount_percentage': float(plan.discount_percentage or 0),
+                    'yearly_discount_percentage': float(plan.yearly_discount_percentage or 0),
+                    'period_price': float(plan.get_period_price),
+                    'annual_base_price': float(plan.get_annual_base_price),
+                    'annual_price': float(plan.get_annual_price),
+                    'annual_savings': float(plan.get_annual_savings),
+                    'annual_term_equivalent': float(plan.get_annual_term_equivalent),
                     'description': plan.description,
                     'features': features_data,
                     'trial_days': plan.trial_days
@@ -348,21 +355,32 @@ class SubscribeView(View):
             payment_method = request.POST.get('payment_method')
             
             with transaction.atomic():
-                # Calculate subscription dates for a paid purchase.
-                # Do NOT start/extend a trial here even if the plan has trial_days configured.
-                start_date = timezone.now().date()
-                if plan.billing_cycle == 'monthly':
-                    end_date = start_date + timedelta(days=30)
-                elif plan.billing_cycle == 'termly':
-                    end_date = start_date + timedelta(days=90)
-                elif plan.billing_cycle == 'quarterly':
-                    end_date = start_date + timedelta(days=90)
-                elif plan.billing_cycle == 'half_yearly':
-                    end_date = start_date + timedelta(days=180)
-                elif plan.billing_cycle == 'yearly':
-                    end_date = start_date + timedelta(days=365)
+                # Determine billing cycle and calculate discounted amounts
+                requested_cycle = (request.POST.get('billing_cycle') or request.GET.get('billing_cycle') or plan.billing_cycle or '').lower()
+                is_yearly = requested_cycle in ('yearly', 'annually')
+                
+                if is_yearly:
+                    sub_cycle = 'yearly'
+                    base_amount = plan.get_annual_base_price
+                    discount_amount = plan.get_annual_savings
+                    final_amount = plan.get_annual_price
+                    cycle_days = 365
                 else:
-                    end_date = start_date + timedelta(days=30)
+                    sub_cycle = plan.billing_cycle or 'termly'
+                    base_amount = plan.price
+                    discount_amount = plan.get_period_savings
+                    final_amount = plan.get_period_price
+                    days_map = {
+                        'monthly': 30,
+                        'termly': 90,
+                        'quarterly': 90,
+                        'half_yearly': 180,
+                        'yearly': 365,
+                    }
+                    cycle_days = days_map.get(plan.billing_cycle, 90)
+
+                start_date = timezone.now().date()
+                end_date = start_date + timedelta(days=cycle_days)
                 is_trial = False
                 
                 # Resolve school safely
@@ -412,20 +430,45 @@ class SubscribeView(View):
                 subscription = Subscription.objects.using('default').create(
                     school=school,
                     plan=plan,
+                    billing_cycle=sub_cycle,
+                    discount_applied=discount_amount,
                     start_date=start_date,
                     end_date=end_date,
                     is_trial=is_trial,
                     status='pending'
                 )
 
-                # Create payment record and store method-specific details
-                amount = plan.price
+                # Create payment record
+                amount = final_amount
                 payment = Payment(
                     subscription=subscription,
                     amount=amount,
                     payment_method=payment_method,
                     status='pending'
                 )
+
+                # Create or update invoice with accurate discount applied
+                cycle_label = "Annual" if is_yearly else plan.get_billing_cycle_display()
+                inv_desc = f"{plan.name} - {cycle_label} subscription"
+                if discount_amount > 0:
+                    inv_desc += f" (Includes Ksh {discount_amount:,.2f} discount)"
+                
+                invoice = Invoice.objects.using('default').create(
+                    school=school,
+                    subscription=subscription,
+                    invoice_type='new',
+                    plan_name=f"{plan.name} ({cycle_label})",
+                    plan_description=inv_desc,
+                    amount=base_amount,
+                    discount_amount=discount_amount,
+                    tax_amount=0,
+                    total_amount=final_amount,
+                    due_date=end_date,
+                    billing_start_date=start_date,
+                    billing_end_date=end_date,
+                    status='sent'
+                )
+                payment.invoice_number_ref = invoice.invoice_number
 
                 if payment_method == 'cash':
                     payment.invoice_number_ref = request.POST.get('invoice_number', '')

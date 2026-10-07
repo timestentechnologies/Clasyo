@@ -99,9 +99,9 @@ body.dark-mode input::placeholder,
 body[data-theme="dark"] input::placeholder,
 body[data-theme="dark"] textarea::placeholder,
 body[data-theme="dark"] .form-control::placeholder,
-body:not([data-theme="light"]):not(.theme-light) input::placeholder,
-body:not([data-theme="light"]):not(.theme-light) textarea::placeholder,
-body:not([data-theme="light"]):not(.theme-light) .form-control::placeholder {
+body[data-bs-theme="dark"] input::placeholder,
+body[data-bs-theme="dark"] textarea::placeholder,
+body[data-bs-theme="dark"] .form-control::placeholder {
     color: var(--input-placeholder, #CBD5E1) !important;
     opacity: 1 !important;
 }
@@ -115,7 +115,7 @@ body:not([data-theme="light"]):not(.theme-light) .form-control::placeholder {
 .dark-mode input::-webkit-input-placeholder,
 body.dark-mode input::-webkit-input-placeholder,
 body[data-theme="dark"] input::-webkit-input-placeholder,
-body:not([data-theme="light"]):not(.theme-light) input::-webkit-input-placeholder {
+body[data-bs-theme="dark"] input::-webkit-input-placeholder {
     color: var(--input-placeholder, #CBD5E1) !important;
     opacity: 1 !important;
 }
@@ -128,7 +128,7 @@ body:not([data-theme="light"]):not(.theme-light) input::-webkit-input-placeholde
 .dark-mode input::-moz-placeholder,
 body.dark-mode input::-moz-placeholder,
 body[data-theme="dark"] input::-moz-placeholder,
-body:not([data-theme="light"]):not(.theme-light) input::-moz-placeholder {
+body[data-bs-theme="dark"] input::-moz-placeholder {
     color: var(--input-placeholder, #CBD5E1) !important;
     opacity: 1 !important;
 }
@@ -253,10 +253,37 @@ body.dark-theme small.text-muted,
 body.theme-dark small.text-muted,
 body.dark-mode small.text-muted,
 body[data-theme="dark"] small.text-muted,
-body:not([data-theme="light"]):not(.theme-light) .text-muted,
-body:not([data-theme="light"]):not(.theme-light) .text-secondary,
-body:not([data-theme="light"]):not(.theme-light) .form-text,
-body:not([data-theme="light"]):not(.theme-light) p.text-muted {
+body[data-bs-theme="dark"] small.text-muted,
+[data-theme="dark"] .text-muted,
+[data-bs-theme="dark"] .text-muted,
+.theme-dark .text-muted,
+.dark-theme .text-muted,
+.dark-mode .text-muted,
+body.dark-theme .text-muted,
+body.theme-dark .text-muted,
+body.dark-mode .text-muted,
+body[data-theme="dark"] .text-muted,
+body[data-bs-theme="dark"] .text-muted,
+[data-theme="dark"] .text-secondary,
+[data-bs-theme="dark"] .text-secondary,
+.theme-dark .text-secondary,
+.dark-theme .text-secondary,
+.dark-mode .text-secondary,
+body.dark-theme .text-secondary,
+body.theme-dark .text-secondary,
+body.dark-mode .text-secondary,
+body[data-theme="dark"] .text-secondary,
+body[data-bs-theme="dark"] .text-secondary,
+[data-theme="dark"] .form-text,
+[data-bs-theme="dark"] .form-text,
+.theme-dark .form-text,
+.dark-theme .form-text,
+.dark-mode .form-text,
+body.dark-theme .form-text,
+body.theme-dark .form-text,
+body.dark-mode .form-text,
+body[data-theme="dark"] .form-text,
+body[data-bs-theme="dark"] .form-text {
     color: rgba(255, 255, 255, 0.75) !important;
 }
 
@@ -277,7 +304,7 @@ body[data-theme="dark"] i.text-muted,
 body.dark-theme .empty-state i,
 body.dark-mode .empty-state i,
 body[data-theme="dark"] .empty-state i,
-body:not([data-theme="light"]):not(.theme-light) i.text-muted {
+body[data-bs-theme="dark"] i.text-muted {
     color: rgba(255, 255, 255, 0.45) !important;
 }
 
@@ -300,7 +327,7 @@ body.dark-theme h5.text-muted,
 body.theme-dark h5.text-muted,
 body.dark-mode h5.text-muted,
 body[data-theme="dark"] h5.text-muted,
-body:not([data-theme="light"]):not(.theme-light) h5.text-muted {
+body[data-bs-theme="dark"] h5.text-muted {
     color: #F8FAFC !important;
 }
 
@@ -393,7 +420,6 @@ body.theme-dark .card,
 body.dark-mode .card,
 body[data-theme="dark"] .card,
 body[data-bs-theme="dark"] .card,
-body:not([data-theme="light"]):not(.theme-light) .card,
 [data-theme="dark"] .cms-card,
 [data-bs-theme="dark"] .cms-card,
 .theme-dark .cms-card,
@@ -404,7 +430,6 @@ body.theme-dark .cms-card,
 body.dark-mode .cms-card,
 body[data-theme="dark"] .cms-card,
 body[data-bs-theme="dark"] .cms-card,
-body:not([data-theme="light"]):not(.theme-light) .cms-card,
 [data-theme="dark"] .modern-card,
 [data-bs-theme="dark"] .modern-card,
 .theme-dark .modern-card,
@@ -415,7 +440,6 @@ body.theme-dark .modern-card,
 body.dark-mode .modern-card,
 body[data-theme="dark"] .modern-card,
 body[data-bs-theme="dark"] .modern-card,
-body:not([data-theme="light"]):not(.theme-light) .modern-card,
 [data-theme="dark"] .settings-card,
 [data-bs-theme="dark"] .settings-card,
 .theme-dark .settings-card,
@@ -425,8 +449,7 @@ body.dark-theme .settings-card,
 body.theme-dark .settings-card,
 body.dark-mode .settings-card,
 body[data-theme="dark"] .settings-card,
-body[data-bs-theme="dark"] .settings-card,
-body:not([data-theme="light"]):not(.theme-light) .settings-card {
+body[data-bs-theme="dark"] .settings-card {
     background-color: var(--bg-card, #1E293B) !important;
     background: var(--bg-card, #1E293B) !important;
     border-color: var(--border-color, #334155) !important;

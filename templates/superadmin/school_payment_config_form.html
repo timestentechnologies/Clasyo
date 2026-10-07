@@ -7,11 +7,39 @@
 {% block page_subtitle %}Configure payment settings for {{ school.name }}{% endblock %}
 
 {% block content %}
-<div class="row g-4">
-    <!-- Main Form Panel -->
-    <div class="col-lg-8">
-        <div class="form-panel-view mb-4">
-            <div class="form-card-body">
+<div class="container-fluid px-0">
+    <!-- Shared In-Page Single Form Panel -->
+    <div class="form-panel-view mb-4" id="schoolPaymentPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <a href="{% url 'superadmin:school_payment_config_list' school_slug=school.slug %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Payment Methods
+                </a>
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
+                    <i class="fas fa-credit-card text-primary me-2"></i> {% if form.instance.pk %}Edit Payment Method{% else %}Add Payment Method{% endif %}
+                    <button type="button" 
+                            class="more-info-btn ms-2" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="bottom" 
+                            data-bs-html="true" 
+                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-shield-alt text-primary'></i><strong>Payment Best Practices</strong></div>" 
+                            data-bs-content="<ul class='small ps-3 mb-0'><li>Always test new payment gateways using sandbox mode first.</li><li>Verify bank and paybill details carefully to prevent misrouted tuition fees.</li><li>Ensure Consumer Secrets, Passkeys, and Private Keys are kept strictly private.</li><li>Automatic fee receipts and notifications are issued once a payment callback is verified.</li></ul>" 
+                            aria-label="Payment Best Practices Info" 
+                            title="Payment Best Practices">
+                        <i class="fas fa-info-circle text-primary"></i>
+                    </button>
+                </h5>
+            </div>
+            <div class="form-header-actions">
+                <a href="{% url 'superadmin:school_payment_config_list' school_slug=school.slug %}" class="btn btn-sm btn-light">
+                    Cancel
+                </a>
+                <button type="submit" form="paymentConfigForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Configuration{% else %}Save Configuration{% endif %}
+                </button>
+            </div>
+        </div>
+        <div class="form-card-body">
                 <form method="post" id="paymentConfigForm">
                     {% csrf_token %}
 
@@ -25,7 +53,7 @@
 
                     <!-- Basic Settings Section -->
                     <div class="mb-4">
-                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                        <div class="d-flex align-items-center gap-2 mb-3">
                             <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 13px; background: rgba(56, 189, 248, 0.15); color: var(--accent-cyan, #38BDF8);">
                                 <i class="fas fa-sliders-h"></i>
                             </div>
@@ -71,8 +99,19 @@
                     <div id="gatewayFields">
                         <!-- M-Pesa STK Push Fields -->
                         <div id="mpesa_stk-fields" class="gateway-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-mobile-alt me-2"></i>M-Pesa STK Push Configuration
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-mobile-alt text-primary'></i><strong>M-Pesa STK Push Setup</strong></div>" 
+                                        data-bs-content="<div class='small'><ol class='ps-3 mb-2'><li>Log into Safaricom Developer Portal</li><li>Create a new App to obtain Consumer Key &amp; Secret</li><li>Apply for Lipa na M-Pesa Online Passkey</li><li>Configure Business Shortcode / Till</li><li>Test in sandbox before switching to Live</li></ol><div class='alert alert-info py-1 px-2 small mb-0'>Prompts parents directly on their phone screen.</div></div>" 
+                                        aria-label="M-Pesa STK Push Setup" 
+                                        title="M-Pesa STK Push Setup">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="alert alert-info py-2 px-3 mb-3 small d-flex align-items-center gap-2">
                                 <i class="fas fa-info-circle text-primary"></i>
@@ -116,8 +155,19 @@
 
                         <!-- M-Pesa Manual Paybill Fields -->
                         <div id="mpesa_paybill-fields" class="gateway-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-mobile-alt me-2"></i>M-Pesa Manual Paybill Configuration
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-mobile-alt text-primary'></i><strong>Manual Paybill Instructions</strong></div>" 
+                                        data-bs-content="<div class='small'><ol class='ps-3 mb-2'><li>Enter registered school Paybill number</li><li>Specify Account reference format (e.g. Student Adm No)</li><li>Add clear payment guidance for parents</li></ol><div class='alert alert-warning py-1 px-2 small mb-0'>Parents follow these details on their M-Pesa menu.</div></div>" 
+                                        aria-label="Manual Paybill Instructions" 
+                                        title="Manual Paybill Instructions">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="alert alert-warning py-2 px-3 mb-3 small d-flex align-items-center gap-2">
                                 <i class="fas fa-info-circle text-warning"></i>
@@ -168,8 +218,19 @@
 
                         <!-- M-Pesa Buy Goods & Services (Till) Fields -->
                         <div id="mpesa_buygoods-fields" class="gateway-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
-                                <i class="fas fa-shopping-basket me-2"></i>M-Pesa Buy Goods & Services (Till)
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
+                                <i class="fas fa-shopping-basket me-2"></i>M-Pesa Buy Goods &amp; Services (Till)
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-shopping-basket text-primary'></i><strong>Buy Goods &amp; Services Setup</strong></div>" 
+                                        data-bs-content="<div class='small'><ol class='ps-3 mb-0'><li>Provide Safaricom Merchant Till Number</li><li>Instructions guide parents to select 'Buy Goods and Services'</li><li>School accounts office verifies till confirmations</li></ol></div>" 
+                                        aria-label="Buy Goods &amp; Services Setup" 
+                                        title="Buy Goods &amp; Services Setup">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
@@ -191,8 +252,19 @@
 
                         <!-- M-Pesa Send Money Fields -->
                         <div id="mpesa_send_money-fields" class="gateway-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-paper-plane me-2"></i>M-Pesa Send Money
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-paper-plane text-primary'></i><strong>Send Money Setup</strong></div>" 
+                                        data-bs-content="<div class='small'><ol class='ps-3 mb-0'><li>Provide designated finance officer phone number</li><li>Set instructions specifying student name reference in transfer</li></ol></div>" 
+                                        aria-label="Send Money Setup" 
+                                        title="Send Money Setup">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
@@ -214,8 +286,19 @@
 
                         <!-- M-Pesa Pochi la Biashara Fields -->
                         <div id="mpesa_pochi-fields" class="gateway-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-store me-2"></i>M-Pesa Pochi la Biashara
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-store text-primary'></i><strong>Pochi la Biashara Setup</strong></div>" 
+                                        data-bs-content="<div class='small'><ol class='ps-3 mb-0'><li>Provide Pochi la Biashara mobile number</li><li>Payments are separated from personal M-Pesa funds</li></ol></div>" 
+                                        aria-label="Pochi la Biashara Setup" 
+                                        title="Pochi la Biashara Setup">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
@@ -237,8 +320,19 @@
 
                         <!-- PayPal Fields -->
                         <div id="paypal-fields" class="gateway-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fab fa-paypal me-2"></i>PayPal Configuration
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fab fa-paypal text-primary'></i><strong>PayPal Business Setup</strong></div>" 
+                                        data-bs-content="<div class='small'><ol class='ps-3 mb-0'><li>Enter verified PayPal Business email address</li><li>International parents pay securely with card or PayPal balance</li></ol></div>" 
+                                        aria-label="PayPal Business Setup" 
+                                        title="PayPal Business Setup">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-12">
@@ -254,8 +348,19 @@
 
                         <!-- Bank Transfer Fields -->
                         <div id="bank-fields" class="gateway-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-university me-2"></i>Bank Transfer Configuration
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-university text-primary'></i><strong>Bank Transfer Setup</strong></div>" 
+                                        data-bs-content="<div class='small'><ol class='ps-3 mb-0'><li>Enter official school bank name, branch, and account number</li><li>Parents use details for EFT, RTGS, or cash deposits</li></ol></div>" 
+                                        aria-label="Bank Transfer Setup" 
+                                        title="Bank Transfer Setup">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
@@ -291,8 +396,19 @@
 
                         <!-- Cash Fields -->
                         <div id="cash-fields" class="gateway-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-money-bill-wave me-2"></i>Cash Payment Instructions
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-money-bill-wave text-primary'></i><strong>Cash Payment Instructions</strong></div>" 
+                                        data-bs-content="<div class='small'><p class='mb-0'>Specify location (e.g. Accounts Office), business hours, and authorized personnel for receiving cash receipts.</p></div>" 
+                                        aria-label="Cash Payment Instructions" 
+                                        title="Cash Payment Instructions">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-12">
@@ -308,8 +424,19 @@
 
                         <!-- Cheque Fields -->
                         <div id="cheque-fields" class="gateway-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-money-check me-2"></i>Cheque Payment Instructions
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-money-check text-primary'></i><strong>Cheque Payment Instructions</strong></div>" 
+                                        data-bs-content="<div class='small'><p class='mb-0'>Provide the exact school account name for 'Pay To' order, branch details, and clearance time policies.</p></div>" 
+                                        aria-label="Cheque Payment Instructions" 
+                                        title="Cheque Payment Instructions">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-12">
@@ -325,54 +452,16 @@
                     </div>
 
                     <!-- Toggle at bottom -->
-                    <div class="d-flex flex-wrap gap-4 pt-3 mt-3 border-top">
+                    <div class="d-flex flex-wrap gap-4 mt-3">
                         <div class="form-check form-switch mb-0">
                             {{ form.is_active }}
                             <label class="form-check-label ms-2" for="{{ form.is_active.id_for_label }}">Enable this payment method</label>
                         </div>
                     </div>
 
-                    <!-- Bottom Form Actions -->
-                    <div class="d-flex justify-content-between align-items-center pt-3 mt-4 border-top">
-                        <a href="{% url 'superadmin:school_payment_config_list' school_slug=school.slug %}" class="btn btn-outline-secondary">
-                            <i class="fas fa-arrow-left me-2"></i>Back to List
-                        </a>
-                        <div class="d-flex gap-2">
-                            <button type="reset" class="btn btn-outline-secondary">
-                                <i class="fas fa-undo me-2"></i>Reset
-                            </button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>{% if form.instance.pk %}Update{% else %}Save{% endif %} Configuration
-                            </button>
-                        </div>
-                    </div>
-
                 </form>
             </div>
         </div>
-    </div>
-
-    <!-- Side Instructions Panel -->
-    <div class="col-lg-4">
-        <!-- Setup Guide Card -->
-        <div class="form-panel-view mb-4">
-            <div class="form-header-bar">
-                <div class="form-header-title-group">
-                    <h6 class="mb-0 fw-bold form-title-text">
-                        <i class="fas fa-info-circle text-primary me-2"></i> Setup Guide
-                    </h6>
-                </div>
-            </div>
-            <div class="form-card-body">
-                <div id="setupGuide">
-                    <div class="text-muted">
-                        <p class="small mb-0">Select a payment gateway on the left to see setup instructions.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
     </div>
 </div>
 {% endblock %}
@@ -382,80 +471,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const gatewaySelect = document.getElementById('{{ form.gateway.id_for_label }}');
     const gatewayFields = document.querySelectorAll('.gateway-fields');
-    const setupGuide = document.getElementById('setupGuide');
     const environmentContainer = document.getElementById('environment-container');
-
-    const setupGuides = {
-        'mpesa_stk': `
-            <h6 class="fw-bold mb-2">M-Pesa STK Push Setup</h6>
-            <ol class="small text-muted ps-3 mb-2">
-                <li>Log into your Safaricom Developer Portal</li>
-                <li>Create a new App to obtain Consumer Key & Secret</li>
-                <li>Apply for your Lipa na M-Pesa Online Passkey</li>
-                <li>Configure your Business Shortcode / Till</li>
-                <li>Test in sandbox before switching to Live</li>
-            </ol>
-            <div class="alert alert-info py-2 px-3 small border-0 mb-0">
-                <strong>Note:</strong> STK push prompts parents directly on their phone screen.
-            </div>
-        `,
-        'mpesa_paybill': `
-            <h6 class="fw-bold mb-2">Manual Paybill Instructions</h6>
-            <ol class="small text-muted ps-3 mb-2">
-                <li>Enter your registered school Paybill number</li>
-                <li>Specify Account reference format (e.g. Student Adm No)</li>
-                <li>Add clear payment guidance for parents</li>
-            </ol>
-            <div class="alert alert-warning py-2 px-3 small border-0 mb-0">
-                <strong>Important:</strong> Parents will follow these details on their M-Pesa menu.
-            </div>
-        `,
-        'mpesa_buygoods': `
-            <h6 class="fw-bold mb-2">Buy Goods & Services (Till)</h6>
-            <ol class="small text-muted ps-3 mb-0">
-                <li>Provide your Safaricom Merchant Till Number</li>
-                <li>Instructions will guide parents to select "Buy Goods and Services"</li>
-                <li>School accounts office can verify till confirmations</li>
-            </ol>
-        `,
-        'mpesa_send_money': `
-            <h6 class="fw-bold mb-2">Send Money Setup</h6>
-            <ol class="small text-muted ps-3 mb-0">
-                <li>Provide designated finance officer phone number</li>
-                <li>Set instructions specifying student name reference in transfer</li>
-            </ol>
-        `,
-        'mpesa_pochi': `
-            <h6 class="fw-bold mb-2">Pochi la Biashara Setup</h6>
-            <ol class="small text-muted ps-3 mb-0">
-                <li>Provide your Pochi la Biashara mobile number</li>
-                <li>Payments are separated from personal M-Pesa funds</li>
-            </ol>
-        `,
-        'bank': `
-            <h6 class="fw-bold mb-2">Bank Transfer Setup</h6>
-            <ol class="small text-muted ps-3 mb-0">
-                <li>Enter official school bank name and branch</li>
-                <li>Enter bank account name and account number</li>
-                <li>Parents will use these details for EFT, RTGS, or cash deposits</li>
-            </ol>
-        `,
-        'paypal': `
-            <h6 class="fw-bold mb-2">PayPal Business Setup</h6>
-            <ol class="small text-muted ps-3 mb-0">
-                <li>Enter your verified PayPal Business email address</li>
-                <li>International parents can pay securely using debit/credit cards or PayPal balance</li>
-            </ol>
-        `,
-        'cash': `
-            <h6 class="fw-bold mb-2">Cash Payments</h6>
-            <p class="small text-muted mb-0">Specify where on campus parents can make cash payments (e.g. Finance Office, Hours 8am - 4pm).</p>
-        `,
-        'cheque': `
-            <h6 class="fw-bold mb-2">Cheque Payments</h6>
-            <p class="small text-muted mb-0">Provide payee name for crossed cheques and submission location.</p>
-        `
-    };
 
     function toggleGatewayFields() {
         if (!gatewaySelect) return;
@@ -480,15 +496,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const targetField = document.getElementById(selectedGateway + '-fields');
             if (targetField) {
                 targetField.style.display = 'block';
-            }
-        }
-
-        // Update setup guide in side panel
-        if (setupGuide) {
-            if (selectedGateway && setupGuides[selectedGateway]) {
-                setupGuide.innerHTML = setupGuides[selectedGateway];
-            } else {
-                setupGuide.innerHTML = '<p class="small text-muted mb-0">Select a payment gateway on the left to see setup instructions.</p>';
             }
         }
     }

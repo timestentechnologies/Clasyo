@@ -1716,6 +1716,12 @@ function displayInvoicePreview(invoice) {
                             <td style="padding: 12px; border: 1px solid #4DD0E1; text-align: right;">${invoice.amount_display}</td>
                             <td style="padding: 12px; border: 1px solid #4DD0E1; text-align: right;">${invoice.amount_display}</td>
                         </tr>
+                        ${invoice.discount_amount > 0 ? `
+                        <tr>
+                            <td colspan="4" style="padding: 12px; border: 1px solid #4DD0E1; text-align: right; color: #10b981; font-weight: 600;">Discount Applied:</td>
+                            <td style="padding: 12px; border: 1px solid #4DD0E1; text-align: right; color: #10b981; font-weight: 600;">- ${invoice.discount_amount_display || ('Ksh ' + invoice.discount_amount)}</td>
+                        </tr>
+                        ` : ''}
                         ${invoice.tax_amount > 0 ? `
                         <tr>
                             <td colspan="4" style="padding: 12px; border: 1px solid #4DD0E1; text-align: right;">Tax:</td>

@@ -21,7 +21,7 @@ from io import BytesIO
 from subscriptions.models import SubscriptionPlan
 from .models import (
     FAQ, PageContent, ContactMessage, ForumThread, ForumPost,
-    HeroContent, FloatingParallaxElement, ProcessStep, FeatureItem, ParallaxSection
+    HeroContent, ProcessStep, FeatureItem, ParallaxSection
 )
 
 
@@ -32,7 +32,6 @@ class HomeView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['hero_content'] = HeroContent.objects.filter(is_active=True).first()
-        context['floating_elements'] = FloatingParallaxElement.objects.filter(is_active=True).order_by('order', 'id')
         context['process_steps'] = ProcessStep.objects.filter(is_active=True).order_by('order', 'step_number')
         context['features'] = FeatureItem.objects.filter(is_active=True).order_by('order', 'id')
         context['parallax_sections'] = ParallaxSection.objects.filter(is_active=True).order_by('order', 'id')
@@ -47,17 +46,6 @@ class FeaturesView(TemplateView):
         context['features'] = FeatureItem.objects.filter(is_active=True).order_by('order', 'id')
         context['parallax_sections'] = ParallaxSection.objects.filter(is_active=True).order_by('order', 'id')
         context['faqs'] = FAQ.objects.filter(is_active=True).order_by('order')[:6]
-        return context
-
-
-class AboutView(TemplateView):
-    """About page view"""
-    template_name = 'frontend/about.html'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['about_content'] = PageContent.objects.filter(page='about', is_active=True).first()
-        context['faqs'] = FAQ.objects.filter(is_active=True, category='About').order_by('order')
         return context
 
 

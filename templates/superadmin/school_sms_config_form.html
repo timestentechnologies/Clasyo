@@ -7,36 +7,38 @@
 {% block page_subtitle %}Configure SMS settings for {{ school.name }}{% endblock %}
 
 {% block content %}
-<div class="row g-4">
-    <!-- Main Form Panel -->
-    <div class="col-lg-8">
-        <div class="form-panel-view mb-4">
-            <div class="form-header-bar">
-                <div class="form-header-title-group">
-                    <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
-                        <i class="fas fa-sms text-primary me-2"></i> SMS Configuration Details
-                        <button type="button" 
-                                class="more-info-btn ms-2" 
-                                data-bs-toggle="popover" 
-                                data-bs-placement="bottom" 
-                                data-bs-html="true" 
-                                data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-shield-alt text-primary'></i><strong>SMS & Sender ID Guidelines</strong></div>" 
-                                data-bs-content="<ul class='small ps-3 mb-0'><li>Keep API keys and tokens strictly confidential.</li><li>Sender IDs: Max 11 alphanumeric characters, no spaces, formally approved by telecom regulators.</li><li>Send a test message to a single recipient before sending bulk alerts.</li><li>Set daily and monthly limits to avoid unexpected carrier billing.</li></ul>" 
-                                aria-label="SMS & Sender ID Guidelines" 
-                                title="SMS & Sender ID Guidelines">
-                            <i class="fas fa-info-circle text-primary"></i>
-                        </button>
-                    </h5>
-                </div>
-                <div class="form-header-actions">
-                    <a href="{% url 'superadmin:school_sms_config_list' school_slug=school.slug %}" class="btn btn-sm btn-secondary">
-                        Cancel
-                    </a>
-                    <button type="submit" form="smsConfigForm" class="btn btn-sm btn-primary">
-                        <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Configuration{% else %}Save Configuration{% endif %}
+<div class="container-fluid px-0">
+    <!-- Shared In-Page Single Form Panel -->
+    <div class="form-panel-view mb-4" id="smsConfigPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <a href="{% url 'superadmin:school_sms_config_list' school_slug=school.slug %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Configurations
+                </a>
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
+                    <i class="fas fa-sms text-primary me-2"></i> SMS Configuration Details
+                    <button type="button" 
+                            class="more-info-btn ms-2" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="bottom" 
+                            data-bs-html="true" 
+                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-shield-alt text-primary'></i><strong>SMS &amp; Sender ID Guidelines</strong></div>" 
+                            data-bs-content="<ul class='small ps-3 mb-0'><li>Keep API keys and tokens strictly confidential.</li><li>Sender IDs: Max 11 alphanumeric characters, no spaces, formally approved by telecom regulators.</li><li>Send a test message to a single recipient before sending bulk alerts.</li><li>Set daily and monthly limits to avoid unexpected carrier billing.</li></ul>" 
+                            aria-label="SMS &amp; Sender ID Guidelines" 
+                            title="SMS &amp; Sender ID Guidelines">
+                        <i class="fas fa-info-circle text-primary"></i>
                     </button>
-                </div>
+                </h5>
             </div>
+            <div class="form-header-actions">
+                <a href="{% url 'superadmin:school_sms_config_list' school_slug=school.slug %}" class="btn btn-sm btn-light">
+                    Cancel
+                </a>
+                <button type="submit" form="smsConfigForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Configuration{% else %}Save Configuration{% endif %}
+                </button>
+            </div>
+        </div>
 
             <div class="form-card-body">
                 <form method="post" id="smsConfigForm" enctype="multipart/form-data">
@@ -85,8 +87,19 @@
                     <div id="provider-fields">
                         <!-- MobileSasa Fields -->
                         <div id="mobilesasa-fields" class="provider-specific-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-server me-2"></i>MobileSasa Configuration
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>MobileSasa Instructions</strong></div>" 
+                                        data-bs-content="<div class='small'><p class='mb-2'>MobileSasa provides high-speed SMS delivery across East Africa with approved Sender IDs.</p><ul class='ps-3 mb-0'><li>Register an account at <code>mobilesasa.com</code></li><li>Generate an API Token from your Developer portal</li><li>Request and register an approved alphanumeric Sender ID</li></ul></div>" 
+                                        aria-label="MobileSasa Instructions" 
+                                        title="MobileSasa Instructions">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
@@ -110,8 +123,19 @@
 
                         <!-- Twilio Fields -->
                         <div id="twilio-fields" class="provider-specific-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-server me-2"></i>Twilio Configuration
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>Twilio Instructions</strong></div>" 
+                                        data-bs-content="<div class='small'><p class='mb-2'>Twilio provides worldwide SMS infrastructure with real-time delivery logs.</p><ul class='ps-3 mb-0'><li>Retrieve Account SID and Auth Token from the Twilio Console</li><li>Use your active Twilio phone number in E.164 format (e.g. <code>+1234567890</code>)</li><li>Ensure outbound SMS permissions are enabled for destination countries</li></ul></div>" 
+                                        aria-label="Twilio Instructions" 
+                                        title="Twilio Instructions">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
@@ -141,8 +165,19 @@
 
                         <!-- Africa's Talking Fields -->
                         <div id="africas_talking-fields" class="provider-specific-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-server me-2"></i>Africa's Talking Configuration
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>Africa's Talking Instructions</strong></div>" 
+                                        data-bs-content="<div class='small'><p class='mb-2'>Direct telco connections optimized for African educational institutions.</p><ul class='ps-3 mb-0'><li>Obtain your API Key and Username from <code>africastalking.com</code></li><li>Configure custom Alphanumeric Sender ID on your dashboard</li><li>Top up your account balance for active SMS sending</li></ul></div>" 
+                                        aria-label="Africa's Talking Instructions" 
+                                        title="Africa's Talking Instructions">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
@@ -171,8 +206,19 @@
 
                         <!-- Infobip Fields -->
                         <div id="infobip-fields" class="provider-specific-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-server me-2"></i>Infobip Configuration
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>Infobip Instructions</strong></div>" 
+                                        data-bs-content="<div class='small'><p class='mb-2'>Global cloud communication with dedicated carrier routes.</p><ul class='ps-3 mb-0'><li>Copy API Key and custom Base URL from your Infobip account</li><li>Set the registered sender name or numeric sender ID</li></ul></div>" 
+                                        aria-label="Infobip Instructions" 
+                                        title="Infobip Instructions">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
@@ -202,8 +248,19 @@
 
                         <!-- Clickatell Fields -->
                         <div id="clickatell-fields" class="provider-specific-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-server me-2"></i>Clickatell Configuration
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>Clickatell Instructions</strong></div>" 
+                                        data-bs-content="<div class='small'><p class='mb-2'>Enterprise-grade SMS delivery platform.</p><ul class='ps-3 mb-0'><li>Generate API Key from Clickatell portal</li><li>Use default base URL: <code>https://platform.clickatell.com</code></li></ul></div>" 
+                                        aria-label="Clickatell Instructions" 
+                                        title="Clickatell Instructions">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
@@ -226,8 +283,19 @@
 
                         <!-- Nexmo / Vonage Fields -->
                         <div id="nexmo-fields" class="provider-specific-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-server me-2"></i>Vonage (Nexmo) Configuration
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>Vonage (Nexmo) Instructions</strong></div>" 
+                                        data-bs-content="<div class='small'><p class='mb-2'>Global messaging API by Vonage.</p><ul class='ps-3 mb-0'><li>Copy API Key and API Secret from Vonage dashboard</li><li>Ensure account has adequate credit balance</li></ul></div>" 
+                                        aria-label="Vonage (Nexmo) Instructions" 
+                                        title="Vonage (Nexmo) Instructions">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
@@ -249,7 +317,7 @@
                     </div>
 
                     <!-- Toggles: Status (at bottom, compact) -->
-                    <div class="d-flex flex-wrap gap-4 pt-3 mt-3 border-top">
+                    <div class="d-flex flex-wrap gap-4 mt-3">
                         <div class="form-check form-switch mb-0">
                             {{ form.is_active }}
                             <label class="form-check-label ms-2" for="{{ form.is_active.id_for_label }}">Enable this configuration</label>
@@ -262,86 +330,6 @@
                 </form>
             </div>
         </div>
-    </div>
-
-    <!-- Side Instructions Panel -->
-    <div class="col-lg-4">
-        <!-- Configuration Guide Card -->
-        <div class="form-panel-view mb-4">
-            <div class="form-header-bar">
-                <div class="form-header-title-group">
-                    <h6 class="mb-0 fw-bold form-title-text">
-                        <i class="fas fa-info-circle text-primary me-2"></i> Configuration Help
-                    </h6>
-                </div>
-            </div>
-            <div class="form-card-body">
-                <div id="mobilesasa-help" class="provider-help" style="display: none;">
-                    <h6 class="fw-bold mb-2">MobileSasa Instructions</h6>
-                    <p class="small text-muted mb-2">MobileSasa provides high-speed SMS delivery across East Africa with approved Sender IDs.</p>
-                    <ul class="small text-muted ps-3 mb-0">
-                        <li>Register an account at <code>mobilesasa.com</code></li>
-                        <li>Generate an API Token from your Developer portal</li>
-                        <li>Request and register an approved alphanumeric Sender ID</li>
-                    </ul>
-                </div>
-
-                <div id="twilio-help" class="provider-help" style="display: none;">
-                    <h6 class="fw-bold mb-2">Twilio Instructions</h6>
-                    <p class="small text-muted mb-2">Twilio provides worldwide SMS infrastructure with real-time delivery logs.</p>
-                    <ul class="small text-muted ps-3 mb-0">
-                        <li>Retrieve Account SID and Auth Token from the Twilio Console</li>
-                        <li>Use your active Twilio phone number in E.164 format (e.g. <code>+1234567890</code>)</li>
-                        <li>Ensure outbound SMS permissions are enabled for destination countries</li>
-                    </ul>
-                </div>
-
-                <div id="africas_talking-help" class="provider-help" style="display: none;">
-                    <h6 class="fw-bold mb-2">Africa's Talking Instructions</h6>
-                    <p class="small text-muted mb-2">Direct telco connections optimized for African educational institutions.</p>
-                    <ul class="small text-muted ps-3 mb-0">
-                        <li>Obtain your API Key and Username from <code>africastalking.com</code></li>
-                        <li>Configure custom Alphanumeric Sender ID on your dashboard</li>
-                        <li>Top up your account balance for active SMS sending</li>
-                    </ul>
-                </div>
-
-                <div id="infobip-help" class="provider-help" style="display: none;">
-                    <h6 class="fw-bold mb-2">Infobip Instructions</h6>
-                    <p class="small text-muted mb-2">Global cloud communication with dedicated carrier routes.</p>
-                    <ul class="small text-muted ps-3 mb-0">
-                        <li>Copy API Key and custom Base URL from your Infobip account</li>
-                        <li>Set the registered sender name or numeric sender ID</li>
-                    </ul>
-                </div>
-
-                <div id="clickatell-help" class="provider-help" style="display: none;">
-                    <h6 class="fw-bold mb-2">Clickatell Instructions</h6>
-                    <p class="small text-muted mb-2">Enterprise-grade SMS delivery platform.</p>
-                    <ul class="small text-muted ps-3 mb-0">
-                        <li>Generate API Key from Clickatell portal</li>
-                        <li>Use default base URL: <code>https://platform.clickatell.com</code></li>
-                    </ul>
-                </div>
-
-                <div id="nexmo-help" class="provider-help" style="display: none;">
-                    <h6 class="fw-bold mb-2">Vonage (Nexmo) Instructions</h6>
-                    <p class="small text-muted mb-2">Global messaging API by Vonage.</p>
-                    <ul class="small text-muted ps-3 mb-0">
-                        <li>Copy API Key and API Secret from Vonage dashboard</li>
-                        <li>Ensure account has adequate credit balance</li>
-                    </ul>
-                </div>
-
-                <div id="default-help" class="provider-help">
-                    <p class="small text-muted mb-0">
-                        <i class="fas fa-hand-pointer text-primary me-1"></i> Select an SMS Provider on the left to see specific configuration instructions and guidelines.
-                    </p>
-                </div>
-            </div>
-        </div>
-
-
     </div>
 </div>
 
@@ -358,29 +346,12 @@ document.addEventListener('DOMContentLoaded', function() {
             field.style.display = 'none';
         });
 
-        // Hide all help sections
-        document.querySelectorAll('.provider-help').forEach(function(help) {
-            help.style.display = 'none';
-        });
-
         // Show selected provider fields
         if (selectedProvider) {
             const selectedFields = document.getElementById(selectedProvider + '-fields');
             if (selectedFields) {
                 selectedFields.style.display = 'block';
             }
-
-            // Show selected provider help
-            const selectedHelp = document.getElementById(selectedProvider + '-help');
-            if (selectedHelp) {
-                selectedHelp.style.display = 'block';
-            } else {
-                const defaultHelp = document.getElementById('default-help');
-                if (defaultHelp) defaultHelp.style.display = 'block';
-            }
-        } else {
-            const defaultHelp = document.getElementById('default-help');
-            if (defaultHelp) defaultHelp.style.display = 'block';
         }
     }
 

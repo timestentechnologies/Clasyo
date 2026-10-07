@@ -6,33 +6,25 @@
 
 
 {% block content %}
-<!-- Page Header -->
-<section class="page-header" style="background: linear-gradient(135deg, #0F172A 0%, #1E3A5F 60%, #0369A1 100%) !important; background-color: #0F172A !important; color: #FFFFFF !important; padding: 75px 0 65px !important; text-align: center !important; position: relative !important; overflow: hidden !important;">
-    <div class="container text-center" style="position: relative; z-index: 2;">
-        <h1 class="page-title" style="color: #FFFFFF !important; font-size: 2.75rem !important; font-weight: 800 !important; margin-bottom: 0.75rem !important; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4) !important;">Frequently Asked Questions</h1>
-        <p class="page-subtitle" style="color: rgba(255, 255, 255, 0.92) !important; font-size: 1.15rem !important; margin-bottom: 0 !important;">Find answers to common questions about Clasyo</p>
-    </div>
-</section>
-
 <!-- FAQ Content -->
-<section class="py-5" style="padding: 5rem 0 !important;">
+<section class="py-5" style="padding: 3rem 0 !important;">
     <div class="container">
-        <!-- Search Box -->
-        <div class="row">
-            <div class="col-lg-8 mx-auto">
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="faqSearch" placeholder="Search for answers...">
-                </div>
-            </div>
+        <div class="text-center mb-5">
+            <h1 class="fw-bold mb-2" style="font-size: 2.2rem; color: var(--text-primary, #0f172a);">Frequently Asked Questions</h1>
+            <p class="text-muted" style="font-size: 1.05rem;">Find answers to common questions about Clasyo</p>
         </div>
-        
         {% if faq_categories %}
             <!-- FAQ Categories -->
             <div class="row">
                 <div class="col-lg-10 mx-auto">
+                    <!-- Search Box -->
+                    <div class="search-box mb-5">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="faqSearch" placeholder="Search for answers...">
+                    </div>
+
                     {% for category, faqs in faq_categories.items %}
-                    <div class="faq-category-card" data-category="{{ category|lower }}">
+                    <div class="faq-category-card faq-category-group" data-category="{{ category|lower }}">
                         <div class="category-header">
                             <div class="category-icon">
                                 {% if category == 'General' %}
@@ -100,19 +92,8 @@
                 <p class="lead mb-5" style="opacity: 0.9; max-width: 700px; margin: 0 auto 2rem; font-size: 1.2rem;">
                     Our dedicated support team is ready to assist you with any questions or concerns
                 </p>
-                <a href="{% url 'frontend:contact' %}" class="btn btn-light btn-lg" 
-                   style="border-radius: 8px; 
-                          padding: 0.9rem 2.5rem; 
-                          font-weight: 600;
-                          letter-spacing: 0.5px;
-                          text-transform: uppercase;
-                          font-size: 0.95rem;
-                          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-                          transition: all 0.3s ease;
-                          background: white;
-                          color: #1E3A5F;
-                          border: none;">
-                    Contact Support <i class="fas fa-arrow-right ms-2" style="transition: transform 0.3s ease;"></i>
+                <a href="{% url 'frontend:contact' %}" class="btn btn-light btn-lg rounded-pill px-4 py-2 fw-semibold shadow-sm" style="color: #1E3A5F;">
+                    Contact Support
                 </a>
             </div>
         </div>
@@ -150,7 +131,7 @@
         searchInput.addEventListener('input', function() {
             const searchTerm = this.value.toLowerCase();
             const faqItems = document.querySelectorAll('.faq-item');
-            const categories = document.querySelectorAll('.faq-category-card');
+            const categories = document.querySelectorAll('.faq-category-group');
             let visibleCount = 0;
             
             if (searchTerm === '') {

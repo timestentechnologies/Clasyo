@@ -212,6 +212,12 @@
                 <td>Subtotal:</td>
                 <td class="text-right">Ksh {{ invoice.amount|floatformat:2 }}</td>
             </tr>
+            {% if invoice.discount_amount > 0 %}
+            <tr>
+                <td style="color: #28a745;">Discount Applied:</td>
+                <td class="text-right" style="color: #28a745; font-weight: bold;">- Ksh {{ invoice.discount_amount|floatformat:2 }}</td>
+            </tr>
+            {% endif %}
             {% if invoice.tax_amount > 0 %}
             <tr>
                 <td>Tax:</td>

@@ -24,8 +24,21 @@
                     onclick="toggleInPageFormView('pricingListCard', 'pricingFormPanel', 'list')">
                     <i class="fas fa-arrow-left me-1"></i> Back to List
                 </button>
-                <h5 class="mb-0 fw-bold form-title-text" data-create-title="Create New Pricing Plan"
-                    data-edit-title="Edit Pricing Plan">Create New Pricing Plan</h5>
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center" data-create-title="Create New Pricing Plan"
+                    data-edit-title="Edit Pricing Plan">
+                    Create New Pricing Plan
+                    <button type="button" 
+                            class="more-info-btn ms-2" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="bottom" 
+                            data-bs-html="true" 
+                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-tags text-primary'></i><strong>Pricing Plan Tips</strong></div>" 
+                            data-bs-content="<ul class='small ps-3 mb-0'><li><strong>Student & Staff Limits:</strong> Set maximum capacities per tier; leave empty or 0 for unlimited.</li><li><strong>Custom / Contact Sales:</strong> Enable for enterprise or tailored quotation tiers without fixed monthly pricing.</li><li><strong>Feature List:</strong> Enter bullet features separated by line breaks.</li></ul>" 
+                            aria-label="Pricing Plan Tips" 
+                            title="Pricing Plan Tips">
+                        <i class="fas fa-info-circle text-primary"></i>
+                    </button>
+                </h5>
                 <span class="form-mode-badge mode-create">New</span>
             </div>
             <div class="form-header-actions">
@@ -67,16 +80,36 @@
                     <div class="col-md-4">
                         <label for="billing_cycle" class="form-label fw-semibold">Billing Cycle</label>
                         <select class="form-select" id="billing_cycle" name="billing_cycle" required>
-                            <option value="monthly">Monthly</option>
                             <option value="termly">Termly</option>
-                            <option value="annually">Annually</option>
-                            <option value="one_time">One Time</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                            <option value="half_yearly">Half Yearly</option>
+                            <option value="yearly">Yearly</option>
                         </select>
                     </div>
                     <div class="col-md-4">
                         <label for="price" class="form-label fw-semibold">Subscription Price (Ksh)</label>
                         <input type="number" step="0.01" class="form-control" id="price" name="price" placeholder="0.00"
                             required>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="yearly_discount_percentage" class="form-label fw-semibold">
+                            <i class="fas fa-calendar-alt text-success me-1"></i> Yearly / Annual Billing Discount (%)
+                        </label>
+                        <input type="number" step="0.01" min="0" max="100" class="form-control" 
+                               id="yearly_discount_percentage" name="yearly_discount_percentage" value="0" placeholder="e.g. 15 for 15% off">
+                        <small class="text-muted">Discount applied when paying for a full school year. Calculated on public pricing page and invoices.</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="discount_percentage" class="form-label fw-semibold">
+                            <i class="fas fa-percentage text-primary me-1"></i> Normal Period Discount (%)
+                        </label>
+                        <input type="number" step="0.01" min="0" max="100" class="form-control" 
+                               id="discount_percentage" name="discount_percentage" value="0" placeholder="e.g. 10 for 10% off">
+                        <small class="text-muted">Promotional or standard discount applied to the normal billing period (e.g. per term).</small>
                     </div>
                 </div>
 
@@ -127,9 +160,10 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="description" class="form-label fw-semibold">Plan Description & Key Features</label>
-                    <textarea class="form-control" id="description" name="description" rows="3"
-                        placeholder="Enter plan summary and highlights..."></textarea>
+                    <label for="description" class="form-label fw-semibold">Plan Features & Highlights (one per line)</label>
+                    <textarea class="form-control" id="description" name="description" rows="5"
+                        placeholder="Enter each plan feature on a new line..."></textarea>
+                    <small class="text-muted">Enter each plan feature on a new line. These are displayed as checkmarked bullet points on the pricing page.</small>
                 </div>
 
                 <div class="row g-3 mb-2">
@@ -162,10 +196,9 @@
                         <th>Plan Name</th>
                         <th>Price</th>
                         <th>Duration</th>
-                        <th>Setup</th>
-                        <th>Data Migration</th>
-                        <th>License</th>
-                        <th>Training</th>
+                        <th>Yearly Discount</th>
+                        <th>Annual Rate</th>
+                        <th>Period Disc.</th>
                         <th>One-time Total</th>
                         <th>Max Students</th>
                         <th>Status</th>
@@ -179,10 +212,24 @@
                         <td><strong>{{ plan.name }}</strong></td>
                         <td>Ksh {{ plan.price|intcomma }}</td>
                         <td>{{ plan.get_billing_cycle_display }}</td>
-                        <td>Ksh {{ plan.setup_fee|intcomma }}</td>
-                        <td>Ksh {{ plan.data_migration_fee|intcomma }}</td>
-                        <td>Ksh {{ plan.license_fee|intcomma }}</td>
-                        <td>Ksh {{ plan.training_fee|intcomma }}</td>
+                        <td>
+                            {% if plan.yearly_discount_percentage > 0 %}
+                            <span class="badge bg-success-subtle text-success fw-bold">{{ plan.yearly_discount_percentage|floatformat:1 }}% off</span>
+                            {% else %}
+                            <span class="text-muted">0%</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>Ksh {{ plan.get_annual_price|intcomma }}</strong>
+                            <small class="text-muted d-block">/ yr</small>
+                        </td>
+                        <td>
+                            {% if plan.discount_percentage > 0 %}
+                            <span class="badge bg-primary-subtle text-primary fw-bold">{{ plan.discount_percentage|floatformat:1 }}% off</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
                         <td><strong>Ksh {{ plan.one_time_total|intcomma }}</strong></td>
                         <td>{{ plan.max_students|default:"Unlimited" }}</td>
                         <td>
@@ -207,10 +254,12 @@
                                         plan_type: '{{ plan.plan_type }}',
                                         price: '{{ plan.price }}',
                                         billing_cycle: '{{ plan.billing_cycle }}',
+                                        discount_percentage: '{{ plan.discount_percentage|default:"0" }}',
+                                        yearly_discount_percentage: '{{ plan.yearly_discount_percentage|default:"0" }}',
                                         trial_days: '{{ plan.trial_days }}',
                                         max_students: '{{ plan.max_students|default:''|escapejs }}',
                                         display_order: '{{ plan.display_order }}',
-                                        description: '{{ plan.description|escapejs }}',
+                                        description: '{{ plan.get_features_as_text|default:plan.description|escapejs }}',
                                         setup_fee: '{{ plan.setup_fee }}',
                                         data_migration_fee: '{{ plan.data_migration_fee }}',
                                         license_fee: '{{ plan.license_fee }}',

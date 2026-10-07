@@ -7,42 +7,44 @@
 {% block page_subtitle %}Configure email settings for {{ school.name }}{% endblock %}
 
 {% block content %}
-<div class="row g-4">
-    <!-- Main Form Panel -->
-    <div class="col-lg-8">
-        <div class="form-panel-view mb-4">
-            <div class="form-header-bar">
-                <div class="form-header-title-group">
-                    <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
-                        <i class="fas fa-envelope text-primary me-2"></i> Email Configuration Details
-                        <button type="button" 
-                                class="more-info-btn ms-2" 
-                                data-bs-toggle="popover" 
-                                data-bs-placement="bottom" 
-                                data-bs-html="true" 
-                                data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-shield-alt text-primary'></i><strong>Email Best Practices</strong></div>" 
-                                data-bs-content="<ul class='small ps-3 mb-0'><li>Always use encrypted connections (TLS/SSL)</li><li>Verify SPF and DKIM records on your school domain to prevent emails from landing in spam</li><li>Set realistic daily limits to safeguard sender reputation</li><li>Ensure <code>From Email</code> matches the authenticated sending domain</li></ul>" 
-                                aria-label="Email Best Practices Info" 
-                                title="Email Best Practices">
-                            <i class="fas fa-info-circle text-primary"></i>
-                        </button>
-                    </h5>
-                </div>
-                <div class="form-header-actions">
-                    <a href="{% url 'superadmin:school_email_config_list' school_slug=school.slug %}" class="btn btn-sm btn-secondary">
-                        Cancel
-                    </a>
-                    <button type="submit" form="emailConfigForm" class="btn btn-sm btn-primary">
-                        <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Configuration{% else %}Save Configuration{% endif %}
+<div class="container-fluid px-0">
+    <!-- Shared In-Page Single Form Panel -->
+    <div class="form-panel-view mb-4" id="emailConfigPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <a href="{% url 'superadmin:school_email_config_list' school_slug=school.slug %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Configurations
+                </a>
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
+                    <i class="fas fa-envelope text-primary me-2"></i> Email Configuration Details
+                    <button type="button" 
+                            class="more-info-btn ms-2" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="bottom" 
+                            data-bs-html="true" 
+                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-shield-alt text-primary'></i><strong>Email Best Practices</strong></div>" 
+                            data-bs-content="<ul class='small ps-3 mb-0'><li>Always use encrypted connections (TLS/SSL)</li><li>Verify SPF and DKIM records on your school domain to prevent emails from landing in spam</li><li>Set realistic daily limits to safeguard sender reputation</li><li>Ensure <code>From Email</code> matches the authenticated sending domain</li></ul>" 
+                            aria-label="Email Best Practices Info" 
+                            title="Email Best Practices">
+                        <i class="fas fa-info-circle text-primary"></i>
                     </button>
-                </div>
+                </h5>
             </div>
+            <div class="form-header-actions">
+                <a href="{% url 'superadmin:school_email_config_list' school_slug=school.slug %}" class="btn btn-sm btn-light">
+                    Cancel
+                </a>
+                <button type="submit" form="emailConfigForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> {% if form.instance.pk %}Update Configuration{% else %}Save Configuration{% endif %}
+                </button>
+            </div>
+        </div>
 
-            <div class="form-card-body">
-                <form method="post" id="emailConfigForm" enctype="multipart/form-data">
-                    {% csrf_token %}
+        <div class="form-card-body">
+            <form method="post" id="emailConfigForm" enctype="multipart/form-data">
+                {% csrf_token %}
 
-                    {% if form.non_field_errors %}
+                {% if form.non_field_errors %}
                     <div class="alert alert-danger mb-4">
                         {% for error in form.non_field_errors %}
                             <p class="mb-0"><i class="fas fa-exclamation-circle me-2"></i>{{ error }}</p>
@@ -115,8 +117,19 @@
                     <div id="provider-fields">
                         <!-- SMTP Fields -->
                         <div id="smtp-fields" class="provider-specific-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-server me-2"></i>SMTP Configuration
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>SMTP Setup Guide</strong></div>" 
+                                        data-bs-content="<div class='small'><p class='mb-2'>Configure custom mail server or Google Workspace SMTP.</p><ul class='ps-3 mb-0'><li>Host: e.g. <code>smtp.gmail.com</code></li><li>Port: 587 (TLS) or 465 (SSL)</li><li>Use an App Password if 2-Step Verification is active</li></ul></div>" 
+                                        aria-label="SMTP Setup Guide" 
+                                        title="SMTP Setup Guide">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
@@ -167,8 +180,19 @@
 
                         <!-- SendGrid Fields -->
                         <div id="sendgrid-fields" class="provider-specific-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-server me-2"></i>SendGrid Configuration
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>SendGrid Setup Guide</strong></div>" 
+                                        data-bs-content="<div class='small'><p class='mb-2'>High-deliverability cloud transactional email.</p><ul class='ps-3 mb-0'><li>Create an API Key with 'Full Access' or 'Mail Send'</li><li>Verify Single Sender or Domain Authentication in SendGrid</li></ul></div>" 
+                                        aria-label="SendGrid Setup Guide" 
+                                        title="SendGrid Setup Guide">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-12">
@@ -184,8 +208,19 @@
 
                         <!-- Mailgun Fields -->
                         <div id="mailgun-fields" class="provider-specific-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-server me-2"></i>Mailgun Configuration
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>Mailgun Setup Guide</strong></div>" 
+                                        data-bs-content="<div class='small'><p class='mb-2'>Developer-friendly email API service.</p><ul class='ps-3 mb-0'><li>Copy Primary Account API Key from Mailgun settings</li><li>Use your verified sending domain (e.g. <code>mg.school.com</code>)</li></ul></div>" 
+                                        aria-label="Mailgun Setup Guide" 
+                                        title="Mailgun Setup Guide">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
@@ -207,8 +242,19 @@
 
                         <!-- Amazon SES Fields -->
                         <div id="ses-fields" class="provider-specific-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-server me-2"></i>Amazon SES Configuration
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>Amazon SES Setup Guide</strong></div>" 
+                                        data-bs-content="<div class='small'><p class='mb-2'>AWS Simple Email Service for institutional scale.</p><ul class='ps-3 mb-0'><li>Create an IAM user with <code>ses:SendEmail</code> policy</li><li>Verify sending domain identity in AWS SES Console</li></ul></div>" 
+                                        aria-label="Amazon SES Setup Guide" 
+                                        title="Amazon SES Setup Guide">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-4">
@@ -237,8 +283,19 @@
 
                         <!-- Postmark Fields -->
                         <div id="postmark-fields" class="provider-specific-fields" style="display: none;">
-                            <h6 class="fw-bold mb-3 pb-2 border-bottom text-primary">
+                            <h6 class="fw-bold mb-3 text-primary d-flex align-items-center">
                                 <i class="fas fa-server me-2"></i>Postmark Configuration
+                                <button type="button" 
+                                        class="more-info-btn ms-2" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-placement="bottom" 
+                                        data-bs-html="true" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>Postmark Setup Guide</strong></div>" 
+                                        data-bs-content="<div class='small'><p class='mb-2'>Fast transactional email service.</p><ul class='ps-3 mb-0'><li>Copy Server API Token from your Postmark Server</li><li>Verify sender email address or domain DKIM records</li></ul></div>" 
+                                        aria-label="Postmark Setup Guide" 
+                                        title="Postmark Setup Guide">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                </button>
                             </h6>
                             <div class="row g-3 mb-3">
                                 <div class="col-12">
@@ -253,7 +310,7 @@
                     </div>
 
                     <!-- Toggles at bottom -->
-                    <div class="d-flex flex-wrap gap-4 pt-3 mt-3 border-top">
+                    <div class="d-flex flex-wrap gap-4 mt-3">
                         <div class="form-check form-switch mb-0">
                             {{ form.is_active }}
                             <label class="form-check-label ms-2" for="{{ form.is_active.id_for_label }}">Enable this configuration</label>
@@ -264,73 +321,6 @@
                     {% if form.school %}{{ form.school }}{% endif %}
 
                 </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Side Instructions Panel -->
-    <div class="col-lg-4">
-        <!-- Configuration Help Card -->
-        <div class="form-panel-view mb-4">
-            <div class="form-header-bar">
-                <div class="form-header-title-group">
-                    <h6 class="mb-0 fw-bold form-title-text">
-                        <i class="fas fa-info-circle text-primary me-2"></i> Configuration Help
-                    </h6>
-                </div>
-            </div>
-            <div class="form-card-body">
-                <div id="smtp-help" class="provider-help" style="display: none;">
-                    <h6 class="fw-bold mb-2">SMTP Setup</h6>
-                    <p class="small text-muted mb-2">Configure custom mail server or Google Workspace SMTP.</p>
-                    <ul class="small text-muted ps-3 mb-0">
-                        <li>Host: e.g. <code>smtp.gmail.com</code></li>
-                        <li>Port: 587 (TLS) or 465 (SSL)</li>
-                        <li>Use an App Password if 2-Step Verification is active</li>
-                    </ul>
-                </div>
-
-                <div id="sendgrid-help" class="provider-help" style="display: none;">
-                    <h6 class="fw-bold mb-2">SendGrid Setup</h6>
-                    <p class="small text-muted mb-2">High-deliverability cloud transactional email.</p>
-                    <ul class="small text-muted ps-3 mb-0">
-                        <li>Create an API Key with "Full Access" or "Mail Send"</li>
-                        <li>Verify Single Sender or Domain Authentication in SendGrid</li>
-                    </ul>
-                </div>
-
-                <div id="mailgun-help" class="provider-help" style="display: none;">
-                    <h6 class="fw-bold mb-2">Mailgun Setup</h6>
-                    <p class="small text-muted mb-2">Developer-friendly email API service.</p>
-                    <ul class="small text-muted ps-3 mb-0">
-                        <li>Copy Primary Account API Key from Mailgun settings</li>
-                        <li>Use your verified sending domain (e.g. <code>mg.school.com</code>)</li>
-                    </ul>
-                </div>
-
-                <div id="ses-help" class="provider-help" style="display: none;">
-                    <h6 class="fw-bold mb-2">Amazon SES Setup</h6>
-                    <p class="small text-muted mb-2">AWS Simple Email Service for institutional scale.</p>
-                    <ul class="small text-muted ps-3 mb-0">
-                        <li>Create an IAM user with <code>ses:SendEmail</code> policy</li>
-                        <li>Verify sending domain identity in AWS SES Console</li>
-                    </ul>
-                </div>
-
-                <div id="postmark-help" class="provider-help" style="display: none;">
-                    <h6 class="fw-bold mb-2">Postmark Setup</h6>
-                    <p class="small text-muted mb-2">Fast transactional email service.</p>
-                    <ul class="small text-muted ps-3 mb-0">
-                        <li>Copy Server API Token from your Postmark Server</li>
-                        <li>Verify sender email address or domain DKIM records</li>
-                    </ul>
-                </div>
-
-                <div id="default-help" class="provider-help">
-                    <p class="small text-muted mb-0">
-                        <i class="fas fa-hand-pointer text-primary me-1"></i> Select an Email Provider on the left to see provider-specific setup instructions.
-                    </p>
-                </div>
             </div>
         </div>
     </div>
@@ -349,29 +339,12 @@ document.addEventListener('DOMContentLoaded', function() {
             field.style.display = 'none';
         });
         
-        // Hide all help sections
-        document.querySelectorAll('.provider-help').forEach(help => {
-            help.style.display = 'none';
-        });
-        
         // Show selected provider fields
         if (selectedProvider) {
             const selectedFields = document.getElementById(selectedProvider + '-fields');
             if (selectedFields) {
                 selectedFields.style.display = 'block';
             }
-            
-            // Show selected provider help
-            const selectedHelp = document.getElementById(selectedProvider + '-help');
-            if (selectedHelp) {
-                selectedHelp.style.display = 'block';
-            } else {
-                const defaultHelp = document.getElementById('default-help');
-                if (defaultHelp) defaultHelp.style.display = 'block';
-            }
-        } else {
-            const defaultHelp = document.getElementById('default-help');
-            if (defaultHelp) defaultHelp.style.display = 'block';
         }
     }
     

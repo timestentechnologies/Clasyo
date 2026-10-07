@@ -6827,53 +6827,54 @@ footer a:hover {
     overflow-wrap: anywhere;
 }
 
-.pricing-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background-color: var(--brand-accent);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
 .pricing-card:hover {
     transform: translateY(-5px);
     box-shadow: var(--shadow-lg);
 }
 
-.pricing-card:hover::before {
-    opacity: 1;
+.pricing-card.popular {
+    border: 2px solid var(--brand-primary, #0284c7) !important;
+    box-shadow: 0 16px 36px -10px rgba(2, 132, 199, 0.25) !important;
+    position: relative;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
 }
 
-.pricing-card.popular {
-    border-color: var(--brand-accent);
-    box-shadow: var(--shadow-lg);
-    transform: scale(1.02);
-    margin-top: 1rem;
-    margin-bottom: 1rem;
+.pricing-card.popular:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 24px 44px -10px rgba(2, 132, 199, 0.35) !important;
 }
 
 .pricing-card.popular::before {
-    opacity: 1;
+    display: none;
 }
 
 .pricing-card .popular-badge {
     position: absolute;
-    top: 12px;
-    right: -35px;
-    transform: rotate(45deg);
-    background-color: var(--brand-accent);
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
     color: #ffffff;
-    padding: 0.25rem 2.5rem;
-    font-size: 0.7rem;
+    padding: 0.35rem 1.15rem;
+    font-size: 0.72rem;
     font-weight: 700;
-    box-shadow: var(--shadow-sm);
-    z-index: 2;
-    width: 140px;
-    text-align: center;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-radius: 9999px;
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.45);
+    z-index: 10;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.pricing-card .popular-badge i {
+    font-size: 0.7rem;
+    color: #fef08a;
 }
 
 .one-time-section {
@@ -7706,7 +7707,6 @@ body.theme-dark .cms-card,
 body.dark-mode .cms-card,
 body[data-theme="dark"] .cms-card,
 body[data-bs-theme="dark"] .cms-card,
-body:not([data-theme="light"]):not(.theme-light) .cms-card,
 [data-theme="dark"] .card,
 [data-bs-theme="dark"] .card,
 .theme-dark .card,
@@ -7719,7 +7719,6 @@ body.theme-dark .card,
 body.dark-mode .card,
 body[data-theme="dark"] .card,
 body[data-bs-theme="dark"] .card,
-body:not([data-theme="light"]):not(.theme-light) .card,
 [data-theme="dark"] .modern-card,
 [data-bs-theme="dark"] .modern-card,
 .theme-dark .modern-card,
@@ -7732,7 +7731,6 @@ body.theme-dark .modern-card,
 body.dark-mode .modern-card,
 body[data-theme="dark"] .modern-card,
 body[data-bs-theme="dark"] .modern-card,
-body:not([data-theme="light"]):not(.theme-light) .modern-card,
 [data-theme="dark"] .settings-card,
 [data-bs-theme="dark"] .settings-card,
 .theme-dark .settings-card,
@@ -7742,8 +7740,7 @@ body.dark-theme .settings-card,
 body.theme-dark .settings-card,
 body.dark-mode .settings-card,
 body[data-theme="dark"] .settings-card,
-body[data-bs-theme="dark"] .settings-card,
-body:not([data-theme="light"]):not(.theme-light) .settings-card {
+body[data-bs-theme="dark"] .settings-card {
     background-color: var(--dark-unified-bg, #1E293B) !important;
     background: var(--dark-unified-bg, #1E293B) !important;
     border-color: var(--border-color, #334155) !important;
@@ -7764,7 +7761,6 @@ body.theme-dark .text-dark,
 body.dark-mode .text-dark,
 body[data-theme="dark"] .text-dark,
 body[data-bs-theme="dark"] .text-dark,
-body:not([data-theme="light"]):not(.theme-light) .text-dark,
 [data-theme="dark"] .text-black,
 [data-bs-theme="dark"] .text-black,
 .theme-dark .text-black,
@@ -7777,16 +7773,12 @@ body.theme-dark .text-black,
 body.dark-mode .text-black,
 body[data-theme="dark"] .text-black,
 body[data-bs-theme="dark"] .text-black,
-body:not([data-theme="light"]):not(.theme-light) .text-black,
 [data-theme="dark"] h1.text-dark, [data-theme="dark"] h2.text-dark, [data-theme="dark"] h3.text-dark, [data-theme="dark"] h4.text-dark, [data-theme="dark"] h5.text-dark, [data-theme="dark"] h6.text-dark,
 [data-bs-theme="dark"] h1.text-dark, [data-bs-theme="dark"] h2.text-dark, [data-bs-theme="dark"] h3.text-dark, [data-bs-theme="dark"] h4.text-dark, [data-bs-theme="dark"] h5.text-dark, [data-bs-theme="dark"] h6.text-dark,
 .theme-dark h5.text-dark, .dark-theme h5.text-dark, .dark-mode h5.text-dark,
 body.dark-theme h5.text-dark, body.theme-dark h5.text-dark, body.dark-mode h5.text-dark,
 body[data-theme="dark"] h5.text-dark,
-body:not([data-theme="light"]):not(.theme-light) h5.text-dark,
-body:not([data-theme="light"]):not(.theme-light) h6.text-dark,
-body:not([data-theme="light"]):not(.theme-light) div.text-dark,
-body:not([data-theme="light"]):not(.theme-light) span.text-dark {
+body[data-bs-theme="dark"] h5.text-dark {
     color: #F8FAFC !important;
 }
 
@@ -7803,7 +7795,6 @@ body.theme-dark .bg-white,
 body.dark-mode .bg-white,
 body[data-theme="dark"] .bg-white,
 body[data-bs-theme="dark"] .bg-white,
-body:not([data-theme="light"]):not(.theme-light) .bg-white,
 [data-theme="dark"] .bg-light,
 [data-bs-theme="dark"] .bg-light,
 .theme-dark .bg-light,
@@ -7815,8 +7806,7 @@ body.dark-theme .bg-light,
 body.theme-dark .bg-light,
 body.dark-mode .bg-light,
 body[data-theme="dark"] .bg-light,
-body[data-bs-theme="dark"] .bg-light,
-body:not([data-theme="light"]):not(.theme-light) .bg-light {
+body[data-bs-theme="dark"] .bg-light {
     background-color: var(--dark-unified-bg, #1E293B) !important;
     color: #F8FAFC !important;
     border-color: #334155 !important;
@@ -7854,7 +7844,7 @@ body.dark-theme .table thead th,
 body.theme-dark .table thead th,
 body.dark-mode .table thead th,
 body[data-theme="dark"] .table thead th,
-body:not([data-theme="light"]):not(.theme-light) .table thead th,
+body[data-bs-theme="dark"] .table thead th,
 [data-theme="dark"] thead.table-light th,
 [data-bs-theme="dark"] thead.table-light th,
 .theme-dark thead.table-light th,
@@ -7864,7 +7854,7 @@ body.dark-theme thead.table-light th,
 body.theme-dark thead.table-light th,
 body.dark-mode thead.table-light th,
 body[data-theme="dark"] thead.table-light th,
-body:not([data-theme="light"]):not(.theme-light) thead.table-light th {
+body[data-bs-theme="dark"] thead.table-light th {
     background-color: #0F172A !important;
     color: #F8FAFC !important;
     border-bottom: 2px solid #334155 !important;
@@ -7885,7 +7875,7 @@ body.dark-theme .table tbody td,
 body.theme-dark .table tbody td,
 body.dark-mode .table tbody td,
 body[data-theme="dark"] .table tbody td,
-body:not([data-theme="light"]):not(.theme-light) .table tbody td {
+body[data-bs-theme="dark"] .table tbody td {
     border-bottom: 1px solid #1E293B !important;
     color: #CBD5E1 !important;
 }
@@ -7901,7 +7891,7 @@ body.dark-theme .table tbody tr:last-child td,
 body.theme-dark .table tbody tr:last-child td,
 body.dark-mode .table tbody tr:last-child td,
 body[data-theme="dark"] .table tbody tr:last-child td,
-body:not([data-theme="light"]):not(.theme-light) .table tbody tr:last-child td,
+body[data-bs-theme="dark"] .table tbody tr:last-child td,
 [data-theme="dark"] .table tbody tr:last-child th,
 [data-bs-theme="dark"] .table tbody tr:last-child th,
 .theme-dark .table tbody tr:last-child th,
@@ -7911,7 +7901,7 @@ body.dark-theme .table tbody tr:last-child th,
 body.theme-dark .table tbody tr:last-child th,
 body.dark-mode .table tbody tr:last-child th,
 body[data-theme="dark"] .table tbody tr:last-child th,
-body:not([data-theme="light"]):not(.theme-light) .table tbody tr:last-child th {
+body[data-bs-theme="dark"] .table tbody tr:last-child th {
     border-bottom: none !important;
     border-bottom-width: 0 !important;
     border-bottom-left-radius: 0 !important;
@@ -7931,7 +7921,7 @@ body.dark-theme code,
 body.theme-dark code,
 body.dark-mode code,
 body[data-theme="dark"] code,
-body:not([data-theme="light"]):not(.theme-light) code {
+body[data-bs-theme="dark"] code {
     background-color: rgba(15, 23, 42, 0.8) !important;
     color: #38bdf8 !important;
     border: 1px solid #334155 !important;

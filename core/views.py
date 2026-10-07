@@ -2755,41 +2755,45 @@ class BillingView(LoginRequiredMixin, TemplateView):
                 if not existing_invoice:
                     # Determine invoice type and details based on subscription
                     today = timezone.now().date()
-                    if current_subscription.status in ['pending', 'processing'] and plan and float(getattr(plan, 'price', 0)) > 0:
-                        # New paid subscription awaiting manual verification
-                        invoice_type = 'new'
-                        amount = plan.price if plan else 0
-                        status = 'sent'
-                        plan_desc = f"{plan.name} - {plan.billing_cycle if plan else 'Monthly'} subscription"
-                    elif current_subscription.is_trial or is_trial:
+                    sub_cycle = (getattr(current_subscription, 'billing_cycle', None) or getattr(plan, 'billing_cycle', 'termly') or '').lower()
+                    is_yearly_sub = sub_cycle in ('yearly', 'annually') or (
+                        current_subscription.start_date and current_subscription.end_date and 
+                        (current_subscription.end_date - current_subscription.start_date).days > 300
+                    )
+
+                    if current_subscription.is_trial or is_trial:
                         # Trial period invoice (zero amount) — informational only
                         invoice_type = 'trial_end'
                         amount = 0
+                        discount_amount = 0
+                        total_amount = 0
                         status = 'paid'
                         plan_desc = f"{plan.name} - Free Trial Period"
-                    elif current_subscription.end_date and current_subscription.end_date < today:
-                        invoice_type = 'renewal'
-                        amount = plan.price if plan else 0
-                        status = 'sent'
-                        plan_desc = f"{plan.name} - {plan.billing_cycle if plan else 'Monthly'} subscription"
                     else:
-                        invoice_type = 'new'
-                        amount = plan.price if plan else 0
+                        if is_yearly_sub:
+                            amount = plan.get_annual_base_price
+                            discount_amount = getattr(current_subscription, 'discount_applied', None) or plan.get_annual_savings
+                            total_amount = plan.get_annual_price
+                            cycle_label = "Annual"
+                        else:
+                            amount = plan.price
+                            discount_amount = getattr(current_subscription, 'discount_applied', None) or plan.get_period_savings
+                            total_amount = plan.get_period_price
+                            cycle_label = plan.get_billing_cycle_display()
+
+                        inv_type = 'renewal' if (current_subscription.end_date and current_subscription.end_date < today) else 'new'
+                        invoice_type = inv_type
                         status = 'sent'
-                        plan_desc = f"{plan.name} - {plan.billing_cycle if plan else 'Monthly'} subscription"
+                        plan_desc = f"{plan.name} - {cycle_label} subscription"
+                        if discount_amount > 0:
+                            plan_desc += f" (Discount: Ksh {discount_amount:,.2f})"
                     
                     # Compute due date to align with the authoritative subscription end date
                     try:
                         if subscription_end:
                             due_date = subscription_end
                         else:
-                            expected_days = 30
-                            if plan.billing_cycle == 'quarterly':
-                                expected_days = 90
-                            elif plan.billing_cycle == 'half_yearly':
-                                expected_days = 180
-                            elif plan.billing_cycle == 'yearly':
-                                expected_days = 365
+                            expected_days = 365 if is_yearly_sub else (90 if plan.billing_cycle == 'termly' else 30)
                             due_date = timezone.now().date() + timezone.timedelta(days=expected_days)
                     except Exception:
                         due_date = timezone.now().date() + timezone.timedelta(days=30)
@@ -2801,8 +2805,9 @@ class BillingView(LoginRequiredMixin, TemplateView):
                         plan_name=plan.name,
                         plan_description=plan_desc,
                         amount=amount,
+                        discount_amount=discount_amount,
                         tax_amount=0,  # Add tax calculation if needed
-                        total_amount=amount,
+                        total_amount=total_amount,
                         due_date=due_date,
                         billing_start_date=current_subscription.start_date,
                         billing_end_date=current_subscription.end_date,
@@ -3297,6 +3302,8 @@ class InvoicePreviewView(LoginRequiredMixin, View):
                     'billing_period': billing_period,
                     'amount': float(invoice.amount),
                     'amount_display': 'FREE' if invoice.amount == 0 else f'Ksh {invoice.amount:,.2f}',
+                    'discount_amount': float(invoice.discount_amount or 0),
+                    'discount_amount_display': f'Ksh {invoice.discount_amount:,.2f}' if (invoice.discount_amount and invoice.discount_amount > 0) else None,
                     'tax_amount': float(invoice.tax_amount),
                     'tax_amount_display': f'Ksh {invoice.tax_amount:,.2f}',
                     'total_amount': float(invoice.total_amount),

@@ -849,6 +849,8 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
             data_migration_fee = request.POST.get('data_migration_fee', '0')
             license_fee = request.POST.get('license_fee', '0')
             training_fee = request.POST.get('training_fee', '0')
+            discount_percentage = request.POST.get('discount_percentage', '0')
+            yearly_discount_percentage = request.POST.get('yearly_discount_percentage', '0')
             
             # Validate required fields
             if not name or not slug or not plan_type or not price or not billing_cycle:
@@ -873,10 +875,21 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
                     license_fee = float(license_fee)
                 if training_fee:
                     training_fee = float(training_fee)
+                if discount_percentage:
+                    discount_percentage = float(discount_percentage)
+                if yearly_discount_percentage:
+                    yearly_discount_percentage = float(yearly_discount_percentage)
             except ValueError:
                 messages.error(request, 'Please ensure all numeric fields contain valid numbers.')
                 return redirect('superadmin:pricing_management')
             
+            # Extract clean feature items from description lines
+            feature_lines = [
+                re.sub(r"^[\s\-\u2022•\*\u2013\u2014]+", "", line).strip()
+                for line in description.splitlines()
+                if line.strip()
+            ]
+
             # Create or update plan
             if plan:
                 # Check if slug is being changed and if the new slug already exists
@@ -888,8 +901,11 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
                 plan.slug = slug
                 plan.plan_type = plan_type
                 plan.description = description
+                plan.features = feature_lines
                 plan.price = price
                 plan.billing_cycle = billing_cycle
+                plan.discount_percentage = discount_percentage
+                plan.yearly_discount_percentage = yearly_discount_percentage
                 plan.trial_days = trial_days
                 plan.setup_fee = setup_fee
                 plan.data_migration_fee = data_migration_fee
@@ -913,8 +929,11 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
                     slug=slug,
                     plan_type=plan_type,
                     description=description,
+                    features=feature_lines,
                     price=price,
                     billing_cycle=billing_cycle,
+                    discount_percentage=discount_percentage,
+                    yearly_discount_percentage=yearly_discount_percentage,
                     trial_days=trial_days,
                     setup_fee=setup_fee,
                     data_migration_fee=data_migration_fee,
@@ -1053,25 +1072,21 @@ class HomepageCMSView(SuperAdminRequiredMixin, View):
     template_name = 'superadmin/homepage_cms.html'
 
     def get(self, request):
-        from frontend.models import HeroContent, FloatingParallaxElement, ProcessStep, FeatureItem, ParallaxSection
-        from .forms import HeroContentForm, FloatingParallaxElementForm, ProcessStepForm, FeatureItemForm, ParallaxSectionForm
+        from frontend.models import HeroContent, ProcessStep, FeatureItem, ParallaxSection
+        from .forms import HeroContentForm, ProcessStepForm, FeatureItemForm, ParallaxSectionForm
 
         hero = HeroContent.objects.first()
         if not hero:
             hero = HeroContent.objects.create(id=1)
         hero_form = HeroContentForm(instance=hero)
 
-        floating_elements = FloatingParallaxElement.objects.all().order_by('order', 'id')
+
         process_steps = ProcessStep.objects.all().order_by('order', 'step_number')
         features = FeatureItem.objects.all().order_by('order', 'id')
         parallax_sections = ParallaxSection.objects.all().order_by('order', 'id')
 
         active_tab = request.GET.get('tab', 'hero')
         
-        # Check if editing a specific entity
-        edit_floating_id = request.GET.get('edit_floating')
-        edit_floating = get_object_or_404(FloatingParallaxElement, id=edit_floating_id) if edit_floating_id else None
-        floating_form = FloatingParallaxElementForm(instance=edit_floating) if edit_floating else FloatingParallaxElementForm()
 
         edit_step_id = request.GET.get('edit_step')
         edit_step = get_object_or_404(ProcessStep, id=edit_step_id) if edit_step_id else None
@@ -1088,9 +1103,6 @@ class HomepageCMSView(SuperAdminRequiredMixin, View):
         return render(request, self.template_name, {
             'hero': hero,
             'hero_form': hero_form,
-            'floating_elements': floating_elements,
-            'floating_form': floating_form,
-            'edit_floating': edit_floating,
             'process_steps': process_steps,
             'step_form': step_form,
             'edit_step': edit_step,
@@ -1104,8 +1116,8 @@ class HomepageCMSView(SuperAdminRequiredMixin, View):
         })
 
     def post(self, request):
-        from frontend.models import HeroContent, FloatingParallaxElement, ProcessStep, FeatureItem, ParallaxSection
-        from .forms import HeroContentForm, FloatingParallaxElementForm, ProcessStepForm, FeatureItemForm, ParallaxSectionForm
+        from frontend.models import HeroContent, ProcessStep, FeatureItem, ParallaxSection
+        from .forms import HeroContentForm, ProcessStepForm, FeatureItemForm, ParallaxSectionForm
 
         action = request.POST.get('action')
         tab = request.POST.get('tab', 'hero')
@@ -1124,24 +1136,6 @@ class HomepageCMSView(SuperAdminRequiredMixin, View):
                 messages.error(request, f"Error updating Hero Section: {'; '.join(error_msgs)}")
             return redirect(f"{reverse_lazy('superadmin:homepage_cms')}?tab=hero")
 
-        # 2. Floating Parallax Element Actions
-        elif action == 'save_floating_element':
-            f_id = request.POST.get('floating_id')
-            floating_elem = get_object_or_404(FloatingParallaxElement, id=f_id) if f_id else None
-            floating_form = FloatingParallaxElementForm(request.POST, instance=floating_elem)
-            if floating_form.is_valid():
-                floating_form.save()
-                messages.success(request, 'Floating parallax icon/element saved successfully!')
-            else:
-                messages.error(request, 'Error saving floating element. Please check form values.')
-            return redirect(f"{reverse_lazy('superadmin:homepage_cms')}?tab=floating")
-
-        elif action == 'delete_floating_element':
-            f_id = request.POST.get('floating_id')
-            floating_elem = get_object_or_404(FloatingParallaxElement, id=f_id)
-            floating_elem.delete()
-            messages.success(request, 'Floating parallax element deleted successfully!')
-            return redirect(f"{reverse_lazy('superadmin:homepage_cms')}?tab=floating")
 
         # 3. Process Step Actions
         elif action == 'save_step':

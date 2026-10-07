@@ -55,8 +55,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=42.0">
-    <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=31.0">
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=45.0">
+    <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=32.0">
     <style id="custom-theme-variables">
         :root {
             /* Light Theme Brand Variables */
@@ -281,36 +281,6 @@
             flex-shrink: 0 !important;
         }
 
-        /* =====================================================================
-           FRONTEND PUBLIC PAGE HERO BANNERS (ABOUT, PRICING, FAQ, CONTACT, ETC.)
-           ===================================================================== */
-        section.page-header,
-        .frontend-page-header {
-            background: linear-gradient(135deg, #0F172A 0%, #1E3A5F 60%, #0369A1 100%) !important;
-            background-color: #0F172A !important;
-            color: #FFFFFF !important;
-            padding: 70px 0 60px !important;
-            position: relative !important;
-            overflow: hidden !important;
-            text-align: center !important;
-        }
-
-        section.page-header .page-title,
-        .frontend-page-header .page-title {
-            font-size: 2.75rem !important;
-            font-weight: 800 !important;
-            letter-spacing: -0.5px !important;
-            margin-bottom: 0.75rem !important;
-            color: #FFFFFF !important;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
-        }
-
-        section.page-header .page-subtitle,
-        .frontend-page-header .page-subtitle {
-            font-size: 1.15rem !important;
-            color: rgba(255, 255, 255, 0.9) !important;
-            margin-bottom: 0 !important;
-        }
     </style>
     <script type="application/ld+json">
     {
@@ -337,7 +307,7 @@
     </script>
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="theme-light" data-theme="light" data-bs-theme="light">
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-light sticky-top">
         <div class="container">
@@ -361,9 +331,6 @@
                         <a class="nav-link {% if request.resolver_match.url_name == 'features' %}active{% endif %}" href="{% url 'frontend:features' %}">Features</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'about' %}active{% endif %}" href="{% url 'frontend:about' %}">About</a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'pricing' %}active{% endif %}" href="{% url 'frontend:pricing' %}">Pricing</a>
                     </li>
                     <li class="nav-item">
@@ -380,12 +347,12 @@
                     </li>
                     <li class="nav-item ms-2">
                         <button class="btn btn-nav-login" data-bs-toggle="modal" data-bs-target="#loginModal">
-                            <i class="fas fa-sign-in-alt me-1"></i> Login
+                            Login
                         </button>
                     </li>
                     <li class="nav-item ms-2">
                         <button class="btn btn-nav-trial" data-bs-toggle="modal" data-bs-target="#registerModal">
-                            <i class="fas fa-rocket me-1"></i> Start Free Trial
+                            Start Free Trial
                         </button>
                     </li>
                 </ul>
@@ -412,11 +379,6 @@
                 <li class="nav-item">
                     <a class="nav-link {% if request.resolver_match.url_name == 'features' %}active{% endif %}" href="{% url 'frontend:features' %}">
                         <i class="fas fa-th-large"></i> Features
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.url_name == 'about' %}active{% endif %}" href="{% url 'frontend:about' %}">
-                        <i class="fas fa-info-circle"></i> About
                     </a>
                 </li>
                 <li class="nav-item">
@@ -447,10 +409,10 @@
             </ul>
             <div class="mobile-drawer-actions">
                 <button class="btn btn-drawer-login" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="offcanvas">
-                    <i class="fas fa-sign-in-alt me-2"></i>Login
+                    Login
                 </button>
                 <button class="btn btn-drawer-trial" data-bs-toggle="modal" data-bs-target="#registerModal" data-bs-dismiss="offcanvas">
-                    <i class="fas fa-rocket me-2"></i>Start Free Trial
+                    Start Free Trial
                 </button>
             </div>
         </div>
@@ -473,7 +435,7 @@
             <div class="row">
                 <div class="col-md-3 mb-4">
                     <h5 class="text-white mb-3">Clasyo</h5>
-                    <p>Modern cloud-based school management system for the digital age.</p>
+                    <p class="text-white opacity-75">Modern cloud-based school management system for the digital age.</p>
                     <div class="mt-3">
                         <a href="#" class="text-white me-3"><i class="fab fa-facebook fa-lg"></i></a>
                         <a href="#" class="text-white me-3"><i class="fab fa-twitter fa-lg"></i></a>
@@ -484,51 +446,47 @@
                 <div class="col-md-2 mb-4">
                     <h6 class="text-white mb-3">Product</h6>
                     <ul class="list-unstyled">
-                        <li class="mb-2"><a href="{% url 'frontend:features' %}">Features</a></li>
-                        <li class="mb-2"><a href="{% url 'frontend:pricing' %}">Pricing</a></li>
-                        <li class="mb-2"><a href="#" data-bs-toggle="modal" data-bs-target="#loginModal">Login</a></li>
+                        <li class="mb-2"><a href="{% url 'frontend:features' %}" class="text-white text-decoration-none opacity-75">Features</a></li>
+                        <li class="mb-2"><a href="{% url 'frontend:pricing' %}" class="text-white text-decoration-none opacity-75">Pricing</a></li>
+                        <li class="mb-2"><a href="#" class="text-white text-decoration-none opacity-75" data-bs-toggle="modal" data-bs-target="#loginModal">Login</a></li>
                     </ul>
                 </div>
                 <div class="col-md-2 mb-4">
                     <h6 class="text-white mb-3">Company</h6>
                     <ul class="list-unstyled">
-                        <li class="mb-2"><a href="{% url 'frontend:about' %}">About</a></li>
-                        <li class="mb-2"><a href="{% url 'frontend:documentation' %}">Documentation</a></li>
-                        <li class="mb-2"><a href="{% url 'frontend:contact' %}">Contact</a></li>
-                        <li class="mb-2"><a href="{% url 'frontend:faq' %}">FAQ</a></li>
+                        <li class="mb-2"><a href="{% url 'frontend:documentation' %}" class="text-white text-decoration-none opacity-75">Documentation</a></li>
+                        <li class="mb-2"><a href="{% url 'frontend:contact' %}" class="text-white text-decoration-none opacity-75">Contact</a></li>
+                        <li class="mb-2"><a href="{% url 'frontend:faq' %}" class="text-white text-decoration-none opacity-75">FAQ</a></li>
                     </ul>
                 </div>
                 <div class="col-md-2 mb-4">
                     <h6 class="text-white mb-3">Quick Links</h6>
                     <ul class="list-unstyled">
-                        <li class="mb-2"><a href="{% url 'frontend:forum' %}">Forum</a></li>
-                        <li class="mb-2"><a href="{% url 'frontend:privacy' %}">Privacy Policy</a></li>
-                        <li class="mb-2"><a href="{% url 'frontend:terms' %}">Terms of Service</a></li>
-                        <li class="mb-2"><a href="{% url 'frontend:license' %}">License</a></li>
-                        <li class="mb-2"><a href="{% url 'frontend:documentation_pdf' %}" target="_blank"><i class="fas fa-file-pdf me-1"></i>Download PDF Guide</a></li>
+                        <li class="mb-2"><a href="{% url 'frontend:forum' %}" class="text-white text-decoration-none opacity-75">Forum</a></li>
+                        <li class="mb-2"><a href="{% url 'frontend:privacy' %}" class="text-white text-decoration-none opacity-75">Privacy Policy</a></li>
+                        <li class="mb-2"><a href="{% url 'frontend:terms' %}" class="text-white text-decoration-none opacity-75">Terms of Service</a></li>
+                        <li class="mb-2"><a href="{% url 'frontend:license' %}" class="text-white text-decoration-none opacity-75">License</a></li>
+                        <li class="mb-2"><a href="{% url 'frontend:documentation_pdf' %}" target="_blank" class="text-white text-decoration-none opacity-75">Download PDF Guide</a></li>
                     </ul>
                 </div>
                 <div class="col-md-3 mb-4">
                     <h6 class="text-white mb-3">Contact Us</h6>
                     <ul class="list-unstyled">
                         <li class="mb-2">
-                            <i class="fas fa-envelope me-2"></i>
-                            <a href="mailto:timestentechnologies@gmail.com">timestentechnologies@gmail.com</a>
+                            <a href="mailto:timestentechnologies@gmail.com" class="text-white text-decoration-none opacity-75">timestentechnologies@gmail.com</a>
                         </li>
                         <li class="mb-2">
-                            <i class="fas fa-phone me-2"></i>
-                            <a href="tel:+254718883983">+254 718 883 983</a>
+                            <a href="tel:+254718883983" class="text-white text-decoration-none opacity-75">+254 718 883 983</a>
                         </li>
                         <li class="mb-2">
-                            <i class="fas fa-map-marker-alt me-2"></i>
-                            <span>Nairobi, Kenya</span>
+                            <span class="text-white opacity-75">Nairobi, Kenya</span>
                         </li>
                     </ul>
                 </div>
             </div>
             <hr class="my-4" style="border-color: #4a5568;">
             <div class="text-center">
-                <p class="mb-0">© 2025 Clasyo by Timesten Technologies. All rights reserved.</p>
+                <p class="mb-0 text-white opacity-75">© 2025 Clasyo by Timesten Technologies. All rights reserved.</p>
             </div>
         </div>
     </footer>
@@ -804,13 +762,15 @@
     (function() {
         var saved = localStorage.getItem('theme') || 'light';
         if (saved === 'dark') {
-            document.body.classList.add('dark-theme');
+            document.body.classList.remove('theme-light', 'light-theme');
+            document.body.classList.add('dark-theme', 'theme-dark');
             document.body.setAttribute('data-theme', 'dark');
             document.body.setAttribute('data-bs-theme', 'dark');
         } else {
-            document.body.classList.remove('dark-theme');
-            document.body.removeAttribute('data-theme');
-            document.body.removeAttribute('data-bs-theme');
+            document.body.classList.remove('dark-theme', 'theme-dark');
+            document.body.classList.add('theme-light', 'light-theme');
+            document.body.setAttribute('data-theme', 'light');
+            document.body.setAttribute('data-bs-theme', 'light');
         }
     })();
     </script>

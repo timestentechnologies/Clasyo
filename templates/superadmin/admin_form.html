@@ -6,23 +6,43 @@
 {% block page_icon %}user-plus{% endblock %}
 {% block page_subtitle %}Create a new school administrator account{% endblock %}
 
-{% block page_actions %}
-<a href="{% url 'superadmin:admins' %}" class="btn btn-secondary">
-    <i class="fas fa-arrow-left"></i> Back to Admins
-</a>
-{% endblock %}
-
 {% block content %}
-
-<div class="row">
-                <div class="col-lg-8">
-                    <div class="modern-card">
-                        <form method="post">
-                            {% csrf_token %}
-                            
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i> A random password will be generated and sent to the admin's email automatically.
-                            </div>
+<div class="container-fluid px-0">
+    <div class="form-panel-view mb-4" id="adminFormPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <a href="{% url 'superadmin:admins' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Admins
+                </a>
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
+                    <i class="fas fa-user-plus text-primary me-2"></i> Create School Administrator
+                    <button type="button" 
+                            class="more-info-btn ms-2" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="bottom" 
+                            data-bs-html="true" 
+                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-user-shield text-primary'></i><strong>Admin Account & Permissions</strong></div>" 
+                            data-bs-content="<ul class='small ps-3 mb-2'><li><strong>Email:</strong> Used for login; receives onboarding credentials automatically.</li><li><strong>Password:</strong> Randomly generated on creation and sent securely via email.</li><li><strong>Permissions:</strong> Full access to manage students, staff, academics, fees, and analytics for their assigned institution.</li></ul>" 
+                            aria-label="Admin Account Info" 
+                            title="Admin Account & Permissions">
+                        <i class="fas fa-info-circle text-primary"></i>
+                    </button>
+                </h5>
+            </div>
+            <div class="form-header-actions">
+                <a href="{% url 'superadmin:admins' %}" class="btn btn-sm btn-light">Cancel</a>
+                <button type="submit" form="adminForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> Create Administrator
+                </button>
+            </div>
+        </div>
+        <div class="form-card-body">
+            <form method="post" id="adminForm">
+                {% csrf_token %}
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-1"></i> A random password will be generated and sent to the admin's email automatically.
+                </div>
 
                             <h4 class="mb-4"><i class="fas fa-user"></i> Administrator Details</h4>
                             
@@ -82,38 +102,9 @@
                                 </div>
                             </div>
 
-                            <div class="d-flex justify-content-end gap-2 mt-4">
-                                <a href="{% url 'superadmin:admins' %}" class="btn btn-secondary">
-                                    <i class="fas fa-times"></i> Cancel
-                                </a>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-user-plus"></i> Create Administrator
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <div class="col-lg-4">
-                    <div class="modern-card">
-                        <h4 class="mb-3"><i class="fas fa-info-circle"></i> Information</h4>
-                        <p><strong>Email:</strong> Used for login and will receive credentials.</p>
-                        <p><strong>Password:</strong> Generated automatically and sent via email.</p>
-                        <p class="text-success mb-0"><i class="fas fa-check"></i> Admin can change password after first login</p>
-                    </div>
-
-                    <div class="modern-card mt-3">
-                        <h4 class="mb-3"><i class="fas fa-shield-alt"></i> Permissions</h4>
-                        <p>School administrators have full access to manage their assigned school including:</p>
-                        <ul class="list-unstyled">
-                            <li><i class="fas fa-check text-success me-2"></i> Student management</li>
-                            <li><i class="fas fa-check text-success me-2"></i> Teacher management</li>
-                            <li><i class="fas fa-check text-success me-2"></i> Academics & Classes</li>
-                            <li><i class="fas fa-check text-success me-2"></i> Fees & Payments</li>
-                            <li><i class="fas fa-check text-success me-2"></i> Reports & Analytics</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 {% endblock %}

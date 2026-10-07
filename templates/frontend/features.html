@@ -6,20 +6,6 @@
 
 {% block extra_css %}
 <style>
-    .features-page-header {
-        background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #164e63 100%);
-        padding: 5.5rem 0 4.5rem;
-        color: #ffffff;
-        position: relative;
-        overflow: hidden;
-    }
-    .features-page-header::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: radial-gradient(circle at 75% 30%, rgba(56, 189, 248, 0.15), transparent 60%);
-        pointer-events: none;
-    }
     .module-category-btn {
         border-radius: 9999px;
         padding: 0.5rem 1.25rem;
@@ -84,22 +70,41 @@
         display: inline-block;
         margin-bottom: 0.75rem;
     }
+    .module-card-full h4 {
+        color: #0f172a !important;
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+    .module-card-full p,
+    .module-card-full p.text-muted,
+    .module-card-full .text-muted {
+        color: #475569 !important;
+        font-size: 0.92rem;
+        line-height: 1.6;
+        margin-bottom: 1.25rem;
+    }
     .module-features-list {
         list-style: none;
         padding: 0;
-        margin: 1.25rem 0 0;
+        margin: auto 0 0;
         font-size: 0.88rem;
-        color: var(--text-secondary, #475569);
+        color: #334155 !important;
     }
     .module-features-list li {
         margin-bottom: 0.5rem;
         display: flex;
         align-items: flex-start;
+        color: #334155 !important;
     }
     .module-features-list li i {
         color: #10b981;
         margin-right: 0.5rem;
         margin-top: 0.2rem;
+        flex-shrink: 0;
+    }
+    .section-subtitle {
+        color: #64748b !important;
     }
     .stat-pill {
         display: inline-flex;
@@ -116,27 +121,7 @@
 {% endblock %}
 
 {% block content %}
-<!-- Features Page Hero Banner -->
-<section class="features-page-header">
-    <div class="container text-center position-relative" style="z-index: 2;">
-        <div class="stat-pill mb-3">
-            <i class="fas fa-cubes me-2 text-info"></i> Complete Education ERP &amp; SaaS
-        </div>
-        <h1 class="display-4 fw-bold mb-3">Everything Your School Needs in One Powerful Platform</h1>
-        <p class="lead max-w-700 mx-auto opacity-90 text-light" style="max-width: 720px; font-size: 1.15rem;">
-            From Kenyan CBC curriculum tracking and instant M-Pesa fee reconciliation to double-entry financial accounting and AI predictive analytics — Clasyo digitizes every aspect of your school.
-        </p>
-        <div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
-            <button class="btn btn-primary btn-lg rounded-pill px-4 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#registerModal">
-                <i class="fas fa-rocket me-2"></i>Start 7-Day Free Trial
-            </button>
-            <a href="{% url 'frontend:pricing' %}" class="btn btn-outline-light btn-lg rounded-pill px-4 py-2 fw-semibold">
-                <i class="fas fa-tags me-2"></i>View Pricing Plans
-            </a>
-        </div>
-    </div>
-</section>
-
+<!-- Modules Filter & Full Grid -->
 <!-- Modules Filter & Full Grid -->
 <section class="py-5" style="background-color: var(--bg-body, #f8fafc);">
     <div class="container py-4">
@@ -420,23 +405,25 @@
 {% endfor %}
 
 <!-- Dedicated Features CTA -->
-<section class="cta-section">
-    <div class="container text-center position-relative" style="z-index: 1;">
-        <div class="cta-icon">
-            <i class="fas fa-rocket"></i>
-        </div>
+<section class="py-5" style="padding: 5rem 0 !important; background: linear-gradient(135deg, #1E3A5F 0%, #4DD0E1 100%); color: white; position: relative; overflow: hidden;">
+    <div class="container text-center position-relative z-index-1">
         <h2 class="display-5 fw-bold mb-3">Ready to Modernize Your School?</h2>
         <p class="lead mb-4 text-light opacity-90" style="font-size: 1.05rem;">
             Experience all 16 modules with a 7-day risk-free trial. Dedicated tenant isolation, automatic backups, and zero lock-in.
         </p>
         <div class="d-flex flex-wrap justify-content-center gap-3">
-            <button class="btn btn-primary btn-lg rounded-pill px-4 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#registerModal">
-                <i class="fas fa-play me-2"></i>Start Free Trial
+            <button class="btn btn-light btn-lg rounded-pill px-4 py-2 fw-semibold shadow-sm" style="color: #1E3A5F;" data-bs-toggle="modal" data-bs-target="#registerModal">
+                Start Free Trial
             </button>
-            <a href="{% url 'frontend:contact' %}" class="btn btn-outline-light btn-lg rounded-pill px-4 py-2 fw-semibold">
-                <i class="fas fa-headset me-2"></i>Book a Guided Demo
+            <a href="{% url 'frontend:contact' %}" class="btn btn-outline-light btn-lg rounded-pill px-4 py-2 fw-semibold shadow-sm">
+                Book a Guided Demo
             </a>
         </div>
+    </div>
+    <!-- Decorative elements -->
+    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.1; z-index: 0;">
+        <div style="position: absolute; top: -50px; right: -50px; width: 300px; height: 300px; border-radius: 50%; background: white;"></div>
+        <div style="position: absolute; bottom: -100px; left: -50px; width: 400px; height: 400px; border-radius: 50%; background: rgba(255, 255, 255, 0.3);"></div>
     </div>
 </section>
 

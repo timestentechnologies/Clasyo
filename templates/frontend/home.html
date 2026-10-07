@@ -218,12 +218,12 @@
                 <a href="{{ hero_content.primary_btn_url|default:'#registerModal' }}" 
                    class="btn btn-primary btn-lg rounded-pill px-4 py-2 fw-semibold"
                    {% if '#registerModal' in hero_content.primary_btn_url|default:'#registerModal' %}data-bs-toggle="modal" data-bs-target="#registerModal"{% endif %}>
-                    <i class="fas fa-rocket me-2"></i>{{ hero_content.primary_btn_text|default:"Start Free Trial" }}
+                    {{ hero_content.primary_btn_text|default:"Start Free Trial" }}
                 </a>
                 <a href="{{ hero_content.secondary_btn_url|default:'#loginModal' }}" 
                    class="btn btn-outline-light btn-lg rounded-pill px-4 py-2 fw-semibold"
                    {% if '#loginModal' in hero_content.secondary_btn_url|default:'#loginModal' %}data-bs-toggle="modal" data-bs-target="#loginModal"{% endif %}>
-                    <i class="fas fa-sign-in-alt me-2"></i>{{ hero_content.secondary_btn_text|default:"Sign In" }}
+                    {{ hero_content.secondary_btn_text|default:"Sign In" }}
                 </a>
             </div>
         </div>
@@ -237,50 +237,6 @@
     {% endfor %}
 
     <!-- =========================================================================
-         2. Stats Section (2x2 grid on mobile, 4 columns on desktop)
-         ========================================================================= -->
-    <section class="stats-section">
-        <div class="container">
-            <div class="row g-3 g-lg-4 justify-content-center">
-                <div class="col-6 col-lg-3">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-school"></i>
-                        </div>
-                        <div class="stat-number">10+</div>
-                        <div class="stat-label">Schools</div>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-user-graduate"></i>
-                        </div>
-                        <div class="stat-number">5K+</div>
-                        <div class="stat-label">Students</div>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-chalkboard-teacher"></i>
-                        </div>
-                        <div class="stat-number">500+</div>
-                        <div class="stat-label">Teachers</div>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-chart-line"></i>
-                        </div>
-                        <div class="stat-number">99.9%</div>
-                        <div class="stat-label">Uptime</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
 
     <!-- Parallax Banners (After Stats Section) -->
     {% for parallax in parallax_sections %}
@@ -480,20 +436,20 @@
     <!-- =========================================================================
          6. Ready to Get Started (CTA) Section
          ========================================================================= -->
-    <section class="cta-section">
-        <div class="container text-center position-relative" style="z-index: 1;">
-            <div class="cta-icon">
-                <i class="fas fa-rocket"></i>
-            </div>
+    <section class="py-5" style="padding: 5rem 0 !important; background: linear-gradient(135deg, #1E3A5F 0%, #4DD0E1 100%); color: white; position: relative; overflow: hidden;">
+        <div class="container text-center position-relative z-index-1">
             <h2 class="display-5 fw-bold mb-3">Ready to Get Started?</h2>
             <p class="lead mb-4 text-light opacity-90" style="font-size: 1.05rem;">
-                <i class="fas fa-check-circle me-2 text-info"></i>
                 Join hundreds of schools already transforming education with Clasyo
             </p>
-            <a href="{% url 'frontend:pricing' %}" class="btn btn-primary btn-lg rounded-pill px-4 py-2 fw-semibold">
-                <i class="fas fa-star me-2"></i>View Pricing Plans
-                <i class="fas fa-arrow-right ms-2"></i>
+            <a href="{% url 'frontend:pricing' %}" class="btn btn-light btn-lg rounded-pill px-4 py-2 fw-semibold shadow-sm" style="color: #1E3A5F;">
+                View Pricing Plans
             </a>
+        </div>
+        <!-- Decorative elements -->
+        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.1; z-index: 0;">
+            <div style="position: absolute; top: -50px; right: -50px; width: 300px; height: 300px; border-radius: 50%; background: white;"></div>
+            <div style="position: absolute; bottom: -100px; left: -50px; width: 400px; height: 400px; border-radius: 50%; background: rgba(255, 255, 255, 0.3);"></div>
         </div>
     </section>
 

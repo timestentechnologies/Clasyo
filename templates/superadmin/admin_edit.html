@@ -6,19 +6,41 @@
 {% block page_icon %}user-edit{% endblock %}
 {% block page_subtitle %}Update administrator account details{% endblock %}
 
-{% block page_actions %}
-<a href="{% url 'superadmin:admins' %}" class="btn btn-secondary">
-    <i class="fas fa-arrow-left"></i> Back to Admins
-</a>
-{% endblock %}
-
 {% block content %}
-
-<div class="row">
-                <div class="col-lg-8">
-                    <div class="modern-card">
-                        <form method="post">
-                            {% csrf_token %}
+<div class="container-fluid px-0">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="form-panel-view mb-4" id="adminEditPanel">
+                <div class="form-header-bar">
+                    <div class="form-header-title-group">
+                        <a href="{% url 'superadmin:admins' %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Admins
+                        </a>
+                        <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
+                            <i class="fas fa-user-edit text-primary me-2"></i> Edit School Administrator
+                            <button type="button" 
+                                    class="more-info-btn ms-2" 
+                                    data-bs-toggle="popover" 
+                                    data-bs-placement="bottom" 
+                                    data-bs-html="true" 
+                                    data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-user-shield text-primary'></i><strong>Admin Details & Status</strong></div>" 
+                                    data-bs-content="<ul class='small ps-3 mb-0'><li><strong>Account Status:</strong> Inactive accounts cannot log in to the portal.</li><li><strong>Assigned School:</strong> Connects this administrator to manage school tenants.</li><li><strong>Direct Password Reset:</strong> Use the reset tool on the right to instantly change password without email verification.</li></ul>" 
+                                    aria-label="Admin Account Info" 
+                                    title="Admin Details & Status">
+                                <i class="fas fa-info-circle text-primary"></i>
+                            </button>
+                        </h5>
+                    </div>
+                    <div class="form-header-actions">
+                        <a href="{% url 'superadmin:admins' %}" class="btn btn-sm btn-light">Cancel</a>
+                        <button type="submit" form="adminEditForm" class="btn btn-sm btn-primary form-submit-btn">
+                            <i class="fas fa-save me-1"></i> Update Administrator
+                        </button>
+                    </div>
+                </div>
+                <div class="form-card-body">
+                    <form method="post" id="adminEditForm">
+                        {% csrf_token %}
 
                             <h4 class="mb-4"><i class="fas fa-user"></i> Administrator Details</h4>
                             
@@ -85,17 +107,10 @@
                                 <small class="form-text text-muted">Inactive accounts cannot login</small>
                             </div>
 
-                            <div class="d-flex justify-content-end gap-2 mt-4">
-                                <a href="{% url 'superadmin:admins' %}" class="btn btn-secondary">
-                                    <i class="fas fa-times"></i> Cancel
-                                </a>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-save"></i> Update Administrator
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                    </form>
                 </div>
+            </div>
+        </div>
 
                 <div class="col-lg-4">
                     <div class="modern-card">
@@ -138,6 +153,7 @@
                     </div>
                 </div>
             </div>
+</div>
 
 {% endblock %}
 

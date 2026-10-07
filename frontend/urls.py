@@ -1,5 +1,6 @@
 from django.urls import path
 from django.views.decorators.cache import cache_page
+from django.views.generic import RedirectView
 from django.conf import settings
 from . import views
 
@@ -13,7 +14,7 @@ def dev_cache(timeout):
 urlpatterns = [
     path('', dev_cache(60 * 10)(views.HomeView.as_view()), name='home'),  # 10 minutes
     path('features/', dev_cache(60 * 30)(views.FeaturesView.as_view()), name='features'),  # 30 minutes
-    path('about/', dev_cache(60 * 60)(views.AboutView.as_view()), name='about'),  # 1 hour
+    path('about/', RedirectView.as_view(url='/', permanent=True), name='about'),
     path('pricing/', dev_cache(60 * 30)(views.PricingView.as_view()), name='pricing'),  # 30 minutes
     path('contact/', views.ContactView.as_view(), name='contact'),  # has form; avoid full-page cache
     path('faq/', dev_cache(60 * 30)(views.FAQView.as_view()), name='faq'),  # 30 minutes

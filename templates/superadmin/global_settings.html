@@ -18,32 +18,36 @@
     </div>
 
     <!-- Theme & Brand Appearance Settings -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card modern-card">
-                <div class="card-header modern-card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 card-title-modern d-inline-flex align-items-center">
-                        <i class="fas fa-palette text-primary me-2"></i>System Theme & Brand Colors
-                        <button type="button" 
-                                class="more-info-btn ms-2" 
-                                data-bs-toggle="popover" 
-                                data-bs-placement="bottom" 
-                                data-bs-html="true" 
-                                data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-palette text-primary'></i><strong>Theme Guidelines</strong></div>" 
-                                data-bs-content="<ul class='small ps-3 mb-0'><li>Colors dynamically update root CSS variables and apply globally in real-time.</li><li>Ensure sufficient contrast between background and text for accessibility (WCAG AA).</li><li>Light and dark mode palettes can be tuned independently.</li></ul>" 
-                                aria-label="Theme Guidelines Info" 
-                                title="Theme Guidelines">
-                            <i class="fas fa-info-circle text-primary"></i>
-                        </button>
-                    </h5>
-                    <span class="badge badge-soft-primary">Global Dynamic Colors</span>
-                </div>
-                <div class="card-body">
-                    <form method="POST" action="{% url 'superadmin:global_settings' %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="update_theme_colors">
+    <div class="form-panel-view mb-4" id="globalSettingsPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
+                    <i class="fas fa-palette text-primary me-2"></i> System Theme & Brand Colors
+                    <button type="button" 
+                            class="more-info-btn ms-2" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="bottom" 
+                            data-bs-html="true" 
+                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-palette text-primary'></i><strong>Theme Guidelines</strong></div>" 
+                            data-bs-content="<ul class='small ps-3 mb-0'><li>Colors dynamically update root CSS variables and apply globally in real-time.</li><li>Ensure sufficient contrast between background and text for accessibility (WCAG AA).</li><li>Light and dark mode palettes can be tuned independently.</li></ul>" 
+                            aria-label="Theme Guidelines Info" 
+                            title="Theme Guidelines">
+                        <i class="fas fa-info-circle text-primary"></i>
+                    </button>
+                </h5>
+            </div>
+            <div class="form-header-actions">
+                <button type="submit" form="globalSettingsForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> Save Settings
+                </button>
+            </div>
+        </div>
+        <div class="form-card-body">
+            <form method="POST" id="globalSettingsForm" action="{% url 'superadmin:global_settings' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_theme_colors">
                         
-                        <h6 class="fw-bold border-bottom pb-2 mb-3">
+                        <h6 class="fw-bold mb-3">
                             <i class="fas fa-sun text-warning me-2"></i>Light Theme Brand Colors
                         </h6>
                         <div class="row g-3 mb-4">
@@ -88,7 +92,7 @@
                             </div>
                         </div>
 
-                        <h6 class="fw-bold border-bottom pb-2 mb-3">
+                        <h6 class="fw-bold mb-3 mt-4">
                             <i class="fas fa-moon text-info me-2"></i>Dark Theme & Dark Container Colors (Hero, Parallax, CTA, Footer)
                         </h6>
                         <div class="row g-3 mb-3">
@@ -146,7 +150,7 @@
                             </div>
                         </div>
 
-                        <h6 class="fw-bold border-bottom pb-2 mb-3">
+                        <h6 class="fw-bold mb-3 mt-4">
                             <i class="fas fa-icons text-primary me-2"></i>System Icon Colors (Global Icons)
                         </h6>
                         <div class="row g-3 mb-4">
@@ -178,7 +182,7 @@
                             </div>
                         </div>
 
-                        <h6 class="fw-bold border-bottom pb-2 mb-3">
+                        <h6 class="fw-bold mb-3 mt-4">
                             <i class="fas fa-bars-staggered text-primary me-2"></i>Default Navigation Layout for New Users
                         </h6>
                         <p class="text-muted small mb-3">
@@ -214,14 +218,7 @@
                             </div>
                         </div>
 
-                        <div class="mt-4 d-flex justify-content-end">
-                            <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">
-                                <i class="fas fa-save me-2"></i>Save Settings
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
 </div>

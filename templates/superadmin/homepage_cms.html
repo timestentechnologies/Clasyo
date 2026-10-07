@@ -53,8 +53,8 @@ input[type="range"]:focus,
                 </a>
             </li>
             <li class="nav-item">
-                <a href="?tab=floating" class="nav-link cms-nav-tab {% if active_tab == 'floating' %}active{% endif %}">
-                    Floating Parallax Icons
+                <a href="?tab=hero_bg" class="nav-link cms-nav-tab {% if active_tab == 'hero_bg' %}active{% endif %}">
+                    Hero Background
                 </a>
             </li>
             <li class="nav-item">
@@ -81,377 +81,151 @@ input[type="range"]:focus,
     <!-- =========================================================================
          TAB 1: HERO SECTION
          ========================================================================= -->
-    {% if active_tab == 'hero' %}
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="cms-card">
-                <h5 class="fw-bold mb-3 text-dark">Hero Section Content & Styling</h5>
-                <form method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="save_hero">
-                    <input type="hidden" name="tab" value="hero">
-
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Title Prefix</label>
-                            {{ hero_form.title_prefix }}
-                            <small class="text-muted">e.g. "Transform Your" or "Next-Gen"</small>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Hero Section Height</label>
-                            {{ hero_form.min_height }}
-                            <small class="text-muted">Choose section height sizing</small>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Typing Animated Phrases (One per line)</label>
-                            {{ hero_form.typing_texts }}
-                            <small class="text-muted">Each line will be typed out and erased sequentially in the animated loop.</small>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Hero Subtitle</label>
-                            {{ hero_form.subtitle }}
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Primary Button Text</label>
-                            {{ hero_form.primary_btn_text }}
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Primary Button URL / Target</label>
-                            {{ hero_form.primary_btn_url }}
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Secondary Button Text</label>
-                            {{ hero_form.secondary_btn_text }}
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Secondary Button URL / Target</label>
-                            {{ hero_form.secondary_btn_url }}
-                        </div>
-
-                        <!-- Background Customization -->
-                        <div class="col-12 mt-3 pt-2 border-top">
-                            <h6 class="fw-bold text-dark mb-1"><i class="fas fa-palette me-2 text-primary"></i>Background & Overlay Styling</h6>
-                            <small class="text-muted">Choose your hero styling mode and color palette</small>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Background Type</label>
-                            {{ hero_form.bg_type }}
-                            <small class="text-muted">Choose gradient, solid color, or image</small>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Solid Background Color</label>
-                            {{ hero_form.bg_color }}
-                            <small class="text-muted">Used when Background Type is "Solid Color"</small>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Overlay Color</label>
-                            {{ hero_form.overlay_color }}
-                            <small class="text-muted">Color of dark tint layer</small>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Custom CSS Gradient</label>
-                            {{ hero_form.bg_gradient }}
-                            <small class="text-muted">Used when Background Type is "Gradient" (e.g. <code>linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #164e63 100%)</code>)</small>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Upload Background Image</label>
-                            {{ hero_form.bg_image }}
-                            {% if hero.bg_image %}
-                            <div class="mt-2">
-                                <small class="text-muted d-block mb-1">Current Background Image:</small>
-                                <img src="{{ hero.bg_image.url }}" alt="Hero Background" class="img-thumbnail cms-img-preview-hero">
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold d-flex justify-content-between align-items-center">
-                                <span>Overlay Darkness / Opacity</span>
-                                <span class="badge bg-primary px-2 py-1" id="hero_opacity_val">{{ hero.overlay_opacity|default:'0.85'|floatformat:2 }}</span>
-                            </label>
-                            {{ hero_form.overlay_opacity }}
-                            <div class="d-flex justify-content-between text-muted" style="font-size: 0.72rem; margin-top: -2px;">
-                                <span>0.00 (Transparent)</span>
-                                <span>0.50</span>
-                                <span>1.00 (Solid)</span>
-                            </div>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Hero Status</label>
-                            <div class="form-check form-switch pt-1">
-                                {{ hero_form.is_active }}
-                                <label class="form-check-label fw-semibold" for="{{ hero_form.is_active.id_for_label }}">Enable Hero Section on Homepage</label>
-                            </div>
-                        </div>
-
-                        <div class="col-12 pt-3 border-top">
-                            <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">
-                                <i class="fas fa-save me-2"></i> Save Hero Section Changes
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div class="col-lg-4">
-            <div class="cms-card">
-                <h6 class="fw-bold text-dark mb-3">Hero Styling Tips
-                </h6>
-                <p class="text-muted small">
-                    <strong>Height Options:</strong> Select <em>Large (750px)</em> or <em>Full Screen (90vh)</em> for an impactful full-width hero header.
-                </p>
-                <p class="text-muted small">
-                    <strong>Background Image & Overlay:</strong> Upload high resolution images (1920x1080). Set an <strong>Overlay Color</strong> (e.g. <code>#0f172a</code> or <code>#000000</code>) and <strong>Overlay Opacity</strong> around <code>0.75</code> to <code>0.85</code> so text remains crystal clear.
-                </p>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- =========================================================================
-         TAB 2: FLOATING PARALLAX ICONS
-         ========================================================================= -->
-    {% if active_tab == 'floating' %}
-    <!-- Shared In-Page Form Panel for Floating Parallax Icon -->
-    <div class="form-panel-view {% if not edit_floating %}d-none{% endif %} mb-4" id="floatingFormPanel">
+    {% if active_tab == 'hero' or active_tab == 'hero_bg' %}
+    <div class="form-panel-view mb-4" id="heroFormPanel">
         <div class="form-header-bar">
             <div class="form-header-title-group">
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeFloatingForm()">
-                    <i class="fas fa-arrow-left me-1"></i> Back to List
-                </button>
-                <h5 class="mb-0 fw-bold form-title-text" data-create-title="Add Floating Parallax Icon" data-edit-title="Edit Floating Parallax Icon">
-                    {% if edit_floating %}Edit Floating Parallax Icon: {{ edit_floating.title|default:edit_floating.icon }}{% else %}Add Floating Parallax Icon{% endif %}
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
+                    <i class="fas fa-sliders-h text-primary me-2"></i> {% if active_tab == 'hero' %}Hero Section Content{% else %}Hero Background & Overlay Styling{% endif %}
+                    <button type="button" 
+                            class="more-info-btn ms-2" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="bottom" 
+                            data-bs-html="true" 
+                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>Hero Styling Tips</strong></div>" 
+                            data-bs-content="<div class='small'><p class='mb-2'><strong>Height Options:</strong> Select <em>Large (750px)</em> or <em>Full Screen (90vh)</em> for an impactful full-width hero header.</p><p class='mb-0'><strong>Background Image &amp; Overlay:</strong> Upload high resolution images (1920&times;1080). Set an <strong>Overlay Color</strong> (e.g. <code>#0f172a</code> or <code>#000000</code>) and <strong>Overlay Opacity</strong> around <code>0.75</code> to <code>0.85</code> so text remains crystal clear.</p></div>" 
+                            aria-label="Hero Styling Tips" 
+                            title="Hero Styling Tips">
+                        <i class="fas fa-info-circle text-primary"></i>
+                    </button>
                 </h5>
-                <span class="form-mode-badge {% if edit_floating %}mode-edit{% else %}mode-create{% endif %}">
-                    {% if edit_floating %}Edit{% else %}New{% endif %}
-                </span>
             </div>
             <div class="form-header-actions">
-                <button type="button" class="btn btn-sm btn-light" onclick="closeFloatingForm()">Cancel</button>
-                <button type="submit" form="floatingCmsForm" class="btn btn-sm btn-primary form-submit-btn">
-                    <i class="fas fa-save me-1"></i> {% if edit_floating %}Update Floating Icon{% else %}Save Floating Icon{% endif %}
+                <button type="submit" form="heroCmsForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> Save Hero Section Changes
                 </button>
             </div>
         </div>
         <div class="form-card-body">
-            <form method="post" id="floatingCmsForm">
+            <form method="post" id="heroCmsForm" enctype="multipart/form-data">
                 {% csrf_token %}
-                <input type="hidden" name="action" value="save_floating_element">
-                <input type="hidden" name="tab" value="floating">
-                <input type="hidden" name="floating_id" id="floating_id" value="{{ edit_floating.id|default:'' }}">
+                <input type="hidden" name="action" value="save_hero">
+                <input type="hidden" name="tab" value="{{ active_tab }}">
 
                 <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Title / Reference Label</label>
-                        <input type="text" class="form-control" name="title" id="floating_title" value="{{ edit_floating.title|default:'' }}" placeholder="e.g. Graduation Cap">
+                    <!-- HERO CONTENT FIELDS -->
+                    <div class="{% if active_tab != 'hero' %}d-none{% else %}contents{% endif %}">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Title Prefix</label>
+                                {{ hero_form.title_prefix }}
+                                <small class="text-muted">e.g. "Transform Your" or "Next-Gen"</small>
+                            </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Hero Section Height</label>
+                        {{ hero_form.min_height }}
+                        <small class="text-muted">Choose section height sizing</small>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">FontAwesome Class</label>
-                        <input type="text" class="form-control" name="icon" id="floating_icon" value="{{ edit_floating.icon|default:'fas fa-graduation-cap' }}" required>
+
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Typing Animated Phrases (One per line)</label>
+                        {{ hero_form.typing_texts }}
+                        <small class="text-muted">Each line will be typed out and erased sequentially in the animated loop.</small>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Appears In (Target Section)</label>
-                        <select class="form-select" name="section_target" id="floating_section_target">
-                            <option value="hero" {% if edit_floating.section_target == 'hero' %}selected{% endif %}>Hero Section (Top of Page)</option>
-                            <option value="parallax" {% if edit_floating.section_target == 'parallax' %}selected{% endif %}>Parallax Showcase Banners</option>
-                            <option value="all" {% if edit_floating.section_target == 'all' %}selected{% endif %}>All Hero & Parallax Sections</option>
-                        </select>
+
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Hero Subtitle</label>
+                        {{ hero_form.subtitle }}
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Location Preset</label>
-                        <select class="form-select" name="preset_position" id="floating_preset_position">
-                            <option value="custom" {% if edit_floating.preset_position == 'custom' or not edit_floating %}selected{% endif %}>Custom Coordinates</option>
-                            <option value="top_left" {% if edit_floating.preset_position == 'top_left' %}selected{% endif %}>Top Left Corner</option>
-                            <option value="top_right" {% if edit_floating.preset_position == 'top_right' %}selected{% endif %}>Top Right Corner</option>
-                            <option value="center_left" {% if edit_floating.preset_position == 'center_left' %}selected{% endif %}>Center Left</option>
-                            <option value="center_right" {% if edit_floating.preset_position == 'center_right' %}selected{% endif %}>Center Right</option>
-                            <option value="bottom_left" {% if edit_floating.preset_position == 'bottom_left' %}selected{% endif %}>Bottom Left Corner</option>
-                            <option value="bottom_right" {% if edit_floating.preset_position == 'bottom_right' %}selected{% endif %}>Bottom Right Corner</option>
-                        </select>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Primary Button Text</label>
+                        {{ hero_form.primary_btn_text }}
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Top Position</label>
-                        <input type="text" class="form-control" name="position_top" id="floating_position_top" value="{{ edit_floating.position_top|default:'15%' }}">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Primary Button URL / Target</label>
+                        {{ hero_form.primary_btn_url }}
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Left Position</label>
-                        <input type="text" class="form-control" name="position_left" id="floating_position_left" value="{{ edit_floating.position_left|default:'10%' }}">
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Secondary Button Text</label>
+                        {{ hero_form.secondary_btn_text }}
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Bottom Position</label>
-                        <input type="text" class="form-control" name="position_bottom" id="floating_position_bottom" value="{{ edit_floating.position_bottom|default:'auto' }}">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Right Position</label>
-                        <input type="text" class="form-control" name="position_right" id="floating_position_right" value="{{ edit_floating.position_right|default:'auto' }}">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Font Size</label>
-                        <input type="text" class="form-control" name="font_size" id="floating_font_size" value="{{ edit_floating.font_size|default:'3rem' }}" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold d-flex justify-content-between align-items-center">
-                            <span>Opacity</span>
-                            <span class="badge bg-primary px-2 py-1" id="floating_opacity_val">{{ edit_floating.opacity|default:'0.15'|floatformat:2 }}</span>
-                        </label>
-                        <input type="range" step="0.01" min="0.01" max="1" class="form-range" name="opacity" id="floating_opacity" value="{{ edit_floating.opacity|default:'0.15' }}" oninput="document.getElementById('floating_opacity_val').innerText = parseFloat(this.value).toFixed(2)" style="border: none !important; background: transparent !important; box-shadow: none !important; outline: none !important; padding: 0 !important;">
-                        <div class="d-flex justify-content-between text-muted" style="font-size: 0.72rem; margin-top: -2px;">
-                            <span>0.01 (Subtle)</span>
-                            <span>0.50</span>
-                            <span>1.00 (Opaque)</span>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Secondary Button URL / Target</label>
+                                {{ hero_form.secondary_btn_url }}
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Animation Style</label>
-                        <select class="form-select" name="animation_type" id="floating_animation_type">
-                            <option value="float" {% if edit_floating.animation_type == 'float' or not edit_floating %}selected{% endif %}>Float Up & Down (Smooth)</option>
-                            <option value="pulse" {% if edit_floating.animation_type == 'pulse' %}selected{% endif %}>Pulse / Scale Glow</option>
-                            <option value="rotate" {% if edit_floating.animation_type == 'rotate' %}selected{% endif %}>Slow Rotation</option>
-                            <option value="parallax" {% if edit_floating.animation_type == 'parallax' %}selected{% endif %}>Scroll Parallax Shift</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Duration Speed</label>
-                        <input type="text" class="form-control" name="animation_duration" id="floating_animation_duration" value="{{ edit_floating.animation_duration|default:'18s' }}">
+
+                    <!-- BACKGROUND TAB FIELDS -->
+                    <div class="{% if active_tab != 'hero_bg' %}d-none{% else %}contents{% endif %}">
+                        <div class="row g-3">
+                            <div class="col-12 mt-3 pt-2 border-top d-none">
+                                <!-- Heading hidden as it's now the main tab title -->
+                            </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Background Type</label>
+                        {{ hero_form.bg_type }}
+                        <small class="text-muted">Choose gradient, solid color, or image</small>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Delay Offset</label>
-                        <input type="text" class="form-control" name="animation_delay" id="floating_animation_delay" value="{{ edit_floating.animation_delay|default:'0s' }}">
+                        <label class="form-label fw-semibold">Solid Background Color</label>
+                        {{ hero_form.bg_color }}
+                        <small class="text-muted">Used when Background Type is "Solid Color"</small>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Display Order</label>
-                        <input type="number" class="form-control" name="order" id="floating_order" value="{{ edit_floating.order|default:floating_elements.count|add:1 }}">
+                        <label class="form-label fw-semibold">Overlay Color</label>
+                        {{ hero_form.overlay_color }}
+                        <small class="text-muted">Color of dark tint layer</small>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold">Status</label>
-                        <div class="form-check form-switch pt-2">
-                            <input type="checkbox" class="form-check-input" name="is_active" {% if edit_floating %}{% if edit_floating.is_active %}checked{% endif %}{% else %}checked{% endif %} id="floating_is_active">
-                            <label class="form-check-label fw-semibold" for="floating_is_active">Active</label>
+
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Custom CSS Gradient</label>
+                        {{ hero_form.bg_gradient }}
+                        <small class="text-muted">Used when Background Type is "Gradient" (e.g. <code>linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #164e63 100%)</code>)</small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Upload Background Image</label>
+                        {{ hero_form.bg_image }}
+                        {% if hero.bg_image %}
+                        <div class="mt-2">
+                            <small class="text-muted d-block mb-1">Current Background Image:</small>
+                            <img src="{{ hero.bg_image.url }}" alt="Hero Background" class="img-thumbnail cms-img-preview-hero">
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold d-flex justify-content-between align-items-center">
+                            <span>Overlay Darkness / Opacity</span>
+                            <span class="badge bg-primary px-2 py-1" id="hero_opacity_val">{{ hero.overlay_opacity|default:'0.85'|floatformat:2 }}</span>
+                        </label>
+                        {{ hero_form.overlay_opacity }}
+                        <div class="d-flex justify-content-between text-muted" style="font-size: 0.72rem; margin-top: -2px;">
+                            <span>0.00 (Transparent)</span>
+                            <span>0.50</span>
+                            <span>1.00 (Solid)</span>
+                        </div>
+                    </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Hero Status</label>
+                                <div class="form-check form-switch pt-1">
+                                    {{ hero_form.is_active }}
+                                    <label class="form-check-label fw-semibold" for="{{ hero_form.is_active.id_for_label }}">Enable Hero Section on Homepage</label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </form>
         </div>
     </div>
-
-    <div class="row {% if edit_floating %}d-none{% endif %}" id="floatingListCard">
-        <div class="col-12 mb-3 d-flex justify-content-between align-items-center">
-            <h5 class="fw-bold mb-0 text-dark">Floating Parallax Icons & Elements</h5>
-            <button type="button" class="btn btn-primary" onclick="openCreateFloating()">
-                <i class="fas fa-plus me-1"></i> Add Floating Icon
-            </button>
-        </div>
-
-        <div class="col-12">
-            <div class="cms-card p-0 overflow-hidden">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="cms-col-w80">#</th>
-                                <th>Icon Preview</th>
-                                <th>Title / Label</th>
-                                <th>Target Section</th>
-                                <th>Animation</th>
-                                <th>Position</th>
-                                <th>Status</th>
-                                <th class="text-end cms-col-actions">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for elem in floating_elements %}
-                            <tr>
-                                <td class="fw-bold fs-6">{{ elem.order|default:forloop.counter }}</td>
-                                <td>
-                                    <div class="d-inline-flex align-items-center justify-content-center bg-dark text-white rounded p-2" style="width: 42px; height: 42px;">
-                                        <i class="{{ elem.icon }} fs-5"></i>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="fw-bold text-dark">{{ elem.title|default:elem.icon }}</span>
-                                    <small class="text-muted d-block font-monospace">{{ elem.icon }}</small>
-                                </td>
-                                <td>
-                                    {% if elem.section_target == 'hero' %}
-                                    <span class="badge bg-primary">Hero Section</span>
-                                    {% elif elem.section_target == 'parallax' %}
-                                    <span class="badge bg-info">Parallax Banner</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">All Sections</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="badge bg-light text-dark border text-capitalize">{{ elem.animation_type|default:'float' }}</span>
-                                    <small class="text-muted ms-1">({{ elem.animation_duration|default:'18s' }})</small>
-                                </td>
-                                <td>
-                                    <small class="text-muted">Top: {{ elem.position_top|default:'auto' }} | Left: {{ elem.position_left|default:'auto' }}</small>
-                                </td>
-                                <td>
-                                    {% if elem.is_active %}
-                                    <span class="badge bg-success">Active</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">Hidden</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-end">
-                                    <div class="d-flex align-items-center justify-content-end gap-2">
-                                        <button type="button" class="btn-action-icon btn-action-edit" title="Edit Floating Element"
-                                                onclick="editFloatingElement({
-                                                    floating_id: '{{ elem.id }}',
-                                                    title: '{{ elem.title|default:''|escapejs }}',
-                                                    icon: '{{ elem.icon|escapejs }}',
-                                                    section_target: '{{ elem.section_target }}',
-                                                    preset_position: '{{ elem.preset_position }}',
-                                                    position_top: '{{ elem.position_top }}',
-                                                    position_left: '{{ elem.position_left }}',
-                                                    position_bottom: '{{ elem.position_bottom }}',
-                                                    position_right: '{{ elem.position_right }}',
-                                                    font_size: '{{ elem.font_size }}',
-                                                    opacity: '{{ elem.opacity }}',
-                                                    animation_type: '{{ elem.animation_type }}',
-                                                    animation_duration: '{{ elem.animation_duration }}',
-                                                    animation_delay: '{{ elem.animation_delay }}',
-                                                    order: '{{ elem.order }}',
-                                                    is_active: {{ elem.is_active|yesno:'true,false' }}
-                                                })">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <form method="post" class="m-0 p-0 d-inline-flex">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="action" value="delete_floating_element">
-                                            <input type="hidden" name="floating_id" value="{{ elem.id }}">
-                                            <button type="submit" class="btn-action-icon btn-action-delete" title="Delete Floating Element"
-                                                    data-confirm="Delete this floating element?"
-                                                    data-confirm-title="Confirm Delete"
-                                                    data-confirm-btn="Delete">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="8" class="text-center py-4 text-muted">No floating parallax icons configured. Click "+ Add Floating Icon" to create one.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
     {% endif %}
+
 
     <!-- =========================================================================
          TAB 3: HOW IT WORKS STEPPER
@@ -464,8 +238,19 @@ input[type="range"]:focus,
                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeStepForm()">
                     <i class="fas fa-arrow-left me-1"></i> Back to List
                 </button>
-                <h5 class="mb-0 fw-bold form-title-text" data-create-title="Add New Process Step" data-edit-title="Edit Process Step">
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center" data-create-title="Add New Process Step" data-edit-title="Edit Process Step">
                     {% if edit_step %}Edit Process Step: {{ edit_step.title }}{% else %}Add New Process Step{% endif %}
+                    <button type="button" 
+                            class="more-info-btn ms-2" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="bottom" 
+                            data-bs-html="true" 
+                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>How It Works Stepper Guide</strong></div>" 
+                            data-bs-content="<div class='small'><p class='mb-2'><strong>Sequence:</strong> Steps appear numbered consecutively (e.g. 01, 02, 03) across the homepage timeline.</p><p class='mb-0'><strong>Accent Color:</strong> Each step can define a vibrant accent color for its preview badge and milestone connector.</p></div>" 
+                            aria-label="How It Works Stepper Guide" 
+                            title="How It Works Stepper Guide">
+                        <i class="fas fa-info-circle text-primary"></i>
+                    </button>
                 </h5>
                 <span class="form-mode-badge {% if edit_step %}mode-edit{% else %}mode-create{% endif %}">
                     {% if edit_step %}Edit{% else %}New{% endif %}
@@ -632,8 +417,19 @@ input[type="range"]:focus,
                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeFeatureForm()">
                     <i class="fas fa-arrow-left me-1"></i> Back to List
                 </button>
-                <h5 class="mb-0 fw-bold form-title-text" data-create-title="Add Feature Card" data-edit-title="Edit Feature Card">
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center" data-create-title="Add Feature Card" data-edit-title="Edit Feature Card">
                     {% if edit_feature %}Edit Feature Card: {{ edit_feature.title }}{% else %}Add Feature Card{% endif %}
+                    <button type="button" 
+                            class="more-info-btn ms-2" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="bottom" 
+                            data-bs-html="true" 
+                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>Feature Cards Guide</strong></div>" 
+                            data-bs-content="<div class='small'><p class='mb-2'><strong>Icon Class:</strong> Specify any FontAwesome icon (e.g. <code>fas fa-star</code>, <code>fas fa-graduation-cap</code>).</p><p class='mb-0'><strong>Order:</strong> Cards are displayed in ascending numerical order on the homepage grid.</p></div>" 
+                            aria-label="Feature Cards Guide" 
+                            title="Feature Cards Guide">
+                        <i class="fas fa-info-circle text-primary"></i>
+                    </button>
                 </h5>
                 <span class="form-mode-badge {% if edit_feature %}mode-edit{% else %}mode-create{% endif %}">
                     {% if edit_feature %}Edit{% else %}New{% endif %}
@@ -773,8 +569,19 @@ input[type="range"]:focus,
                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeParallaxForm()">
                     <i class="fas fa-arrow-left me-1"></i> Back to List
                 </button>
-                <h5 class="mb-0 fw-bold form-title-text" data-create-title="Add Parallax Showcase Banner" data-edit-title="Edit Parallax Showcase Banner">
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center" data-create-title="Add Parallax Showcase Banner" data-edit-title="Edit Parallax Showcase Banner">
                     {% if edit_parallax %}Edit Parallax Banner: {{ edit_parallax.title }}{% else %}Add Parallax Showcase Banner{% endif %}
+                    <button type="button" 
+                            class="more-info-btn ms-2" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="bottom" 
+                            data-bs-html="true" 
+                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>Parallax Banners Guide</strong></div>" 
+                            data-bs-content="<div class='small'><p class='mb-2'><strong>Effects:</strong> Fixed Background locks background image during scroll; Zoom In scales background gradually.</p><p class='mb-0'><strong>Placement:</strong> Choose where banner renders (e.g. After Hero, After Stepper, After Features).</p></div>" 
+                            aria-label="Parallax Banners Guide" 
+                            title="Parallax Banners Guide">
+                        <i class="fas fa-info-circle text-primary"></i>
+                    </button>
                 </h5>
                 <span class="form-mode-badge {% if edit_parallax %}mode-edit{% else %}mode-create{% endif %}">
                     {% if edit_parallax %}Edit{% else %}New{% endif %}
@@ -999,58 +806,6 @@ input[type="range"]:focus,
 
 <!-- Auto-trigger Edit Modals JavaScript -->
 <script>
-function openCreateFloating() {
-    toggleInPageFormView('floatingListCard', 'floatingFormPanel', 'create');
-    var idInput = document.getElementById('floating_id');
-    if (idInput) idInput.value = '';
-    var opInput = document.getElementById('floating_opacity');
-    if (opInput) opInput.value = '0.15';
-    var opVal = document.getElementById('floating_opacity_val');
-    if (opVal) opVal.innerText = '0.15';
-    var titleEl = document.querySelector('#floatingFormPanel .form-title-text');
-    if (titleEl) titleEl.textContent = 'Add Floating Parallax Icon';
-    var submitBtn = document.querySelector('#floatingFormPanel .form-submit-btn');
-    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save Floating Icon';
-    var formEl = document.getElementById('floatingFormPanel');
-    if (formEl) window.scrollTo({ top: formEl.offsetTop - 80, behavior: 'smooth' });
-}
-
-function editFloatingElement(data) {
-    toggleInPageFormView('floatingListCard', 'floatingFormPanel', 'edit', data);
-    var idInput = document.getElementById('floating_id');
-    if (idInput) idInput.value = data.floating_id || '';
-    if (data.opacity) {
-        var opInput = document.getElementById('floating_opacity');
-        if (opInput) opInput.value = data.opacity;
-        var opVal = document.getElementById('floating_opacity_val');
-        if (opVal) opVal.innerText = parseFloat(data.opacity).toFixed(2);
-    }
-    if (data.preset_position) {
-        var presetEl = document.getElementById('floating_preset_position');
-        if (presetEl) presetEl.value = data.preset_position;
-    }
-    if (data.section_target) {
-        var targetEl = document.getElementById('floating_section_target');
-        if (targetEl) targetEl.value = data.section_target;
-    }
-    if (data.animation_type) {
-        var animEl = document.getElementById('floating_animation_type');
-        if (animEl) animEl.value = data.animation_type;
-    }
-    var titleEl = document.querySelector('#floatingFormPanel .form-title-text');
-    if (titleEl) titleEl.textContent = 'Edit Floating Parallax Icon: ' + (data.title || data.icon);
-    var submitBtn = document.querySelector('#floatingFormPanel .form-submit-btn');
-    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Update Floating Icon';
-    var formEl = document.getElementById('floatingFormPanel');
-    if (formEl) window.scrollTo({ top: formEl.offsetTop - 80, behavior: 'smooth' });
-}
-
-function closeFloatingForm() {
-    toggleInPageFormView('floatingListCard', 'floatingFormPanel', 'list');
-    if (window.history.replaceState) {
-        window.history.replaceState(null, '', window.location.pathname + '?tab=floating');
-    }
-}
 
 function openCreateStep() {
     toggleInPageFormView('stepListCard', 'stepFormPanel', 'create');

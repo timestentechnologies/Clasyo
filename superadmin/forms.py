@@ -331,45 +331,6 @@ class HeroContentForm(forms.ModelForm):
         return cleaned_data
 
 
-class FloatingParallaxElementForm(forms.ModelForm):
-    """Form for Floating Parallax Icons CMS"""
-    class Meta:
-        from frontend.models import FloatingParallaxElement
-        model = FloatingParallaxElement
-        fields = [
-            'title', 'icon', 'section_target', 'preset_position',
-            'position_top', 'position_left', 'position_bottom', 'position_right',
-            'font_size', 'opacity', 'animation_type', 'animation_duration',
-            'animation_delay', 'order', 'is_active'
-        ]
-        widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Graduation Cap Icon'}),
-            'icon': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. fas fa-graduation-cap'}),
-            'section_target': forms.Select(attrs={'class': 'form-select'}),
-            'preset_position': forms.Select(attrs={'class': 'form-select'}),
-            'position_top': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 10% or 50px or auto'}),
-            'position_left': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 10% or 40px or auto'}),
-            'position_bottom': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 15% or auto'}),
-            'position_right': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 15% or auto'}),
-            'font_size': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 3rem or 45px'}),
-            'opacity': forms.NumberInput(attrs={
-                'type': 'range',
-                'class': 'form-range',
-                'step': '0.01',
-                'min': '0.01',
-                'max': '1',
-                'id': 'floating_opacity',
-                'style': 'border: none !important; background: transparent !important; box-shadow: none !important; outline: none !important; padding: 0 !important;',
-                'oninput': "var el = document.getElementById('floating_opacity_val'); if (el) el.innerText = parseFloat(this.value).toFixed(2);"
-            }),
-            'animation_type': forms.Select(attrs={'class': 'form-select'}),
-            'animation_duration': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 18s'}),
-            'animation_delay': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 0s'}),
-            'order': forms.NumberInput(attrs={'class': 'form-control'}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-        }
-
-
 class ProcessStepForm(forms.ModelForm):
     """Form for How It Works / Process Step CMS"""
     class Meta:
