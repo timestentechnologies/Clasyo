@@ -82,7 +82,7 @@
                             </thead>
                             <tbody>
                                 {% for plan in lesson_plans %}
-                                <tr>
+                                <tr {% if perms.lesson_plan.change_lessonplan or user.is_school_admin or plan.created_by == user %}class="clickable-row" data-edit-url="{% url 'lesson_plan:update' school_slug=school_slug pk=plan.id %}"{% else %}class="clickable-row" data-view-url="{% url 'lesson_plan:detail' school_slug=school_slug pk=plan.id %}"{% endif %}>
                                     <td>
                                         <a href="{% url 'lesson_plan:detail' school_slug=school_slug pk=plan.id %}">{{ plan.title }}</a>
                                     </td>
@@ -92,18 +92,13 @@
                                     <td>{{ plan.planned_date }}</td>
                                     <td>{{ plan.duration_minutes }} mins</td>
                                     <td>{{ plan.created_by.get_full_name }}</td>
-                                    <td class="text-right">
-                                        <a href="{% url 'lesson_plan:detail' school_slug=school_slug pk=plan.id %}" class="btn btn-sm btn-outline-primary me-1">
-                                            <i class="fas fa-eye me-1"></i> View
+                                    <td class="text-right" onclick="event.stopPropagation();">
+                                        <a href="{% url 'lesson_plan:detail' school_slug=school_slug pk=plan.id %}" class="btn btn-sm btn-outline-primary me-1" title="View">
+                                            <i class="fas fa-eye"></i>
                                         </a>
-                                        {% if perms.lesson_plan.change_lessonplan or user.is_school_admin or plan.created_by == user %}
-                                        <a href="{% url 'lesson_plan:update' school_slug=school_slug pk=plan.id %}" class="btn btn-sm btn-outline-secondary me-1">
-                                            <i class="fas fa-pencil-alt me-1"></i> Edit
-                                        </a>
-                                        {% endif %}
                                         {% if perms.lesson_plan.delete_lessonplan or user.is_school_admin or plan.created_by == user %}
-                                        <a href="{% url 'lesson_plan:delete' school_slug=school_slug pk=plan.id %}" class="btn btn-sm btn-outline-danger">
-                                            <i class="fas fa-trash me-1"></i> Delete
+                                        <a href="{% url 'lesson_plan:delete' school_slug=school_slug pk=plan.id %}" class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="fas fa-trash"></i>
                                         </a>
                                         {% endif %}
                                     </td>

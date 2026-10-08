@@ -163,7 +163,7 @@
             </thead>
             <tbody>
             {% for class in classes %}
-            <tr data-name="{{ class.name|lower }}" data-description="{{ class.description|default:''|lower }}" data-level="{{ class.education_level }}" data-status="{% if class.is_active %}active{% else %}inactive{% endif %}">
+            <tr class="clickable-row" onclick="openClassForm('edit', {{ class.pk }})" data-name="{{ class.name|lower }}" data-description="{{ class.description|default:''|lower }}" data-level="{{ class.education_level }}" data-status="{% if class.is_active %}active{% else %}inactive{% endif %}">
                 <td>
                     <strong>{{ class.name }}</strong>
                     {% if class.numeric_name %}
@@ -199,11 +199,8 @@
                         {% if class.is_active %}Active{% else %}Inactive{% endif %}
                     </span>
                 </td>
-                <td>
-                    <button class="btn btn-sm btn-primary" onclick="openClassForm('edit', {{ class.pk }})">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteClass({{ class.pk }}, '{{ class.name }}')">
+                <td onclick="event.stopPropagation();">
+                    <button class="btn btn-sm btn-danger" title="Delete Class" onclick="deleteClass({{ class.pk }}, '{{ class.name|escapejs }}')">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>

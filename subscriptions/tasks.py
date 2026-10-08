@@ -1,18 +1,36 @@
+import logging
 from celery import shared_task
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from .models import Subscription, Invoice
 from tenants.models import School
-from django.core.mail import send_mail
 from django.conf import settings
 from datetime import timedelta
+from core.services.notification_templates import send_notification_by_template
+
+logger = logging.getLogger(__name__)
+
+
+def recipients_for_school(school):
+    """Collect unique contact and admin emails for a school"""
+    User = get_user_model()
+    admins = list(
+        User.objects.filter(school=school, role__in=['admin', 'school_admin'], is_active=True)
+        .values_list('email', flat=True)
+    )
+    base = [e for e in [school.email] if e]
+    seen = set()
+    ordered = []
+    for e in base + admins:
+        if e and e not in seen:
+            seen.add(e)
+            ordered.append(e)
+    return ordered
 
 
 @shared_task
 def check_subscription_expiry():
     """Check for expiring subscriptions and send notifications"""
-    from datetime import timedelta
-    
     today = timezone.now().date()
     warning_date = today + timedelta(days=7)
     
@@ -23,12 +41,23 @@ def check_subscription_expiry():
     )
     
     for subscription in expiring_soon:
-        # Send email notification
-        send_mail(
-            subject='Your subscription is expiring soon',
-            message=f'Your subscription for {subscription.plan.name} will expire on {subscription.end_date}. Please renew to continue using our services.',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[subscription.school.email],
+        recipients = recipients_for_school(subscription.school)
+        if not recipients:
+            continue
+        host = settings.ALLOWED_HOSTS[0] if (getattr(settings, 'ALLOWED_HOSTS', None) and settings.ALLOWED_HOSTS[0] not in ('*', 'localhost', '127.0.0.1')) else 'clasyo.co.ke'
+        renewal_url = f"https://{host}/school/{subscription.school.slug}/billing/" if subscription.school.slug else f"https://{host}/"
+        context = {
+            'school_name': subscription.school.name,
+            'plan_name': subscription.plan.name,
+            'end_date': str(subscription.end_date),
+            'renewal_url': renewal_url,
+        }
+        send_notification_by_template(
+            code='subscription_expiring',
+            channel='email',
+            recipients=recipients,
+            context=context,
+            school=subscription.school,
             fail_silently=True,
         )
     
@@ -47,14 +76,24 @@ def check_subscription_expiry():
         school.is_active = False
         school.save()
         
-        # Send expiration email
-        send_mail(
-            subject='Your subscription has expired',
-            message=f'Your subscription for {subscription.plan.name} has expired. Please renew to continue using our services.',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[school.email],
-            fail_silently=True,
-        )
+        recipients = recipients_for_school(school)
+        if recipients:
+            host = settings.ALLOWED_HOSTS[0] if (getattr(settings, 'ALLOWED_HOSTS', None) and settings.ALLOWED_HOSTS[0] not in ('*', 'localhost', '127.0.0.1')) else 'clasyo.co.ke'
+            renewal_url = f"https://{host}/school/{school.slug}/billing/" if school.slug else f"https://{host}/"
+            context = {
+                'school_name': school.name,
+                'plan_name': subscription.plan.name,
+                'end_date': str(subscription.end_date),
+                'renewal_url': renewal_url,
+            }
+            send_notification_by_template(
+                code='subscription_expired',
+                channel='email',
+                recipients=recipients,
+                context=context,
+                school=school,
+                fail_silently=True,
+            )
     
     return f"Processed {expiring_soon.count()} expiring and {expired.count()} expired subscriptions"
 
@@ -62,8 +101,6 @@ def check_subscription_expiry():
 @shared_task
 def auto_renew_subscriptions():
     """Auto-renew subscriptions where auto_renew is enabled"""
-    from datetime import timedelta
-    
     today = timezone.now().date()
     
     subscriptions = Subscription.objects.filter(
@@ -94,14 +131,24 @@ def auto_renew_subscriptions():
         
         renewed_count += 1
         
-        # Send confirmation email
-        send_mail(
-            subject='Subscription Auto-Renewed',
-            message=f'Your subscription for {subscription.plan.name} has been automatically renewed until {new_end_date}.',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[subscription.school.email],
-            fail_silently=True,
-        )
+        recipients = recipients_for_school(subscription.school)
+        if recipients:
+            host = settings.ALLOWED_HOSTS[0] if (getattr(settings, 'ALLOWED_HOSTS', None) and settings.ALLOWED_HOSTS[0] not in ('*', 'localhost', '127.0.0.1')) else 'clasyo.co.ke'
+            billing_url = f"https://{host}/school/{subscription.school.slug}/billing/" if subscription.school.slug else f"https://{host}/"
+            context = {
+                'school_name': subscription.school.name,
+                'plan_name': subscription.plan.name,
+                'end_date': str(new_end_date),
+                'billing_url': billing_url,
+            }
+            send_notification_by_template(
+                code='subscription_renewed',
+                channel='email',
+                recipients=recipients,
+                context=context,
+                school=subscription.school,
+                fail_silently=True,
+            )
     
     return f"Auto-renewed {renewed_count} subscriptions"
 
@@ -184,26 +231,30 @@ def send_invoice_reminders():
         recipients = recipients_for_school(inv.school)
         if not recipients:
             continue
-        subject = f"Upcoming Invoice Due in {pre_days} Days: {inv.invoice_number}"
-        message = (
-            f"Hello {inv.school.name},\n\n"
-            f"Your invoice {inv.invoice_number} for plan '{inv.plan_name}' is due on {inv.due_date}.\n"
-            f"Amount Due: {inv.total_amount}\n\n"
-            f"Please plan your payment to avoid interruption.\n\n"
-            f"Thank you,\nClasyo Billing"
-        )
+        host = settings.ALLOWED_HOSTS[0] if (getattr(settings, 'ALLOWED_HOSTS', None) and settings.ALLOWED_HOSTS[0] not in ('*', 'localhost', '127.0.0.1')) else 'clasyo.co.ke'
+        invoice_url = f"https://{host}/school/{inv.school.slug}/billing/" if inv.school.slug else f"https://{host}/"
+        context = {
+            'school_name': inv.school.name,
+            'invoice_number': inv.invoice_number,
+            'plan_name': inv.plan_name,
+            'currency': getattr(settings, 'DEFAULT_CURRENCY', 'KES'),
+            'total_amount': f"{inv.total_amount:,.2f}" if inv.total_amount else "0.00",
+            'due_date': str(inv.due_date),
+            'invoice_url': invoice_url,
+        }
         try:
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_HOST_USER),
-                recipient_list=recipients,
-                fail_silently=True,
+            send_notification_by_template(
+                code='invoice_reminder',
+                channel='email',
+                recipients=recipients,
+                context=context,
+                school=inv.school,
+                fail_silently=True
             )
             inv.pre_due_reminder_sent_at = timezone.now()
             inv.save(update_fields=['pre_due_reminder_sent_at'])
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Error sending pre-due invoice reminder: {e}")
 
     # 2) Due today reminders
     due_today = Invoice.objects.filter(
@@ -215,27 +266,30 @@ def send_invoice_reminders():
         recipients = recipients_for_school(inv.school)
         if not recipients:
             continue
-        subject = f"Invoice Due Today: {inv.invoice_number}"
-        message = (
-            f"Hello {inv.school.name},\n\n"
-            f"This is a reminder that your invoice {inv.invoice_number} for plan '{inv.plan_name}' is due today ({inv.due_date}).\n"
-            f"Amount Due: {inv.total_amount}\n\n"
-            f"Please make payment to avoid service interruption.\n\n"
-            f"Thank you,\nClasyo Billing"
-        )
+        host = settings.ALLOWED_HOSTS[0] if (getattr(settings, 'ALLOWED_HOSTS', None) and settings.ALLOWED_HOSTS[0] not in ('*', 'localhost', '127.0.0.1')) else 'clasyo.co.ke'
+        invoice_url = f"https://{host}/school/{inv.school.slug}/billing/" if inv.school.slug else f"https://{host}/"
+        context = {
+            'school_name': inv.school.name,
+            'invoice_number': inv.invoice_number,
+            'plan_name': inv.plan_name,
+            'currency': getattr(settings, 'DEFAULT_CURRENCY', 'KES'),
+            'total_amount': f"{inv.total_amount:,.2f}" if inv.total_amount else "0.00",
+            'due_date': str(inv.due_date),
+            'invoice_url': invoice_url,
+        }
         try:
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_HOST_USER),
-                recipient_list=recipients,
-                fail_silently=True,
+            send_notification_by_template(
+                code='invoice_reminder',
+                channel='email',
+                recipients=recipients,
+                context=context,
+                school=inv.school,
+                fail_silently=True
             )
             inv.due_reminder_sent_at = timezone.now()
             inv.save(update_fields=['due_reminder_sent_at'])
-        except Exception:
-            # Ignore email errors but don't mark as sent
-            pass
+        except Exception as e:
+            logger.error(f"Error sending due-today invoice reminder: {e}")
 
     # 3) Overdue reminders
     overdue = Invoice.objects.filter(
@@ -247,22 +301,25 @@ def send_invoice_reminders():
         recipients = recipients_for_school(inv.school)
         if not recipients:
             continue
-        subject = f"Overdue Invoice: {inv.invoice_number}"
-        message = (
-            f"Hello {inv.school.name},\n\n"
-            f"Your invoice {inv.invoice_number} for plan '{inv.plan_name}' is overdue.\n"
-            f"Due Date: {inv.due_date}\n"
-            f"Amount Due: {inv.total_amount}\n\n"
-            f"Please make payment as soon as possible to avoid any disruption.\n\n"
-            f"Thank you,\nClasyo Billing"
-        )
+        host = settings.ALLOWED_HOSTS[0] if (getattr(settings, 'ALLOWED_HOSTS', None) and settings.ALLOWED_HOSTS[0] not in ('*', 'localhost', '127.0.0.1')) else 'clasyo.co.ke'
+        invoice_url = f"https://{host}/school/{inv.school.slug}/billing/" if inv.school.slug else f"https://{host}/"
+        context = {
+            'school_name': inv.school.name,
+            'invoice_number': inv.invoice_number,
+            'plan_name': inv.plan_name,
+            'currency': getattr(settings, 'DEFAULT_CURRENCY', 'KES'),
+            'total_amount': f"{inv.total_amount:,.2f}" if inv.total_amount else "0.00",
+            'due_date': str(inv.due_date),
+            'invoice_url': invoice_url,
+        }
         try:
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_HOST_USER),
-                recipient_list=recipients,
-                fail_silently=True,
+            send_notification_by_template(
+                code='invoice_overdue',
+                channel='email',
+                recipients=recipients,
+                context=context,
+                school=inv.school,
+                fail_silently=True
             )
             # Mark invoice as overdue if not already
             updated_fields = ['overdue_reminder_sent_at']
@@ -271,7 +328,7 @@ def send_invoice_reminders():
                 inv.status = 'overdue'
                 updated_fields.append('status')
             inv.save(update_fields=updated_fields)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Error sending overdue invoice reminder: {e}")
 
     return f"Sent pre-due: {pre_due.count()}, due: {due_today.count()}, overdue: {overdue.count()}"

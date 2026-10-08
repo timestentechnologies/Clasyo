@@ -6,71 +6,86 @@
     <title>{% block title %}Clasyo Notification{% endblock %}</title>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
-            background-color: #f4f4f4;
+            color: #334155;
+            background-color: #f1f5f9;
             margin: 0;
             padding: 0;
         }
         .container {
             max-width: 600px;
-            margin: 20px auto;
-            background: white;
-            border-radius: 10px;
+            margin: 24px auto;
+            background: #ffffff;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
         }
         .header {
-            background: linear-gradient(135deg, #1E3A5F 0%, #4DD0E1 100%);
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
+            background-color: #ffffff;
+            padding: 24px 28px;
+            border-bottom: 3.5px solid #ea580c;
         }
         .header h1 {
             margin: 0;
-            font-size: 24px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
         }
         .content {
-            padding: 30px 20px;
+            padding: 32px 28px;
+            color: #334155;
+            font-size: 15px;
+            line-height: 1.65;
         }
         .button {
             display: inline-block;
-            background: linear-gradient(135deg, #1E3A5F 0%, #4DD0E1 100%);
-            color: white;
+            background-color: #ea580c;
+            color: #ffffff !important;
             text-decoration: none;
-            padding: 12px 30px;
-            border-radius: 5px;
+            padding: 12px 26px;
+            border-radius: 6px;
             margin: 20px 0;
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .footer {
-            background: #f8f9fa;
-            padding: 20px;
+            background: #0f172a;
+            padding: 24px 28px;
             text-align: center;
-            color: #666;
+            color: #94a3b8;
             font-size: 12px;
+            line-height: 1.5;
+        }
+        .footer a {
+            color: #ea580c;
+            text-decoration: none;
         }
         .info-box {
-            background: #f8f9fa;
-            border-left: 4px solid #4DD0E1;
-            padding: 15px;
-            margin: 15px 0;
+            background: #f8fafc;
+            border-left: 4px solid #ea580c;
+            padding: 16px;
+            margin: 18px 0;
             border-radius: 4px;
+            font-size: 14px;
+            color: #1e293b;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>{% block header %}Clasyo School Management System{% endblock %}</h1>
+            <h1>{% block header %}Clasyo Platform Notification{% endblock %}</h1>
         </div>
         <div class="content">
             {% block content %}{% endblock %}
         </div>
         <div class="footer">
-            <p>© {{ current_year|default:"2025" }} Clasyo. All rights reserved.</p>
-            <p>This is an automated email, please do not reply.</p>
+            <p style="margin: 0 0 6px 0; color: #f8fafc; font-weight: 600;">Clasyo School Management Platform</p>
+            <p style="margin: 0 0 6px 0;">Empowering education with modern technology.</p>
+            <p style="margin: 0;">© {% now "Y" %} Clasyo. All rights reserved.</p>
         </div>
     </div>
 </body>

@@ -79,11 +79,11 @@
                                 </thead>
                                 <tbody>
                                     {% for todo in todos %}
-                                    <tr {% if todo.is_completed %}class="table-success"{% endif %}>
-                                        <td>
+                                    <tr class="clickable-row {% if todo.is_completed %}table-success{% endif %}" onclick="openTaskModal('{{ todo.id }}')" style="cursor: pointer;">
+                                        <td onclick="event.stopPropagation();">
                                             <form method="post" action="{% url 'core:todo_toggle' school_slug=school_slug pk=todo.id %}" class="d-inline">
                                                 {% csrf_token %}
-                                                <button type="submit" class="btn btn-sm btn-link p-0">
+                                                <button type="submit" class="btn btn-sm btn-link p-0" title="Toggle status">
                                                     {% if todo.is_completed %}
                                                         <i class="fas fa-check-circle text-success fa-lg"></i>
                                                     {% else %}
@@ -116,11 +116,8 @@
                                                 <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
-                                        <td>
-                                            <button class="btn btn-sm btn-outline-info btn-view-task" data-bs-toggle="modal" data-bs-target="#viewTaskModal" data-task-id="{{ todo.id }}">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger btn-delete-task" data-bs-toggle="modal" data-bs-target="#deleteTaskModal" data-task-id="{{ todo.id }}" data-task-title="{{ todo.title|default:'Untitled' }}">
+                                        <td onclick="event.stopPropagation();">
+                                            <button class="btn btn-sm btn-outline-danger btn-delete-task" data-bs-toggle="modal" data-bs-target="#deleteTaskModal" data-task-id="{{ todo.id }}" data-task-title="{{ todo.title|default:'Untitled' }}" title="Delete Task">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </td>
@@ -186,6 +183,17 @@
 </div>
 
 <script>
+function openTaskModal(taskId) {
+    document.getElementById('view-task-content').innerHTML = '<p class="text-muted">Loading...</p>';
+    fetch(`/school/{{ school_slug }}/todos/${taskId}/`)
+        .then(r => r.text())
+        .then(html => {
+            document.getElementById('view-task-content').innerHTML = html;
+        });
+    const modal = new bootstrap.Modal(document.getElementById('viewTaskModal'));
+    modal.show();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const viewButtons = document.querySelectorAll('.btn-view-task');
     viewButtons.forEach(btn => {

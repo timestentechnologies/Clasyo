@@ -127,10 +127,10 @@
     <div class="container py-4">
         <!-- Interactive Category Filters -->
         <div class="text-center mb-5">
-            <h2 class="section-title">Explore by System Module</h2>
-            <p class="section-subtitle">Click any category below to filter our specialized school management tools</p>
+            <h2 class="section-title">{% if page_data and page_data.title %}{{ page_data.title }}{% else %}Explore by System Module{% endif %}</h2>
+            <p class="section-subtitle">{% if page_data and page_data.subtitle %}{{ page_data.subtitle }}{% else %}Click any category below to filter our specialized school management tools{% endif %}</p>
             <div class="d-flex flex-wrap justify-content-center mt-4" id="categoryFilterContainer">
-                <button class="module-category-btn active" data-filter="all">All 16 Modules</button>
+                <button class="module-category-btn active" data-filter="all">All Modules ({{ features.count }})</button>
                 <button class="module-category-btn" data-filter="academic">Academics &amp; CBC</button>
                 <button class="module-category-btn" data-filter="finance">Finance &amp; M-Pesa</button>
                 <button class="module-category-btn" data-filter="operations">Operations &amp; Logistics</button>
@@ -139,257 +139,34 @@
             </div>
         </div>
 
-        <!-- 16 Modules Card Grid -->
+        <!-- Dynamic Module Cards Grid -->
         <div class="row g-4" id="modulesGrid">
             {% for feature in features %}
-            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="academic">
+            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="{{ feature.category }}">
                 <div class="module-card-full">
                     <div class="module-icon-wrap">
-                        <i class="{{ feature.icon|default:'fas fa-check-circle' }}"></i>
+                        <i class="{{ feature.icon|default:'fas fa-star' }}"></i>
                     </div>
-                    <span class="module-badge">Dynamic Module</span>
+                    {% if feature.badge %}
+                    <span class="module-badge">{{ feature.badge }}</span>
+                    {% endif %}
                     <h4 class="fw-bold mb-2">{{ feature.title }}</h4>
-                    <p class="text-muted flex-grow-1 mb-0">{{ feature.description }}</p>
+                    <p class="text-muted mb-0">{{ feature.description }}</p>
+                    {% if feature.get_points_list %}
+                    <ul class="module-features-list">
+                        {% for point in feature.get_points_list %}
+                        <li><i class="fas fa-check-circle"></i> {{ point }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
                 </div>
             </div>
             {% empty %}
-            <!-- Module 1: Student Information & CBC -->
-            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="academic">
-                <div class="module-card-full">
-                    <div class="module-icon-wrap"><i class="fas fa-user-graduate"></i></div>
-                    <span class="module-badge">Academics</span>
-                    <h4 class="fw-bold mb-2">Student Information &amp; CBC Profiles</h4>
-                    <p class="text-muted mb-0">Centralized digital student directory with UPI/NEMIS tracking, admission documentation, guardian contacts, and historical performance portfolios.</p>
-                    <ul class="module-features-list">
-                        <li><i class="fas fa-check-circle"></i> Unique admission ID &amp; NEMIS UPI logging</li>
-                        <li><i class="fas fa-check-circle"></i> Comprehensive digital document archive</li>
-                        <li><i class="fas fa-check-circle"></i> Sibling linking &amp; family guardian records</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Module 2: CBC Assessment & Rubrics -->
-            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="academic">
-                <div class="module-card-full">
-                    <div class="module-icon-wrap"><i class="fas fa-clipboard-check"></i></div>
-                    <span class="module-badge">Kenyan CBC</span>
-                    <h4 class="fw-bold mb-2">CBC Assessment &amp; Rubrics</h4>
-                    <p class="text-muted mb-0">Engineered specifically for Kenyan Competency-Based Curriculum (CBC) from Pre-Primary to Junior &amp; Senior Secondary with performance level indicators.</p>
-                    <ul class="module-features-list">
-                        <li><i class="fas fa-check-circle"></i> EE, ME, AE, BE performance criteria rubrics</li>
-                        <li><i class="fas fa-check-circle"></i> Formative strand &amp; sub-strand learning areas</li>
-                        <li><i class="fas fa-check-circle"></i> Automated learner progress reports for KNEC</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Module 3: Academics & Timetables -->
-            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="academic">
-                <div class="module-card-full">
-                    <div class="module-icon-wrap"><i class="fas fa-chalkboard-teacher"></i></div>
-                    <span class="module-badge">Academics</span>
-                    <h4 class="fw-bold mb-2">Academics, Classes &amp; Timetables</h4>
-                    <p class="text-muted mb-0">Multi-stream class scheduling, teacher subject allocations, conflict-free timetable generation, and digital lesson plan submission workflows.</p>
-                    <ul class="module-features-list">
-                        <li><i class="fas fa-check-circle"></i> Automatic teacher collision detection</li>
-                        <li><i class="fas fa-check-circle"></i> Digital lesson plans &amp; scheme of work logs</li>
-                        <li><i class="fas fa-check-circle"></i> Class routine &amp; room capacity scheduling</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Module 4: Examinations & Report Cards -->
-            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="academic">
-                <div class="module-card-full">
-                    <div class="module-icon-wrap"><i class="fas fa-file-alt"></i></div>
-                    <span class="module-badge">Examinations</span>
-                    <h4 class="fw-bold mb-2">Examinations &amp; Instant Report Cards</h4>
-                    <p class="text-muted mb-0">Termly examination scheduling, grade scale curves, subject mark sheets, automatic position rankings, and instant branded PDF report card generation.</p>
-                    <ul class="module-features-list">
-                        <li><i class="fas fa-check-circle"></i> One-click bulk PDF report card generation</li>
-                        <li><i class="fas fa-check-circle"></i> Custom grading scales &amp; KCSE/CBC weightings</li>
-                        <li><i class="fas fa-check-circle"></i> Subject analysis charts &amp; class rank listings</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Module 5: Fees Management -->
-            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="finance">
-                <div class="module-card-full">
-                    <div class="module-icon-wrap"><i class="fas fa-dollar-sign"></i></div>
-                    <span class="module-badge">Finance</span>
-                    <h4 class="fw-bold mb-2">Fee Management &amp; Invoicing</h4>
-                    <p class="text-muted mb-0">Flexible termly fee structures, custom voteheads (Tuition, Boarding, Transport, Activity), student fee invoices, waivers, and real-time arrears tracking.</p>
-                    <ul class="module-features-list">
-                        <li><i class="fas fa-check-circle"></i> Multi-votehead custom fee structures</li>
-                        <li><i class="fas fa-check-circle"></i> Automatic term invoice generation</li>
-                        <li><i class="fas fa-check-circle"></i> Instant payment receipting &amp; balance reminders</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Module 6: M-Pesa STK & Paybill -->
-            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="finance">
-                <div class="module-card-full">
-                    <div class="module-icon-wrap"><i class="fas fa-mobile-alt"></i></div>
-                    <span class="module-badge">Payments</span>
-                    <h4 class="fw-bold mb-2">M-Pesa STK Push &amp; Paybill Integration</h4>
-                    <p class="text-muted mb-0">Direct Safaricom Daraja API integration with automatic fee reconciliation, instant parent SMS payment confirmations, and zero manual receipt entry.</p>
-                    <ul class="module-features-list">
-                        <li><i class="fas fa-check-circle"></i> Direct STK Push to parent mobile handsets</li>
-                        <li><i class="fas fa-check-circle"></i> Automated C2B Paybill validation &amp; receipting</li>
-                        <li><i class="fas fa-check-circle"></i> Instant ledger updates with zero human error</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Module 7: Double-Entry Accounting -->
-            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="finance">
-                <div class="module-card-full">
-                    <div class="module-icon-wrap"><i class="fas fa-calculator"></i></div>
-                    <span class="module-badge">Accounting</span>
-                    <h4 class="fw-bold mb-2">Double-Entry Accounting &amp; Ledger</h4>
-                    <p class="text-muted mb-0">Enterprise-grade financial accounting equipped with a Chart of Accounts, General Ledger, Cashbook, Trial Balance, Profit &amp; Loss, and Balance Sheet reports.</p>
-                    <ul class="module-features-list">
-                        <li><i class="fas fa-check-circle"></i> Full standard Chart of Accounts (Assets, Liabilities, etc.)</li>
-                        <li><i class="fas fa-check-circle"></i> Real-time Trial Balance &amp; General Ledger</li>
-                        <li><i class="fas fa-check-circle"></i> School expense tracking &amp; petty cash management</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Module 8: Inventory & Procurement -->
-            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="operations">
-                <div class="module-card-full">
-                    <div class="module-icon-wrap"><i class="fas fa-boxes"></i></div>
-                    <span class="module-badge">Operations</span>
-                    <h4 class="fw-bold mb-2">Inventory, Stores &amp; Procurement</h4>
-                    <p class="text-muted mb-0">Manage school store items, reorder thresholds, supplier purchase orders, and track staff/department inventory issuances with audit trails.</p>
-                    <ul class="module-features-list">
-                        <li><i class="fas fa-check-circle"></i> Reorder point triggers &amp; low-stock alerts</li>
-                        <li><i class="fas fa-check-circle"></i> Supplier purchase orders &amp; goods received notes</li>
-                        <li><i class="fas fa-check-circle"></i> Staff department inventory distribution logs</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Module 9: Canteen POS & Meals -->
-            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="operations">
-                <div class="module-card-full">
-                    <div class="module-icon-wrap"><i class="fas fa-utensils"></i></div>
-                    <span class="module-badge">Canteen</span>
-                    <h4 class="fw-bold mb-2">Cashless Canteen Point of Sale (POS)</h4>
-                    <p class="text-muted mb-0">Fast student cafeteria checkout terminal with student meal credits, daily spending allowances, product catalog, and comprehensive daily sales summaries.</p>
-                    <ul class="module-features-list">
-                        <li><i class="fas fa-check-circle"></i> Cashless student wallet &amp; allowance limits</li>
-                        <li><i class="fas fa-check-circle"></i> Rapid barcode/ID scanner POS interface</li>
-                        <li><i class="fas fa-check-circle"></i> Daily sales reconciliation &amp; inventory deduction</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Module 10: Transport & Fleet Logistics -->
-            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="operations">
-                <div class="module-card-full">
-                    <div class="module-icon-wrap"><i class="fas fa-bus"></i></div>
-                    <span class="module-badge">Transport</span>
-                    <h4 class="fw-bold mb-2">Transport &amp; School Bus Fleet</h4>
-                    <p class="text-muted mb-0">Fleet management with bus routes, pickup/drop-off zones, vehicle passenger allocation, driver profiles, and vehicle service/maintenance logs.</p>
-                    <ul class="module-features-list">
-                        <li><i class="fas fa-check-circle"></i> Zone-based transport fee calculations</li>
-                        <li><i class="fas fa-check-circle"></i> Bus route rosters &amp; student seat assignments</li>
-                        <li><i class="fas fa-check-circle"></i> Fuel, inspection &amp; maintenance service alerts</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Module 11: Hostels & Dormitories -->
-            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="operations">
-                <div class="module-card-full">
-                    <div class="module-icon-wrap"><i class="fas fa-bed"></i></div>
-                    <span class="module-badge">Boarding</span>
-                    <h4 class="fw-bold mb-2">Hostels &amp; Boarding Dormitories</h4>
-                    <p class="text-muted mb-0">Complete boarding school management with house/dorm allocations, room capacity monitors, bed assignment logs, and boarding master roll calls.</p>
-                    <ul class="module-features-list">
-                        <li><i class="fas fa-check-circle"></i> Room capacity &amp; vacancy monitoring</li>
-                        <li><i class="fas fa-check-circle"></i> Bed number allocations per student</li>
-                        <li><i class="fas fa-check-circle"></i> Boarding disciplinary &amp; roll call logs</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Module 12: Digital Library with Barcodes -->
-            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="academic">
-                <div class="module-card-full">
-                    <div class="module-icon-wrap"><i class="fas fa-book"></i></div>
-                    <span class="module-badge">Library</span>
-                    <h4 class="fw-bold mb-2">Digital Library &amp; Barcode Tracking</h4>
-                    <p class="text-muted mb-0">Complete book catalogue with ISBN &amp; custom barcode generator, instant book issue/return scanning, overdue fine calculations, and inventory audits.</p>
-                    <ul class="module-features-list">
-                        <li><i class="fas fa-check-circle"></i> Barcode label printing &amp; scanner support</li>
-                        <li><i class="fas fa-check-circle"></i> Automated overdue fine calculations</li>
-                        <li><i class="fas fa-check-circle"></i> Student &amp; staff borrowing history ledgers</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Module 13: Staff HR & Payroll -->
-            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="admin">
-                <div class="module-card-full">
-                    <div class="module-icon-wrap"><i class="fas fa-users-cog"></i></div>
-                    <span class="module-badge">Human Resources</span>
-                    <h4 class="fw-bold mb-2">Staff HR &amp; Payroll Automation</h4>
-                    <p class="text-muted mb-0">Comprehensive employee records, department structures, leave application workflows, role delegation, and salary payslip generation with tax deductions.</p>
-                    <ul class="module-features-list">
-                        <li><i class="fas fa-check-circle"></i> Digital leave request &amp; approval workflows</li>
-                        <li><i class="fas fa-check-circle"></i> Salary structures &amp; automated PDF payslips</li>
-                        <li><i class="fas fa-check-circle"></i> Granular role-based permissions (Admin, Teacher, Staff)</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Module 14: Attendance & SMS Alerts -->
-            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="ai">
-                <div class="module-card-full">
-                    <div class="module-icon-wrap"><i class="fas fa-sms"></i></div>
-                    <span class="module-badge">Communication</span>
-                    <h4 class="fw-bold mb-2">Attendance &amp; Automated SMS Alerts</h4>
-                    <p class="text-muted mb-0">Daily classroom roll-call with automated SMS alerts sent directly to parents for absent students, term notices, event announcements, and emergency broadcasts.</p>
-                    <ul class="module-features-list">
-                        <li><i class="fas fa-check-circle"></i> Real-time absentee SMS to parents/guardians</li>
-                        <li><i class="fas fa-check-circle"></i> Bulk SMS broadcasting by class, stream, or school</li>
-                        <li><i class="fas fa-check-circle"></i> Monthly attendance trends &amp; percentage metrics</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Module 15: Online CBT & Homework -->
-            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="academic">
-                <div class="module-card-full">
-                    <div class="module-icon-wrap"><i class="fas fa-laptop-code"></i></div>
-                    <span class="module-badge">Digital Learning</span>
-                    <h4 class="fw-bold mb-2">Online CBT &amp; Digital Homework</h4>
-                    <p class="text-muted mb-0">Computer-based test (CBT) engine with randomized question banks, timed student test sessions, instant score calculations, and digital assignment submission.</p>
-                    <ul class="module-features-list">
-                        <li><i class="fas fa-check-circle"></i> Randomized question banks &amp; timed tests</li>
-                        <li><i class="fas fa-check-circle"></i> Instant auto-grading for multiple-choice CBTs</li>
-                        <li><i class="fas fa-check-circle"></i> Digital homework file uploads &amp; grading remarks</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Module 16: AI Assistant & Predictive Analytics -->
-            <div class="col-12 col-md-6 col-lg-4 module-item" data-category="ai">
-                <div class="module-card-full">
-                    <div class="module-icon-wrap"><i class="fas fa-robot"></i></div>
-                    <span class="module-badge">AI Intelligence</span>
-                    <h4 class="fw-bold mb-2">AI Assistant &amp; Predictive Analytics</h4>
-                    <p class="text-muted mb-0">Cutting-edge machine intelligence that forecasts term fee collection, detects student performance risks early, and answers administrative natural language questions.</p>
-                    <ul class="module-features-list">
-                        <li><i class="fas fa-check-circle"></i> Fee collection forecasting &amp; default risk alerts</li>
-                        <li><i class="fas fa-check-circle"></i> Academic trajectory analysis &amp; student insights</li>
-                        <li><i class="fas fa-check-circle"></i> 24/7 AI chat assistant for parents and staff</li>
-                    </ul>
+            <div class="col-12 text-center py-5">
+                <div class="text-muted">
+                    <i class="fas fa-th-large fa-3x mb-3 d-block opacity-50"></i>
+                    <h4>No feature modules configured</h4>
+                    <p>Add modules in SuperAdmin Page Content Management.</p>
                 </div>
             </div>
             {% endfor %}

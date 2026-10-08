@@ -114,7 +114,7 @@
                     </thead>
                     <tbody>
                         {% for vehicle in vehicles %}
-                        <tr>
+                        <tr class="clickable-row" onclick="editVehicle('{{ vehicle.id }}', '{{ vehicle.vehicle_number|escapejs }}', '{{ vehicle.vehicle_model|escapejs }}', '{{ vehicle.capacity }}', '{{ vehicle.route.id|default:'' }}', '{{ vehicle.driver.id|default:'' }}')" style="cursor: pointer;">
                             <td><strong>{{ vehicle.vehicle_number }}</strong></td>
                             <td>{{ vehicle.vehicle_model }}</td>
                             <td>{{ vehicle.capacity }} seats</td>
@@ -144,6 +144,25 @@
 </div>
 
 <script>
+function editVehicle(id, number, model, capacity, routeId, driverId) {
+    const form = document.getElementById('addVehicleForm');
+    if (!form) return;
+    let idInput = form.querySelector('input[name="vehicle_id"]');
+    if (!idInput) {
+        idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'vehicle_id';
+        form.appendChild(idInput);
+    }
+    idInput.value = id;
+    if (form.elements['vehicle_number']) form.elements['vehicle_number'].value = number;
+    if (form.elements['vehicle_model']) form.elements['vehicle_model'].value = model;
+    if (form.elements['capacity']) form.elements['capacity'].value = capacity;
+    if (form.elements['route']) form.elements['route'].value = routeId;
+    if (form.elements['driver']) form.elements['driver'].value = driverId;
+    toggleInPageFormView('vehicleListCard', 'vehicleFormPanel', 'edit');
+}
+
 function showStatusModal(title, message, isError = false) {
     const modal = new bootstrap.Modal(document.getElementById('statusModal'));
     const modalTitle = document.getElementById('statusModalTitle');

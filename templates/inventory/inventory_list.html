@@ -126,7 +126,16 @@
                 </thead>
                 <tbody>
                     {% for item in items %}
-                    <tr class="{% if item.needs_reorder %}table-warning{% endif %}">
+                    <tr class="clickable-row {% if item.needs_reorder %}table-warning{% endif %}" onclick="openEditItem({
+                        itemId: '{{ item.id }}',
+                        code: '{{ item.code|escapejs }}',
+                        name: '{{ item.name|escapejs }}',
+                        categoryId: '{% if item.category %}{{ item.category.id }}{% endif %}',
+                        unit: '{{ item.unit|escapejs }}',
+                        unitPrice: '{{ item.unit_price }}',
+                        reorderLevel: '{{ item.reorder_level }}',
+                        description: '{{ item.description|default:\'\'|escapejs }}'
+                    })">
                         <td>{{ item.code }}</td>
                         <td>
                             {{ item.name }}
@@ -140,22 +149,9 @@
                         <td>{{ item.quantity_in_stock }}</td>
                         <td>{{ item.reorder_level }}</td>
                         <td>Ksh {{ item.stock_value|floatformat:0|intcomma }}</td>
-                        <td>
-                            <button
-                                type="button"
-                                class="btn btn-sm btn-outline-primary me-1 edit-item-btn"
-                                data-item-id="{{ item.id }}"
-                                data-code="{{ item.code|escapejs }}"
-                                data-name="{{ item.name|escapejs }}"
-                                data-category-id="{% if item.category %}{{ item.category.id }}{% endif %}"
-                                data-unit="{{ item.unit|escapejs }}"
-                                data-unit-price="{{ item.unit_price }}"
-                                data-reorder-level="{{ item.reorder_level }}"
-                                data-description="{{ item.description|default:''|escapejs }}">
-                                <i class="fas fa-pen"></i> Edit
-                            </button>
-                            <button class="btn btn-sm btn-primary" onclick="updateStock({{ item.id }}, '{{ item.name }}', {{ item.quantity_in_stock }})">
-                                <i class="fas fa-edit"></i> Update Stock
+                        <td onclick="event.stopPropagation();">
+                            <button class="btn btn-sm btn-primary" title="Update Stock" onclick="updateStock({{ item.id }}, '{{ item.name|escapejs }}', {{ item.quantity_in_stock }})">
+                                <i class="fas fa-boxes"></i>
                             </button>
                         </td>
                     </tr>
@@ -283,22 +279,27 @@ function showSuccessAndReload(message) {
     $('#successModal').modal('show');
 }
 
+function openEditItem(data) {
+    if (!data) return;
+    document.getElementById('inventory_action').value = 'edit_item';
+    document.getElementById('inventory_item_id').value = data.itemId || '';
+    document.getElementById('inventory_code').value = data.code || '';
+    document.getElementById('inventory_name').value = data.name || '';
+    document.getElementById('inventory_category').value = data.categoryId || '';
+    document.getElementById('inventory_unit').value = data.unit || 'piece';
+    document.getElementById('inventory_unit_price').value = data.unitPrice || '';
+    document.getElementById('inventory_reorder_level').value = data.reorderLevel || '';
+    document.getElementById('inventory_description').value = data.description || '';
+    const initCol = document.getElementById('initialStockCol');
+    if (initCol) initCol.style.display = 'none';
+
+    toggleInPageFormView('inventoryListCard', 'inventoryFormPanel', 'edit');
+}
+
 document.addEventListener('click', function(e) {
     const btn = e.target.closest('.edit-item-btn');
     if (!btn) return;
-
-    document.getElementById('inventory_action').value = 'edit_item';
-    document.getElementById('inventory_item_id').value = btn.dataset.itemId || '';
-    document.getElementById('inventory_code').value = btn.dataset.code || '';
-    document.getElementById('inventory_name').value = btn.dataset.name || '';
-    document.getElementById('inventory_category').value = btn.dataset.categoryId || '';
-    document.getElementById('inventory_unit').value = btn.dataset.unit || 'piece';
-    document.getElementById('inventory_unit_price').value = btn.dataset.unitPrice || '';
-    document.getElementById('inventory_reorder_level').value = btn.dataset.reorderLevel || '';
-    document.getElementById('inventory_description').value = btn.dataset.description || '';
-    document.getElementById('initialStockCol').style.display = 'none';
-
-    toggleInPageFormView('inventoryListCard', 'inventoryFormPanel', 'edit');
+    openEditItem(btn.dataset);
 });
 </script>
 {% endblock %}

@@ -22,7 +22,7 @@
             <div class="row g-3">
                 {% for config in configs %}
                     <div class="col-lg-6 col-xl-4">
-                        <div class="modern-card h-100 d-flex flex-column p-0 overflow-hidden">
+                        <div class="modern-card h-100 d-flex flex-column p-0 overflow-hidden clickable-card" data-edit-url="{% url 'superadmin:school_payment_config_update' school_slug=school.slug pk=config.pk %}" title="Click card to edit {{ config.get_gateway_display }} configuration">
                             <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
                                 <div class="d-flex align-items-center">
                                     <div class="avatar-circle me-2" style="width: 34px; height: 34px; font-size: 14px; background: rgba(2, 132, 199, 0.1); color: var(--brand-primary, #0284c7);">
@@ -94,15 +94,10 @@
                                     Updated {{ config.updated_at|timesince }} ago
                                 </div>
                             </div>
-                            <div class="p-3 border-top bg-light-subtle">
-                                <div class="btn-group w-100" role="group">
-                                    <a href="{% url 'superadmin:school_payment_config_update' school_slug=school.slug pk=config.pk %}" class="btn btn-outline-primary btn-sm">
-                                        <i class="fas fa-edit me-1"></i>Edit Configuration
-                                    </a>
-                                    <a href="{% url 'superadmin:school_payment_config_delete' school_slug=school.slug pk=config.pk %}" class="btn btn-outline-danger btn-sm">
-                                        <i class="fas fa-trash me-1"></i>Delete
-                                    </a>
-                                </div>
+                            <div class="p-3 border-top bg-light-subtle d-flex justify-content-end align-items-center" onclick="event.stopPropagation();">
+                                <a href="{% url 'superadmin:school_payment_config_delete' school_slug=school.slug pk=config.pk %}" class="btn-action-icon btn-action-delete text-danger" title="Delete Configuration">
+                                    <i class="fas fa-trash-alt"></i>
+                                </a>
                             </div>
                         </div>
                     </div>

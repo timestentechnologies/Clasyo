@@ -43,14 +43,13 @@
               <span class="badge bg-secondary">Inactive</span>
             {% endif %}
           </td>
-          <td class="text-end">
-            <a href="{% url 'finance:account_update' school_slug=school_slug pk=acc.id %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-pen"></i></a>
+          <td class="text-end" onclick="event.stopPropagation();">
             {% if acc.has_posted %}
               <button type="button" class="btn btn-sm btn-outline-danger" disabled title="Cannot delete: account has posted entries">
                 <i class="fas fa-trash"></i>
               </button>
             {% else %}
-              <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal" data-action="{% url 'finance:account_delete' school_slug=school_slug pk=acc.id %}" data-name="{{ acc.code }} - {{ acc.name }}">
+              <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal" data-action="{% url 'finance:account_delete' school_slug=school_slug pk=acc.id %}" data-name="{{ acc.code }} - {{ acc.name }}" title="Delete Account">
                 <i class="fas fa-trash"></i>
               </button>
             {% endif %}

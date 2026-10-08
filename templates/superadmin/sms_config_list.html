@@ -93,7 +93,7 @@
 
                 <!-- Database Configured Providers -->
                 {% for config in configs %}
-                <tr>
+                <tr class="clickable-row" data-edit-url="{% url 'superadmin:sms_config_update' config.pk %}" title="Click row to edit {{ config.get_provider_display }} configuration">
                     <td>
                         <div class="d-flex align-items-center">
                             <div class="avatar-icon-box-sm bg-light-subtle me-3">
@@ -142,13 +142,10 @@
                             {{ config.mobilesasa_sender_id|default:config.twilio_account_sid|default:config.africastalking_username|default:config.infobip_sender|default:"—" }}
                         </span>
                     </td>
-                    <td class="text-end">
-                        <div class="btn-group btn-group-sm" role="group">
-                            <a href="{% url 'superadmin:sms_config_update' config.pk %}" class="btn btn-outline-primary" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <a href="{% url 'superadmin:sms_config_delete' config.pk %}" class="btn btn-outline-danger" title="Delete">
-                                <i class="fas fa-trash"></i>
+                    <td class="text-end" onclick="event.stopPropagation();">
+                        <div class="d-inline-flex align-items-center gap-1">
+                            <a href="{% url 'superadmin:sms_config_delete' config.pk %}" class="btn-action-icon btn-action-delete text-danger" title="Delete Configuration">
+                                <i class="fas fa-trash-alt"></i>
                             </a>
                         </div>
                     </td>

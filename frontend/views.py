@@ -43,9 +43,9 @@ class FeaturesView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['page_data'] = PageContent.objects.filter(page='features', is_active=True).first()
         context['features'] = FeatureItem.objects.filter(is_active=True).order_by('order', 'id')
         context['parallax_sections'] = ParallaxSection.objects.filter(is_active=True).order_by('order', 'id')
-        context['faqs'] = FAQ.objects.filter(is_active=True).order_by('order')[:6]
         return context
 
 
@@ -77,23 +77,36 @@ class ContactView(View):
                 subject=subject,
                 message=message
             )
-            # Email the site inbox/admins
+            # Email the site inbox/admins using styled template
             try:
                 inbox = getattr(settings, 'EMAIL_HOST_USER', None) or getattr(settings, 'DEFAULT_FROM_EMAIL', None)
                 if inbox:
-                    send_mail(
-                        subject=f"New Contact Message: {subject}",
-                        message=(
-                            f"You have a new contact message on Clasyo.\n\n"
-                            f"Name: {name}\n"
-                            f"Email: {email}\n"
-                            f"Phone: {phone or '-'}\n\n"
-                            f"Message:\n{message}"
+                    from core.services.notification_templates import render_email_template
+                    from django.core.mail import EmailMultiAlternatives
+                    context = {
+                        'subject': f"New Contact Message: {subject}",
+                        'heading': f"New Inquiry: {subject}",
+                        'body': (
+                            f"You have received a new contact message on Clasyo.<br><br>"
+                            f"<strong>Sender Details:</strong><br>"
+                            f"• <strong>Name:</strong> {name}<br>"
+                            f"• <strong>Email:</strong> {email}<br>"
+                            f"• <strong>Phone:</strong> {phone or '-'}<br><br>"
+                            f"<strong>Message:</strong><br>"
+                            f"{message.replace(chr(10), '<br>')}"
                         ),
-                        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', inbox),
-                        recipient_list=[inbox],
-                        fail_silently=True,
+                        'button_text': f"REPLY TO {name.upper()}",
+                        'button_url': f"mailto:{email}",
+                    }
+                    subj, html_content, text_content = render_email_template(
+                        template_or_code='contact_message',
+                        context=context,
+                        school=None
                     )
+                    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', inbox)
+                    msg = EmailMultiAlternatives(subject=subj, body=text_content, from_email=from_email, to=[inbox])
+                    msg.attach_alternative(html_content, "text/html")
+                    msg.send(fail_silently=True)
             except Exception:
                 # Do not block user flow on email failures
                 pass
@@ -140,10 +153,22 @@ class PrivacyPolicyView(TemplateView):
     """Privacy Policy page view"""
     template_name = 'frontend/privacy.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_data'] = PageContent.objects.filter(page='policy', is_active=True).first()
+        return context
+
+
 
 class TermsOfServiceView(TemplateView):
     """Terms of Service page view"""
     template_name = 'frontend/terms.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_data'] = PageContent.objects.filter(page='terms', is_active=True).first()
+        return context
+
 
 
 class LicenseView(TemplateView):

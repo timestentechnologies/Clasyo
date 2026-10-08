@@ -80,7 +80,7 @@
                 </thead>
                 <tbody>
                 {% for book in books %}
-                <tr>
+                <tr class="clickable-row" onclick="editBook('{{ book.id }}', '{{ book.title|escapejs }}', '{{ book.author|escapejs }}', '{{ book.isbn|default:''|escapejs }}', '{{ book.quantity }}', '{{ book.category.id|default:'' }}')" style="cursor: pointer;">
                     <td><strong>{{ book.title }}</strong></td>
                     <td>{{ book.author }}</td>
                     <td>{{ book.isbn|default:"-" }}</td>
@@ -101,6 +101,16 @@
 </div>
 
 <script>
+function editBook(id, title, author, isbn, quantity, categoryId) {
+    document.getElementById('book_id').value = id;
+    document.getElementById('title').value = title;
+    document.getElementById('author').value = author;
+    document.getElementById('isbn').value = isbn || '';
+    document.getElementById('quantity').value = quantity;
+    if (categoryId) document.getElementById('category').value = categoryId;
+    toggleInPageFormView('bookListCard', 'bookFormPanel', 'edit');
+}
+
 function submitBookForm() {
     fetch(window.location.pathname, {
         method: 'POST',

@@ -1,78 +1,122 @@
 {% extends 'dashboards/base.html' %}
 {% load static %}
 
-{% block title %}Page Content - Super Admin{% endblock %}
-{% block page_title %}Page Content Management{% endblock %}
+{% block title %}Page Content & Features - Super Admin{% endblock %}
+{% block page_title %}Page Content & Features Management{% endblock %}
 {% block page_icon %}file-alt{% endblock %}
-{% block page_subtitle %}Manage website page content{% endblock %}
+{% block page_subtitle %}Manage website pages, legal policies, and the 16 system feature modules{% endblock %}
 
 {% block page_actions %}
-<button type="button" class="btn btn-primary" onclick="toggleInPageFormView('contentListCard', 'contentFormPanel', 'create')">
-    <i class="fas fa-plus me-1"></i> Add Content
+{% if active_tab == 'features' %}
+<button type="button" class="btn btn-primary" onclick="openCreateFeature()">
+    <i class="fas fa-plus me-1"></i> Add Feature Module
 </button>
+{% else %}
+<button type="button" class="btn btn-primary" onclick="openCreateContent()">
+    <i class="fas fa-plus me-1"></i> Add Page Content
+</button>
+{% endif %}
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Shared In-Page Single Form Panel -->
-    <div class="form-panel-view d-none" id="contentFormPanel">
+<div class="container-fluid px-0">
+
+    <!-- Global Standard Page Tabs (Matching Horizontal Navigation Style) -->
+    <div class="page-tabs-bar mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <ul class="page-nav-tabs nav" role="tablist">
+            <li class="page-tab-item">
+                <a href="?tab=pages" class="page-tab-link {% if active_tab != 'features' %}active{% endif %}">
+                    <i class="fas fa-file-contract"></i>
+                    <span>Legal &amp; Static Pages</span>
+                </a>
+            </li>
+            <li class="page-tab-item">
+                <a href="?tab=features" class="page-tab-link {% if active_tab == 'features' %}active{% endif %}">
+                    <i class="fas fa-th-large"></i>
+                    <span>Feature Modules</span>
+                    <span class="page-tab-badge">{{ features.count }}</span>
+                </a>
+            </li>
+        </ul>
+        <div class="d-flex align-items-center gap-2 mb-2 mb-md-0 ms-auto">
+            {% if active_tab == 'features' %}
+            <a href="{% url 'frontend:features' %}" target="_blank" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-external-link-alt me-1"></i> Preview Live Features Page
+            </a>
+            {% else %}
+            <a href="{% url 'frontend:privacy' %}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-external-link-alt me-1"></i> Privacy Policy
+            </a>
+            <a href="{% url 'frontend:terms' %}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-external-link-alt me-1"></i> Terms of Service
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         TAB 1: LEGAL & STATIC PAGES (PRIVACY, TERMS, ABOUT, CONTACT)
+         ========================================================================= -->
+    {% if active_tab != 'features' %}
+    <!-- Shared In-Page Single Form Panel for Standard Pages -->
+    <div class="form-panel-view d-none mb-4" id="contentFormPanel">
         <div class="form-header-bar">
             <div class="form-header-title-group">
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('contentListCard', 'contentFormPanel', 'list')">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeContentForm()">
                     <i class="fas fa-arrow-left me-1"></i> Back to List
                 </button>
-                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center" data-create-title="Create New Page Content" data-edit-title="Edit Page Content">
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center"
+                    data-create-title="Create New Page Content"
+                    data-edit-title="Edit Page Content">
                     Create New Page Content
-                    <button type="button" 
-                            class="more-info-btn ms-2" 
-                            data-bs-toggle="popover" 
-                            data-bs-placement="bottom" 
-                            data-bs-html="true" 
-                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-file-alt text-primary'></i><strong>Page Content Guidelines</strong></div>" 
-                            data-bs-content="<ul class='small ps-3 mb-0'><li><strong>Page Target:</strong> Select the public marketing section to attach content.</li><li><strong>Sub-content:</strong> Enter bullet items or paragraphs to enrich the selected layout block.</li><li><strong>Order:</strong> Relative display sequencing on public landing pages.</li></ul>" 
-                            aria-label="Content Guidelines" 
-                            title="Page Content Guidelines">
-                        <i class="fas fa-info-circle text-primary"></i>
-                    </button>
                 </h5>
                 <span class="form-mode-badge mode-create">New</span>
             </div>
             <div class="form-header-actions">
-                <button type="button" class="btn btn-sm btn-light" onclick="toggleInPageFormView('contentListCard', 'contentFormPanel', 'list')">Cancel</button>
+                <button type="button" class="btn btn-sm btn-light" onclick="closeContentForm()">Cancel</button>
                 <button type="submit" form="contentForm" class="btn btn-sm btn-primary form-submit-btn">
                     <i class="fas fa-save me-1"></i> Save Content
                 </button>
             </div>
         </div>
         <div class="form-card-body">
-            <form id="contentForm" method="post" action="#">
+            <form id="contentForm" method="post" action="">
                 {% csrf_token %}
                 <input type="hidden" name="content_id" id="content_id">
 
-                <div class="mb-3">
-                    <label for="page" class="form-label fw-semibold">Page Target</label>
-                    <select class="form-select" id="page" name="page" required>
-                        <option value="about">About Us</option>
-                        <option value="home_hero">Home - Hero Section</option>
-                        <option value="home_features">Home - Features</option>
-                        <option value="contact">Contact Info</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="title" class="form-label fw-semibold">Headline / Title</label>
-                    <input type="text" class="form-control" id="title" name="title" placeholder="Enter headline title..." required>
-                </div>
-                <div class="mb-3">
-                    <label for="subtitle" class="form-label fw-semibold">Subtitle / Tagline</label>
-                    <input type="text" class="form-control" id="subtitle" name="subtitle" placeholder="Enter supporting subtitle...">
-                </div>
-                <div class="mb-3">
-                    <label for="content" class="form-label fw-semibold">Body Content</label>
-                    <textarea class="form-control" id="content" name="content" rows="5" placeholder="Enter page text content..." required></textarea>
-                </div>
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
-                    <label class="form-check-label fw-semibold" for="is_active">Is Active</label>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="page" class="form-label fw-semibold">Page Target</label>
+                        <select class="form-select" id="page" name="page" required>
+                            <option value="" disabled selected>Select page...</option>
+                            <option value="policy">Privacy Policy</option>
+                            <option value="terms">Terms of Service</option>
+                            <option value="about">About Us</option>
+                            <option value="contact">Contact Info</option>
+                            <option value="home_hero">Home - Hero Section</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Status</label>
+                        <div class="form-check form-switch pt-2">
+                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                            <label class="form-check-label fw-semibold" for="is_active">Active &amp; Published</label>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <label for="title" class="form-label fw-semibold">Headline / Page Title</label>
+                        <input type="text" class="form-control" id="title" name="title" placeholder="e.g. Privacy Policy" required>
+                    </div>
+                    <div class="col-md-12">
+                        <label for="subtitle" class="form-label fw-semibold">Subtitle / Tagline</label>
+                        <input type="text" class="form-control" id="subtitle" name="subtitle" placeholder="e.g. How we collect, use, and protect your information">
+                    </div>
+                    <div class="col-md-12">
+                        <label for="content" class="form-label fw-semibold">Body Content (HTML Supported)</label>
+                        <textarea class="form-control auto-resize" id="content" name="content" rows="12"
+                            placeholder="Enter legal or page content HTML..."></textarea>
+                        <small class="text-muted">Standard HTML tags like &lt;h2&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, and &lt;strong&gt; are supported and rendered directly.</small>
+                    </div>
                 </div>
             </form>
         </div>
@@ -80,51 +124,460 @@
 
     <!-- Page Content List View -->
     <div id="contentListCard">
-        <div class="row">
-            {% for content in page_contents %}
-            <div class="col-md-6 mb-4">
-                <div class="modern-card h-100">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="mb-0"><i class="fas fa-file-alt text-primary me-2"></i>{{ content.get_page_display }}</h5>
-                        {% if content.is_active %}
-                            <span class="badge bg-success">Active</span>
-                        {% else %}
-                            <span class="badge bg-secondary">Inactive</span>
-                        {% endif %}
+        <div class="col-12">
+            <div class="cms-card p-0 overflow-hidden">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 25%;">Page</th>
+                                <th style="width: 30%;">Title</th>
+                                <th style="width: 25%;">Subtitle</th>
+                                <th style="width: 10%;">Status</th>
+                                <th class="text-end cms-col-actions" style="width: 10%;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for content in page_contents %}
+                            <tr class="clickable-row"
+                                data-content-id="{{ content.id }}"
+                                data-page="{{ content.page }}"
+                                data-title="{{ content.title }}"
+                                data-subtitle="{{ content.subtitle }}"
+                                data-is-active="{{ content.is_active|yesno:'true,false' }}"
+                                onclick="openEditContent(this)"
+                                title="Click row to edit {{ content.get_page_display }}">
+                                <td class="fw-semibold text-dark">
+                                    <i class="fas fa-file-contract text-primary me-2"></i>{{ content.get_page_display }}
+                                </td>
+                                <td class="fw-bold text-dark">{{ content.title }}</td>
+                                <td class="text-muted small">{{ content.subtitle|default:'-'|truncatewords:8 }}</td>
+                                <td>
+                                    {% if content.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end text-muted small" onclick="event.stopPropagation();">
+                                    <i class="fas fa-pen-fancy text-primary opacity-50" title="Click row to edit"></i>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <i class="fas fa-file-alt fa-2x mb-3 d-block opacity-50"></i>
+                                    No static pages configured yet.
+                                    <button type="button" class="btn btn-sm btn-primary ms-2" onclick="openCreateContent()">
+                                        <i class="fas fa-plus me-1"></i> Create First Page
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden body stores for safe HTML reading -->
+    {% for content in page_contents %}
+    <textarea class="d-none" id="content-body-{{ content.id }}">{{ content.content }}</textarea>
+    {% endfor %}
+    {% endif %}
+
+
+    <!-- =========================================================================
+         TAB 2: FEATURE MODULES & CARDS (16 MODULES)
+         ========================================================================= -->
+    {% if active_tab == 'features' %}
+    <!-- Features Header Configuration Banner -->
+    <div class="cms-card mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h5 class="fw-bold mb-1 text-dark">
+                    <i class="fas fa-heading text-primary me-2"></i>Features Page Header Settings
+                </h5>
+                <p class="text-muted small mb-0">Customize the main heading and subtitle displayed above the 16 feature modules on <code>/features/</code></p>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#featuresHeaderCollapse">
+                <i class="fas fa-sliders-h me-1"></i> Edit Page Header
+            </button>
+        </div>
+        <div class="collapse" id="featuresHeaderCollapse">
+            <form method="post" class="p-3 bg-light rounded-3 border">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_features_header">
+                <input type="hidden" name="tab" value="features">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold">Section Headline / Title</label>
+                        <input type="text" class="form-control" name="title" value="{{ features_page_data.title|default:'Explore by System Module' }}" required>
                     </div>
-                    <h6>{{ content.title }}</h6>
-                    {% if content.subtitle %}
-                        <p class="text-muted small">{{ content.subtitle }}</p>
-                    {% endif %}
-                    <p class="text-muted small">{{ content.content|truncatewords:30 }}</p>
-                    <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
-                        <small class="text-muted">Updated: {{ content.updated_at|date:"M d, Y" }}</small>
-                        <button type="button" class="btn btn-sm btn-outline-primary"
-                            onclick="toggleInPageFormView('contentListCard', 'contentFormPanel', 'edit', {
-                                content_id: '{{ content.id }}',
-                                page: '{{ content.page }}',
-                                title: '{{ content.title|escapejs }}',
-                                subtitle: '{{ content.subtitle|escapejs }}',
-                                content: '{{ content.content|escapejs }}',
-                                is_active: {{ content.is_active|yesno:'true,false' }}
-                            })">
-                            <i class="fas fa-edit me-1"></i> Edit
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold">Section Subtitle / Tagline</label>
+                        <input type="text" class="form-control" name="subtitle" value="{{ features_page_data.subtitle|default:'Click any category below to filter our specialized school management tools' }}">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-save me-1"></i> Update Header
                         </button>
                     </div>
                 </div>
-            </div>
-            {% empty %}
-            <div class="col-12">
-                <div class="modern-card text-center py-5">
-                    <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
-                    <p class="text-muted">No page content found</p>
-                    <button type="button" class="btn btn-primary" onclick="toggleInPageFormView('contentListCard', 'contentFormPanel', 'create')">
-                        <i class="fas fa-plus me-1"></i> Create First Content
-                    </button>
-                </div>
-            </div>
-            {% endfor %}
+            </form>
         </div>
     </div>
+
+    <!-- In-Page Form Panel for Feature Module (Create & Edit) -->
+    <div class="form-panel-view d-none mb-4" id="featureFormPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeFeatureForm()">
+                    <i class="fas fa-arrow-left me-1"></i> Back to List
+                </button>
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center"
+                    data-create-title="Add New Feature Module"
+                    data-edit-title="Edit Feature Module">
+                    Add New Feature Module
+                </h5>
+                <span class="form-mode-badge mode-create" id="featureModeBadge">New</span>
+            </div>
+            <div class="form-header-actions">
+                <button type="button" class="btn btn-sm btn-light" onclick="closeFeatureForm()">Cancel</button>
+                <button type="submit" form="featureModuleForm" class="btn btn-sm btn-primary form-submit-btn" id="featureSubmitBtn">
+                    <i class="fas fa-save me-1"></i> Save Feature Module
+                </button>
+            </div>
+        </div>
+        <div class="form-card-body">
+            <form id="featureModuleForm" method="post" action="">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_feature_module">
+                <input type="hidden" name="tab" value="features">
+                <input type="hidden" name="feature_id" id="feature_id">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="feature_title" class="form-label fw-semibold">Module Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="feature_title" name="title" placeholder="e.g. Student Information & CBC Profiles" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="feature_category" class="form-label fw-semibold">Filter Category <span class="text-danger">*</span></label>
+                        <select class="form-select" id="feature_category" name="category" required>
+                            <option value="academic">Academics &amp; CBC</option>
+                            <option value="finance">Finance &amp; M-Pesa</option>
+                            <option value="operations">Operations &amp; Logistics</option>
+                            <option value="admin">Administration &amp; HR</option>
+                            <option value="ai">AI &amp; Communication</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="feature_badge" class="form-label fw-semibold">Category Badge Tag</label>
+                        <input type="text" class="form-control" id="feature_badge" name="badge" placeholder="e.g. Academics, Kenyan CBC, Finance">
+                        <small class="text-muted">Small badge shown on the module card header</small>
+                    </div>
+
+                    <div class="col-md-5">
+                        <label for="feature_icon" class="form-label fw-semibold">FontAwesome Icon Class <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-primary" id="featureIconPreviewWrap">
+                                <i class="fas fa-star" id="featureIconPreview"></i>
+                            </span>
+                            <input type="text" class="form-control" id="feature_icon" name="icon"
+                                value="fas fa-user-graduate" placeholder="e.g. fas fa-user-graduate" required
+                                oninput="updateFeatureIconPreview(this.value)">
+                        </div>
+                        <small class="text-muted">e.g. <code>fas fa-user-graduate</code>, <code>fas fa-dollar-sign</code>, <code>fas fa-bus</code></small>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="feature_order" class="form-label fw-semibold">Display Order</label>
+                        <input type="number" class="form-control" id="feature_order" name="order" value="1" min="0">
+                        <small class="text-muted">1 to 16 display position</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Visibility Status</label>
+                        <div class="form-check form-switch pt-2">
+                            <input class="form-check-input" type="checkbox" id="feature_is_active" name="is_active" checked>
+                            <label class="form-check-label fw-semibold" for="feature_is_active">Active &amp; Visible on Website</label>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <label for="feature_description" class="form-label fw-semibold">Module Description <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="feature_description" name="description" rows="3"
+                            placeholder="Brief summary paragraph explaining what this module delivers..." required></textarea>
+                    </div>
+
+                    <div class="col-12">
+                        <label for="feature_points" class="form-label fw-semibold">Key Capabilities &amp; Highlights (Bullet Points)</label>
+                        <textarea class="form-control" id="feature_points" name="feature_points" rows="4"
+                            placeholder="Enter 3 key bullet points, ONE PER LINE:&#10;Unique admission ID &amp; NEMIS UPI logging&#10;Comprehensive digital document archive&#10;Sibling linking &amp; family guardian records"></textarea>
+                        <small class="text-muted">Enter one highlight per line. Each line renders on the frontend card with a green checkmark icon.</small>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Feature Modules Table List View -->
+    <div id="featureListCard">
+        <div class="col-12">
+            <div class="cms-card p-0 overflow-hidden">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 5%;">#</th>
+                                <th style="width: 6%;">Icon</th>
+                                <th style="width: 25%;">Module Title</th>
+                                <th style="width: 14%;">Category</th>
+                                <th style="width: 12%;">Badge Tag</th>
+                                <th style="width: 23%;">Key Highlights</th>
+                                <th style="width: 7%;">Status</th>
+                                <th class="text-end cms-col-actions" style="width: 8%;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for feature in features %}
+                            <tr class="clickable-row"
+                                data-feature-id="{{ feature.id }}"
+                                data-title="{{ feature.title }}"
+                                data-category="{{ feature.category }}"
+                                data-badge="{{ feature.badge }}"
+                                data-icon="{{ feature.icon }}"
+                                data-order="{{ feature.order }}"
+                                data-is-active="{{ feature.is_active|yesno:'true,false' }}"
+                                onclick="openEditFeature(this)"
+                                title="Click row to edit {{ feature.title }}">
+                                <td class="fw-bold text-muted">{{ feature.order }}</td>
+                                <td>
+                                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(2, 132, 199, 0.12); color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                                        <i class="{{ feature.icon|default:'fas fa-star' }}"></i>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark">{{ feature.title }}</div>
+                                    <div class="text-muted small text-truncate" style="max-width: 280px;">{{ feature.description }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge" style="background-color: #e0f2fe; color: #0369a1; font-weight: 600; font-size: 0.8rem;">
+                                        {{ feature.get_category_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if feature.badge %}
+                                    <span class="badge bg-light text-secondary border">
+                                        {{ feature.badge }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="small text-muted">
+                                        {% for point in feature.get_points_list|slice:":2" %}
+                                        <div class="text-truncate" style="max-width: 260px;">
+                                            <i class="fas fa-check-circle text-success me-1" style="font-size: 0.75rem;"></i>{{ point }}
+                                        </div>
+                                        {% endfor %}
+                                        {% if feature.get_points_list|length > 2 %}
+                                        <span class="badge bg-light text-muted" style="font-size: 0.7rem;">+{{ feature.get_points_list|length|add:"-2" }} more</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if feature.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end" onclick="event.stopPropagation();">
+                                    <form method="post" action="" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this feature module?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete_feature_module">
+                                        <input type="hidden" name="feature_id" value="{{ feature.id }}">
+                                        <button type="submit" class="btn-action-icon btn-action-delete text-danger" title="Delete Feature">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center py-5 text-muted">
+                                    <i class="fas fa-th-large fa-3x mb-3 d-block opacity-50"></i>
+                                    No feature modules configured yet.
+                                    <button type="button" class="btn btn-sm btn-primary ms-2" onclick="openCreateFeature()">
+                                        <i class="fas fa-plus me-1"></i> Add First Module
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden stores for safe feature multi-line descriptions and points -->
+    {% for feature in features %}
+    <textarea class="d-none" id="feature-desc-{{ feature.id }}">{{ feature.description }}</textarea>
+    <textarea class="d-none" id="feature-points-{{ feature.id }}">{{ feature.feature_points }}</textarea>
+    {% endfor %}
+    {% endif %}
+
 </div>
+
+{% block extra_js %}
+<script>
+    function autoResize(el) {
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = (el.scrollHeight + 10) + 'px';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('textarea.auto-resize').forEach(function(ta) {
+            ta.addEventListener('input', function() { autoResize(ta); });
+        });
+    });
+
+    /* =========================================================================
+       STANDARD STATIC PAGES (TAB 1) JAVASCRIPT
+       ========================================================================= */
+    function openCreateContent() {
+        var listEl = document.getElementById('contentListCard');
+        var formEl = document.getElementById('contentFormPanel');
+        var form = document.getElementById('contentForm');
+        if (!formEl || !listEl) return;
+        form.reset();
+        document.getElementById('content_id').value = '';
+        var pageSelect = document.getElementById('page');
+        if (pageSelect) pageSelect.value = '';
+        var titleEl = formEl.querySelector('.form-title-text');
+        if (titleEl) titleEl.textContent = 'Create New Page Content';
+        var badge = formEl.querySelector('.form-mode-badge');
+        if (badge) { badge.textContent = 'New'; badge.className = 'form-mode-badge mode-create'; }
+        var submitBtn = formEl.querySelector('.form-submit-btn');
+        if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save Content';
+        listEl.classList.add('d-none');
+        formEl.classList.remove('d-none');
+        window.scrollTo({ top: formEl.offsetTop - 80, behavior: 'smooth' });
+    }
+
+    function openEditContent(btn) {
+        var listEl = document.getElementById('contentListCard');
+        var formEl = document.getElementById('contentFormPanel');
+        var id = btn.dataset.contentId;
+        if (!formEl || !listEl) return;
+
+        document.getElementById('content_id').value = id;
+        document.getElementById('page').value = btn.dataset.page;
+        document.getElementById('title').value = btn.dataset.title;
+        document.getElementById('subtitle').value = btn.dataset.subtitle;
+        document.getElementById('is_active').checked = btn.dataset.isActive === 'true';
+
+        var bodyStore = document.getElementById('content-body-' + id);
+        var contentTA = document.getElementById('content');
+        contentTA.value = bodyStore ? bodyStore.value : '';
+        setTimeout(function() { autoResize(contentTA); }, 50);
+
+        var titleEl = formEl.querySelector('.form-title-text');
+        if (titleEl) titleEl.textContent = 'Edit Page Content';
+        var badge = formEl.querySelector('.form-mode-badge');
+        if (badge) { badge.textContent = 'Edit'; badge.className = 'form-mode-badge mode-edit'; }
+        var submitBtn = formEl.querySelector('.form-submit-btn');
+        if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Update Record';
+
+        listEl.classList.add('d-none');
+        formEl.classList.remove('d-none');
+        window.scrollTo({ top: formEl.offsetTop - 80, behavior: 'smooth' });
+    }
+
+    function closeContentForm() {
+        var listEl = document.getElementById('contentListCard');
+        var formEl = document.getElementById('contentFormPanel');
+        if (formEl) formEl.classList.add('d-none');
+        if (listEl) listEl.classList.remove('d-none');
+        if (listEl) window.scrollTo({ top: listEl.offsetTop - 80, behavior: 'smooth' });
+    }
+
+    /* =========================================================================
+       FEATURE MODULES (TAB 2) JAVASCRIPT
+       ========================================================================= */
+    function updateFeatureIconPreview(cls) {
+        var el = document.getElementById('featureIconPreview');
+        if (el) {
+            el.className = cls ? cls : 'fas fa-star';
+        }
+    }
+
+    function openCreateFeature() {
+        var listEl = document.getElementById('featureListCard');
+        var formEl = document.getElementById('featureFormPanel');
+        var form = document.getElementById('featureModuleForm');
+        if (!formEl || !listEl) return;
+        form.reset();
+        document.getElementById('feature_id').value = '';
+        document.getElementById('feature_icon').value = 'fas fa-user-graduate';
+        updateFeatureIconPreview('fas fa-user-graduate');
+        document.getElementById('feature_order').value = '{{ features.count|add:1 }}';
+
+        var titleEl = formEl.querySelector('.form-title-text');
+        if (titleEl) titleEl.textContent = 'Add New Feature Module';
+        var badge = document.getElementById('featureModeBadge');
+        if (badge) { badge.textContent = 'New'; badge.className = 'form-mode-badge mode-create'; }
+        var submitBtn = document.getElementById('featureSubmitBtn');
+        if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save Feature Module';
+
+        listEl.classList.add('d-none');
+        formEl.classList.remove('d-none');
+        window.scrollTo({ top: formEl.offsetTop - 80, behavior: 'smooth' });
+    }
+
+    function openEditFeature(btn) {
+        var listEl = document.getElementById('featureListCard');
+        var formEl = document.getElementById('featureFormPanel');
+        var id = btn.dataset.featureId;
+        if (!formEl || !listEl) return;
+
+        document.getElementById('feature_id').value = id;
+        document.getElementById('feature_title').value = btn.dataset.title;
+        document.getElementById('feature_category').value = btn.dataset.category;
+        document.getElementById('feature_badge').value = btn.dataset.badge;
+        document.getElementById('feature_icon').value = btn.dataset.icon;
+        updateFeatureIconPreview(btn.dataset.icon);
+        document.getElementById('feature_order').value = btn.dataset.order;
+        document.getElementById('feature_is_active').checked = btn.dataset.isActive === 'true';
+
+        var descStore = document.getElementById('feature-desc-' + id);
+        document.getElementById('feature_description').value = descStore ? descStore.value : '';
+
+        var pointsStore = document.getElementById('feature-points-' + id);
+        document.getElementById('feature_points').value = pointsStore ? pointsStore.value : '';
+
+        var titleEl = formEl.querySelector('.form-title-text');
+        if (titleEl) titleEl.textContent = 'Edit Feature Module: ' + btn.dataset.title;
+        var badge = document.getElementById('featureModeBadge');
+        if (badge) { badge.textContent = 'Edit'; badge.className = 'form-mode-badge mode-edit'; }
+        var submitBtn = document.getElementById('featureSubmitBtn');
+        if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Update Feature Module';
+
+        listEl.classList.add('d-none');
+        formEl.classList.remove('d-none');
+        window.scrollTo({ top: formEl.offsetTop - 80, behavior: 'smooth' });
+    }
+
+    function closeFeatureForm() {
+        var listEl = document.getElementById('featureListCard');
+        var formEl = document.getElementById('featureFormPanel');
+        if (formEl) formEl.classList.add('d-none');
+        if (listEl) listEl.classList.remove('d-none');
+        if (listEl) window.scrollTo({ top: listEl.offsetTop - 80, behavior: 'smooth' });
+    }
+</script>
+{% endblock %}
 {% endblock %}

@@ -150,7 +150,22 @@
     <div class="row">
         {% for club in clubs %}
         <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card border-0 shadow-sm h-100 clickable-card" {% if user.role in 'admin,teacher' %}onclick='editClubInPanel({
+                id: {{ club.id }},
+                name: "{{ club.name|escapejs }}",
+                club_type: "{{ club.club_type }}",
+                description: "{{ club.description|escapejs }}",
+                meeting_day: "{{ club.meeting_day|default:\'\' }}",
+                meeting_time: "{{ club.meeting_time|default:\'\' }}",
+                meeting_venue: "{{ club.meeting_venue|escapejs }}",
+                max_members: {{ club.max_members|default:50 }},
+                membership_fee: "{{ club.membership_fee|default:0.00 }}",
+                application_deadline: "{{ club.application_deadline|date:\'Y-m-d\'|default:\'\' }}",
+                requires_application: {{ club.requires_application|yesno:"true,false" }},
+                teacher_advisor: "{{ club.teacher_advisor_id|default:\'\' }}",
+                student_president: "{{ club.student_president_id|default:\'\' }}",
+                student_secretary: "{{ club.student_secretary_id|default:\'\' }}"
+            })'{% else %}onclick="window.location.href='{% url 'clubs:club_detail' school_slug=school_slug pk=club.id %}'"{% endif %}>
                 <div class="card-header bg-primary text-white">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="card-title text-white mb-0">{{ club.name }}</h5>
@@ -242,33 +257,15 @@
                     {% endif %}
                     
                     {% if user.role in 'admin,teacher' %}
-                    <div class="d-flex gap-2 mt-3">
+                    <div class="d-flex justify-content-end gap-2 mt-3" onclick="event.stopPropagation();">
                         <a href="{% url 'clubs:club_detail' school_slug=school_slug pk=club.id %}" 
-                           class="btn btn-primary btn-sm flex-fill">
-                            <i class="fas fa-eye me-1"></i>View
+                           class="btn btn-primary btn-sm" title="View Club">
+                            <i class="fas fa-eye"></i>
                         </a>
-                        <button type="button" class="btn btn-outline-primary btn-sm flex-fill"
-                                onclick='editClubInPanel({
-                                    id: {{ club.id }},
-                                    name: "{{ club.name|escapejs }}",
-                                    club_type: "{{ club.club_type }}",
-                                    description: "{{ club.description|escapejs }}",
-                                    meeting_day: "{{ club.meeting_day|default:'' }}",
-                                    meeting_time: "{{ club.meeting_time|default:'' }}",
-                                    meeting_venue: "{{ club.meeting_venue|escapejs }}",
-                                    max_members: {{ club.max_members|default:50 }},
-                                    membership_fee: "{{ club.membership_fee|default:0.00 }}",
-                                    application_deadline: "{{ club.application_deadline|date:'Y-m-d'|default:'' }}",
-                                    requires_application: {{ club.requires_application|yesno:"true,false" }},
-                                    teacher_advisor: "{{ club.teacher_advisor_id|default:'' }}",
-                                    student_president: "{{ club.student_president_id|default:'' }}",
-                                    student_secretary: "{{ club.student_secretary_id|default:'' }}"
-                                })'>
-                            <i class="fas fa-edit me-1"></i>Edit
-                        </button>
-                        <button type="button" class="btn btn-outline-danger btn-sm flex-fill" 
+                        <button type="button" class="btn btn-outline-danger btn-sm" 
+                                title="Delete Club"
                                 data-bs-toggle="modal" data-bs-target="#deleteClubModal{{ club.id }}">
-                            <i class="fas fa-trash me-1"></i>Delete
+                            <i class="fas fa-trash"></i>
                         </button>
                     </div>
                     {% endif %}

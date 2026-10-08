@@ -74,7 +74,7 @@
                         </thead>
                         <tbody>
                             {% for school in schools %}
-                            <tr>
+                            <tr class="clickable-row" data-edit-url="{% url 'superadmin:school_edit' school.id %}" title="Click row to edit {{ school.name }}">
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="avatar-circle bg-primary text-white me-2">
@@ -110,24 +110,20 @@
                                     <span class="badge bg-info">{{ school.student_count|default:0 }}</span>
                                 </td>
                                 <td>{{ school.created_on|date:"M d, Y" }}</td>
-                                <td>
-                                    <div class="btn-group" role="group">
+                                <td onclick="event.stopPropagation();">
+                                    <div class="d-inline-flex align-items-center gap-1">
                                         {% if school.slug == 'demo-school' or 'demo' in school.slug %}
                                         <a href="{% url 'superadmin:login_as_demo_admin' %}" 
-                                           class="btn btn-sm btn-outline-success" title="Open Demo School in New Tab" target="_blank" rel="noopener noreferrer">
+                                           class="btn-action-icon text-success" title="Open Demo School in New Tab" target="_blank" rel="noopener noreferrer">
                                             <i class="fas fa-external-link-alt"></i>
                                         </a>
                                         {% endif %}
                                         <a href="{% url 'superadmin:school_detail' school.id %}" 
-                                           class="btn btn-sm btn-outline-primary" title="View">
+                                           class="btn-action-icon text-primary" title="View Details">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="{% url 'superadmin:school_edit' school.id %}" 
-                                           class="btn btn-sm btn-outline-secondary" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
                                         <a href="{% url 'superadmin:school_delete' school.id %}" 
-                                           class="btn btn-sm btn-outline-danger" title="Delete">
+                                           class="btn-action-icon btn-action-delete text-danger" title="Delete School">
                                             <i class="fas fa-trash-alt"></i>
                                         </a>
                                     </div>

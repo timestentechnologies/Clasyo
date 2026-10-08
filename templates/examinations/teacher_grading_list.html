@@ -24,7 +24,7 @@
                     </thead>
                     <tbody>
                         {% for submission in submissions %}
-                        <tr>
+                        <tr class="clickable-row" data-edit-url="{% url 'examinations:teacher_grade_submission' school_slug=school_slug submission_id=submission.id %}">
                             <td>
                                 <div class="d-flex align-items-center">
                                     <div class="user-avatar me-2">
@@ -62,10 +62,10 @@
                                 <span class="text-muted">Not graded yet</span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td onclick="event.stopPropagation();">
                                 <a href="{% url 'examinations:teacher_grade_submission' school_slug=school_slug submission_id=submission.id %}" 
-                                   class="btn btn-sm btn-primary">
-                                    <i class="fas fa-edit"></i> {% if submission.status == 'graded' %}Review{% else %}Grade{% endif %}
+                                   class="btn btn-sm btn-primary" title="{% if submission.status == 'graded' %}Review Submission{% else %}Grade Submission{% endif %}">
+                                    <i class="fas fa-{% if submission.status == 'graded' %}eye{% else %}pen{% endif %}"></i>
                                 </a>
                             </td>
                         </tr>

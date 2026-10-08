@@ -44,36 +44,35 @@ input[type="range"]:focus,
 </style>
 <div class="container-fluid px-0">
 
-    <!-- Navigation Tabs -->
-    <div class="cms-nav-tabs-container mb-4">
-        <ul class="nav cms-nav-tabs">
-            <li class="nav-item">
-                <a href="?tab=hero" class="nav-link cms-nav-tab {% if active_tab == 'hero' %}active{% endif %}">
-                    Hero Section
+    <!-- Global Standard Page Tabs (Matching Horizontal Navigation Style) -->
+    <div class="page-tabs-bar mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <ul class="page-nav-tabs nav" role="tablist">
+            <li class="page-tab-item">
+                <a href="?tab=hero" class="page-tab-link {% if active_tab == 'hero' %}active{% endif %}">
+                    <i class="fas fa-heading"></i>
+                    <span>Hero Section</span>
                 </a>
             </li>
-            <li class="nav-item">
-                <a href="?tab=hero_bg" class="nav-link cms-nav-tab {% if active_tab == 'hero_bg' %}active{% endif %}">
-                    Hero Background
+            <li class="page-tab-item">
+                <a href="?tab=hero_bg" class="page-tab-link {% if active_tab == 'hero_bg' %}active{% endif %}">
+                    <i class="fas fa-image"></i>
+                    <span>Hero Background</span>
                 </a>
             </li>
-            <li class="nav-item">
-                <a href="?tab=process" class="nav-link cms-nav-tab {% if active_tab == 'process' %}active{% endif %}">
-                    How It Works Stepper
+            <li class="page-tab-item">
+                <a href="?tab=process" class="page-tab-link {% if active_tab == 'process' %}active{% endif %}">
+                    <i class="fas fa-list-ol"></i>
+                    <span>How It Works Stepper</span>
                 </a>
             </li>
-            <li class="nav-item">
-                <a href="?tab=features" class="nav-link cms-nav-tab {% if active_tab == 'features' %}active{% endif %}">
-                    Feature Cards
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="?tab=parallax" class="nav-link cms-nav-tab {% if active_tab == 'parallax' %}active{% endif %}">
-                    Parallax Banners
+            <li class="page-tab-item">
+                <a href="?tab=parallax" class="page-tab-link {% if active_tab == 'parallax' %}active{% endif %}">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Parallax Banners</span>
                 </a>
             </li>
         </ul>
-        <a href="{% url 'frontend:home' %}" target="_blank" class="btn btn-sm btn-outline-primary ms-auto">
+        <a href="{% url 'frontend:home' %}" target="_blank" class="btn btn-sm btn-outline-primary ms-auto mb-2 mb-md-0">
             <i class="fas fa-external-link-alt me-1"></i> Preview Live Homepage
         </a>
     </div>
@@ -340,7 +339,18 @@ input[type="range"]:focus,
                         </thead>
                         <tbody>
                             {% for step in process_steps %}
-                            <tr>
+                            <tr class="clickable-row" onclick="editProcessStep({
+                                        step_id: '{{ step.id }}',
+                                        step_number: '{{ step.step_number }}',
+                                        phase_tag: '{{ step.phase_tag|escapejs }}',
+                                        title: '{{ step.title|escapejs }}',
+                                        subtitle: '{{ step.subtitle|default:''|escapejs }}',
+                                        accent_color: '{{ step.accent_color }}',
+                                        description: '{{ step.description|escapejs }}',
+                                        icon: '{{ step.icon|escapejs }}',
+                                        order: '{{ step.order }}',
+                                        is_active: {{ step.is_active|yesno:'true,false' }}
+                                    })" title="Click row to edit step {{ step.step_number }}">
                                 <td class="fw-bold fs-6">0{{ step.step_number }}</td>
                                 <td>
                                     <span class="step-preview-badge" style="--step-color: {{ step.accent_color }};">
@@ -362,35 +372,18 @@ input[type="range"]:focus,
                                     <span class="badge bg-secondary">Hidden</span>
                                     {% endif %}
                                 </td>
-                                <td class="text-end">
-                                    <div class="d-flex align-items-center justify-content-end gap-2">
-                                        <button type="button" class="btn-action-icon btn-action-edit" title="Edit Step"
-                                                onclick="editProcessStep({
-                                                    step_id: '{{ step.id }}',
-                                                    step_number: '{{ step.step_number }}',
-                                                    phase_tag: '{{ step.phase_tag|escapejs }}',
-                                                    title: '{{ step.title|escapejs }}',
-                                                    subtitle: '{{ step.subtitle|default:''|escapejs }}',
-                                                    accent_color: '{{ step.accent_color }}',
-                                                    description: '{{ step.description|escapejs }}',
-                                                    icon: '{{ step.icon|escapejs }}',
-                                                    order: '{{ step.order }}',
-                                                    is_active: {{ step.is_active|yesno:'true,false' }}
-                                                })">
-                                            <i class="fas fa-edit"></i>
+                                <td class="text-end" onclick="event.stopPropagation();">
+                                    <form method="post" class="m-0 p-0 d-inline-flex" onsubmit="event.stopPropagation();">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete_step">
+                                        <input type="hidden" name="step_id" value="{{ step.id }}">
+                                        <button type="submit" class="btn-action-icon btn-action-delete text-danger" title="Delete Step"
+                                                data-confirm="Delete this step?"
+                                                data-confirm-title="Confirm Delete"
+                                                data-confirm-btn="Delete">
+                                            <i class="fas fa-trash-alt"></i>
                                         </button>
-                                        <form method="post" class="m-0 p-0 d-inline-flex">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="action" value="delete_step">
-                                            <input type="hidden" name="step_id" value="{{ step.id }}">
-                                            <button type="submit" class="btn-action-icon btn-action-delete" title="Delete Step"
-                                                    data-confirm="Delete this step?"
-                                                    data-confirm-title="Confirm Delete"
-                                                    data-confirm-btn="Delete">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
-                                        </form>
-                                    </div>
+                                    </form>
                                 </td>
                             </tr>
                             {% empty %}
@@ -406,157 +399,10 @@ input[type="range"]:focus,
     </div>
     {% endif %}
 
-    <!-- =========================================================================
-         TAB 4: FEATURE CARDS
-         ========================================================================= -->
-    {% if active_tab == 'features' %}
-    <!-- Shared In-Page Form Panel for Feature Card -->
-    <div class="form-panel-view {% if not edit_feature %}d-none{% endif %} mb-4" id="featureFormPanel">
-        <div class="form-header-bar">
-            <div class="form-header-title-group">
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeFeatureForm()">
-                    <i class="fas fa-arrow-left me-1"></i> Back to List
-                </button>
-                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center" data-create-title="Add Feature Card" data-edit-title="Edit Feature Card">
-                    {% if edit_feature %}Edit Feature Card: {{ edit_feature.title }}{% else %}Add Feature Card{% endif %}
-                    <button type="button" 
-                            class="more-info-btn ms-2" 
-                            data-bs-toggle="popover" 
-                            data-bs-placement="bottom" 
-                            data-bs-html="true" 
-                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>Feature Cards Guide</strong></div>" 
-                            data-bs-content="<div class='small'><p class='mb-2'><strong>Icon Class:</strong> Specify any FontAwesome icon (e.g. <code>fas fa-star</code>, <code>fas fa-graduation-cap</code>).</p><p class='mb-0'><strong>Order:</strong> Cards are displayed in ascending numerical order on the homepage grid.</p></div>" 
-                            aria-label="Feature Cards Guide" 
-                            title="Feature Cards Guide">
-                        <i class="fas fa-info-circle text-primary"></i>
-                    </button>
-                </h5>
-                <span class="form-mode-badge {% if edit_feature %}mode-edit{% else %}mode-create{% endif %}">
-                    {% if edit_feature %}Edit{% else %}New{% endif %}
-                </span>
-            </div>
-            <div class="form-header-actions">
-                <button type="button" class="btn btn-sm btn-light" onclick="closeFeatureForm()">Cancel</button>
-                <button type="submit" form="featureCmsForm" class="btn btn-sm btn-primary form-submit-btn">
-                    <i class="fas fa-save me-1"></i> {% if edit_feature %}Update Feature{% else %}Save Feature{% endif %}
-                </button>
-            </div>
-        </div>
-        <div class="form-card-body">
-            <form method="post" id="featureCmsForm">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="save_feature">
-                <input type="hidden" name="tab" value="features">
-                <input type="hidden" name="feature_id" id="feature_id" value="{{ edit_feature.id|default:'' }}">
 
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Feature Title</label>
-                        <input type="text" class="form-control" name="title" id="feature_title" value="{{ edit_feature.title|default:'' }}" placeholder="e.g. Attendance & SMS" required>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold">FontAwesome Icon Class</label>
-                        <input type="text" class="form-control" name="icon" id="feature_icon" value="{{ edit_feature.icon|default:'fas fa-star' }}" placeholder="e.g. fas fa-user-graduate" required>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label fw-semibold">Display Order</label>
-                        <input type="number" class="form-control" name="order" id="feature_order" value="{{ edit_feature.order|default:features.count|add:1 }}">
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label fw-semibold">Description</label>
-                        <textarea class="form-control" name="description" id="feature_description" rows="3" required placeholder="Describe what this feature offers...">{{ edit_feature.description|default:'' }}</textarea>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label fw-semibold">Status</label>
-                        <div class="form-check form-switch pt-1">
-                            <input type="checkbox" class="form-check-input" name="is_active" id="feature_is_active" {% if edit_feature %}{% if edit_feature.is_active %}checked{% endif %}{% else %}checked{% endif %}>
-                            <label class="form-check-label fw-semibold" for="feature_is_active">Active</label>
-                        </div>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
+    <!-- Feature Cards tab removed — Features are now managed via Page Content Management -->
 
-    <div class="row {% if edit_feature %}d-none{% endif %}" id="featureListCard">
-        <div class="col-12 mb-3 d-flex justify-content-between align-items-center">
-            <h5 class="fw-bold mb-0 text-dark">Comprehensive Feature Cards</h5>
-            <button type="button" class="btn btn-primary" onclick="openCreateFeature()">
-                <i class="fas fa-plus me-1"></i> Add New Feature Card
-            </button>
-        </div>
 
-        <div class="col-12">
-            <div class="cms-card p-0 overflow-hidden">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="cms-col-w60">Icon</th>
-                                <th>Title</th>
-                                <th>Description</th>
-                                <th>Order</th>
-                                <th>Status</th>
-                                <th class="text-end cms-col-actions">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for feat in features %}
-                            <tr>
-                                <td>
-                                    <div class="cms-icon-box-cyan">
-                                        <i class="{{ feat.icon|default:'fas fa-star' }}"></i>
-                                    </div>
-                                </td>
-                                <td class="fw-bold text-dark">{{ feat.title }}</td>
-                                <td class="text-muted small">{{ feat.description|truncatewords:20 }}</td>
-                                <td>{{ feat.order }}</td>
-                                <td>
-                                    {% if feat.is_active %}
-                                    <span class="badge bg-success">Active</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">Hidden</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-end">
-                                    <div class="d-flex align-items-center justify-content-end gap-2">
-                                        <button type="button" class="btn-action-icon btn-action-edit" title="Edit Feature"
-                                                onclick="editFeatureCard({
-                                                    feature_id: '{{ feat.id }}',
-                                                    title: '{{ feat.title|escapejs }}',
-                                                    icon: '{{ feat.icon|escapejs }}',
-                                                    order: '{{ feat.order }}',
-                                                    description: '{{ feat.description|escapejs }}',
-                                                    is_active: {{ feat.is_active|yesno:'true,false' }}
-                                                })">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <form method="post" class="m-0 p-0 d-inline-flex">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="action" value="delete_feature">
-                                            <input type="hidden" name="feature_id" value="{{ feat.id }}">
-                                            <button type="submit" class="btn-action-icon btn-action-delete" title="Delete Feature"
-                                                    data-confirm="Delete this feature?"
-                                                    data-confirm-title="Confirm Delete"
-                                                    data-confirm-btn="Delete">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="6" class="text-center py-4 text-muted">No feature items found.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
 
     <!-- =========================================================================
          TAB 5: PARALLAX SECTIONS
@@ -717,7 +563,23 @@ input[type="range"]:focus,
                         </thead>
                         <tbody>
                             {% for p in parallax_sections %}
-                            <tr>
+                            <tr class="clickable-row" onclick="editParallaxSection({
+                                        parallax_id: '{{ p.id }}',
+                                        title: '{{ p.title|escapejs }}',
+                                        target_position: '{{ p.target_position }}',
+                                        subtitle: '{{ p.subtitle|default:\'\'|escapejs }}',
+                                        content: '{{ p.content|default:\'\'|escapejs }}',
+                                        primary_btn_text: '{{ p.primary_btn_text|default:\'\'|escapejs }}',
+                                        primary_btn_url: '{{ p.primary_btn_url|default:\'\'|escapejs }}',
+                                        secondary_btn_text: '{{ p.secondary_btn_text|default:\'\'|escapejs }}',
+                                        secondary_btn_url: '{{ p.secondary_btn_url|default:\'\'|escapejs }}',
+                                        scroll_effect: '{{ p.scroll_effect }}',
+                                        overlay_opacity: '{{ p.overlay_opacity }}',
+                                        bg_color: '{{ p.bg_color }}',
+                                        bg_image_url: '{% if p.bg_image %}{{ p.bg_image.url }}{% endif %}',
+                                        order: '{{ p.order }}',
+                                        is_active: {{ p.is_active|yesno:'true,false' }}
+                                    })">
                                 <td>
                                     <div class="fw-bold text-dark">{{ p.title }}</div>
                                     <small class="text-muted">{{ p.subtitle|truncatewords:15 }}</small>
@@ -753,28 +615,8 @@ input[type="range"]:focus,
                                     <span class="badge bg-secondary">Hidden</span>
                                     {% endif %}
                                 </td>
-                                <td class="text-end">
+                                <td class="text-end" onclick="event.stopPropagation();">
                                     <div class="d-flex align-items-center justify-content-end gap-2">
-                                        <button type="button" class="btn-action-icon btn-action-edit" title="Edit Parallax Banner"
-                                                onclick="editParallaxSection({
-                                                    parallax_id: '{{ p.id }}',
-                                                    title: '{{ p.title|escapejs }}',
-                                                    target_position: '{{ p.target_position }}',
-                                                    subtitle: '{{ p.subtitle|default:''|escapejs }}',
-                                                    content: '{{ p.content|default:''|escapejs }}',
-                                                    primary_btn_text: '{{ p.primary_btn_text|default:''|escapejs }}',
-                                                    primary_btn_url: '{{ p.primary_btn_url|default:''|escapejs }}',
-                                                    secondary_btn_text: '{{ p.secondary_btn_text|default:''|escapejs }}',
-                                                    secondary_btn_url: '{{ p.secondary_btn_url|default:''|escapejs }}',
-                                                    scroll_effect: '{{ p.scroll_effect }}',
-                                                    overlay_opacity: '{{ p.overlay_opacity }}',
-                                                    bg_color: '{{ p.bg_color }}',
-                                                    bg_image_url: '{% if p.bg_image %}{{ p.bg_image.url }}{% endif %}',
-                                                    order: '{{ p.order }}',
-                                                    is_active: {{ p.is_active|yesno:'true,false' }}
-                                                })">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
                                         <form method="post" class="m-0 p-0 d-inline-flex">
                                             {% csrf_token %}
                                             <input type="hidden" name="action" value="delete_parallax">

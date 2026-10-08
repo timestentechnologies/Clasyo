@@ -74,13 +74,13 @@
             </thead>
             <tbody>
             {% for year in object_list %}
-            <tr>
+            <tr class="clickable-row" onclick="editYear({{ year.id }})">
                 <td><strong>{{ year.name }}</strong></td>
                 <td>{{ year.start_date|date:"M d, Y" }}</td>
                 <td>{{ year.end_date|date:"M d, Y" }}</td>
-                <td>
-                    <button class="btn btn-sm btn-info" onclick="manageTerms({{ year.id }}, '{{ year.name }}')">
-                        <i class="fas fa-list"></i> {{ year.sessions.count }} Term(s)
+                <td onclick="event.stopPropagation();">
+                    <button class="btn btn-sm btn-info" title="Manage Terms" onclick="manageTerms({{ year.id }}, '{{ year.name|escapejs }}')">
+                        <i class="fas fa-list"></i>
                     </button>
                 </td>
                 <td>
@@ -90,9 +90,8 @@
                     <span class="badge bg-secondary">Inactive</span>
                     {% endif %}
                 </td>
-                <td>
-                    <button class="btn btn-sm btn-primary" onclick="editYear({{ year.id }})"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteYear({{ year.id }})"><i class="fas fa-trash"></i></button>
+                <td onclick="event.stopPropagation();">
+                    <button class="btn btn-sm btn-danger" title="Delete Academic Year" onclick="deleteYear({{ year.id }})"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>
             {% empty %}

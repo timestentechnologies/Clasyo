@@ -90,7 +90,7 @@
             </thead>
             <tbody>
                 {% for config in configs %}
-                <tr>
+                <tr class="clickable-row" data-edit-url="{% url 'superadmin:school_whatsapp_config_update' school_slug=school.slug pk=config.pk %}" title="Click row to edit {{ config.get_provider_display }} configuration">
                     <td>
                         <div class="d-flex align-items-center">
                             <div class="avatar-circle me-3" style="width: 36px; height: 36px; font-size: 16px; background: rgba(34, 197, 94, 0.1); color: #22c55e;">
@@ -142,13 +142,10 @@
                             Monthly: {{ config.monthly_whatsapp_limit|default:"Unlimited" }}
                         </small>
                     </td>
-                    <td>
-                        <div class="btn-group btn-group-sm" role="group">
-                            <a href="{% url 'superadmin:school_whatsapp_config_update' school_slug=school.slug pk=config.pk %}" class="btn btn-outline-primary" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <a href="{% url 'superadmin:school_whatsapp_config_delete' school_slug=school.slug pk=config.pk %}" class="btn btn-outline-danger" title="Delete">
-                                <i class="fas fa-trash"></i>
+                    <td onclick="event.stopPropagation();">
+                        <div class="d-inline-flex align-items-center gap-1">
+                            <a href="{% url 'superadmin:school_whatsapp_config_delete' school_slug=school.slug pk=config.pk %}" class="btn-action-icon btn-action-delete text-danger" title="Delete Configuration">
+                                <i class="fas fa-trash-alt"></i>
                             </a>
                         </div>
                     </td>

@@ -177,7 +177,7 @@
                     </thead>
                     <tbody>
                     {% for member in staff %}
-                    <tr data-name="{{ member.get_full_name|default:member.email|lower }}" data-email="{{ member.email|lower }}" data-role="{{ member.role|lower }}" data-department="{{ member.department.name|default:'N/A'|lower }}" data-status="{% if member.is_active %}active{% else %}inactive{% endif %}">
+                    <tr class="clickable-row" onclick="viewStaff({{ member.pk }})" data-name="{{ member.get_full_name|default:member.email|lower }}" data-email="{{ member.email|lower }}" data-role="{{ member.role|lower }}" data-department="{{ member.department.name|default:'N/A'|lower }}" data-status="{% if member.is_active %}active{% else %}inactive{% endif %}">
                         <td><strong>{{ member.get_full_name|default:member.email }}</strong></td>
                         <td>{{ member.email }}</td>
                         <td>{{ member.phone|default:"Not set" }}</td>
@@ -188,9 +188,9 @@
                                 {% if member.is_active %}Active{% else %}Inactive{% endif %}
                             </span>
                         </td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-info" onclick="viewStaff({{ member.pk }})">
-                                <i class="fas fa-eye me-1"></i> View
+                        <td onclick="event.stopPropagation();">
+                            <button class="btn btn-sm btn-outline-info" title="View Staff Details" onclick="viewStaff({{ member.pk }})">
+                                <i class="fas fa-eye"></i>
                             </button>
                         </td>
                     </tr>

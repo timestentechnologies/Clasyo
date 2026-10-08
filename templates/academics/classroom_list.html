@@ -23,7 +23,7 @@
     <div class="row g-3">
         {% for room in classrooms %}
         <div class="col-md-4">
-            <div class="card h-100 shadow-sm" style="border-left: 4px solid {% if room.room_type == 'lecture' %}#667eea{% elif room.room_type == 'lab' %}#f093fb{% elif room.room_type == 'library' %}#43e97b{% else %}#ffd166{% endif %};">
+            <div class="card h-100 shadow-sm clickable-card" data-edit-url="{% url 'academics:classroom_update' school_slug=school_slug pk=room.pk %}" style="border-left: 4px solid {% if room.room_type == 'lecture' %}#667eea{% elif room.room_type == 'lab' %}#f093fb{% elif room.room_type == 'library' %}#43e97b{% else %}#ffd166{% endif %};">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
@@ -73,14 +73,10 @@
                         </div>
                     </div>
                     
-                    <div class="d-flex gap-2">
-                        <a href="{% url 'academics:classroom_update' school_slug=school_slug pk=room.pk %}" 
-                           class="btn btn-sm btn-outline-primary flex-fill">
-                            <i class="fas fa-edit"></i> Edit
-                        </a>
-                        <button onclick="deleteRoom({{ room.pk }}, '{{ room.room_number }}')" 
-                                class="btn btn-sm btn-outline-danger flex-fill">
-                            <i class="fas fa-trash"></i> Delete
+                    <div class="d-flex justify-content-end" onclick="event.stopPropagation();">
+                        <button onclick="deleteRoom({{ room.pk }}, '{{ room.room_number|escapejs }}')" 
+                                class="btn btn-sm btn-outline-danger" title="Delete Room">
+                            <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 </div>

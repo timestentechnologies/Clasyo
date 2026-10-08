@@ -22,7 +22,7 @@
                 </thead>
                 <tbody>
                     {% for child in children %}
-                        <tr>
+                        <tr class="clickable-row" data-edit-url="{% url 'attendance:student_attendance' school_slug=school_slug student_id=child.id %}" style="cursor: pointer;">
                             <td>
                                 <div class="d-flex align-items-center">
                                     {% if child.photo %}
@@ -38,10 +38,9 @@
                             <td>{{ child.current_class|default:"N/A" }}</td>
                             <td>{{ child.section|default:"N/A" }}</td>
                             <td>{{ child.roll_number|default:"N/A" }}</td>
-                            <td>
-                                <a href="{% url 'attendance:student_attendance' school_slug=school_slug student_id=child.id %}" class="btn btn-sm btn-primary">
+                            <td onclick="event.stopPropagation();">
+                                <a href="{% url 'attendance:student_attendance' school_slug=school_slug student_id=child.id %}" class="btn btn-sm btn-primary" title="View Attendance">
                                     <i class="fas fa-calendar-check"></i>
-                                    <span class="d-none d-sm-inline">View</span>
                                 </a>
                             </td>
                         </tr>

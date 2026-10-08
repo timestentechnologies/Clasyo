@@ -68,19 +68,17 @@
 
 <div id="noticeListCard">
 {% for notice in notices %}
-<div class="card mb-3">
+<div class="card mb-3 {% if user.role in 'superadmin,admin' %}clickable-card{% endif %}" {% if user.role in 'superadmin,admin' %}onclick="openEditNotice({{ notice.id }})"{% endif %}>
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-start">
             <h5 class="mb-1">{{ notice.title }}</h5>
             <div class="d-flex align-items-start gap-2">
                 <span class="badge bg-{% if notice.priority == 'high' %}danger{% elif notice.priority == 'medium' %}warning{% else %}info{% endif %}">{{ notice.priority|upper }}</span>
                 {% if user.role in 'superadmin,admin' %}
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Actions</button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#" onclick="openEditNotice({{ notice.id }}); return false;">Edit</a></li>
-                        <li><a class="dropdown-item text-danger" href="#" onclick="openDeleteNotice({{ notice.id }}, &quot;{{ notice.title|escapejs }}&quot;); return false;">Delete</a></li>
-                    </ul>
+                <div class="btn-group" onclick="event.stopPropagation();">
+                    <button type="button" class="btn btn-sm btn-outline-danger" title="Delete Notice" onclick="openDeleteNotice({{ notice.id }}, &quot;{{ notice.title|escapejs }}&quot;); return false;">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
                 {% endif %}
             </div>

@@ -96,7 +96,7 @@
                     </thead>
                     <tbody>
                         {% for route in routes %}
-                        <tr>
+                        <tr class="clickable-row" onclick="editRoute('{{ route.id }}', '{{ route.name|escapejs }}', '{{ route.start_place|escapejs }}', '{{ route.end_place|escapejs }}', '{{ route.distance }}', '{{ route.fare }}')" style="cursor: pointer;">
                             <td><strong>{{ route.name }}</strong></td>
                             <td>{{ route.start_place }}</td>
                             <td>{{ route.end_place }}</td>
@@ -120,6 +120,25 @@
 </div>
 
 <script>
+function editRoute(id, name, start, end, distance, fare) {
+    const form = document.getElementById('addRouteForm');
+    if (!form) return;
+    let idInput = form.querySelector('input[name="route_id"]');
+    if (!idInput) {
+        idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'route_id';
+        form.appendChild(idInput);
+    }
+    idInput.value = id;
+    if (form.elements['name']) form.elements['name'].value = name;
+    if (form.elements['start_place']) form.elements['start_place'].value = start;
+    if (form.elements['end_place']) form.elements['end_place'].value = end;
+    if (form.elements['distance']) form.elements['distance'].value = distance;
+    if (form.elements['fare']) form.elements['fare'].value = fare;
+    toggleInPageFormView('routeListCard', 'routeFormPanel', 'edit');
+}
+
 function showStatusModal(title, message, isError = false) {
     const modal = new bootstrap.Modal(document.getElementById('statusModal'));
     const modalTitle = document.getElementById('statusModalTitle');

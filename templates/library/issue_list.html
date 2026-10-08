@@ -114,7 +114,7 @@
                             </thead>
                             <tbody>
                                 {% for issue in issues %}
-                                <tr>
+                                <tr class="clickable-row" data-edit-url="{% url 'library:issue_detail' school_slug=school_slug pk=issue.id %}" style="cursor: pointer;">
                                     <td>
                                         <div class="d-flex align-items-center">
                                             {% if issue.book.cover_image %}
@@ -160,7 +160,7 @@
                                             {{ issue.get_status_display }}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td onclick="event.stopPropagation();">
                                         <div class="btn-group btn-group-sm">
                                             <a href="{% url 'library:issue_detail' school_slug=school_slug pk=issue.id %}" 
                                                class="btn btn-outline-primary" title="View Details">

@@ -206,12 +206,16 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <th>Capacity</th>
                                 <th>Occupied</th>
                                 <th>Status</th>
-                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for room in rooms %}
-                            <tr>
+                            <tr class="clickable-row" onclick="toggleInPageFormView('roomListCard', 'roomFormPanel', 'edit', {
+                                dormitory: '{{ room.dormitory_id }}',
+                                room_number: '{{ room.room_number|escapejs }}',
+                                room_type: '{{ room.room_type|escapejs }}',
+                                capacity: '{{ room.capacity }}'
+                            })">
                                 <td><strong>{{ room.room_number }}</strong></td>
                                 <td>{{ room.dormitory.name }}</td>
                                 <td>{{ room.room_type }}</td>
@@ -219,11 +223,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <td>0</td>
                                 <td>
                                     <span class="badge bg-success">Available</span>
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
                                 </td>
                             </tr>
                             {% endfor %}

@@ -101,18 +101,15 @@
                 </thead>
                 <tbody>
                 {% for routine in routines %}
-                <tr>
+                <tr class="clickable-row" onclick="editRoutine({{ routine.pk }})">
                     <td><strong>{{ routine.class_name }} - {{ routine.section }}</strong></td>
                     <td>{{ routine.get_day_of_week_display }}</td>
                     <td>{{ routine.class_time }}</td>
                     <td>{{ routine.subject }}</td>
                     <td>{{ routine.teacher|default:"Not Assigned" }}</td>
                     <td>{{ routine.room|default:"Not Assigned" }}</td>
-                    <td>
-                        <button class="btn btn-sm btn-primary edit-routine-btn" data-routine-id="{{ routine.pk }}">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger delete-routine-btn" data-routine-id="{{ routine.pk }}">
+                    <td onclick="event.stopPropagation();">
+                        <button class="btn btn-sm btn-danger delete-routine-btn" title="Delete Routine" data-routine-id="{{ routine.pk }}">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>

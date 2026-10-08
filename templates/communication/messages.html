@@ -83,7 +83,7 @@
                 </thead>
                 <tbody>
                 {% for message in messages_list %}
-                <tr>
+                <tr class="clickable-row" onclick="viewMessage({{ message.pk }})" style="cursor: pointer;">
                     <td><strong>{{ message.sender.get_full_name|default:message.sender.email }}</strong></td>
                     <td>{{ message.subject }}</td>
                     <td>{{ message.message|truncatewords:10 }}</td>
@@ -93,11 +93,8 @@
                             {% if message.is_read %}Read{% else %}Unread{% endif %}
                         </span>
                     </td>
-                    <td>
-                        <button class="btn btn-sm btn-primary" onclick="viewMessage({{ message.pk }})">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteMessage({{ message.pk }})">
+                    <td onclick="event.stopPropagation();">
+                        <button class="btn btn-sm btn-danger" onclick="deleteMessage({{ message.pk }})" title="Delete Message">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>

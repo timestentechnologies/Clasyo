@@ -71,7 +71,7 @@
                             </thead>
                             <tbody>
                                 {% for assignment in recent_assignments %}
-                                <tr>
+                                <tr {% if assignment.created_by == user or user.is_school_admin %}class="clickable-row" data-edit-url="{% url 'homework:update' school_slug=school_slug pk=assignment.id %}"{% else %}class="clickable-row" data-view-url="{% url 'homework:detail' school_slug=school_slug pk=assignment.id %}"{% endif %}>
                                     <td>
                                         <a href="{% url 'homework:detail' school_slug=school_slug pk=assignment.id %}">{{ assignment.title }}</a>
                                     </td>
@@ -86,16 +86,16 @@
                                             <span class="badge bg-secondary">Inactive</span>
                                         {% endif %}
                                     </td>
-                                    <td class="text-right">
-                                        <div class="dropdown dropdown-action">
-                                            <a href="#" class="action-icon dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
-                                            <div class="dropdown-menu dropdown-menu-right">
-                                                <a class="dropdown-item" href="{% url 'homework:detail' school_slug=school_slug pk=assignment.id %}"><i class="fas fa-eye m-r-5"></i> View</a>
-                                                {% if assignment.created_by == user or user.is_school_admin %}
-                                                <a class="dropdown-item" href="{% url 'homework:update' school_slug=school_slug pk=assignment.id %}"><i class="fas fa-pencil-alt m-r-5"></i> Edit</a>
-                                                <a class="dropdown-item" href="{% url 'homework:delete' school_slug=school_slug pk=assignment.id %}"><i class="fas fa-trash m-r-5"></i> Delete</a>
-                                                {% endif %}
-                                            </div>
+                                    <td class="text-right" onclick="event.stopPropagation();">
+                                        <div class="d-flex justify-content-end gap-1">
+                                            <a href="{% url 'homework:detail' school_slug=school_slug pk=assignment.id %}" class="btn btn-sm btn-outline-info" title="View">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if assignment.created_by == user or user.is_school_admin %}
+                                            <a href="{% url 'homework:delete' school_slug=school_slug pk=assignment.id %}" class="btn btn-sm btn-outline-danger" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>

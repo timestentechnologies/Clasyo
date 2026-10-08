@@ -133,7 +133,7 @@
                     </thead>
                     <tbody>
                         {% for subscription in subscriptions %}
-                        <tr>
+                        <tr class="clickable-row" onclick="openSubscriptionEdit('{{ subscription.id }}', '{{ subscription.school.name|escapejs }}', '{{ subscription.plan.name|escapejs }}', '{{ subscription.status }}', '{{ subscription.start_date|date:'Y-m-d' }}', '{{ subscription.end_date|date:'Y-m-d' }}', {{ subscription.is_trial|yesno:'true,false' }})" title="Click row to edit subscription">
                             <td>
                                 <strong>{{ subscription.school.name }}</strong>
                                 <br><small class="text-muted">{{ subscription.school.code }}</small>
@@ -166,17 +166,12 @@
                                     {% endif %}
                                 {% endwith %}
                             </td>
-                            <td>
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-sm btn-outline-primary"
-                                            onclick="openSubscriptionEdit('{{ subscription.id }}', '{{ subscription.school.name|escapejs }}', '{{ subscription.plan.name|escapejs }}', '{{ subscription.status }}', '{{ subscription.start_date|date:'Y-m-d' }}', '{{ subscription.end_date|date:'Y-m-d' }}', {{ subscription.is_trial|yesno:'true,false' }})"
-                                            title="Edit Subscription">
-                                        <i class="fas fa-edit me-1"></i> Edit
-                                    </button>
+                            <td onclick="event.stopPropagation();">
+                                <div class="d-inline-flex align-items-center gap-1">
                                     {% with latest_payment=subscription.payments.last %}
                                         {% if latest_payment %}
                                             <a href="{% url 'superadmin:payment_detail' latest_payment.payment_id %}" 
-                                               class="btn btn-sm btn-outline-info" title="View Payment">
+                                               class="btn-action-icon text-info" title="View Payment">
                                                 <i class="fas fa-credit-card"></i>
                                             </a>
                                         {% endif %}

@@ -35,7 +35,7 @@
                 </thead>
                 <tbody>
                     {% for config in configs %}
-                    <tr>
+                    <tr class="clickable-row" data-edit-url="{% url 'superadmin:ai_config_global_edit' config.pk %}" title="Click row to edit {{ config.get_provider_display }} configuration">
                         <td>
                             <span class="badge bg-primary">{{ config.get_provider_display }}</span>
                         </td>
@@ -64,13 +64,10 @@
                         <td>{{ config.temperature }}</td>
                         <td>{{ config.max_tokens }}</td>
                         <td>{{ config.created_at|date:"Y-m-d H:i" }}</td>
-                        <td>
-                            <div class="btn-group" role="group">
-                                <a href="{% url 'superadmin:ai_config_global_edit' config.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <a href="{% url 'superadmin:ai_config_global_delete' config.pk %}" class="btn btn-sm btn-outline-danger" title="Delete">
-                                    <i class="fas fa-trash"></i>
+                        <td onclick="event.stopPropagation();">
+                            <div class="d-inline-flex align-items-center gap-1">
+                                <a href="{% url 'superadmin:ai_config_global_delete' config.pk %}" class="btn-action-icon btn-action-delete text-danger" title="Delete Configuration">
+                                    <i class="fas fa-trash-alt"></i>
                                 </a>
                             </div>
                         </td>

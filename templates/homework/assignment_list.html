@@ -41,7 +41,7 @@
                     </thead>
                     <tbody>
                         {% for assignment in assignments %}
-                        <tr>
+                        <tr {% if request.user == assignment.created_by or request.user.is_school_admin %}class="clickable-row" data-edit-url="{% url 'homework:update' school_slug=school_slug pk=assignment.id %}"{% else %}class="clickable-row" data-view-url="{% url 'homework:detail' school_slug=school_slug pk=assignment.id %}"{% endif %}>
                             <td>
                                 <a href="{% url 'homework:detail' school_slug=school_slug pk=assignment.id %}">
                                     {{ assignment.title }}
@@ -58,15 +58,12 @@
                                 <span class="badge bg-danger">{% trans 'Overdue' %}</span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td onclick="event.stopPropagation();">
                                 <div class="btn-group" role="group">
                                     <a href="{% url 'homework:detail' school_slug=school_slug pk=assignment.id %}" class="btn btn-sm btn-info" title="{% trans 'View' %}">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     {% if request.user == assignment.created_by or request.user.is_school_admin %}
-                                    <a href="{% url 'homework:update' school_slug=school_slug pk=assignment.id %}" class="btn btn-sm btn-primary" title="{% trans 'Edit' %}">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
                                     <button type="button" 
                                             class="btn btn-sm btn-danger" 
                                             onclick="confirmDelete('{{ assignment.id }}')" 
@@ -75,7 +72,6 @@
                                     </button>
                                     {% endif %}
                                 </div>
-                                
                             </td>
                         </tr>
                         {% endfor %}

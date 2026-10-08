@@ -60,16 +60,13 @@
     </thead>
     <tbody>
         {% for grade in grades %}
-        <tr>
+        <tr class="clickable-row" onclick="editGrade({{ grade.pk }})">
             <td><strong>{{ grade.name }}</strong></td>
             <td>{{ grade.min_percentage }}%</td>
             <td>{{ grade.max_percentage }}%</td>
             <td>{{ grade.point }}</td>
-            <td>
-                <button class="btn btn-sm btn-primary" onclick="editGrade({{ grade.pk }})">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="deleteGrade({{ grade.pk }}, '{{ grade.name }}')">
+            <td onclick="event.stopPropagation();">
+                <button class="btn btn-sm btn-danger" title="Delete Grade" onclick="deleteGrade({{ grade.pk }}, '{{ grade.name|escapejs }}')">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>

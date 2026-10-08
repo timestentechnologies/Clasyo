@@ -42,7 +42,7 @@
             </thead>
             <tbody>
             {% for exam in exams %}
-            <tr>
+            <tr {% if user.role in 'school_admin,teacher' %}class="clickable-row" onclick="editExam({{ exam.pk }})"{% else %}class="clickable-row" onclick="window.location.href='{% url 'examinations:student_exam_view' school_slug=school_slug exam_id=exam.pk %}'"{% endif %}>
                 <td>
                     <strong>{{ exam.name }}</strong>
                     {% if exam.is_online %}
@@ -57,26 +57,23 @@
                         {% if exam.is_published %}Published{% else %}Draft{% endif %}
                     </span>
                 </td>
-                <td>
+                <td onclick="event.stopPropagation();">
                     {% if user.role == 'student' %}
                         {% if exam.is_online %}
-                        <a href="{% url 'examinations:student_take_exam' school_slug=school_slug exam_id=exam.pk %}" class="btn btn-sm btn-success">
-                            <i class="fas fa-pen"></i> Take Exam
+                        <a href="{% url 'examinations:student_take_exam' school_slug=school_slug exam_id=exam.pk %}" class="btn btn-sm btn-success" title="Take Exam">
+                            <i class="fas fa-pen"></i>
                         </a>
                         {% endif %}
-                        <a href="{% url 'examinations:student_exam_view' school_slug=school_slug exam_id=exam.pk %}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-eye"></i> View Exam
+                        <a href="{% url 'examinations:student_exam_view' school_slug=school_slug exam_id=exam.pk %}" class="btn btn-sm btn-primary" title="View Exam">
+                            <i class="fas fa-eye"></i>
                         </a>
                     {% elif user.role in 'school_admin,teacher' %}
                         {% if exam.is_online %}
                         <button class="btn btn-sm btn-success" onclick="manageQuestions({{ exam.pk }}, '{{ exam.name|escapejs }}')" title="Manage Questions">
-                            <i class="fas fa-question-circle"></i> Questions
+                            <i class="fas fa-question-circle"></i>
                         </button>
                         {% endif %}
-                        <button class="btn btn-sm btn-primary" onclick="editExam({{ exam.pk }})">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteExam({{ exam.pk }}, '{{ exam.name|escapejs }}')">
+                        <button class="btn btn-sm btn-danger" title="Delete Exam" onclick="deleteExam({{ exam.pk }}, '{{ exam.name|escapejs }}')">
                             <i class="fas fa-trash"></i>
                         </button>
                     {% endif %}

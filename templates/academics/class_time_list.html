@@ -54,7 +54,7 @@
             </thead>
             <tbody>
                 {% for time in class_times %}
-                <tr {% if time.is_break %}style="background-color: #fff3cd;"{% endif %}>
+                <tr class="clickable-row" data-edit-url="{% url 'academics:class_time_update' school_slug=school_slug pk=time.pk %}" {% if time.is_break %}style="background-color: #fff3cd;"{% endif %}>
                     <td class="text-center">
                         <strong class="badge bg-secondary">{{ time.order }}</strong>
                     </td>
@@ -99,11 +99,7 @@
                             <span class="badge bg-secondary">Inactive</span>
                         {% endif %}
                     </td>
-                    <td>
-                        <a href="{% url 'academics:class_time_update' school_slug=school_slug pk=time.pk %}" 
-                           class="btn btn-sm btn-warning" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </a>
+                    <td onclick="event.stopPropagation();">
                         <button class="btn btn-sm btn-danger delete-time-btn" title="Delete"
                                 data-time-id="{{ time.pk }}" data-time-name="{{ time.name|escapejs }}">
                             <i class="fas fa-trash"></i>

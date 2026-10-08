@@ -28,7 +28,7 @@
             </thead>
             <tbody>
                 {% for config in configs %}
-                <tr>
+                <tr class="clickable-row" data-edit-url="{% url 'superadmin:db_config_update' config.id %}">
                     <td><strong>{{ config.name }}</strong></td>
                     <td>{{ config.host }}</td>
                     <td>{{ config.database_name }}</td>
@@ -44,12 +44,9 @@
                             <span class="badge bg-secondary">Inactive</span>
                         {% endif %}
                     </td>
-                    <td>
+                    <td onclick="event.stopPropagation();">
                         <div class="btn-group btn-group-sm" role="group">
-                            <a href="{% url 'superadmin:db_config_update' config.id %}" class="btn btn-outline-primary">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <a href="{% url 'superadmin:db_config_delete' config.id %}" class="btn btn-outline-danger">
+                            <a href="{% url 'superadmin:db_config_delete' config.id %}" class="btn btn-outline-danger" title="Delete">
                                 <i class="fas fa-trash"></i>
                             </a>
                         </div>

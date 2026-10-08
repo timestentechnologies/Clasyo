@@ -43,7 +43,7 @@
             </thead>
             <tbody>
                 {% for config in configs %}
-                <tr>
+                <tr class="clickable-row" data-edit-url="{% url 'superadmin:payment_config_update' config.pk %}" title="Click row to edit {{ config.get_gateway_display }} configuration">
                     <td>
                         <div class="d-flex align-items-center">
                             <div class="avatar-circle me-3" style="width: 36px; height: 36px; font-size: 14px;">
@@ -142,15 +142,11 @@
                     </td>
                     <td>{{ config.created_at|date:"M d, Y" }}</td>
                     <td>{{ config.updated_at|date:"M d, Y" }}</td>
-                    <td>
-                        <div class="btn-group btn-group-sm" role="group">
-                            <a href="{% url 'superadmin:payment_config_update' config.pk %}" 
-                               class="btn btn-outline-primary" title="Edit Configuration">
-                                <i class="fas fa-edit me-1"></i>Edit
-                            </a>
+                    <td onclick="event.stopPropagation();">
+                        <div class="d-inline-flex align-items-center gap-1">
                             <a href="{% url 'superadmin:payment_config_delete' config.pk %}" 
-                               class="btn btn-outline-danger" title="Delete">
-                                <i class="fas fa-trash"></i>
+                               class="btn-action-icon btn-action-delete text-danger" title="Delete Configuration">
+                                <i class="fas fa-trash-alt"></i>
                             </a>
                         </div>
                     </td>

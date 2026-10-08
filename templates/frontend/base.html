@@ -55,8 +55,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=45.0">
-    <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=32.0">
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=46.0">
+    <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=33.0">
     <style id="custom-theme-variables">
         :root {
             /* Light Theme Brand Variables */
@@ -278,9 +278,174 @@
             align-items: center !important;
             justify-content: center !important;
             cursor: pointer !important;
-            flex-shrink: 0 !important;
+        /* =====================================================================
+           UNIVERSAL SYSTEM-WIDE CODE, PRE & KEYBOARD STYLING
+           ===================================================================== */
+        code {
+            font-family: 'JetBrains Mono', 'Fira Code', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace !important;
+            font-size: 0.86em !important;
+            font-weight: 500 !important;
+            color: #0369a1 !important;
+            background-color: #F1F5F9 !important;
+            border: 1px solid #CBD5E1 !important;
+            border-radius: 6px !important;
+            padding: 2px 7px !important;
+            margin: 0 2px !important;
+            line-height: 1.35 !important;
+            word-break: break-word !important;
+            overflow-wrap: anywhere !important;
+            display: inline-block !important;
+            vertical-align: baseline !important;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+            transition: all 0.15s ease !important;
         }
 
+        code:hover {
+            background-color: #E2E8F0 !important;
+            border-color: #94A3B8 !important;
+            color: #0284c7 !important;
+        }
+
+        pre {
+            font-family: 'JetBrains Mono', 'Fira Code', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace !important;
+            font-size: 0.85rem !important;
+            background-color: #F8FAFC !important;
+            color: #1E293B !important;
+            border: 1px solid #E2E8F0 !important;
+            border-radius: 8px !important;
+            padding: 1rem 1.25rem !important;
+            overflow-x: auto !important;
+            line-height: 1.55 !important;
+        }
+
+        pre code {
+            background-color: transparent !important;
+            border: none !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            color: inherit !important;
+            font-size: inherit !important;
+            display: block !important;
+        }
+
+        kbd {
+            font-family: 'JetBrains Mono', 'Fira Code', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace !important;
+            font-size: 0.8em !important;
+            font-weight: 600 !important;
+            color: #334155 !important;
+            background-color: #F8FAFC !important;
+            border: 1px solid #CBD5E1 !important;
+            border-bottom: 2px solid #94A3B8 !important;
+            border-radius: 5px !important;
+            padding: 2px 6px !important;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08) !important;
+        }
+
+        /* Dark Theme Universal Code Styling */
+        [data-theme="dark"] code,
+        [data-bs-theme="dark"] code,
+        .theme-dark code,
+        .dark-theme code,
+        .dark-mode code,
+        body.dark-theme code,
+        body.theme-dark code,
+        body.dark-mode code,
+        body[data-theme="dark"] code,
+        body[data-bs-theme="dark"] code,
+        html[data-theme="dark"] code,
+        html[data-bs-theme="dark"] code,
+        html.dark-theme code,
+        html.theme-dark code {
+            background-color: rgba(56, 189, 248, 0.12) !important;
+            color: #38BDF8 !important;
+            border: 1px solid rgba(56, 189, 248, 0.28) !important;
+            border-radius: 6px !important;
+            padding: 2px 7px !important;
+            margin: 0 2px !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        [data-theme="dark"] code:hover,
+        [data-bs-theme="dark"] code:hover,
+        .theme-dark code:hover,
+        .dark-theme code:hover,
+        .dark-mode code:hover,
+        body.dark-theme code:hover,
+        body.theme-dark code:hover,
+        body.dark-mode code:hover,
+        body[data-theme="dark"] code:hover,
+        body[data-bs-theme="dark"] code:hover,
+        html[data-theme="dark"] code:hover,
+        html[data-bs-theme="dark"] code:hover,
+        html.dark-theme code:hover,
+        html.theme-dark code:hover {
+            background-color: rgba(56, 189, 248, 0.22) !important;
+            border-color: rgba(56, 189, 248, 0.45) !important;
+            color: #7DD3FC !important;
+        }
+
+        [data-theme="dark"] pre,
+        [data-bs-theme="dark"] pre,
+        .theme-dark pre,
+        .dark-theme pre,
+        .dark-mode pre,
+        body.dark-theme pre,
+        body.theme-dark pre,
+        body.dark-mode pre,
+        body[data-theme="dark"] pre,
+        body[data-bs-theme="dark"] pre,
+        html[data-theme="dark"] pre,
+        html[data-bs-theme="dark"] pre,
+        html.dark-theme pre,
+        html.theme-dark pre {
+            background-color: #0B1120 !important;
+            color: #E2E8F0 !important;
+            border: 1px solid #1E293B !important;
+        }
+
+        [data-theme="dark"] pre code,
+        [data-bs-theme="dark"] pre code,
+        .theme-dark pre code,
+        .dark-theme pre code,
+        .dark-mode pre code,
+        body.dark-theme pre code,
+        body.theme-dark pre code,
+        body.dark-mode pre code,
+        body[data-theme="dark"] pre code,
+        body[data-bs-theme="dark"] pre code,
+        html[data-theme="dark"] pre code,
+        html[data-bs-theme="dark"] pre code,
+        html.dark-theme pre code,
+        html.theme-dark pre code {
+            background-color: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            color: inherit !important;
+        }
+
+        [data-theme="dark"] kbd,
+        [data-bs-theme="dark"] kbd,
+        .theme-dark kbd,
+        .dark-theme kbd,
+        .dark-mode kbd,
+        body.dark-theme kbd,
+        body.theme-dark kbd,
+        body.dark-mode kbd,
+        body[data-theme="dark"] kbd,
+        body[data-bs-theme="dark"] kbd,
+        html[data-theme="dark"] kbd,
+        html[data-bs-theme="dark"] kbd,
+        html.dark-theme kbd,
+        html.theme-dark kbd {
+            background-color: #1E293B !important;
+            color: #F1F5F9 !important;
+            border: 1px solid #334155 !important;
+            border-bottom: 2px solid #475569 !important;
+        }
     </style>
     <script type="application/ld+json">
     {
@@ -307,7 +472,7 @@
     </script>
     {% block extra_css %}{% endblock %}
 </head>
-<body class="theme-light" data-theme="light" data-bs-theme="light">
+<body class="theme-light d-flex flex-column min-vh-100" data-theme="light" data-bs-theme="light">
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-light sticky-top">
         <div class="container">
@@ -427,7 +592,9 @@
     </div>
     {% endif %}
 
-    {% block content %}{% endblock %}
+    <main class="flex-grow-1">
+        {% block content %}{% endblock %}
+    </main>
 
     <!-- Footer -->
     <footer>

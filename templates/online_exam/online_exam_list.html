@@ -93,7 +93,7 @@
                             </thead>
                             <tbody>
                                 {% for exam in exams %}
-                                <tr>
+                                <tr {% if exam.created_by == user or user.is_school_admin %}class="clickable-row" data-edit-url="{% url 'online_exam:update' school_slug=school_slug pk=exam.id %}"{% else %}class="clickable-row" data-view-url="{% url 'online_exam:detail' school_slug=school_slug pk=exam.id %}"{% endif %}>
                                     <td>
                                         <a href="{% url 'online_exam:detail' school_slug=school_slug pk=exam.id %}" class="badge bg-warning text-decoration-none px-3 py-2 rounded-pill">{{ exam.title }}</a>
                                     </td>
@@ -109,11 +109,10 @@
                                             <span class="badge bg-secondary">Inactive</span>
                                         {% endif %}
                                     </td>
-                                    <td class="text-right">
+                                    <td class="text-right" onclick="event.stopPropagation();">
                                         <div class="btn-group btn-group-sm" role="group">
                                             <a href="{% url 'online_exam:detail' school_slug=school_slug pk=exam.id %}" class="btn btn-outline-info" title="View"><i class="fas fa-eye"></i></a>
                                             {% if exam.created_by == user or user.is_school_admin %}
-                                            <a href="{% url 'online_exam:update' school_slug=school_slug pk=exam.id %}" class="btn btn-outline-warning" title="Edit"><i class="fas fa-edit"></i></a>
                                             <a href="{% url 'online_exam:delete' school_slug=school_slug pk=exam.id %}" class="btn btn-outline-danger" title="Delete"><i class="fas fa-trash"></i></a>
                                             {% endif %}
                                             <a href="{% url 'online_exam:results' school_slug=school_slug exam_id=exam.id %}" class="btn btn-outline-success" title="Results"><i class="fas fa-chart-bar"></i></a>

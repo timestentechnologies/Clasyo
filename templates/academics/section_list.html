@@ -83,7 +83,14 @@
             </thead>
             <tbody>
                 {% for section in sections %}
-                <tr>
+                <tr class="clickable-row" onclick="openSectionForm('edit', {
+                    id: '{{ section.pk }}',
+                    name: '{{ section.name|escapejs }}',
+                    class_id: '{{ section.class_name_id }}',
+                    max_students: '{{ section.max_students|default:\'\' }}',
+                    room: '{{ section.room|default:\'\'|escapejs }}',
+                    is_active: {{ section.is_active|yesno:'true,false' }}
+                })">
                     <td><strong>{{ section.name }}</strong></td>
                     <td>{{ section.class_name }}</td>
                     <td>{{ section.max_students|default:"-" }}</td>
@@ -93,18 +100,8 @@
                             {% if section.is_active %}Active{% else %}Inactive{% endif %}
                         </span>
                     </td>
-                    <td>
-                        <button class="btn btn-sm btn-primary" onclick="openSectionForm('edit', {
-                            id: '{{ section.pk }}',
-                            name: '{{ section.name|escapejs }}',
-                            class_id: '{{ section.class_name_id }}',
-                            max_students: '{{ section.max_students|default:'' }}',
-                            room: '{{ section.room|default:''|escapejs }}',
-                            is_active: {{ section.is_active|yesno:'true,false' }}
-                        })">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteSection({{ section.pk }}, '{{ section.name }}')">
+                    <td onclick="event.stopPropagation();">
+                        <button class="btn btn-sm btn-danger" title="Delete Section" onclick="deleteSection({{ section.pk }}, '{{ section.name|escapejs }}')">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>

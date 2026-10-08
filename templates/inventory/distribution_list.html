@@ -62,7 +62,18 @@
                 </thead>
                 <tbody>
                     {% for dist in distributions %}
-                    <tr
+                    <tr class="clickable-row"
+                        onclick="openEditDistribution({
+                            distributionId: '{{ dist.id }}',
+                            itemId: '{{ dist.item.id }}',
+                            quantity: '{{ dist.quantity }}',
+                            recipientType: '{{ dist.recipient_type }}',
+                            recipientId: '{{ dist.recipient_id|default:\'\' }}',
+                            recipientName: '{{ dist.recipient_name|escapejs }}',
+                            distributionDate: '{{ dist.distribution_date|date:\'Y-m-d\' }}',
+                            purpose: '{{ dist.purpose|escapejs }}',
+                            notes: '{{ dist.notes|escapejs }}'
+                        })"
                         data-item-id="{{ dist.item.id }}"
                         data-item="{{ dist.item.name|lower }}"
                         data-item-code="{{ dist.item.code|lower }}"
@@ -92,22 +103,6 @@
                         <td>{{ dist.recipient_name }}</td>
                         <td>{{ dist.purpose|default:"-" }}</td>
                         <td>{{ dist.distributed_by.get_full_name|default:"-" }}</td>
-                        <td>
-                            <button
-                                type="button"
-                                class="btn btn-sm btn-outline-primary edit-distribution-btn"
-                                data-distribution-id="{{ dist.id }}"
-                                data-item-id="{{ dist.item.id }}"
-                                data-quantity="{{ dist.quantity }}"
-                                data-recipient-type="{{ dist.recipient_type }}"
-                                data-recipient-id="{{ dist.recipient_id|default:'' }}"
-                                data-recipient-name="{{ dist.recipient_name|escapejs }}"
-                                data-distribution-date="{{ dist.distribution_date|date:'Y-m-d' }}"
-                                data-purpose="{{ dist.purpose|escapejs }}"
-                                data-notes="{{ dist.notes|escapejs }}">
-                                <i class="fas fa-pen"></i> Edit
-                            </button>
-                        </td>
                     </tr>
                     {% empty %}
                     <tr>
@@ -326,27 +321,25 @@ document.getElementById('distributeForm').addEventListener('submit', function(e)
     });
 });
 
-// Open Edit Distribution with data
-document.addEventListener('click', function(e) {
-    const btn = e.target.closest('.edit-distribution-btn');
-    if (!btn) return;
+function openEditDistribution(data) {
+    if (!data) return;
 
     document.getElementById('dist_action').value = 'edit_distribution';
-    document.getElementById('edit_distribution_id').value = btn.dataset.distributionId || '';
-    document.getElementById('item_select').value = btn.dataset.itemId || '';
-    document.getElementById('quantity').value = btn.dataset.quantity || '';
-    document.getElementById('recipient_type').value = btn.dataset.recipientType || '';
-    document.getElementById('distribution_date').value = btn.dataset.distributionDate || '';
-    document.getElementById('purpose').value = btn.dataset.purpose || '';
-    document.getElementById('notes').value = btn.dataset.notes || '';
-    document.getElementById('recipient_name_hidden').value = btn.dataset.recipientName || '';
+    document.getElementById('edit_distribution_id').value = data.distributionId || '';
+    document.getElementById('item_select').value = data.itemId || '';
+    document.getElementById('quantity').value = data.quantity || '';
+    document.getElementById('recipient_type').value = data.recipientType || '';
+    document.getElementById('distribution_date').value = data.distributionDate || '';
+    document.getElementById('purpose').value = data.purpose || '';
+    document.getElementById('notes').value = data.notes || '';
+    document.getElementById('recipient_name_hidden').value = data.recipientName || '';
 
     // Trigger change events to populate recipient dropdown and update stock display
     document.getElementById('item_select').dispatchEvent(new Event('change'));
     document.getElementById('recipient_type').dispatchEvent(new Event('change'));
 
     // Set recipient selection if recipient_id is present
-    const recipientId = btn.dataset.recipientId;
+    const recipientId = data.recipientId;
     if (recipientId) {
         setTimeout(() => {
             document.getElementById('recipient_select').value = recipientId;
@@ -354,7 +347,7 @@ document.addEventListener('click', function(e) {
     }
 
     toggleInPageFormView('distListCard', 'distFormPanel', 'edit');
-});
+}
 
 function showSuccessAndReload(message) {
     document.getElementById('successMessage').innerHTML = message;

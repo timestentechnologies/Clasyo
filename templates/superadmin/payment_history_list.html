@@ -84,7 +84,7 @@
                             </thead>
                             <tbody>
                                 {% for payment in payments %}
-                                <tr>
+                                <tr class="clickable-row" data-href="{% url 'superadmin:payment_detail' payment.payment_id %}" style="cursor: pointer;">
                                     <td>
                                         <code>{{ payment.payment_id|truncatechars:12 }}</code>
                                         {% if payment.invoice_number %}
@@ -126,7 +126,7 @@
                                         {% endif %}
                                     </td>
                                     <td>{{ payment.created_at|date:"M d, Y H:i" }}</td>
-                                    <td>
+                                    <td onclick="event.stopPropagation();">
                                         <div class="btn-group btn-group-sm" role="group">
                                             <a href="{% url 'superadmin:payment_detail' payment.payment_id %}" 
                                                class="btn btn-outline-info" title="View Details">

@@ -208,7 +208,7 @@
                     <tbody>
                         <!-- Database Configured Providers Only -->
                         {% for config in configs %}
-                        <tr>
+                        <tr class="clickable-row" data-edit-url="{% url 'superadmin:email_config_update' config.pk %}" title="Click row to edit {{ config.get_provider_display }} configuration">
                             <td>
                                 <div class="d-flex align-items-center">
                                     <div class="avatar-icon-box-sm bg-light-subtle text-primary me-3">
@@ -265,13 +265,10 @@
                             <td>
                                 {{ config.default_from_name|default:"Default" }}
                             </td>
-                            <td class="text-end">
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <a href="{% url 'superadmin:email_config_update' config.pk %}" class="btn btn-outline-primary" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a href="{% url 'superadmin:email_config_delete' config.pk %}" class="btn btn-outline-danger" title="Delete">
-                                        <i class="fas fa-trash"></i>
+                            <td class="text-end" onclick="event.stopPropagation();">
+                                <div class="d-inline-flex align-items-center gap-1">
+                                    <a href="{% url 'superadmin:email_config_delete' config.pk %}" class="btn-action-icon btn-action-delete text-danger" title="Delete Configuration">
+                                        <i class="fas fa-trash-alt"></i>
                                     </a>
                                 </div>
                             </td>

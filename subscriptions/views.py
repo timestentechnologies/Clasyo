@@ -518,11 +518,12 @@ class SubscribeView(View):
                     # Do not fail purchase flow if school update fails
                     pass
 
-                # Send email notifications (school + superadmins)
+                # Send email notifications (school + superadmins) using dynamic template
                 try:
+                    from core.services.notification_templates import send_notification_by_template
                     User = get_user_model()
                     school_admin_emails = list(
-                        User.objects.filter(school=school, role='school_admin', is_active=True)
+                        User.objects.filter(school=school, role__in=['admin', 'school_admin'], is_active=True)
                         .values_list('email', flat=True)
                     )
                     superadmin_emails = list(
@@ -530,26 +531,43 @@ class SubscribeView(View):
                         .values_list('email', flat=True)
                     )
                     # Deduplicate recipients
-                    recipients_school = [e for e in [school.email] + school_admin_emails if e]
-                    recipients_super = [e for e in superadmin_emails if e]
-                    subject = f"Payment Submitted - {school.name} - {plan.name}"
-                    message = (
-                        f"A payment has been submitted and is pending verification.\n\n"
-                        f"School: {school.name}\n"
-                        f"Plan: {plan.name}\n"
-                        f"Amount: {amount} {getattr(settings, 'DEFAULT_CURRENCY', 'KES')}\n"
-                        f"Method: {payment.payment_method}\n"
-                        f"Payment ID: {payment.payment_id}\n"
-                        f"Status: {payment.status}\n\n"
-                        f"You will receive another email once the payment is approved."
-                    )
-                    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+                    recipients_school = list(set([e for e in [school.email] + school_admin_emails if e]))
+                    recipients_super = list(set([e for e in superadmin_emails if e]))
+
+                    host = settings.ALLOWED_HOSTS[0] if (getattr(settings, 'ALLOWED_HOSTS', None) and settings.ALLOWED_HOSTS[0] not in ('*', 'localhost', '127.0.0.1')) else 'clasyo.co.ke'
+                    billing_url = f"https://{host}/school/{school.slug}/billing/" if (school and school.slug) else f"https://{host}/"
+
+                    context = {
+                        'school_name': school.name,
+                        'plan_name': plan.name,
+                        'amount': f"{amount:,.2f}",
+                        'currency': getattr(settings, 'DEFAULT_CURRENCY', 'KES'),
+                        'payment_method': payment.payment_method,
+                        'payment_id': payment.payment_id,
+                        'status': 'Pending Verification',
+                        'billing_url': billing_url,
+                    }
                     if recipients_school:
-                        send_mail(subject, message, from_email, recipients_school, fail_silently=True)
+                        send_notification_by_template(
+                            code='payment_submitted',
+                            channel='email',
+                            recipients=recipients_school,
+                            context=context,
+                            school=school,
+                            fail_silently=True
+                        )
                     if recipients_super:
-                        send_mail(f"[Admin] {subject}", message, from_email, recipients_super, fail_silently=True)
-                except Exception:
-                    pass
+                        send_notification_by_template(
+                            code='payment_submitted',
+                            channel='email',
+                            recipients=recipients_super,
+                            context=context,
+                            school=school,
+                            subject_prefix="[Admin]",
+                            fail_silently=True
+                        )
+                except Exception as e:
+                    logger.error(f"Error sending payment_submitted notification: {e}")
 
                 billing_url = reverse('core:billing', kwargs={'school_slug': school.slug})
                 return JsonResponse({'success': True, 'redirect_url': f"{billing_url}?submitted=1"})

@@ -59,7 +59,7 @@
                 </thead>
                 <tbody>
                     {% for item in templates %}
-                    <tr>
+                    <tr class="clickable-row" data-edit-url="{% url 'superadmin:school_notification_template_customize' school_slug=school.slug code=item.code channel=item.channel %}" title="Click row to customize {{ item.name }} template">
                         <td class="ps-4">
                             <div class="fw-bold text-body">{{ item.name }}</div>
                             <code class="text-muted small">{{ item.code }}</code>
@@ -107,7 +107,7 @@
                                 </div>
                             {% endif %}
                         </td>
-                        <td class="text-end pe-4 text-nowrap">
+                        <td class="text-end pe-4 text-nowrap" onclick="event.stopPropagation();">
                             <div class="table-action-group d-inline-flex align-items-center gap-2">
                                 <button type="button" 
                                         class="table-action-link" 
@@ -116,13 +116,6 @@
                                         aria-label="Preview">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                
-                                <a href="{% url 'superadmin:school_notification_template_customize' school_slug=school.slug code=item.code channel=item.channel %}" 
-                                   class="table-action-link" 
-                                   title="{% if item.is_custom %}Edit Customization{% else %}Customize for School{% endif %}"
-                                   aria-label="Customize">
-                                    <i class="fas fa-edit"></i>
-                                </a>
 
                                 {% if item.is_custom %}
                                 <form method="post" 

@@ -236,24 +236,33 @@ def purge_school_and_tenant_data(school, notify_admins: bool = True) -> dict:
     }
 
     # 1. Notify school admins
-    admins = list(User.objects.filter(role='admin', school=school))
+    admins = list(User.objects.filter(role__in=['admin', 'school_admin'], school=school))
     if notify_admins:
+        from core.services.notification_templates import render_email_template
+        from django.core.mail import EmailMultiAlternatives
         for admin in admins:
             try:
-                send_mail(
-                    subject=f'Administrator account for {school_name} deleted',
-                    message=(
-                        f'Hello {admin.get_full_name()},\n\n'
-                        f'The school "{school_name}" and its dedicated database have been permanently deleted from Clasyo. '
-                        f'Your administrator account and all associated school records have been removed.\n\n'
-                        f'If you believe this was an error, please contact system support.\n\n'
-                        f'Best regards,\n'
-                        f'Clasyo Team'
+                context = {
+                    'subject': f'Administrator Account for {school_name} Deleted',
+                    'heading': 'School Account & Database Removed',
+                    'body': (
+                        f"Hello <strong>{admin.get_full_name()}</strong>,<br><br>"
+                        f"The school <strong>{school_name}</strong> and its dedicated database have been permanently removed from Clasyo. "
+                        f"Your administrator account and all associated school records have been deleted.<br><br>"
+                        f"If you believe this was done in error or require data recovery assistance, please contact system support."
                     ),
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[admin.email],
-                    fail_silently=True,
+                    'button_text': 'CONTACT SUPPORT',
+                    'button_url': 'mailto:support@timestentechnologies.co.ke',
+                }
+                subject, html_content, text_content = render_email_template(
+                    template_or_code='account_deleted',
+                    context=context,
+                    school=None
                 )
+                from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+                msg = EmailMultiAlternatives(subject=subject, body=text_content, from_email=from_email, to=[admin.email])
+                msg.attach_alternative(html_content, "text/html")
+                msg.send(fail_silently=True)
             except Exception as e:
                 logger.warning(f"[Tenants] Failed notifying admin {admin.email}: {e}")
 

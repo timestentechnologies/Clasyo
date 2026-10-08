@@ -75,7 +75,7 @@
                 </thead>
                 <tbody>
                     {% for tpl in templates %}
-                    <tr>
+                    <tr class="clickable-row" data-edit-url="{% url 'superadmin:notification_template_update' tpl.id %}" title="Click row to edit {{ tpl.name }} template">
                         <td class="ps-4">
                             <div class="fw-bold text-body">{{ tpl.name }}</div>
                             <code class="text-muted small">{{ tpl.code }}</code>
@@ -122,7 +122,7 @@
                                 <span class="badge bg-danger-subtle text-danger border">Disabled</span>
                             {% endif %}
                         </td>
-                        <td class="text-end pe-4 text-nowrap">
+                        <td class="text-end pe-4 text-nowrap" onclick="event.stopPropagation();">
                             <div class="table-action-group d-inline-flex align-items-center gap-2">
                                 <button type="button" 
                                         class="table-action-link" 
@@ -138,12 +138,6 @@
                                         aria-label="Test Send">
                                     <i class="fas fa-paper-plane"></i>
                                 </button>
-                                <a href="{% url 'superadmin:notification_template_update' tpl.id %}" 
-                                   class="table-action-link" 
-                                   title="Edit Template"
-                                   aria-label="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </a>
                                 {% if not tpl.is_system %}
                                 <a href="{% url 'superadmin:notification_template_delete' tpl.id %}" 
                                    class="table-action-link text-danger" 

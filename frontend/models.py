@@ -28,8 +28,10 @@ class PageContent(models.Model):
     PAGE_CHOICES = [
         ('about', 'About Us'),
         ('home_hero', 'Home - Hero Section'),
-        ('home_features', 'Home - Features'),
         ('contact', 'Contact Info'),
+        ('policy', 'Privacy Policy'),
+        ('terms', 'Terms of Service'),
+        ('features', 'Features'),
     ]
     
     page = models.CharField(max_length=50, choices=PAGE_CHOICES, unique=True)
@@ -209,21 +211,37 @@ class ProcessStep(models.Model):
 
 
 class FeatureItem(models.Model):
-    """Homepage Features Card"""
-    title = models.CharField(max_length=100)
-    description = models.TextField()
+    """Features & Capabilities Module Card"""
+    CATEGORY_CHOICES = [
+        ('academic', 'Academics & CBC'),
+        ('finance', 'Finance & M-Pesa'),
+        ('operations', 'Operations & Logistics'),
+        ('admin', 'Administration & HR'),
+        ('ai', 'AI & Communication'),
+    ]
+
+    title = models.CharField(max_length=150)
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, default='academic')
+    badge = models.CharField(max_length=50, blank=True, default="", help_text="Badge tag e.g. Academics, Kenyan CBC, Finance")
     icon = models.CharField(max_length=60, default="fas fa-star", help_text="FontAwesome class e.g. fas fa-user-graduate")
+    description = models.TextField()
+    feature_points = models.TextField(blank=True, default="", help_text="Key features/highlights, one per line")
     order = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['order', 'id']
-        verbose_name = "Feature Item"
-        verbose_name_plural = "Feature Items"
+        verbose_name = "Feature Module"
+        verbose_name_plural = "Feature Modules"
 
     def __str__(self):
-        return self.title
+        return f"{self.title} ({self.get_category_display()})"
+
+    def get_points_list(self):
+        if not self.feature_points:
+            return []
+        return [p.strip() for p in self.feature_points.splitlines() if p.strip()]
 
 
 class ParallaxSection(models.Model):

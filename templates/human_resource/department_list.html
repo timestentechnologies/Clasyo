@@ -65,21 +65,17 @@
                 </thead>
                 <tbody>
                 {% for dept in departments %}
-                <tr>
+                <tr class="clickable-row" onclick="openDeptForm('edit', {
+                    dept_id: '{{ dept.pk }}',
+                    name: '{{ dept.name|escapejs }}',
+                    code: '{{ dept.code|escapejs }}',
+                    description: '{{ dept.description|default:\'\'|escapejs }}'
+                })">
                     <td><strong>{{ dept.name }}</strong></td>
                     <td><span class="badge bg-secondary">{{ dept.code }}</span></td>
                     <td>{{ dept.description|default:"No description"|truncatewords:10 }}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary me-1"
-                                onclick="openDeptForm('edit', {
-                                    dept_id: '{{ dept.pk }}',
-                                    name: '{{ dept.name|escapejs }}',
-                                    code: '{{ dept.code|escapejs }}',
-                                    description: '{{ dept.description|default:''|escapejs }}'
-                                })">
-                            <i class="fas fa-edit me-1"></i> Edit
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteDepartment({{ dept.pk }}, '{{ dept.name|escapejs }}')">
+                    <td onclick="event.stopPropagation();">
+                        <button class="btn btn-sm btn-outline-danger" title="Delete Department" onclick="deleteDepartment({{ dept.pk }}, '{{ dept.name|escapejs }}')">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>

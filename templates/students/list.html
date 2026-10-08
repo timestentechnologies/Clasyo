@@ -84,7 +84,7 @@
                 </thead>
                 <tbody>
                     {% for student in students %}
-                    <tr data-name="{{ student.get_full_name|lower }}" data-admission="{{ student.admission_number|lower }}" data-email="{{ student.email|lower }}" data-class="{{ student.current_class.id|lower }}" data-status="{% if student.is_active %}active{% else %}inactive{% endif %}">
+                    <tr class="clickable-row" onclick="editStudent('{{ student.pk }}')" data-name="{{ student.get_full_name|lower }}" data-admission="{{ student.admission_number|lower }}" data-email="{{ student.email|lower }}" data-class="{{ student.current_class.id|lower }}" data-status="{% if student.is_active %}active{% else %}inactive{% endif %}">
                         <td>
                             {% if student.photo %}
                                 <img src="{{ student.photo.url }}" alt="{{ student.get_full_name }}" class="rounded-circle" style="width: 40px; height: 40px;">
@@ -110,7 +110,7 @@
                                 <span class="badge-modern badge-danger-modern">Inactive</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td onclick="event.stopPropagation();">
                             {% if student.user %}
                                 {% if request.user.role == 'admin' or request.user.role == 'school_admin' or request.user.role == 'super_admin' %}
                                     <a href="{% url 'core:login_as' school_slug=school_slug user_id=student.user.pk %}" 
@@ -131,9 +131,6 @@
                             <a class="btn-modern btn-sm-modern btn-primary-modern" title="View" href="{% url 'students:detail' school_slug=school_slug pk=student.pk %}">
                                 <i class="fas fa-eye"></i>
                             </a>
-                            <button class="btn-modern btn-sm-modern btn-warning-modern" title="Edit" onclick="editStudent('{{ student.pk }}')">
-                                <i class="fas fa-edit"></i>
-                            </button>
                             <button class="btn-modern btn-sm-modern btn-danger-modern" title="Delete" onclick="deleteStudent('{{ student.pk }}', '{{ student.first_name }} {{ student.last_name }}')">
                                 <i class="fas fa-trash"></i>
                             </button>

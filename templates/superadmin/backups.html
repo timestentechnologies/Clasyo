@@ -661,7 +661,7 @@ body.dark-theme .btn-outline-primary:hover {
                                     <small class="text-muted">Never</small>
                                     {% endif %}
                                 </td>
-                                <td class="text-end pe-3">
+                                <td class="text-end pe-3" onclick="event.stopPropagation();">
                                     <div class="btn-group btn-group-sm">
                                         <form method="POST" action="{% url 'superadmin:backup_create' %}"
                                             class="d-inline">
@@ -669,7 +669,7 @@ body.dark-theme .btn-outline-primary:hover {
                                             <input type="hidden" name="target" value="{{ item.school.slug }}">
                                             <button type="submit" class="btn btn-outline-primary btn-sm"
                                                 title="Backup this school's database">
-                                                <i class="fas fa-download me-1"></i> Backup
+                                                <i class="fas fa-download"></i>
                                             </button>
                                         </form>
                                         <a href="?db={{ item.school.slug }}#archives"
@@ -780,12 +780,12 @@ body.dark-theme .btn-outline-primary:hover {
                                             class="fas fa-times-circle me-1"></i>Failed</span>
                                     {% endif %}
                                 </td>
-                                <td class="text-end pe-3">
+                                <td class="text-end pe-3" onclick="event.stopPropagation();">
                                     <div class="btn-group btn-group-sm">
                                         {% if b.status == 'completed' %}
                                         <a href="{% url 'superadmin:backup_download' b.id %}"
                                             class="btn btn-success btn-sm" title="Download backup archive">
-                                            <i class="fas fa-download"></i> Download
+                                            <i class="fas fa-download"></i>
                                         </a>
                                         {% endif %}
                                         <form method="POST" action="{% url 'superadmin:backup_delete' b.id %}"

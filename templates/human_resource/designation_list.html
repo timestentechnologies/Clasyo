@@ -71,7 +71,13 @@
                 </thead>
                 <tbody>
                 {% for designation in designations %}
-                <tr>
+                <tr class="clickable-row" onclick="openDesignationForm('edit', {
+                    designation_id: '{{ designation.pk }}',
+                    name: '{{ designation.name|escapejs }}',
+                    code: '{{ designation.code|default:\'\'|escapejs }}',
+                    description: '{{ designation.description|default:\'\'|escapejs }}',
+                    is_active: {{ designation.is_active|yesno:'true,false' }}
+                })">
                     <td><strong>{{ designation.name }}</strong></td>
                     <td>{{ designation.description|default:"No description"|truncatewords:15 }}</td>
                     <td>
@@ -79,18 +85,8 @@
                             {% if designation.is_active %}Active{% else %}Inactive{% endif %}
                         </span>
                     </td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary me-1"
-                                onclick="openDesignationForm('edit', {
-                                    designation_id: '{{ designation.pk }}',
-                                    name: '{{ designation.name|escapejs }}',
-                                    code: '{{ designation.code|default:''|escapejs }}',
-                                    description: '{{ designation.description|default:''|escapejs }}',
-                                    is_active: {{ designation.is_active|yesno:'true,false' }}
-                                })">
-                            <i class="fas fa-edit me-1"></i> Edit
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteDesignation({{ designation.pk }}, '{{ designation.name|escapejs }}')">
+                    <td onclick="event.stopPropagation();">
+                        <button class="btn btn-sm btn-outline-danger" title="Delete Designation" onclick="deleteDesignation({{ designation.pk }}, '{{ designation.name|escapejs }}')">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>

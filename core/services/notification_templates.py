@@ -117,7 +117,9 @@ def render_email_template(
     template_or_code,
     context: Dict[str, Any],
     school=None,
-    request=None
+    request=None,
+    subject_prefix: Optional[str] = None,
+    subject_override: Optional[str] = None
 ) -> Tuple[str, str, str]:
     """
     Render standard email with header, accent divider, body, CTA button, and dark footer.
@@ -158,6 +160,11 @@ def render_email_template(
         if not hero_image_url:
             hero_image_url = context.get('hero_image_url', None)
 
+    if subject_override:
+        subject = subject_override
+    if subject_prefix:
+        subject = f"{subject_prefix} {subject}".strip()
+
     # Convert newlines to paragraphs/breaks if body is plain text
     formatted_body = body
     if '<p>' not in body and '<br>' not in body and '<div' not in body:
@@ -189,7 +196,10 @@ def send_notification_by_template(
     context: Dict[str, Any],
     school=None,
     request=None,
-    from_email: Optional[str] = None
+    from_email: Optional[str] = None,
+    subject_prefix: Optional[str] = None,
+    subject_override: Optional[str] = None,
+    fail_silently: bool = True
 ) -> Dict[str, Any]:
     """
     Send dynamic notification via template across Email, SMS, or WhatsApp.
@@ -201,7 +211,9 @@ def send_notification_by_template(
             template_or_code=template or code,
             context=context,
             school=school,
-            request=request
+            request=request,
+            subject_prefix=subject_prefix,
+            subject_override=subject_override
         )
 
         if not from_email:
@@ -212,27 +224,27 @@ def send_notification_by_template(
                 if school_email_cfg and school_email_cfg.default_from_email:
                     from_email = f"{school_email_cfg.default_from_name or school.name} <{school_email_cfg.default_from_email}>"
             if not from_email:
-                # Only fall back to platform default if no school specified or Superadmin granted allow_system_email
-                if not school or getattr(school, 'allow_system_email', False):
-                    global_email_cfg = GlobalEmailConfiguration.objects.filter(is_active=True).first()
-                    if global_email_cfg and global_email_cfg.default_from_email:
-                        from_email = f"{global_email_cfg.default_from_name or 'Clasyo'} <{global_email_cfg.default_from_email}>"
-                    else:
-                        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'notifications@schoolsaas.com')
+                global_email_cfg = GlobalEmailConfiguration.objects.filter(is_active=True).first()
+                if global_email_cfg and global_email_cfg.default_from_email:
+                    from_email = f"{global_email_cfg.default_from_name or 'Clasyo'} <{global_email_cfg.default_from_email}>"
+                else:
+                    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None)
 
-        if not from_email:
-            logger.warning("No email provider configured and system email default not permitted for school")
-            return {'success': False, 'channel': 'email', 'error': 'No email configuration configured and system email default not granted.'}
-
-        msg = EmailMultiAlternatives(
-            subject=subject,
-            body=text_content,
-            from_email=from_email,
-            to=recipients
-        )
-        msg.attach_alternative(html_content, "text/html")
-        sent_count = msg.send(fail_silently=False)
-        return {'success': True, 'channel': 'email', 'sent': sent_count, 'subject': subject}
+        try:
+            msg = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=from_email,
+                to=recipients
+            )
+            msg.attach_alternative(html_content, "text/html")
+            sent_count = msg.send(fail_silently=fail_silently)
+            return {'success': True, 'channel': 'email', 'sent': sent_count, 'subject': subject}
+        except Exception as e:
+            logger.error(f"Failed to send email notification template [{code}] to {recipients}: {e}")
+            if not fail_silently:
+                raise
+            return {'success': False, 'channel': 'email', 'error': str(e)}
 
     elif channel == 'sms':
         if template:
@@ -1003,19 +1015,21 @@ def seed_default_notification_templates():
             'channel': 'email',
             'category': 'system',
             'name': 'Welcome User / Account Created',
-            'subject': 'Welcome to Clasyo - Your Account is Ready',
-            'heading': 'Welcome to Your School Portal',
+            'subject': 'Welcome to {{ school_name }} - Your Account is Ready',
+            'heading': 'Welcome to Your Account',
             'body': (
-                "Hello {{ user_full_name }},\n\n"
-                "An account has been created for you on the <strong>{{ school_name }}</strong> portal.\n\n"
-                "<strong>Your Login Credentials:</strong><br>"
-                "• Username / Email: <strong>{{ username }}</strong><br>"
-                "• Temporary Password: <strong>{{ temporary_password }}</strong>\n\n"
-                "For your security, we strongly recommend that you change your password upon your first login."
+                "Dear <strong>{{ user_full_name }}</strong>,<br><br>"
+                "Welcome to <strong>{{ school_name }}</strong>! Your portal account has been created successfully.<br><br>"
+                "<strong>Your Account Details:</strong><br>"
+                "• <strong>Role:</strong> {{ role }}<br>"
+                "• <strong>Email / Username:</strong> {{ email }}<br>"
+                "{{ credentials_info }}"
+                "<br>"
+                "Please log in to access your dashboard. For your security, we recommend that you change your password upon your first login."
             ),
             'button_text': 'LOG IN TO YOUR ACCOUNT',
             'button_url': '{{ login_url }}',
-            'available_tags': 'user_full_name, school_name, username, temporary_password, login_url',
+            'available_tags': 'user_full_name, school_name, role, email, username, temporary_password, credentials_info, school_slug, login_url',
             'is_system': True,
         },
         {
@@ -1026,12 +1040,12 @@ def seed_default_notification_templates():
             'subject': '',
             'heading': '',
             'body': (
-                "Welcome to {{ school_name }}! Your portal account has been created. "
-                "Login: {{ username }} | Password: {{ temporary_password }} at {{ login_url }}"
+                "Welcome to {{ school_name }}! Your account has been created. "
+                "Role: {{ role }} | Email: {{ email }} | Login: {{ login_url }}"
             ),
             'button_text': '',
             'button_url': '',
-            'available_tags': 'school_name, username, temporary_password, login_url',
+            'available_tags': 'school_name, user_full_name, role, email, temporary_password, login_url',
             'is_system': True,
         },
         {
@@ -1067,9 +1081,340 @@ def seed_default_notification_templates():
             'available_tags': 'school_name, reset_url',
             'is_system': True,
         },
+
+        # --- SUBSCRIPTIONS & PLATFORM PAYMENTS ---
+        {
+            'code': 'payment_submitted',
+            'channel': 'email',
+            'category': 'system',
+            'name': 'Subscription Payment Submitted',
+            'subject': 'Payment Submitted - {{ school_name }} - {{ plan_name }}',
+            'heading': 'Payment Submitted & Pending Verification',
+            'body': (
+                "Dear <strong>{{ school_name }}</strong> Administrator,<br><br>"
+                "A subscription payment has been received and is currently pending verification by our finance team.<br><br>"
+                "<strong>Transaction Details:</strong><br>"
+                "• <strong>Payment ID:</strong> {{ payment_id }}<br>"
+                "• <strong>School:</strong> {{ school_name }}<br>"
+                "• <strong>Subscription Plan:</strong> {{ plan_name }}<br>"
+                "• <strong>Amount:</strong> {{ currency }} {{ amount }}<br>"
+                "• <strong>Payment Method:</strong> {{ payment_method }}<br>"
+                "• <strong>Status:</strong> Pending Verification<br><br>"
+                "You will receive an automated confirmation once the payment is approved and your subscription is activated."
+            ),
+            'button_text': 'VIEW BILLING DASHBOARD',
+            'button_url': '{{ billing_url }}',
+            'available_tags': 'school_name, plan_name, payment_id, amount, currency, payment_method, status, billing_url',
+            'is_system': True,
+        },
+        {
+            'code': 'payment_submitted',
+            'channel': 'sms',
+            'category': 'system',
+            'name': 'Payment Submitted (SMS)',
+            'subject': '',
+            'heading': '',
+            'body': (
+                "Payment of {{ currency }} {{ amount }} for {{ school_name }} ({{ plan_name }}) submitted. "
+                "Ref: {{ payment_id }}. Status: Pending Verification."
+            ),
+            'button_text': '',
+            'button_url': '',
+            'available_tags': 'school_name, plan_name, payment_id, amount, currency',
+            'is_system': True,
+        },
+        {
+            'code': 'payment_verified',
+            'channel': 'email',
+            'category': 'system',
+            'name': 'Subscription Payment Verified',
+            'subject': 'Payment Verified - {{ school_name }} - {{ plan_name }}',
+            'heading': 'Payment Verified',
+            'body': (
+                "Dear <strong>{{ school_name }}</strong> Administrator,<br><br>"
+                "Your subscription payment has been successfully verified.<br><br>"
+                "<strong>Payment Summary:</strong><br>"
+                "• <strong>Payment ID:</strong> {{ payment_id }}<br>"
+                "• <strong>Subscription Plan:</strong> {{ plan_name }}<br>"
+                "• <strong>Amount:</strong> {{ currency }} {{ amount }}<br>"
+                "• <strong>Status:</strong> Verified<br><br>"
+                "Your subscription activation is being finalized. Thank you for choosing Clasyo."
+            ),
+            'button_text': 'VIEW BILLING & SUBSCRIPTION',
+            'button_url': '{{ billing_url }}',
+            'available_tags': 'school_name, plan_name, payment_id, amount, currency, status, billing_url',
+            'is_system': True,
+        },
+        {
+            'code': 'payment_verified',
+            'channel': 'sms',
+            'category': 'system',
+            'name': 'Payment Verified (SMS)',
+            'subject': '',
+            'heading': '',
+            'body': (
+                "Your payment of {{ currency }} {{ amount }} for {{ plan_name }} has been verified (ID: {{ payment_id }}). Thank you."
+            ),
+            'button_text': '',
+            'button_url': '',
+            'available_tags': 'school_name, plan_name, payment_id, amount, currency',
+            'is_system': True,
+        },
+        {
+            'code': 'payment_approved',
+            'channel': 'email',
+            'category': 'system',
+            'name': 'Subscription Payment Approved',
+            'subject': 'Payment Approved - {{ school_name }} - {{ plan_name }}',
+            'heading': 'Payment Approved & Subscription Active',
+            'body': (
+                "Dear <strong>{{ school_name }}</strong> Administrator,<br><br>"
+                "We are pleased to inform you that your payment has been approved and your subscription is now active!<br><br>"
+                "<strong>Subscription Summary:</strong><br>"
+                "• <strong>Payment ID:</strong> {{ payment_id }}<br>"
+                "• <strong>Plan:</strong> {{ plan_name }}<br>"
+                "• <strong>Amount Paid:</strong> {{ currency }} {{ amount }}<br>"
+                "• <strong>Status:</strong> Approved & Active<br><br>"
+                "All features included in the {{ plan_name }} plan are now fully enabled for your school portal."
+            ),
+            'button_text': 'GO TO DASHBOARD',
+            'button_url': '{{ billing_url }}',
+            'available_tags': 'school_name, plan_name, payment_id, amount, currency, status, billing_url',
+            'is_system': True,
+        },
+        {
+            'code': 'payment_approved',
+            'channel': 'sms',
+            'category': 'system',
+            'name': 'Payment Approved (SMS)',
+            'subject': '',
+            'heading': '',
+            'body': (
+                "Your payment of {{ currency }} {{ amount }} for {{ school_name }} is approved. "
+                "Subscription for {{ plan_name }} is now active. Thank you for choosing Clasyo."
+            ),
+            'button_text': '',
+            'button_url': '',
+            'available_tags': 'school_name, plan_name, payment_id, amount, currency',
+            'is_system': True,
+        },
+        {
+            'code': 'payment_rejected',
+            'channel': 'email',
+            'category': 'system',
+            'name': 'Subscription Payment Rejected',
+            'subject': 'Payment Rejected - {{ school_name }} - {{ plan_name }}',
+            'heading': 'Subscription Payment Notice',
+            'body': (
+                "Dear <strong>{{ school_name }}</strong> Administrator,<br><br>"
+                "Your subscription payment could not be approved at this time.<br><br>"
+                "<strong>Details:</strong><br>"
+                "• <strong>Payment ID:</strong> {{ payment_id }}<br>"
+                "• <strong>Plan:</strong> {{ plan_name }}<br>"
+                "• <strong>Reason for Rejection:</strong> {{ rejection_reason }}<br><br>"
+                "Please review the reason above and resubmit your payment with the correct transaction details, or contact our support team."
+            ),
+            'button_text': 'REVIEW BILLING & RESUBMIT',
+            'button_url': '{{ billing_url }}',
+            'available_tags': 'school_name, plan_name, payment_id, rejection_reason, billing_url',
+            'is_system': True,
+        },
+        {
+            'code': 'payment_rejected',
+            'channel': 'sms',
+            'category': 'system',
+            'name': 'Payment Rejected (SMS)',
+            'subject': '',
+            'heading': '',
+            'body': (
+                "Your payment for {{ plan_name }} (ID: {{ payment_id }}) was not approved. "
+                "Reason: {{ rejection_reason }}. Please check your billing dashboard."
+            ),
+            'button_text': '',
+            'button_url': '',
+            'available_tags': 'school_name, plan_name, payment_id, rejection_reason',
+            'is_system': True,
+        },
+        {
+            'code': 'subscription_expiring',
+            'channel': 'email',
+            'category': 'system',
+            'name': 'Subscription Expiring Soon',
+            'subject': 'Subscription Expiring Soon - {{ school_name }} - {{ plan_name }}',
+            'heading': 'Subscription Renewal Reminder',
+            'body': (
+                "Dear <strong>{{ school_name }}</strong> Administrator,<br><br>"
+                "This is a reminder that your subscription for the <strong>{{ plan_name }}</strong> plan "
+                "will expire on <strong>{{ end_date }}</strong>.<br><br>"
+                "To ensure uninterrupted access to your school portal and avoid service suspension, "
+                "please renew your subscription before the expiration date."
+            ),
+            'button_text': 'RENEW SUBSCRIPTION NOW',
+            'button_url': '{{ renewal_url }}',
+            'available_tags': 'school_name, plan_name, end_date, renewal_url',
+            'is_system': True,
+        },
+        {
+            'code': 'subscription_expiring',
+            'channel': 'sms',
+            'category': 'system',
+            'name': 'Subscription Expiring (SMS)',
+            'subject': '',
+            'heading': '',
+            'body': (
+                "Reminder: Subscription for {{ school_name }} ({{ plan_name }}) expires on {{ end_date }}. "
+                "Please renew to avoid interruption: {{ renewal_url }}"
+            ),
+            'button_text': '',
+            'button_url': '',
+            'available_tags': 'school_name, plan_name, end_date, renewal_url',
+            'is_system': True,
+        },
+        {
+            'code': 'subscription_expired',
+            'channel': 'email',
+            'category': 'system',
+            'name': 'Subscription Expired Notice',
+            'subject': 'Subscription Expired - {{ school_name }}',
+            'heading': 'Your Subscription Has Expired',
+            'body': (
+                "Dear <strong>{{ school_name }}</strong> Administrator,<br><br>"
+                "Your subscription for the <strong>{{ plan_name }}</strong> plan expired on <strong>{{ end_date }}</strong>.<br><br>"
+                "Your school portal services have been temporarily suspended. "
+                "Please renew your subscription immediately to restore complete access for your staff, students, and parents."
+            ),
+            'button_text': 'REACTIVATE SUBSCRIPTION',
+            'button_url': '{{ renewal_url }}',
+            'available_tags': 'school_name, plan_name, end_date, renewal_url',
+            'is_system': True,
+        },
+        {
+            'code': 'subscription_expired',
+            'channel': 'sms',
+            'category': 'system',
+            'name': 'Subscription Expired (SMS)',
+            'subject': '',
+            'heading': '',
+            'body': (
+                "Your subscription for {{ school_name }} ({{ plan_name }}) has expired. "
+                "Please renew immediately to reactivate services: {{ renewal_url }}"
+            ),
+            'button_text': '',
+            'button_url': '',
+            'available_tags': 'school_name, plan_name, end_date, renewal_url',
+            'is_system': True,
+        },
+        {
+            'code': 'subscription_renewed',
+            'channel': 'email',
+            'category': 'system',
+            'name': 'Subscription Auto-Renewed',
+            'subject': 'Subscription Auto-Renewed - {{ school_name }} - {{ plan_name }}',
+            'heading': 'Subscription Renewed Successfully',
+            'body': (
+                "Dear <strong>{{ school_name }}</strong> Administrator,<br><br>"
+                "Your subscription for <strong>{{ plan_name }}</strong> has been automatically renewed "
+                "and is now active through <strong>{{ end_date }}</strong>.<br><br>"
+                "All features and modules remain fully operational. Thank you for your continued partnership with Clasyo!"
+            ),
+            'button_text': 'VIEW BILLING DASHBOARD',
+            'button_url': '{{ billing_url }}',
+            'available_tags': 'school_name, plan_name, end_date, billing_url',
+            'is_system': True,
+        },
+        {
+            'code': 'subscription_renewed',
+            'channel': 'sms',
+            'category': 'system',
+            'name': 'Subscription Renewed (SMS)',
+            'subject': '',
+            'heading': '',
+            'body': (
+                "Subscription for {{ school_name }} ({{ plan_name }}) renewed until {{ end_date }}. Thank you."
+            ),
+            'button_text': '',
+            'button_url': '',
+            'available_tags': 'school_name, plan_name, end_date',
+            'is_system': True,
+        },
+        {
+            'code': 'invoice_reminder',
+            'channel': 'email',
+            'category': 'system',
+            'name': 'Subscription Invoice Due Reminder',
+            'subject': 'Invoice Reminder: {{ invoice_number }} - Due {{ due_date }}',
+            'heading': 'Invoice Due Reminder',
+            'body': (
+                "Dear <strong>{{ school_name }}</strong> Administrator,<br><br>"
+                "This is a reminder regarding invoice <strong>{{ invoice_number }}</strong> for your <strong>{{ plan_name }}</strong> subscription.<br><br>"
+                "<strong>Invoice Details:</strong><br>"
+                "• <strong>Invoice Number:</strong> {{ invoice_number }}<br>"
+                "• <strong>Plan:</strong> {{ plan_name }}<br>"
+                "• <strong>Amount Due:</strong> {{ currency }} {{ total_amount }}<br>"
+                "• <strong>Due Date:</strong> {{ due_date }}<br><br>"
+                "Please settle this invoice before the due date to ensure continuous service."
+            ),
+            'button_text': 'VIEW & PAY INVOICE',
+            'button_url': '{{ invoice_url }}',
+            'available_tags': 'school_name, invoice_number, plan_name, currency, total_amount, due_date, invoice_url',
+            'is_system': True,
+        },
+        {
+            'code': 'invoice_reminder',
+            'channel': 'sms',
+            'category': 'system',
+            'name': 'Invoice Reminder (SMS)',
+            'subject': '',
+            'heading': '',
+            'body': (
+                "Reminder: Invoice {{ invoice_number }} for {{ school_name }} ({{ currency }} {{ total_amount }}) is due on {{ due_date }}."
+            ),
+            'button_text': '',
+            'button_url': '',
+            'available_tags': 'school_name, invoice_number, total_amount, currency, due_date',
+            'is_system': True,
+        },
+        {
+            'code': 'invoice_overdue',
+            'channel': 'email',
+            'category': 'system',
+            'name': 'Subscription Invoice Overdue Notice',
+            'subject': 'OVERDUE: Invoice {{ invoice_number }} - {{ school_name }}',
+            'heading': 'Important: Overdue Subscription Invoice',
+            'body': (
+                "Dear <strong>{{ school_name }}</strong> Administrator,<br><br>"
+                "Invoice <strong>{{ invoice_number }}</strong> for your <strong>{{ plan_name }}</strong> subscription was due on <strong>{{ due_date }}</strong> and is now overdue.<br><br>"
+                "<strong>Invoice Details:</strong><br>"
+                "• <strong>Invoice Number:</strong> {{ invoice_number }}<br>"
+                "• <strong>Plan:</strong> {{ plan_name }}<br>"
+                "• <strong>Amount Due:</strong> {{ currency }} {{ total_amount }}<br>"
+                "• <strong>Due Date:</strong> {{ due_date }}<br><br>"
+                "Please make payment as soon as possible to avoid service disruption."
+            ),
+            'button_text': 'PAY OVERDUE INVOICE',
+            'button_url': '{{ invoice_url }}',
+            'available_tags': 'school_name, invoice_number, plan_name, currency, total_amount, due_date, invoice_url',
+            'is_system': True,
+        },
+        {
+            'code': 'invoice_overdue',
+            'channel': 'sms',
+            'category': 'system',
+            'name': 'Invoice Overdue (SMS)',
+            'subject': '',
+            'heading': '',
+            'body': (
+                "OVERDUE: Invoice {{ invoice_number }} for {{ school_name }} ({{ currency }} {{ total_amount }}) is overdue. Please pay now."
+            ),
+            'button_text': '',
+            'button_url': '',
+            'available_tags': 'school_name, invoice_number, total_amount, currency',
+            'is_system': True,
+        },
     ]
 
     created_count = 0
+    updated_count = 0
     for t_data in DEFAULT_TEMPLATES:
         obj, created = NotificationTemplate.objects.get_or_create(
             school__isnull=True,
@@ -1090,5 +1435,16 @@ def seed_default_notification_templates():
         )
         if created:
             created_count += 1
+        elif obj.is_system:
+            obj.name = t_data['name']
+            obj.category = t_data['category']
+            obj.subject = t_data['subject']
+            obj.heading = t_data['heading']
+            obj.body = t_data['body']
+            obj.button_text = t_data['button_text']
+            obj.button_url = t_data['button_url']
+            obj.available_tags = t_data['available_tags']
+            obj.save()
+            updated_count += 1
 
-    return created_count
+    return created_count + updated_count

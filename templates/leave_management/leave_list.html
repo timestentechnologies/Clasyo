@@ -88,12 +88,12 @@
                         {{ leave.status|title }}
                     </span>
                 </td>
-                <td>
+                <td onclick="event.stopPropagation();">
                     {% if user.role in 'super_admin,school_admin' and leave.status == 'pending' %}
-                    <button class="btn btn-sm btn-success" onclick="approveLeave({{ leave.pk }})">
+                    <button class="btn btn-sm btn-success" onclick="approveLeave({{ leave.pk }})" title="Approve Leave">
                         <i class="fas fa-check"></i>
                     </button>
-                    <button class="btn btn-sm btn-danger" onclick="rejectLeave({{ leave.pk }})">
+                    <button class="btn btn-sm btn-danger" onclick="rejectLeave({{ leave.pk }})" title="Reject Leave">
                         <i class="fas fa-times"></i>
                     </button>
                     {% endif %}

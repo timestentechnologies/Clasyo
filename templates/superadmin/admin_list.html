@@ -82,7 +82,7 @@
                         </thead>
                         <tbody>
                             {% for admin in admins %}
-                            <tr>
+                            <tr class="clickable-row" data-edit-url="{% url 'superadmin:admin_edit' admin.id %}" title="Click row to edit {{ admin.get_full_name }}">
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="avatar-circle bg-primary text-white me-2">
@@ -127,19 +127,15 @@
                                 </td>
                                 <td>{{ admin.last_login|date:"M d, Y H:i"|default:"Never" }}</td>
                                 <td>{{ admin.created_at|date:"M d, Y" }}</td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <a href="{% url 'superadmin:admin_edit' admin.id %}" 
-                                           class="btn btn-sm btn-outline-primary" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
+                                <td onclick="event.stopPropagation();">
+                                    <div class="d-inline-flex align-items-center gap-1">
                                         <a href="{% url 'superadmin:impersonate_user' admin.id %}" 
-                                           class="btn btn-sm btn-outline-success" title="Login as this admin"
+                                           class="btn-action-icon text-success" title="Login as this admin"
                                            data-confirm="Are you sure you want to login as {{ admin.get_full_name|default:admin.email }}?" data-confirm-title="Confirm Login As" data-confirm-btn="Login As" data-confirm-class="btn-success">
                                             <i class="fas fa-sign-in-alt"></i>
                                         </a>
                                         <a href="{% url 'superadmin:admin_delete' admin.id %}"
-                                           class="btn btn-sm btn-outline-danger" title="Delete Admin">
+                                           class="btn-action-icon btn-action-delete text-danger" title="Delete Admin">
                                             <i class="fas fa-trash-alt"></i>
                                         </a>
                                     </div>

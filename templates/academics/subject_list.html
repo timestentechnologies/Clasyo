@@ -115,25 +115,22 @@
             </thead>
             <tbody>
             {% for subject in subjects %}
-            <tr data-name="{{ subject.name|lower }}" data-code="{{ subject.code|lower }}" data-type="{{ subject.subject_type|lower }}" data-credits="{{ subject.credits|default:'0' }}" data-description="{{ subject.description|lower }}">
+            <tr class="clickable-row" onclick="openSubjectForm('edit', {
+                id: '{{ subject.pk }}',
+                name: '{{ subject.name|escapejs }}',
+                code: '{{ subject.code|escapejs }}',
+                type: '{{ subject.subject_type|escapejs }}',
+                credits: '{{ subject.credits|default:\'1\' }}',
+                description: '{{ subject.description|default:\'\'|escapejs }}',
+                is_active: {{ subject.is_active|yesno:'true,false' }}
+            })" data-name="{{ subject.name|lower }}" data-code="{{ subject.code|lower }}" data-type="{{ subject.subject_type|lower }}" data-credits="{{ subject.credits|default:'0' }}" data-description="{{ subject.description|lower }}">
                 <td><strong>{{ subject.name }}</strong></td>
                 <td><span class="badge bg-secondary">{{ subject.code }}</span></td>
                 <td><span class="badge bg-info">{{ subject.subject_type|title }}</span></td>
                 <td>{{ subject.credits|default:"-" }}</td>
                 <td>{{ subject.description|default:"No description"|truncatewords:8 }}</td>
-                <td>
-                    <button class="btn btn-sm btn-primary" onclick="openSubjectForm('edit', {
-                        id: '{{ subject.pk }}',
-                        name: '{{ subject.name|escapejs }}',
-                        code: '{{ subject.code|escapejs }}',
-                        type: '{{ subject.subject_type|escapejs }}',
-                        credits: '{{ subject.credits|default:'1' }}',
-                        description: '{{ subject.description|default:''|escapejs }}',
-                        is_active: {{ subject.is_active|yesno:'true,false' }}
-                    })">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteSubject({{ subject.pk }}, '{{ subject.name }}')">
+                <td onclick="event.stopPropagation();">
+                    <button class="btn btn-sm btn-danger" title="Delete Subject" onclick="deleteSubject({{ subject.pk }}, '{{ subject.name|escapejs }}')">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>

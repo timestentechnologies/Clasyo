@@ -287,19 +287,19 @@ class SchoolCreateView(SuperAdminRequiredMixin, CreateView):
                 
                 # Create admin user
                 try:
-                    admin_user = User.objects.create_user(
+                    admin_user = User(
                         email=admin_email,
                         first_name=admin_first_name,
                         last_name=admin_last_name,
                         role='admin',
                         is_active=True,
-                        password=password
+                        school=school
                     )
-                    # Link admin to this school
-                    admin_user.school = school
-                    admin_user.save(update_fields=['school'])
+                    admin_user.set_password(password)
+                    admin_user._skip_welcome_email = True
+                    admin_user.save()
                     
-                    # Send email with credentials
+                    # Send email with credentials using template
                     self.send_admin_credentials_email(
                         admin_user, password, school
                     )
@@ -322,34 +322,43 @@ class SchoolCreateView(SuperAdminRequiredMixin, CreateView):
         return response
     
     def send_admin_credentials_email(self, user, password, school):
-        """Send login credentials to new school admin"""
-        subject = f'Welcome to {school.name} - School Management System'
-        message = f"""Hello {user.get_full_name()},
-
-Your school administrator account has been created for {school.name}.
-
-Login Details:
-- URL: {settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else 'your-domain.com'}/accounts/login/
-- Email: {user.email}
-- Password: {password}
-- School Slug: {school.slug}
-
-Please login and change your password immediately.
-
-Your dashboard URL: https://{settings.ALLOWED_HOSTS[0]}/school/{school.slug}/
-
-Best regards,
-School Management System Team
-"""
-        
+        """Send login credentials to new school admin using dynamic styled template"""
         try:
-            send_mail(
-                subject,
-                message,
-                settings.EMAIL_HOST_USER,
-                [user.email],
-                fail_silently=False,
+            from core.services.notification_templates import send_notification_by_template
+
+            host = settings.ALLOWED_HOSTS[0] if (getattr(settings, 'ALLOWED_HOSTS', None) and settings.ALLOWED_HOSTS[0] not in ('*', 'localhost', '127.0.0.1')) else 'clasyo.co.ke'
+            login_url = f"https://{host}/accounts/login/"
+
+            credentials_info = (
+                f"• <strong>Temporary Password:</strong> <code>{password}</code><br>"
+                f"• <strong>School:</strong> {school.name}<br>"
+                f"• <strong>School Slug:</strong> {school.slug}<br>"
             )
+
+            context = {
+                'user_full_name': user.get_full_name() or user.email,
+                'name': user.get_full_name() or user.email,
+                'school_name': school.name,
+                'role': 'School Administrator',
+                'email': user.email,
+                'username': user.email,
+                'temporary_password': password,
+                'credentials_info': credentials_info,
+                'school_slug': school.slug,
+                'login_url': login_url,
+                'dashboard_url': f"https://{host}/school/{school.slug}/",
+            }
+
+            res = send_notification_by_template(
+                code='welcome_user',
+                channel='email',
+                recipients=[user.email],
+                context=context,
+                school=school,
+                fail_silently=False
+            )
+            if not res.get('success'):
+                messages.warning(self.request, f"Email notification notice: {res.get('error', 'Could not send')}")
         except Exception as e:
             messages.warning(self.request, f'Email sending failed: {str(e)}')
 
@@ -550,20 +559,19 @@ class AdminUserCreateView(SuperAdminRequiredMixin, CreateView):
         # Generate random password
         password = get_random_string(12)
         
+        # Get selected school
+        school_id = self.request.POST.get('school')
+        school = get_object_or_404(School, id=school_id) if school_id else None
+
         # Create user
         user = form.save(commit=False)
         user.role = 'admin'
         user.is_active = True
+        user._skip_welcome_email = True
+        if school:
+            user.school = school
         user.set_password(password)
         user.save()
-        
-        # Get selected school
-        school_id = self.request.POST.get('school')
-        school = get_object_or_404(School, id=school_id) if school_id else None
-        if school:
-            # Link admin user to the selected school
-            user.school = school
-            user.save(update_fields=['school'])
         
         # Send email
         if school:
@@ -578,35 +586,43 @@ class AdminUserCreateView(SuperAdminRequiredMixin, CreateView):
         return redirect(self.success_url)
     
     def send_admin_credentials_email(self, user, password, school):
-        """Send login credentials to new admin"""
-        subject = f'School Admin Account Created - {school.name}'
-        message = f"""Hello {user.get_full_name()},
-
-Your school administrator account has been created for {school.name}.
-
-Login Details:
-- URL: https://{settings.ALLOWED_HOSTS[0]}/accounts/login/
-- Email: {user.email}
-- Password: {password}
-- School: {school.name}
-- School Slug: {school.slug}
-
-Dashboard: https://{settings.ALLOWED_HOSTS[0]}/school/{school.slug}/
-
-Please login and change your password immediately.
-
-Best regards,
-School Management System Team
-"""
-        
+        """Send login credentials to new admin using dynamic styled template"""
         try:
-            send_mail(
-                subject,
-                message,
-                settings.EMAIL_HOST_USER,
-                [user.email],
-                fail_silently=False,
+            from core.services.notification_templates import send_notification_by_template
+
+            host = settings.ALLOWED_HOSTS[0] if (getattr(settings, 'ALLOWED_HOSTS', None) and settings.ALLOWED_HOSTS[0] not in ('*', 'localhost', '127.0.0.1')) else 'clasyo.co.ke'
+            login_url = f"https://{host}/accounts/login/"
+
+            credentials_info = (
+                f"• <strong>Temporary Password:</strong> <code>{password}</code><br>"
+                f"• <strong>School:</strong> {school.name}<br>"
+                f"• <strong>School Slug:</strong> {school.slug}<br>"
             )
+
+            context = {
+                'user_full_name': user.get_full_name() or user.email,
+                'name': user.get_full_name() or user.email,
+                'school_name': school.name,
+                'role': 'School Administrator',
+                'email': user.email,
+                'username': user.email,
+                'temporary_password': password,
+                'credentials_info': credentials_info,
+                'school_slug': school.slug,
+                'login_url': login_url,
+                'dashboard_url': f"https://{host}/school/{school.slug}/",
+            }
+
+            res = send_notification_by_template(
+                code='welcome_user',
+                channel='email',
+                recipients=[user.email],
+                context=context,
+                school=school,
+                fail_silently=False
+            )
+            if not res.get('success'):
+                messages.warning(self.request, f"Email notification notice: {res.get('error', 'Could not send')}")
         except Exception as e:
             messages.warning(self.request, f'Email sending failed: {str(e)}')
 
@@ -1018,11 +1034,15 @@ class FAQManagementView(SuperAdminRequiredMixin, View):
 
 
 class PageContentManagementView(SuperAdminRequiredMixin, View):
-    """Manage page content"""
+    """Manage page content (Legal/Static Pages & Feature Modules)"""
     template_name = 'superadmin/page_content_management.html'
     
     def get(self, request):
-        page_contents = PageContent.objects.all()
+        page_contents = PageContent.objects.exclude(page='features').order_by('page')
+        features = FeatureItem.objects.all().order_by('order', 'id')
+        features_page_data = PageContent.objects.filter(page='features').first()
+        active_tab = request.GET.get('tab', 'pages')
+        
         form = PageContentForm()
         edit_id = request.GET.get('edit')
         edit_content = None
@@ -1033,38 +1053,113 @@ class PageContentManagementView(SuperAdminRequiredMixin, View):
         
         return render(request, self.template_name, {
             'page_contents': page_contents,
+            'features': features,
+            'features_page_data': features_page_data,
+            'active_tab': active_tab,
             'form': form,
             'edit_content': edit_content
         })
     
     def post(self, request):
-        content_id = request.POST.get('content_id')
         action = request.POST.get('action')
-        
-        if action == 'delete' and content_id:
-            content = get_object_or_404(PageContent, id=content_id)
+        tab = request.POST.get('tab', 'pages')
+
+        # Feature Module Save (Create or Update)
+        if action == 'save_feature_module':
+            feat_id = request.POST.get('feature_id')
+            title = request.POST.get('title', '').strip()
+            category = request.POST.get('category', 'academic').strip()
+            badge = request.POST.get('badge', '').strip()
+            icon = request.POST.get('icon', 'fas fa-star').strip()
+            try:
+                order = int(request.POST.get('order', 0) or 0)
+            except ValueError:
+                order = 0
+            description = request.POST.get('description', '').strip()
+            feature_points = request.POST.get('feature_points', '').strip()
+            is_active = request.POST.get('is_active') in ['true', '1', 'on']
+
+            if feat_id:
+                feature = get_object_or_404(FeatureItem, id=feat_id)
+                feature.title = title
+                feature.category = category
+                feature.badge = badge
+                feature.icon = icon
+                feature.order = order
+                feature.description = description
+                feature.feature_points = feature_points
+                feature.is_active = is_active
+                feature.save()
+                messages.success(request, f'Feature module "{title}" updated successfully!')
+            else:
+                FeatureItem.objects.create(
+                    title=title,
+                    category=category,
+                    badge=badge,
+                    icon=icon,
+                    order=order,
+                    description=description,
+                    feature_points=feature_points,
+                    is_active=is_active
+                )
+                messages.success(request, f'Feature module "{title}" created successfully!')
+            return redirect(reverse('superadmin:page_content_management') + '?tab=features')
+
+        # Feature Module Delete
+        elif action == 'delete_feature_module':
+            feat_id = request.POST.get('feature_id')
+            if feat_id:
+                feature = get_object_or_404(FeatureItem, id=feat_id)
+                title = feature.title
+                feature.delete()
+                messages.success(request, f'Feature module "{title}" deleted successfully!')
+            return redirect(reverse('superadmin:page_content_management') + '?tab=features')
+
+        # Features Header Save
+        elif action == 'save_features_header':
+            title = request.POST.get('title', '').strip()
+            subtitle = request.POST.get('subtitle', '').strip()
+            pc, _ = PageContent.objects.get_or_create(page='features')
+            pc.title = title
+            pc.subtitle = subtitle
+            pc.is_active = True
+            pc.save()
+            messages.success(request, 'Features page header settings updated!')
+            return redirect(reverse('superadmin:page_content_management') + '?tab=features')
+
+        # Standard Page Content Delete
+        elif action == 'delete' and request.POST.get('content_id'):
+            content = get_object_or_404(PageContent, id=request.POST.get('content_id'))
             content.delete()
             messages.success(request, 'Page content deleted successfully!')
             return redirect('superadmin:page_content_management')
-        
-        if content_id:
-            content = get_object_or_404(PageContent, id=content_id)
-            form = PageContentForm(request.POST, instance=content)
-            success_msg = 'Page content updated successfully!'
+
+        # Standard Page Content Save
         else:
-            form = PageContentForm(request.POST)
-            success_msg = 'Page content created successfully!'
-        
-        if form.is_valid():
-            form.save()
-            messages.success(request, success_msg)
-            return redirect('superadmin:page_content_management')
-        else:
-            page_contents = PageContent.objects.all()
-            return render(request, self.template_name, {
-                'page_contents': page_contents,
-                'form': form
-            })
+            content_id = request.POST.get('content_id')
+            if content_id:
+                content = get_object_or_404(PageContent, id=content_id)
+                form = PageContentForm(request.POST, instance=content)
+                success_msg = 'Page content updated successfully!'
+            else:
+                form = PageContentForm(request.POST)
+                success_msg = 'Page content created successfully!'
+            
+            if form.is_valid():
+                form.save()
+                messages.success(request, success_msg)
+                return redirect('superadmin:page_content_management')
+            else:
+                page_contents = PageContent.objects.exclude(page='features').order_by('page')
+                features = FeatureItem.objects.all().order_by('order', 'id')
+                features_page_data = PageContent.objects.filter(page='features').first()
+                return render(request, self.template_name, {
+                    'page_contents': page_contents,
+                    'features': features,
+                    'features_page_data': features_page_data,
+                    'active_tab': 'pages',
+                    'form': form
+                })
 
 
 class HomepageCMSView(SuperAdminRequiredMixin, View):
@@ -1544,37 +1639,59 @@ class PaymentVerifyView(SuperAdminRequiredMixin, View):
             return redirect('superadmin:payment_approval_list')
         
         payment.verify_payment(request.user)
-        # Notify school and superadmins
+        # Notify school and superadmins using dynamic notification template
         try:
-            from django.core.mail import send_mail
-            from django.conf import settings
+            from core.services.notification_templates import send_notification_by_template
             from django.contrib.auth import get_user_model
             User = get_user_model()
             school = payment.subscription.school if payment.subscription else None
+            plan = payment.subscription.plan if payment.subscription and payment.subscription.plan else None
             recipients_school = []
             if school and school.email:
                 recipients_school.append(school.email)
-            recipients_school += list(
-                User.objects.filter(school=school, role='school_admin', is_active=True).values_list('email', flat=True)
-            ) if school else []
-            recipients_school = [e for e in recipients_school if e]
-            recipients_super = list(
+            if school:
+                recipients_school += list(
+                    User.objects.filter(school=school, role__in=['admin', 'school_admin'], is_active=True).values_list('email', flat=True)
+                )
+            recipients_school = list(set([e for e in recipients_school if e]))
+            recipients_super = list(set(
                 User.objects.filter(role='superadmin', is_active=True).values_list('email', flat=True)
-            )
-            subject = f"Payment Verified - {school.name if school else ''} - {payment.subscription.plan.name if payment.subscription and payment.subscription.plan else ''}"
-            message = (
-                f"Your payment has been verified.\n\n"
-                f"Payment ID: {payment.payment_id}\n"
-                f"Amount: {payment.amount} {getattr(settings, 'DEFAULT_CURRENCY', 'KES')}\n"
-                f"Status: {payment.status}\n"
-            )
-            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+            ))
+
+            host = settings.ALLOWED_HOSTS[0] if (getattr(settings, 'ALLOWED_HOSTS', None) and settings.ALLOWED_HOSTS[0] not in ('*', 'localhost', '127.0.0.1')) else 'clasyo.co.ke'
+            billing_url = f"https://{host}/school/{school.slug}/billing/" if (school and school.slug) else f"https://{host}/superadmin/payments/"
+
+            context = {
+                'school_name': school.name if school else 'School',
+                'plan_name': plan.name if plan else 'Subscription',
+                'payment_id': payment.payment_id,
+                'amount': f"{payment.amount:,.2f}" if payment.amount else "0.00",
+                'currency': getattr(settings, 'DEFAULT_CURRENCY', 'KES'),
+                'payment_method': getattr(payment, 'payment_method', 'Bank / M-Pesa'),
+                'status': 'Verified',
+                'billing_url': billing_url,
+            }
             if recipients_school:
-                send_mail(subject, message, from_email, recipients_school, fail_silently=True)
+                send_notification_by_template(
+                    code='payment_verified',
+                    channel='email',
+                    recipients=recipients_school,
+                    context=context,
+                    school=school,
+                    fail_silently=True
+                )
             if recipients_super:
-                send_mail(f"[Admin] {subject}", message, from_email, recipients_super, fail_silently=True)
-        except Exception:
-            pass
+                send_notification_by_template(
+                    code='payment_verified',
+                    channel='email',
+                    recipients=recipients_super,
+                    context=context,
+                    school=school,
+                    subject_prefix="[Admin]",
+                    fail_silently=True
+                )
+        except Exception as e:
+            logger.error(f"Error sending payment_verified email: {e}")
         messages.success(request, f'Payment {payment.payment_id} has been verified.')
         return redirect('superadmin:payment_approval_list')
 
@@ -1590,37 +1707,59 @@ class PaymentApproveView(SuperAdminRequiredMixin, View):
             return redirect('superadmin:payment_approval_list')
         
         payment.approve_payment(request.user)
-        # Notify school and superadmins
+        # Notify school and superadmins using dynamic notification template
         try:
-            from django.core.mail import send_mail
-            from django.conf import settings
+            from core.services.notification_templates import send_notification_by_template
             from django.contrib.auth import get_user_model
             User = get_user_model()
             school = payment.subscription.school if payment.subscription else None
+            plan = payment.subscription.plan if payment.subscription and payment.subscription.plan else None
             recipients_school = []
             if school and school.email:
                 recipients_school.append(school.email)
-            recipients_school += list(
-                User.objects.filter(school=school, role='school_admin', is_active=True).values_list('email', flat=True)
-            ) if school else []
-            recipients_school = [e for e in recipients_school if e]
-            recipients_super = list(
+            if school:
+                recipients_school += list(
+                    User.objects.filter(school=school, role__in=['admin', 'school_admin'], is_active=True).values_list('email', flat=True)
+                )
+            recipients_school = list(set([e for e in recipients_school if e]))
+            recipients_super = list(set(
                 User.objects.filter(role='superadmin', is_active=True).values_list('email', flat=True)
-            )
-            subject = f"Payment Approved - {school.name if school else ''} - {payment.subscription.plan.name if payment.subscription and payment.subscription.plan else ''}"
-            message = (
-                f"Your payment has been approved and your subscription is now active.\n\n"
-                f"Payment ID: {payment.payment_id}\n"
-                f"Amount: {payment.amount} {getattr(settings, 'DEFAULT_CURRENCY', 'KES')}\n"
-                f"Status: {payment.status}\n"
-            )
-            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+            ))
+
+            host = settings.ALLOWED_HOSTS[0] if (getattr(settings, 'ALLOWED_HOSTS', None) and settings.ALLOWED_HOSTS[0] not in ('*', 'localhost', '127.0.0.1')) else 'clasyo.co.ke'
+            billing_url = f"https://{host}/school/{school.slug}/billing/" if (school and school.slug) else f"https://{host}/superadmin/payments/"
+
+            context = {
+                'school_name': school.name if school else 'School',
+                'plan_name': plan.name if plan else 'Subscription',
+                'payment_id': payment.payment_id,
+                'amount': f"{payment.amount:,.2f}" if payment.amount else "0.00",
+                'currency': getattr(settings, 'DEFAULT_CURRENCY', 'KES'),
+                'payment_method': getattr(payment, 'payment_method', 'Bank / M-Pesa'),
+                'status': 'Approved & Active',
+                'billing_url': billing_url,
+            }
             if recipients_school:
-                send_mail(subject, message, from_email, recipients_school, fail_silently=True)
+                send_notification_by_template(
+                    code='payment_approved',
+                    channel='email',
+                    recipients=recipients_school,
+                    context=context,
+                    school=school,
+                    fail_silently=True
+                )
             if recipients_super:
-                send_mail(f"[Admin] {subject}", message, from_email, recipients_super, fail_silently=True)
-        except Exception:
-            pass
+                send_notification_by_template(
+                    code='payment_approved',
+                    channel='email',
+                    recipients=recipients_super,
+                    context=context,
+                    school=school,
+                    subject_prefix="[Admin]",
+                    fail_silently=True
+                )
+        except Exception as e:
+            logger.error(f"Error sending payment_approved email: {e}")
         messages.success(request, f'Payment {payment.payment_id} has been approved and subscription activated.')
         return redirect('superadmin:payment_approval_list')
 
@@ -1637,36 +1776,59 @@ class PaymentRejectView(SuperAdminRequiredMixin, View):
             return redirect('superadmin:payment_detail', pk=payment_id)
         
         payment.reject_payment(request.user, rejection_reason)
-        # Notify school and superadmins
+        # Notify school and superadmins using dynamic notification template
         try:
-            from django.core.mail import send_mail
-            from django.conf import settings
+            from core.services.notification_templates import send_notification_by_template
             from django.contrib.auth import get_user_model
             User = get_user_model()
             school = payment.subscription.school if payment.subscription else None
+            plan = payment.subscription.plan if payment.subscription and payment.subscription.plan else None
             recipients_school = []
             if school and school.email:
                 recipients_school.append(school.email)
-            recipients_school += list(
-                User.objects.filter(school=school, role='school_admin', is_active=True).values_list('email', flat=True)
-            ) if school else []
-            recipients_school = [e for e in recipients_school if e]
-            recipients_super = list(
+            if school:
+                recipients_school += list(
+                    User.objects.filter(school=school, role__in=['admin', 'school_admin'], is_active=True).values_list('email', flat=True)
+                )
+            recipients_school = list(set([e for e in recipients_school if e]))
+            recipients_super = list(set(
                 User.objects.filter(role='superadmin', is_active=True).values_list('email', flat=True)
-            )
-            subject = f"Payment Rejected - {school.name if school else ''} - {payment.subscription.plan.name if payment.subscription and payment.subscription.plan else ''}"
-            message = (
-                f"Your payment has been rejected.\n\n"
-                f"Payment ID: {payment.payment_id}\n"
-                f"Reason: {rejection_reason}\n"
-            )
-            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+            ))
+
+            host = settings.ALLOWED_HOSTS[0] if (getattr(settings, 'ALLOWED_HOSTS', None) and settings.ALLOWED_HOSTS[0] not in ('*', 'localhost', '127.0.0.1')) else 'clasyo.co.ke'
+            billing_url = f"https://{host}/school/{school.slug}/billing/" if (school and school.slug) else f"https://{host}/superadmin/payments/"
+
+            context = {
+                'school_name': school.name if school else 'School',
+                'plan_name': plan.name if plan else 'Subscription',
+                'payment_id': payment.payment_id,
+                'amount': f"{payment.amount:,.2f}" if payment.amount else "0.00",
+                'currency': getattr(settings, 'DEFAULT_CURRENCY', 'KES'),
+                'rejection_reason': rejection_reason,
+                'status': 'Rejected',
+                'billing_url': billing_url,
+            }
             if recipients_school:
-                send_mail(subject, message, from_email, recipients_school, fail_silently=True)
+                send_notification_by_template(
+                    code='payment_rejected',
+                    channel='email',
+                    recipients=recipients_school,
+                    context=context,
+                    school=school,
+                    fail_silently=True
+                )
             if recipients_super:
-                send_mail(f"[Admin] {subject}", message, from_email, recipients_super, fail_silently=True)
-        except Exception:
-            pass
+                send_notification_by_template(
+                    code='payment_rejected',
+                    channel='email',
+                    recipients=recipients_super,
+                    context=context,
+                    school=school,
+                    subject_prefix="[Admin]",
+                    fail_silently=True
+                )
+        except Exception as e:
+            logger.error(f"Error sending payment_rejected email: {e}")
         messages.success(request, f'Payment {payment.payment_id} has been rejected.')
         return redirect('superadmin:payment_approval_list')
 
@@ -2206,29 +2368,40 @@ class TestEmailDeliveryView(SuperAdminRequiredMixin, View):
             provider_title = active_config.get_provider_display() if active_config else 'System Default (.env / Console)'
             
             subject = f"Test Email Delivery - Clasyo [{timezone.now().strftime('%Y-%m-%d %H:%M:%S')}]"
-            message = (
-                f"Hello,\n\n"
-                f"This is a test notification verifying your Clasyo Email Configuration.\n\n"
-                f"Delivery Details:\n"
-                f"----------------------------------------\n"
-                f"Active Provider: {provider_title}\n"
-                f"Sender: {sender_name} <{sender_email}>\n"
-                f"Recipient: {recipient}\n"
-                f"Sent At: {timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
-                f"Status: DELIVERED SUCCESSFULLY\n"
-                f"----------------------------------------\n\n"
-                f"If you received this email, password resets, invitations, and system notifications will be delivered reliably.\n\n"
-                f"Best regards,\n"
-                f"Clasyo SaaS Platform Administration"
+            context = {
+                'subject': subject,
+                'heading': 'Email Configuration Test Successful',
+                'body': (
+                    f"Hello Administrator,<br><br>"
+                    f"This test notification verifies that your Clasyo Email Configuration is active and delivering correctly.<br><br>"
+                    f"<strong>Delivery Details:</strong><br>"
+                    f"• <strong>Active Provider:</strong> {provider_title}<br>"
+                    f"• <strong>Configured Sender:</strong> {sender_name} &lt;{sender_email}&gt;<br>"
+                    f"• <strong>Recipient:</strong> {recipient}<br>"
+                    f"• <strong>Timestamp:</strong> {timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC')}<br>"
+                    f"• <strong>Status:</strong> <span style='color: #16a34a; font-weight: 700;'>Delivered Successfully</span><br><br>"
+                    f"All transactional emails (welcome messages, subscription alerts, receipts, password resets) will now be delivered reliably with official branding."
+                ),
+                'button_text': 'OPEN SUPERADMIN DASHBOARD',
+                'button_url': request.build_absolute_uri('/superadmin/'),
+            }
+            from core.services.notification_templates import render_email_template
+            from django.core.mail import EmailMultiAlternatives
+
+            subject, html_content, text_content = render_email_template(
+                template_or_code='test_email',
+                context=context,
+                school=None,
+                request=request
             )
-            
-            send_mail(
+            msg = EmailMultiAlternatives(
                 subject=subject,
-                message=message,
+                body=text_content,
                 from_email=None,
-                recipient_list=[recipient],
-                fail_silently=False
+                to=[recipient]
             )
+            msg.attach_alternative(html_content, "text/html")
+            msg.send(fail_silently=False)
             
             success_msg = f"Test email successfully sent to {recipient} via {provider_title}!"
             if is_ajax:

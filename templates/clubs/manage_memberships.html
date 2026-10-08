@@ -94,29 +94,29 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ membership.created_at|date:"M d, Y" }}</td>
-                                <td>
+                                <td onclick="event.stopPropagation();">
                                     <div class="btn-group" role="group">
                                         {% if membership.status == 'pending' %}
                                             <button type="button" class="btn btn-success btn-sm" 
                                                     data-bs-toggle="modal" 
-                                                    data-bs-target="#approveModal{{ membership.id }}">
+                                                    data-bs-target="#approveModal{{ membership.id }}" title="Approve">
                                                 <i class="fas fa-check"></i>
                                             </button>
                                             <button type="button" class="btn btn-danger btn-sm" 
                                                     data-bs-toggle="modal" 
-                                                    data-bs-target="#rejectModal{{ membership.id }}">
+                                                    data-bs-target="#rejectModal{{ membership.id }}" title="Reject">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         {% elif membership.status == 'approved' or membership.status == 'active' %}
                                             <button type="button" class="btn btn-warning btn-sm" 
                                                     data-bs-toggle="modal" 
-                                                    data-bs-target="#deactivateModal{{ membership.id }}">
+                                                    data-bs-target="#deactivateModal{{ membership.id }}" title="Deactivate">
                                                 <i class="fas fa-pause"></i>
                                             </button>
                                         {% elif membership.status == 'inactive' %}
                                             <button type="button" class="btn btn-success btn-sm" 
                                                     data-bs-toggle="modal" 
-                                                    data-bs-target="#activateModal{{ membership.id }}">
+                                                    data-bs-target="#activateModal{{ membership.id }}" title="Activate">
                                                 <i class="fas fa-play"></i>
                                             </button>
                                         {% endif %}
