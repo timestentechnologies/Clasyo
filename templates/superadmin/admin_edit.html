@@ -8,157 +8,176 @@
 
 {% block content %}
 <div class="container-fluid px-0">
-    <div class="row g-4">
-        <div class="col-lg-8">
-            <div class="form-panel-view mb-4" id="adminEditPanel">
-                <div class="form-header-bar">
-                    <div class="form-header-title-group">
-                        <a href="{% url 'superadmin:admins' %}" class="btn btn-sm btn-outline-secondary">
-                            <i class="fas fa-arrow-left me-1"></i> Back to Admins
-                        </a>
-                        <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
-                            <i class="fas fa-user-edit text-primary me-2"></i> Edit School Administrator
-                            <button type="button" 
-                                    class="more-info-btn ms-2" 
-                                    data-bs-toggle="popover" 
-                                    data-bs-placement="bottom" 
-                                    data-bs-html="true" 
-                                    data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-user-shield text-primary'></i><strong>Admin Details & Status</strong></div>" 
-                                    data-bs-content="<ul class='small ps-3 mb-0'><li><strong>Account Status:</strong> Inactive accounts cannot log in to the portal.</li><li><strong>Assigned School:</strong> Connects this administrator to manage school tenants.</li><li><strong>Direct Password Reset:</strong> Use the reset tool on the right to instantly change password without email verification.</li></ul>" 
-                                    aria-label="Admin Account Info" 
-                                    title="Admin Details & Status">
-                                <i class="fas fa-info-circle text-primary"></i>
-                            </button>
-                        </h5>
-                    </div>
-                    <div class="form-header-actions">
-                        <a href="{% url 'superadmin:admins' %}" class="btn btn-sm btn-light">Cancel</a>
-                        <button type="submit" form="adminEditForm" class="btn btn-sm btn-primary form-submit-btn">
-                            <i class="fas fa-save me-1"></i> Update Administrator
-                        </button>
-                    </div>
-                </div>
-                <div class="form-card-body">
-                    <form method="post" id="adminEditForm">
-                        {% csrf_token %}
-
-                            <h4 class="mb-4"><i class="fas fa-user"></i> Administrator Details</h4>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">First Name *</label>
-                                    {{ form.first_name }}
-                                    {% if form.first_name.errors %}
-                                        <div class="text-danger">{{ form.first_name.errors }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Last Name *</label>
-                                    {{ form.last_name }}
-                                    {% if form.last_name.errors %}
-                                        <div class="text-danger">{{ form.last_name.errors }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Email Address *</label>
-                                    {{ form.email }}
-                                    {% if form.email.errors %}
-                                        <div class="text-danger">{{ form.email.errors }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Phone Number</label>
-                                    {{ form.phone }}
-                                    {% if form.phone.errors %}
-                                        <div class="text-danger">{{ form.phone.errors }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Assign to School</label>
-                                    {{ form.school }}
-                                    <small class="form-text text-muted">Choose the school this admin manages.</small>
-                                    {% if form.school.errors %}
-                                        <div class="text-danger">{{ form.school.errors }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Navigation Layout</label>
-                                    {{ form.navigation_layout }}
-                                    <small class="form-text text-muted">User can later toggle this in their profile or header.</small>
-                                    {% if form.navigation_layout.errors %}
-                                        <div class="text-danger">{{ form.navigation_layout.errors }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <div class="form-check form-switch">
-                                    {{ form.is_active }}
-                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
-                                        Active Account
-                                    </label>
-                                </div>
-                                <small class="form-text text-muted">Inactive accounts cannot login</small>
-                            </div>
-
-                    </form>
-                </div>
+    <div class="form-panel-view mb-4" id="adminEditPanel">
+        <div class="form-header-bar">
+            <div class="form-header-title-group">
+                <a href="{% url 'superadmin:admins' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Admins
+                </a>
+                <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
+                    <i class="fas fa-user-edit text-primary me-2"></i> Edit School Administrator
+                    <button type="button" 
+                            class="more-info-btn ms-2" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="bottom" 
+                            data-bs-html="true" 
+                            data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-user-shield text-primary'></i><strong>Admin Details & Security</strong></div>" 
+                            data-bs-content="<ul class='small ps-3 mb-0'><li><strong>Account Status:</strong> Inactive accounts cannot log in to the portal.</li><li><strong>Assigned School:</strong> Connects this administrator to manage school tenants.</li><li><strong>Password Reset:</strong> Enter a new password directly below to update immediately without email verification.</li></ul>" 
+                            aria-label="Admin Account Info" 
+                            title="Admin Details & Security">
+                        <i class="fas fa-info-circle text-primary"></i>
+                    </button>
+                </h5>
+            </div>
+            <div class="form-header-actions">
+                <a href="{% url 'superadmin:impersonate_user' user_id=object.pk %}" 
+                   class="btn btn-sm btn-outline-success"
+                   data-confirm="Are you sure you want to login as {{ object.get_full_name|default:object.email }}?" 
+                   data-confirm-title="Confirm Login As" 
+                   data-confirm-btn="Login As" 
+                   data-confirm-class="btn-success">
+                    <i class="fas fa-sign-in-alt me-1"></i> Login as Admin
+                </a>
+                <a href="{% url 'superadmin:admins' %}" class="btn btn-sm btn-light">Cancel</a>
+                <button type="submit" form="adminEditForm" class="btn btn-sm btn-primary form-submit-btn">
+                    <i class="fas fa-save me-1"></i> Update Administrator
+                </button>
             </div>
         </div>
+        <div class="form-card-body">
+            <form method="post" id="adminEditForm">
+                {% csrf_token %}
 
-                <div class="col-lg-4">
-                    <div class="modern-card">
-                        <h4 class="mb-3"><i class="fas fa-key text-warning"></i> Reset Password Directly</h4>
-                        <p class="text-muted small">Immediately set a new password for this admin from the UI without relying on email delivery.</p>
-                        
-                        <form method="post" action="{% url 'superadmin:admin_reset_password' object.pk %}">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label class="form-label small fw-semibold">New Password *</label>
-                                <input type="password" name="new_password" id="id_side_new_password" class="form-control" placeholder="Enter new password" required minlength="6">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label small fw-semibold">Confirm Password *</label>
-                                <input type="password" name="confirm_password" id="id_side_confirm_password" class="form-control" placeholder="Confirm new password" required minlength="6">
-                            </div>
-
-                            <div class="d-flex gap-2 mb-3">
-                                <button type="button" class="btn btn-outline-primary btn-sm flex-grow-1" onclick="generateSidePass()">
-                                    <i class="fas fa-magic"></i> Generate Password
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="btnCopySidePass" onclick="copySidePass()" title="Copy password">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                            </div>
-                            <div id="copySideMsg" class="alert alert-success py-1 px-2 small mb-3 d-none">
-                                <i class="fas fa-check-circle"></i> Password copied to clipboard!
-                            </div>
-
-                            <button type="submit" class="btn btn-warning w-100 fw-bold">
-                                <i class="fas fa-lock"></i> Set New Password
-                            </button>
-                        </form>
-
-                        <div class="text-center mt-3 pt-2 border-top">
-                            <a href="{% url 'accounts:password_reset' %}" class="text-muted small text-decoration-none">
-                                <i class="fas fa-envelope"></i> Send password reset link via email instead
-                            </a>
-                        </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">First Name *</label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                            <div class="text-danger small mt-1">{{ form.first_name.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">Last Name *</label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                            <div class="text-danger small mt-1">{{ form.last_name.errors }}</div>
+                        {% endif %}
                     </div>
                 </div>
-            </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">Email Address *</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="text-danger small mt-1">{{ form.email.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">Phone Number</label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                            <div class="text-danger small mt-1">{{ form.phone.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">Assign to School</label>
+                        {{ form.school }}
+                        <small class="form-text text-muted">Choose the school this admin manages.</small>
+                        {% if form.school.errors %}
+                            <div class="text-danger small mt-1">{{ form.school.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">Navigation Layout</label>
+                        {{ form.navigation_layout }}
+                        <small class="form-text text-muted">User can later toggle this in their profile or header.</small>
+                        {% if form.navigation_layout.errors %}
+                            <div class="text-danger small mt-1">{{ form.navigation_layout.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-semibold mb-0" for="id_new_password">New Password</label>
+                            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" onclick="generateSidePass()">
+                                <i class="fas fa-magic me-1"></i> Generate Password
+                            </button>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" name="new_password" id="id_new_password" class="form-control" placeholder="Enter new password (optional)" minlength="6" autocomplete="new-password">
+                            <button class="btn btn-outline-secondary password-toggle-btn" type="button" onclick="togglePasswordVisibility('id_new_password', this)" title="Show/Hide Password" tabindex="-1">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">Leave blank to keep current password.</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-semibold mb-0" for="id_confirm_password">Confirm Password</label>
+                            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-success d-none" id="btnCopySidePass" onclick="copySidePass()" title="Copy generated password">
+                                <i class="fas fa-copy me-1"></i> Copy Password
+                            </button>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" name="confirm_password" id="id_confirm_password" class="form-control" placeholder="Confirm new password" minlength="6" autocomplete="new-password">
+                            <button class="btn btn-outline-secondary password-toggle-btn" type="button" onclick="togglePasswordVisibility('id_confirm_password', this)" title="Show/Hide Password" tabindex="-1">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">Must match new password if changing.</small>
+                    </div>
+                </div>
+
+                <div class="row align-items-center mb-2">
+                    <div class="col-md-6 mb-2 mb-md-0">
+                        <div class="form-check form-switch">
+                            {{ form.is_active }}
+                            <label class="form-check-label fw-semibold" for="{{ form.is_active.id_for_label }}">
+                                Active Account
+                            </label>
+                        </div>
+                        <small class="form-text text-muted">Inactive accounts cannot log in to the institution portal.</small>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <a href="{% url 'accounts:password_reset' %}" class="text-muted small text-decoration-none">
+                            <i class="fas fa-envelope me-1"></i> Send password reset link via email instead
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 {% endblock %}
 
 {% block extra_js %}
 <script>
+function togglePasswordVisibility(fieldId, btn) {
+    const input = document.getElementById(fieldId);
+    if (!input) return;
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (icon) {
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        }
+    } else {
+        input.type = 'password';
+        if (icon) {
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+}
+
 function generateSidePass() {
     const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%&*';
     let pass = '';
@@ -170,34 +189,41 @@ function generateSidePass() {
     pass += lowers[Math.floor(Math.random() * lowers.length)];
     pass += nums[Math.floor(Math.random() * nums.length)];
     pass += specials[Math.floor(Math.random() * specials.length)];
-    for (let i = 4; i < 12; i++) {
+    for (let i = 4; i < 14; i++) {
         pass += chars[Math.floor(Math.random() * chars.length)];
     }
     pass = pass.split('').sort(() => 0.5 - Math.random()).join('');
 
-    const p1 = document.getElementById('id_side_new_password');
-    const p2 = document.getElementById('id_side_confirm_password');
+    const p1 = document.getElementById('id_new_password');
+    const p2 = document.getElementById('id_confirm_password');
     if (p1 && p2) {
         p1.value = pass;
         p2.value = pass;
         p1.type = 'text';
         p2.type = 'text';
+        document.querySelectorAll('.password-toggle-btn i').forEach(icon => {
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        });
     }
 
     const copyBtn = document.getElementById('btnCopySidePass');
     if (copyBtn) {
         copyBtn.classList.remove('d-none');
+        copyBtn.innerHTML = '<i class="fas fa-copy me-1"></i> Copy Password';
     }
 }
 
 function copySidePass() {
-    const p1 = document.getElementById('id_side_new_password');
+    const p1 = document.getElementById('id_new_password');
     if (!p1 || !p1.value) return;
     navigator.clipboard.writeText(p1.value).then(() => {
-        const msg = document.getElementById('copySideMsg');
-        if (msg) {
-            msg.classList.remove('d-none');
-            setTimeout(() => { msg.classList.add('d-none'); }, 3000);
+        const copyBtn = document.getElementById('btnCopySidePass');
+        if (copyBtn) {
+            copyBtn.innerHTML = '<i class="fas fa-check-circle me-1"></i> Copied!';
+            setTimeout(() => {
+                copyBtn.innerHTML = '<i class="fas fa-copy me-1"></i> Copy Password';
+            }, 2500);
         }
     });
 }

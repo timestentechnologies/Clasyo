@@ -10395,5 +10395,140 @@ table td .action-edit {
     display: none !important;
 }
 
+/* ==========================================================================
+   Universal Table Selection & Bulk Action Bar (System-Wide Standard)
+   ========================================================================== */
+.table-select-col {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+}
+
+/* Strictly suppress sorting icons on selection checkboxes */
+th.table-select-col::after,
+th.table-select-col::before,
+.table thead th.table-select-col::after,
+.table thead th.table-select-col::before,
+th:has(input[type="checkbox"])::after,
+th:has(input[type="checkbox"])::before,
+th:has(.select-all-checkbox)::after,
+th:has(.select-all-checkbox)::before {
+    display: none !important;
+    content: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    margin: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.table-select-checkbox,
+.select-all-checkbox,
+.row-select-checkbox {
+    width: 1.15rem !important;
+    height: 1.15rem !important;
+    cursor: pointer !important;
+    margin: 0 auto !important;
+    display: block !important;
+    border: 1.5px solid var(--border-color, #cbd5e1) !important;
+    border-radius: 4px !important;
+    transition: all 0.15s ease-in-out !important;
+}
+
+.table-select-checkbox:checked,
+.select-all-checkbox:checked,
+.row-select-checkbox:checked {
+    background-color: var(--brand-primary, #0284c7) !important;
+    border-color: var(--brand-primary, #0284c7) !important;
+}
+
+.select-all-checkbox:indeterminate {
+    background-color: var(--brand-primary, #0284c7) !important;
+    border-color: var(--brand-primary, #0284c7) !important;
+}
+
+tr.row-selected {
+    background-color: rgba(2, 132, 199, 0.08) !important;
+}
+
+[data-theme="dark"] tr.row-selected,
+[data-bs-theme="dark"] tr.row-selected,
+.theme-dark tr.row-selected {
+    background-color: rgba(56, 189, 248, 0.12) !important;
+}
+
+/* Floating Bulk Action Bar */
+.universal-bulk-action-bar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(120px);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1055;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+}
+
+.universal-bulk-action-bar.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.universal-bulk-action-bar .bulk-bar-content {
+    background: #0f172a;
+    color: #ffffff;
+    padding: 0.55rem 1.15rem;
+    border-radius: 9999px;
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.45), 0 4px 10px -2px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+[data-theme="dark"] .universal-bulk-action-bar .bulk-bar-content,
+[data-bs-theme="dark"] .universal-bulk-action-bar .bulk-bar-content,
+.theme-dark .universal-bulk-action-bar .bulk-bar-content {
+    background: #1e293b;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.universal-bulk-action-bar .bulk-bar-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.86rem;
+    font-weight: 600;
+}
+
+.universal-bulk-action-bar .bulk-count-badge {
+    background: #0284c7;
+    color: #ffffff;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.universal-bulk-action-bar .bulk-bar-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.universal-bulk-action-bar .btn {
+    border-radius: 9999px;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
 
 

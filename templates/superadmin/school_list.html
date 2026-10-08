@@ -59,7 +59,7 @@
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table modern-table mb-0">
+                        <table class="table modern-table mb-0" data-bulk-delete-url="{% url 'superadmin:schools' %}" data-bulk-action="bulk_delete">
                         <thead>
                             <tr>
                                 <th>School</th>
@@ -74,7 +74,7 @@
                         </thead>
                         <tbody>
                             {% for school in schools %}
-                            <tr class="clickable-row" data-edit-url="{% url 'superadmin:school_edit' school.id %}" title="Click row to edit {{ school.name }}">
+                            <tr class="clickable-row" data-id="{{ school.id }}" data-edit-url="{% url 'superadmin:school_edit' school.id %}" title="Click row to edit {{ school.name }}">
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="avatar-circle bg-primary text-white me-2">

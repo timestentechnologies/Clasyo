@@ -15,6 +15,9 @@ from django.utils.crypto import get_random_string
 from django import forms
 import re
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 from .models import (
     PaymentConfiguration,
     SchoolPaymentConfiguration,
@@ -186,6 +189,35 @@ class SchoolListView(SuperAdminRequiredMixin, ListView):
         except Exception:
             pass
         return context
+
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get('action')
+        if action == 'bulk_delete':
+            selected_ids = request.POST.getlist('selected_ids') or request.POST.getlist('school_ids')
+            if not selected_ids:
+                ids_str = request.POST.get('selected_ids', '')
+                if ids_str:
+                    selected_ids = [i.strip() for i in ids_str.split(',') if i.strip()]
+            
+            from tenants.services import purge_school_and_tenant_data
+            deleted_count = 0
+            for sid in selected_ids:
+                try:
+                    school = School.objects.get(id=sid)
+                    purge_school_and_tenant_data(school, notify_admins=True)
+                    deleted_count += 1
+                except Exception as e:
+                    logger.error(f"Error bulk deleting school {sid}: {e}")
+            
+            if deleted_count > 0:
+                messages.success(request, f'Successfully deleted {deleted_count} school(s) and associated tenant data.')
+            else:
+                messages.warning(request, 'No valid schools selected for deletion.')
+            
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+                return JsonResponse({'success': True, 'deleted': deleted_count})
+            return redirect('superadmin:schools')
+        return redirect('superadmin:schools')
 
 
 class SchoolDetailView(SuperAdminRequiredMixin, DetailView):
@@ -531,6 +563,35 @@ class AdminUserListView(SuperAdminRequiredMixin, ListView):
         context['selected_auth_method'] = self.request.GET.get('auth_method', '')
         return context
 
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get('action')
+        if action == 'bulk_delete':
+            selected_ids = request.POST.getlist('selected_ids') or request.POST.getlist('admin_ids')
+            if not selected_ids:
+                ids_str = request.POST.get('selected_ids', '')
+                if ids_str:
+                    selected_ids = [i.strip() for i in ids_str.split(',') if i.strip()]
+            
+            deleted_count = 0
+            for uid in selected_ids:
+                try:
+                    admin_user = User.objects.filter(id=uid, role__in=['admin', 'school_admin']).first()
+                    if admin_user:
+                        admin_user.delete()
+                        deleted_count += 1
+                except Exception as e:
+                    logger.error(f"Error bulk deleting admin {uid}: {e}")
+            
+            if deleted_count > 0:
+                messages.success(request, f'Successfully deleted {deleted_count} administrator(s).')
+            else:
+                messages.warning(request, 'No valid administrators selected for deletion.')
+            
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+                return JsonResponse({'success': True, 'deleted': deleted_count})
+            return redirect('superadmin:admins')
+        return redirect('superadmin:admins')
+
 
 class AdminUserCreateView(SuperAdminRequiredMixin, CreateView):
     """Create a new school admin"""
@@ -655,8 +716,35 @@ class AdminUserUpdateView(SuperAdminRequiredMixin, UpdateView):
         return context
     
     def form_valid(self, form):
-        messages.success(self.request, f'Admin "{self.object.get_full_name() or self.object.email}" updated successfully!')
-        return super().form_valid(form)
+        new_password = self.request.POST.get('new_password', '').strip()
+        confirm_password = self.request.POST.get('confirm_password', '').strip()
+        if new_password:
+            if len(new_password) < 6:
+                messages.error(self.request, 'Password must be at least 6 characters long.')
+                return self.form_invalid(form)
+            if new_password != confirm_password:
+                messages.error(self.request, 'New password and confirmation do not match.')
+                return self.form_invalid(form)
+        
+        response = super().form_valid(form)
+        
+        if new_password:
+            self.object.set_password(new_password)
+            self.object.save(update_fields=['password'])
+            try:
+                from core.models import AuditLog
+                AuditLog.objects.create(
+                    user=self.request.user,
+                    action='PASSWORD_RESET',
+                    details=f'Superadmin reset password for admin {self.object.email} (ID: {self.object.id})',
+                    ip_address=self.request.META.get('REMOTE_ADDR')
+                )
+            except Exception:
+                pass
+            messages.success(self.request, f'Admin "{self.object.get_full_name() or self.object.email}" and password updated successfully!')
+        else:
+            messages.success(self.request, f'Admin "{self.object.get_full_name() or self.object.email}" updated successfully!')
+        return response
 
 
 class AdminUserResetPasswordView(SuperAdminRequiredMixin, View):
@@ -820,6 +908,39 @@ class PricingManagementView(SuperAdminRequiredMixin, View):
         plan_id = request.POST.get('plan_id')
         action = request.POST.get('action')
         
+        if action == 'bulk_delete':
+            selected_ids = request.POST.getlist('selected_ids') or request.POST.getlist('plan_ids')
+            if not selected_ids:
+                ids_str = request.POST.get('selected_ids', '')
+                if ids_str:
+                    selected_ids = [i.strip() for i in ids_str.split(',') if i.strip()]
+            
+            deleted_count = 0
+            skipped_count = 0
+            for pid in selected_ids:
+                try:
+                    plan = SubscriptionPlan.objects.get(id=pid)
+                    if plan.subscriptions.count() > 0:
+                        skipped_count += 1
+                        continue
+                    plan.delete()
+                    deleted_count += 1
+                except SubscriptionPlan.DoesNotExist:
+                    continue
+                except Exception as e:
+                    logger.error(f"Error bulk deleting plan {pid}: {e}")
+            
+            if deleted_count > 0:
+                messages.success(request, f'Successfully deleted {deleted_count} pricing plan(s).' + (f' ({skipped_count} skipped due to active subscriptions)' if skipped_count else ''))
+            elif skipped_count > 0:
+                messages.error(request, f'Could not delete {skipped_count} plan(s) because they are associated with active subscriptions.')
+            else:
+                messages.warning(request, 'No valid plans selected for deletion.')
+            
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+                return JsonResponse({'success': True, 'deleted': deleted_count, 'skipped': skipped_count})
+            return redirect('superadmin:pricing_management')
+
         if action == 'delete' and plan_id:
             plan = get_object_or_404(SubscriptionPlan, id=plan_id)
             plan_name = plan.name

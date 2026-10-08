@@ -190,9 +190,12 @@
     <div class="modern-card" id="pricingListCard">
         {% if pricing_plans %}
         <div class="table-responsive">
-            <table class="table modern-table">
+            <table class="table modern-table" data-bulk-delete-url="{% url 'superadmin:pricing_management' %}" data-bulk-action="bulk_delete">
                 <thead>
                     <tr>
+                        <th class="table-select-col text-center no-sort sorting_disabled" style="width: 44px; min-width: 44px;" data-no-sort="true" data-orderable="false">
+                            <input type="checkbox" class="form-check-input select-all-checkbox" aria-label="Select all plans" title="Select All">
+                        </th>
                         <th class="text-nowrap">Plan Name</th>
                         <th class="text-nowrap">Price</th>
                         <th class="text-nowrap">Duration</th>
@@ -228,6 +231,13 @@
                                 is_active: {{ plan.is_active|yesno:'true,false' }},
                                 is_popular: {{ plan.is_popular|yesno:'true,false' }}
                             })" title="Click row to edit {{ plan.name }}">
+                        <td class="table-select-col text-center" style="width: 44px; min-width: 44px;" onclick="event.stopPropagation();">
+                            <input type="checkbox" class="form-check-input row-select-checkbox" 
+                                value="{{ plan.id }}" 
+                                data-id="{{ plan.id }}"
+                                {% if plan.subscriptions.count > 0 %}disabled title="Cannot delete: active subscriptions exist"{% endif %} 
+                                aria-label="Select {{ plan.name }}">
+                        </td>
                         <td class="text-nowrap"><strong>{{ plan.name }}</strong></td>
                         <td class="text-nowrap">Ksh {{ plan.price|intcomma }}</td>
                         <td class="text-nowrap">{{ plan.get_billing_cycle_display }}</td>

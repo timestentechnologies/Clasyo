@@ -653,31 +653,60 @@
             display: inline-block !important;
         }
 
-        /* Remove edit actions from table action columns system-wide */
-        table td:last-child .btn-action-edit,
-        .table td:last-child .btn-action-edit,
-        .modern-table td:last-child .btn-action-edit,
-        table td:last-child a[title="Edit"],
-        table td:last-child a[aria-label="Edit"],
-        table td:last-child button[title="Edit"],
-        table td:last-child button[aria-label="Edit"],
-        table td:last-child a[title="Edit Subscription"],
-        table td:last-child button[title="Edit Subscription"],
-        table td:last-child a[title="Edit Configuration"],
-        table td:last-child button[title="Edit Configuration"],
-        table td:last-child a[title="Edit Template"],
-        table td:last-child button[title="Edit Template"],
-        table td:last-child a[title="Edit Content"],
-        table td:last-child button[title="Edit Content"],
-        table td:last-child a[title="Edit Feature Module"],
-        table td:last-child button[title="Edit Feature Module"],
-        table td:last-child a[title="Edit Step"],
-        table td:last-child button[title="Edit Step"],
-        table td:last-child a[title="Edit Parallax Banner"],
-        table td:last-child button[title="Edit Parallax Banner"],
+        /* Strictly remove edit and delete actions from table action columns system-wide */
+        table td .btn-action-edit,
+        .table td .btn-action-edit,
+        .modern-table td .btn-action-edit,
+        table td .btn-action-delete,
+        .table td .btn-action-delete,
+        .modern-table td .btn-action-delete,
+        table td a[title*="Edit"],
+        table td a[title*="Delete"],
+        table td a[aria-label*="Edit"],
+        table td a[aria-label*="Delete"],
+        table td button[title*="Edit"],
+        table td button[title*="Delete"],
+        table td button[aria-label*="Edit"],
+        table td button[aria-label*="Delete"],
+        table td a[href*="/edit"],
+        table td a[href*="/update"],
+        table td a[href*="/delete"],
+        table td button:has(.fa-trash),
+        table td button:has(.fa-trash-alt),
+        table td a:has(.fa-trash),
+        table td a:has(.fa-trash-alt),
+        table td button:has(.fa-edit),
+        table td a:has(.fa-edit),
+        table td form:has(button[title*="Delete"]),
+        table td form:has(.btn-action-delete),
+        table td form:has(.fa-trash),
+        table td form:has(.fa-trash-alt),
+        table td form:has(input[value="delete"]),
         table td .btn-edit-action,
-        table td .action-edit {
+        table td .action-edit,
+        table td .btn-delete-action,
+        table td .action-delete {
             display: none !important;
+        }
+
+        /* Strictly suppress sorting icons on table checkbox selection headers system-wide */
+        th.table-select-col::after,
+        th.table-select-col::before,
+        .table thead th.table-select-col::after,
+        .table thead th.table-select-col::before,
+        th:has(input[type="checkbox"])::after,
+        th:has(input[type="checkbox"])::before,
+        th:has(.select-all-checkbox)::after,
+        th:has(.select-all-checkbox)::before,
+        th.no-sort::after,
+        th.no-sort::before {
+            display: none !important;
+            content: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            margin: 0 !important;
+            width: 0 !important;
+            height: 0 !important;
         }
 
         table td .btn-group .btn:hover,
@@ -1436,7 +1465,7 @@
             }
 
             // 2. Ignore clicks on interactive child elements: buttons, links, inputs, selects, dropdowns, forms
-            if (e.target.closest('button, a, input, select, textarea, label, [role="button"], [role="tab"], .dropdown, .dropdown-menu, .btn-action-icon, .btn-action-delete, .btn-action-view, form, .no-row-click, .nav-link, .nav-tabs, .accordion-button')) {
+            if (e.target.closest('button, a, input, select, textarea, label, [role="button"], [role="tab"], .dropdown, .dropdown-menu, .btn-action-icon, .btn-action-delete, .btn-action-view, form, .no-row-click, .nav-link, .nav-tabs, .accordion-button, .table-select-col, .row-select-checkbox, .select-all-checkbox')) {
                 return;
             }
 
@@ -1507,7 +1536,498 @@
             }
         });
     })();
+
+    // =========================================================================
+    // UNIVERSAL TABLE SELECTION & BULK DELETE ENGINE (SYSTEM-WIDE STANDARD)
+    // =========================================================================
+    (function initUniversalTableSelectionSystem() {
+        function getCsrfToken() {
+            var tokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (tokenInput && tokenInput.value) return tokenInput.value;
+            var cookie = document.cookie.split('; ').find(function(row) { return row.startsWith('csrftoken='); });
+            return cookie ? cookie.split('=')[1] : '';
+        }
+
+        function getCandidateTables(root) {
+            var container = root || document;
+            var tables = container.querySelectorAll ? container.querySelectorAll('table.table, .table-responsive > table, table.modern-table') : [];
+            return Array.from(tables).filter(function(t) {
+                if (t.classList.contains('no-bulk-select') || t.classList.contains('calendar-table')) return false;
+                var thead = t.querySelector('thead');
+                var tbody = t.querySelector('tbody');
+                if (!thead || !tbody) return false;
+                return true;
+            });
+        }
+
+        function setupTableSelection(table) {
+            if (table.dataset.bulkSelectSetup === 'true') {
+                setupTableRows(table);
+                return;
+            }
+            table.dataset.bulkSelectSetup = 'true';
+
+            var thead = table.querySelector('thead');
+            var tbody = table.querySelector('tbody');
+            if (!thead || !tbody) return;
+            var headRow = thead.querySelector('tr');
+            if (!headRow) return;
+
+            // 1. Setup Header Checkbox
+            var selectAllCb = headRow.querySelector('.select-all-checkbox');
+            if (!selectAllCb) {
+                var th = document.createElement('th');
+                th.className = 'table-select-col text-center no-sort sorting_disabled';
+                th.setAttribute('data-no-sort', 'true');
+                th.setAttribute('data-orderable', 'false');
+                th.style.cssText = 'width: 44px; min-width: 44px; max-width: 44px; vertical-align: middle; padding: 0.5rem !important;';
+                th.innerHTML = '<input type="checkbox" class="form-check-input select-all-checkbox" title="Select all rows" aria-label="Select all rows">';
+                headRow.insertBefore(th, headRow.firstElementChild);
+                selectAllCb = th.querySelector('.select-all-checkbox');
+            } else {
+                var parentTh = selectAllCb.closest('th');
+                if (parentTh) {
+                    parentTh.classList.add('no-sort', 'sorting_disabled');
+                    parentTh.setAttribute('data-no-sort', 'true');
+                    parentTh.setAttribute('data-orderable', 'false');
+                }
+            }
+
+            // 2. Setup Body Row Checkboxes
+            setupTableRows(table);
+
+            // 2b. Clean up Actions column if it now has no visible actions remaining
+            var headerCells = headRow.querySelectorAll('th');
+            var actionColIdx = -1;
+            headerCells.forEach(function(th, idx) {
+                var txt = th.textContent.trim().toLowerCase();
+                if (txt === 'actions' || txt === 'action') {
+                    actionColIdx = idx;
+                }
+            });
+            if (actionColIdx !== -1) {
+                var dataRows = tbody.querySelectorAll('tr:not(.no-data):not(:has(td[colspan]))');
+                var hasVisibleOtherActions = false;
+                dataRows.forEach(function(tr) {
+                    var cell = tr.children[actionColIdx];
+                    if (cell) {
+                        var visibleInteractive = Array.from(cell.children).filter(function(child) {
+                            return window.getComputedStyle(child).display !== 'none';
+                        });
+                        if (visibleInteractive.length > 0) {
+                            hasVisibleOtherActions = true;
+                        }
+                    }
+                });
+                if (!hasVisibleOtherActions && dataRows.length > 0) {
+                    headerCells[actionColIdx].style.display = 'none';
+                    dataRows.forEach(function(tr) {
+                        if (tr.children[actionColIdx]) {
+                            tr.children[actionColIdx].style.display = 'none';
+                        }
+                    });
+                }
+            }
+
+            // 3. Bind Select All Event
+            if (selectAllCb && !selectAllCb.dataset.bulkSelectWired) {
+                selectAllCb.dataset.bulkSelectWired = 'true';
+                selectAllCb.addEventListener('change', function(e) {
+                    e.stopPropagation();
+                    var isChecked = this.checked;
+                    var rows = tbody.querySelectorAll('tr');
+                    rows.forEach(function(tr) {
+                        if (tr.style.display === 'none') return; // Only affect visible rows
+                        var cb = tr.querySelector('.row-select-checkbox:not(:disabled)');
+                        if (cb) {
+                            cb.checked = isChecked;
+                            tr.classList.toggle('row-selected', isChecked);
+                        }
+                    });
+                    updateBulkActionBar();
+                });
+            }
+        }
+
+        function setupTableRows(table) {
+            var tbody = table.querySelector('tbody');
+            if (!tbody) return;
+            var rows = tbody.querySelectorAll('tr');
+
+            rows.forEach(function(tr) {
+                // Adjust colspan on empty state or notice rows
+                var colspanTd = tr.querySelector('td[colspan]');
+                if (colspanTd && !tr.dataset.colspanAdjusted) {
+                    tr.dataset.colspanAdjusted = 'true';
+                    var cur = parseInt(colspanTd.getAttribute('colspan') || '1', 10);
+                    colspanTd.setAttribute('colspan', cur + 1);
+                    return;
+                }
+                if (colspanTd) return;
+
+                // Create checkbox cell if missing
+                var cb = tr.querySelector('.row-select-checkbox');
+                if (!cb) {
+                    var td = document.createElement('td');
+                    td.className = 'table-select-col text-center';
+                    td.style.cssText = 'width: 44px; min-width: 44px; max-width: 44px; vertical-align: middle; padding: 0.5rem !important;';
+                    td.onclick = function(e) { e.stopPropagation(); };
+
+                    cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.className = 'form-check-input row-select-checkbox';
+                    cb.setAttribute('aria-label', 'Select row');
+
+                    // Check if item cannot be deleted
+                    var disabledDeleteBtn = tr.querySelector('button[disabled] .fa-trash, button[disabled] .fa-trash-alt, .btn-action-icon[disabled] .fa-trash, .btn-action-icon[disabled] .fa-trash-alt');
+                    if (disabledDeleteBtn) {
+                        cb.disabled = true;
+                        cb.title = disabledDeleteBtn.closest('button')?.title || 'This item cannot be deleted';
+                    }
+
+                    // Discover row ID
+                    var rowId = tr.dataset.id || tr.dataset.pk || tr.querySelector('input[name="id"], input[name="plan_id"], input[name="school_id"], input[name*="_id"]')?.value;
+                    if (rowId) {
+                        cb.value = rowId;
+                        cb.dataset.id = rowId;
+                    }
+
+                    td.appendChild(cb);
+                    tr.insertBefore(td, tr.firstElementChild);
+                }
+
+                // Wire Checkbox Listener
+                if (!cb.dataset.listenerAttached) {
+                    cb.dataset.listenerAttached = 'true';
+                    cb.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                    });
+                    cb.addEventListener('change', function(e) {
+                        e.stopPropagation();
+                        tr.classList.toggle('row-selected', this.checked);
+                        syncSelectAllState(table);
+                        updateBulkActionBar();
+                    });
+                }
+            });
+        }
+
+        function syncSelectAllState(table) {
+            var selectAllCb = table.querySelector('.select-all-checkbox');
+            if (!selectAllCb) return;
+            var allCbs = Array.from(table.querySelectorAll('tbody tr .row-select-checkbox:not(:disabled)')).filter(function(cb) {
+                var tr = cb.closest('tr');
+                return tr && tr.style.display !== 'none';
+            });
+            var checkedCbs = allCbs.filter(function(c) { return c.checked; });
+            if (allCbs.length === 0) {
+                selectAllCb.checked = false;
+                selectAllCb.indeterminate = false;
+            } else if (checkedCbs.length === allCbs.length) {
+                selectAllCb.checked = true;
+                selectAllCb.indeterminate = false;
+            } else if (checkedCbs.length > 0) {
+                selectAllCb.checked = false;
+                selectAllCb.indeterminate = true;
+            } else {
+                selectAllCb.checked = false;
+                selectAllCb.indeterminate = false;
+            }
+        }
+
+        // Shift + Click Range Selection
+        var lastCheckedCb = null;
+        document.addEventListener('click', function(e) {
+            var target = e.target;
+            if (target && target.classList && target.classList.contains('row-select-checkbox')) {
+                if (e.shiftKey && lastCheckedCb && lastCheckedCb !== target) {
+                    var table = target.closest('table');
+                    if (table && table.contains(lastCheckedCb)) {
+                        var allCbs = Array.from(table.querySelectorAll('tbody tr .row-select-checkbox:not(:disabled)'));
+                        var start = allCbs.indexOf(lastCheckedCb);
+                        var end = allCbs.indexOf(target);
+                        if (start > -1 && end > -1) {
+                            var low = Math.min(start, end);
+                            var high = Math.max(start, end);
+                            for (var i = low; i <= high; i++) {
+                                allCbs[i].checked = target.checked;
+                                allCbs[i].closest('tr')?.classList.toggle('row-selected', target.checked);
+                            }
+                            syncSelectAllState(table);
+                            updateBulkActionBar();
+                        }
+                    }
+                }
+                lastCheckedCb = target;
+            }
+        });
+
+        function getSelectedRows() {
+            return Array.from(document.querySelectorAll('tbody tr .row-select-checkbox:checked')).map(function(cb) {
+                return {
+                    checkbox: cb,
+                    row: cb.closest('tr'),
+                    table: cb.closest('table')
+                };
+            });
+        }
+
+        function updateBulkActionBar() {
+            var bar = document.getElementById('universalBulkActionBar');
+            if (!bar) return;
+            var selected = getSelectedRows();
+            var count = selected.length;
+            var countBadge = document.getElementById('bulkCountBadge');
+            var countText = document.getElementById('bulkCountText');
+
+            if (count > 0) {
+                if (countBadge) countBadge.textContent = count;
+                if (countText) countText.textContent = count === 1 ? 'item selected' : 'items selected';
+                bar.classList.add('show');
+            } else {
+                bar.classList.remove('show');
+            }
+        }
+
+        function clearAllSelections() {
+            document.querySelectorAll('.row-select-checkbox:checked').forEach(function(cb) {
+                cb.checked = false;
+                cb.closest('tr')?.classList.remove('row-selected');
+            });
+            document.querySelectorAll('.select-all-checkbox').forEach(function(cb) {
+                cb.checked = false;
+                cb.indeterminate = false;
+            });
+            updateBulkActionBar();
+        }
+
+        // Initialize and bind modal actions
+        function initBulkSystem() {
+            getCandidateTables().forEach(setupTableSelection);
+
+            var clearBtn = document.getElementById('bulkClearBtn');
+            if (clearBtn && !clearBtn.dataset.wired) {
+                clearBtn.dataset.wired = 'true';
+                clearBtn.addEventListener('click', clearAllSelections);
+            }
+
+            var selectAllFloatingBtn = document.getElementById('bulkSelectAllBtn');
+            if (selectAllFloatingBtn && !selectAllFloatingBtn.dataset.wired) {
+                selectAllFloatingBtn.dataset.wired = 'true';
+                selectAllFloatingBtn.addEventListener('click', function() {
+                    getCandidateTables().forEach(function(t) {
+                        var selectAll = t.querySelector('.select-all-checkbox');
+                        if (selectAll) {
+                            selectAll.checked = true;
+                            selectAll.dispatchEvent(new Event('change'));
+                        }
+                    });
+                });
+            }
+
+            var bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+            if (bulkDeleteBtn && !bulkDeleteBtn.dataset.wired) {
+                bulkDeleteBtn.dataset.wired = 'true';
+                bulkDeleteBtn.addEventListener('click', function() {
+                    var selected = getSelectedRows();
+                    if (selected.length === 0) return;
+                    var countLabel = document.getElementById('bulkDeleteConfirmCount');
+                    if (countLabel) {
+                        countLabel.textContent = selected.length + ' item' + (selected.length > 1 ? 's' : '');
+                    }
+                    var modalEl = document.getElementById('universalBulkDeleteModal');
+                    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modal.show();
+                    }
+                });
+            }
+
+            var confirmBtn = document.getElementById('bulkConfirmDeleteBtn');
+            if (confirmBtn && !confirmBtn.dataset.wired) {
+                confirmBtn.dataset.wired = 'true';
+                confirmBtn.addEventListener('click', async function() {
+                    var selected = getSelectedRows();
+                    if (selected.length === 0) return;
+
+                    var progressContainer = document.getElementById('bulkDeleteProgressContainer');
+                    var progressBar = document.getElementById('bulkDeleteProgressBar');
+                    var progressText = document.getElementById('bulkDeleteProgressText');
+                    var cancelBtn = document.getElementById('bulkCancelBtn');
+
+                    confirmBtn.disabled = true;
+                    if (cancelBtn) cancelBtn.disabled = true;
+                    if (progressContainer) progressContainer.classList.remove('d-none');
+                    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Deleting...';
+
+                    var csrfToken = getCsrfToken();
+                    var tablesMap = new Map();
+                    selected.forEach(function(item) {
+                        if (!tablesMap.has(item.table)) tablesMap.set(item.table, []);
+                        tablesMap.get(item.table).push(item);
+                    });
+
+                    var totalProcessed = 0;
+                    var totalCount = selected.length;
+
+                    for (var entry of tablesMap.entries()) {
+                        var table = entry[0];
+                        var items = entry[1];
+                        var bulkUrl = table.getAttribute('data-bulk-delete-url') || table.dataset.bulkDeleteUrl;
+                        var bulkAction = table.getAttribute('data-bulk-action') || table.dataset.bulkAction || 'bulk_delete';
+
+                        if (bulkUrl) {
+                            var ids = items.map(function(it) { return it.checkbox.value; }).filter(Boolean);
+                            try {
+                                var formData = new FormData();
+                                formData.append('action', bulkAction);
+                                formData.append('csrfmiddlewaretoken', csrfToken);
+                                ids.forEach(function(id) {
+                                    formData.append('selected_ids', id);
+                                    formData.append('plan_ids', id);
+                                    formData.append('school_ids', id);
+                                    formData.append('admin_ids', id);
+                                });
+
+                                await fetch(bulkUrl, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRFToken': csrfToken,
+                                        'X-Requested-With': 'XMLHttpRequest'
+                                    },
+                                    body: formData
+                                });
+                            } catch (err) {
+                                console.error('Bulk delete endpoint error:', err);
+                            }
+                            totalProcessed += items.length;
+                            if (progressBar) progressBar.style.width = Math.round((totalProcessed / totalCount) * 100) + '%';
+                        } else {
+                            for (var it of items) {
+                                var tr = it.row;
+                                try {
+                                    var form = tr.querySelector('form[action*="delete"], form input[name="action"][value="delete"]')?.closest('form') || tr.querySelector('form');
+                                    if (form && (form.action.includes('delete') || form.querySelector('input[value="delete"]'))) {
+                                        var fData = new FormData(form);
+                                        if (!fData.has('csrfmiddlewaretoken')) fData.append('csrfmiddlewaretoken', csrfToken);
+                                        await fetch(form.action, {
+                                            method: form.method || 'POST',
+                                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                                            body: fData
+                                        });
+                                    } else {
+                                        var delLink = tr.querySelector('a.btn-action-delete, a[href*="/delete/"], a[href*="/delete"]');
+                                        if (delLink) {
+                                            await fetch(delLink.href, {
+                                                method: 'POST',
+                                                headers: {
+                                                    'X-CSRFToken': csrfToken,
+                                                    'X-Requested-With': 'XMLHttpRequest',
+                                                    'Content-Type': 'application/x-www-form-urlencoded'
+                                                },
+                                                body: 'csrfmiddlewaretoken=' + encodeURIComponent(csrfToken)
+                                            });
+                                        } else {
+                                            var rowId = it.checkbox.value;
+                                            if (rowId && window.location.pathname) {
+                                                await fetch(window.location.pathname + rowId + '/delete/', {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'X-CSRFToken': csrfToken,
+                                                        'X-Requested-With': 'XMLHttpRequest'
+                                                    }
+                                                });
+                                            }
+                                        }
+                                    }
+                                } catch (rowErr) {
+                                    console.error('Row delete error:', rowErr);
+                                }
+                                totalProcessed++;
+                                if (progressBar) progressBar.style.width = Math.round((totalProcessed / totalCount) * 100) + '%';
+                                if (progressText) progressText.textContent = 'Deleted ' + totalProcessed + ' of ' + totalCount + '...';
+                            }
+                        }
+                    }
+
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 400);
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initBulkSystem);
+        document.addEventListener('shown.bs.modal', function(e) { setupTableSelection(e.target); });
+        document.addEventListener('shown.bs.tab', function() { getCandidateTables().forEach(setupTableSelection); });
+
+        if (typeof MutationObserver !== 'undefined') {
+            var obs = new MutationObserver(function() {
+                getCandidateTables().forEach(setupTableSelection);
+            });
+            obs.observe(document.body, { childList: true, subtree: true });
+        }
+
+        window.initUniversalTableSelectionSystem = initBulkSystem;
+    })();
     </script>
+
+    <!-- Universal Bulk Action Floating Bar -->
+    <div id="universalBulkActionBar" class="universal-bulk-action-bar" aria-live="polite">
+        <div class="bulk-bar-content">
+            <div class="bulk-bar-count">
+                <span class="bulk-count-badge" id="bulkCountBadge">0</span>
+                <span class="bulk-count-text" id="bulkCountText">items selected</span>
+            </div>
+            <div class="bulk-bar-actions">
+                <button type="button" class="btn btn-outline-light btn-sm" id="bulkSelectAllBtn">
+                    <i class="fas fa-check-double me-1"></i> Select All
+                </button>
+                <button type="button" class="btn btn-outline-light btn-sm" id="bulkClearBtn">
+                    <i class="fas fa-times me-1"></i> Clear
+                </button>
+                <button type="button" class="btn btn-danger btn-sm" id="bulkDeleteBtn">
+                    <i class="fas fa-trash-alt me-1"></i> Delete Selected
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Universal Bulk Delete Confirmation Modal -->
+    <div class="modal fade" id="universalBulkDeleteModal" tabindex="-1" aria-labelledby="universalBulkDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0" style="border-radius: 12px; overflow: hidden;">
+                <div class="modal-header bg-danger text-white py-3">
+                    <h5 class="modal-title fs-6 fw-bold" id="universalBulkDeleteModalLabel">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Confirm Bulk Delete
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center py-4 px-4">
+                    <div class="mb-3 text-danger">
+                        <i class="fas fa-trash-alt fa-3x opacity-75"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Delete Selected Items?</h5>
+                    <p class="text-muted mb-0">
+                        You are about to permanently delete <strong class="text-danger" id="bulkDeleteConfirmCount">0 items</strong>.
+                        This action cannot be undone. Are you sure you wish to proceed?
+                    </p>
+                    <div id="bulkDeleteProgressContainer" class="mt-3 d-none">
+                        <div class="progress" style="height: 6px;">
+                            <div id="bulkDeleteProgressBar" class="progress-bar bg-danger progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <small class="text-muted mt-2 d-block" id="bulkDeleteProgressText">Deleting items...</small>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 px-3 border-top d-flex justify-content-between">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal" id="bulkCancelBtn">Cancel</button>
+                    <button type="button" class="btn btn-sm btn-danger fw-semibold" id="bulkConfirmDeleteBtn">
+                        <i class="fas fa-trash-alt me-1"></i> Yes, Delete Selected
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     {% block extra_js %}{% endblock %}
     {% block custom_js %}{% endblock %}

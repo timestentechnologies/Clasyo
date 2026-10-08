@@ -84,7 +84,7 @@
                 </thead>
                 <tbody>
                     {% for student in students %}
-                    <tr class="clickable-row" onclick="editStudent('{{ student.pk }}')" data-name="{{ student.get_full_name|lower }}" data-admission="{{ student.admission_number|lower }}" data-email="{{ student.email|lower }}" data-class="{{ student.current_class.id|lower }}" data-status="{% if student.is_active %}active{% else %}inactive{% endif %}">
+                    <tr class="clickable-row" data-id="{{ student.pk }}" onclick="editStudent('{{ student.pk }}')" data-name="{{ student.get_full_name|lower }}" data-admission="{{ student.admission_number|lower }}" data-email="{{ student.email|lower }}" data-class="{{ student.current_class.id|lower }}" data-status="{% if student.is_active %}active{% else %}inactive{% endif %}">
                         <td>
                             {% if student.photo %}
                                 <img src="{{ student.photo.url }}" alt="{{ student.get_full_name }}" class="rounded-circle" style="width: 40px; height: 40px;">
