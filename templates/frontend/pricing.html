@@ -24,6 +24,7 @@
         display: flex !important;
         flex-direction: column !important;
         position: relative !important;
+        padding: 1.75rem 1.15rem !important;
     }
 
     /* Popular Tier Card: Perfectly aligned at the top with other cards */
@@ -120,6 +121,7 @@
         padding: 0.18rem 0.55rem;
         border-radius: 9999px;
         border: 1px solid #a7f3d0;
+        white-space: nowrap !important;
     }
 
     .price-strike {
@@ -128,6 +130,15 @@
         font-size: 0.95rem;
         font-weight: 500;
         margin-right: 0.25rem;
+        white-space: nowrap !important;
+    }
+
+    .plan-price {
+        white-space: nowrap !important;
+    }
+
+    .plan-duration {
+        white-space: nowrap !important;
     }
 
     .annual-savings-tag {
@@ -140,12 +151,78 @@
         border-radius: 6px;
         margin-top: 0.4rem;
         border: 1px solid #bbf7d0;
+        white-space: nowrap !important;
     }
 
     .per-term-equiv {
         font-size: 0.8rem;
         color: #64748b;
         margin-top: 0.35rem;
+        white-space: nowrap !important;
+    }
+
+    /* Single-line fit for One-time Fee Items */
+    .one-time-section {
+        background: var(--bg-surface-secondary, #f8fafc) !important;
+        border: 1px solid var(--border-color, #e2e8f0) !important;
+        border-radius: var(--radius-md, 8px) !important;
+        padding: 0.6rem 0.75rem !important;
+        margin: 0.75rem 0 1rem !important;
+    }
+
+    .one-time-item {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        gap: 0.4rem !important;
+        padding: 0.28rem 0 !important;
+        color: var(--text-secondary, #64748b) !important;
+        white-space: nowrap !important;
+        flex-wrap: nowrap !important;
+        font-size: 0.82rem !important;
+    }
+
+    .one-time-item .label {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        white-space: nowrap !important;
+        font-size: 0.82rem !important;
+        min-width: 0 !important;
+        flex-shrink: 1 !important;
+    }
+
+    .one-time-item .label span {
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
+    .one-time-item i {
+        color: var(--brand-accent, #0284c7) !important;
+        font-size: 0.82rem !important;
+        width: 14px !important;
+        text-align: center !important;
+        flex-shrink: 0 !important;
+    }
+
+    .fee-amount {
+        font-weight: 700 !important;
+        color: var(--text-primary, #0f172a) !important;
+        font-size: 0.82rem !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+        text-align: right !important;
+        margin-left: auto !important;
+        letter-spacing: -0.01em !important;
+    }
+
+    .fee-badge {
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+        font-size: 0.72rem !important;
+        padding: 1px 7px !important;
+        margin-left: auto !important;
     }
 </style>
 {% endblock %}
@@ -226,41 +303,41 @@
                     
                     <div class="one-time-section">
                         {% if plan.trial_days and plan.trial_days > 0 %}
-                        <div class="one-time-item">
-                            <div class="label"><i class="fas fa-gift"></i><span>Free Trial</span></div>
-                            <span class="fee-badge">{{ plan.trial_days }} days</span>
+                        <div class="one-time-item d-flex justify-content-between align-items-center flex-nowrap text-nowrap">
+                            <div class="label text-nowrap"><i class="fas fa-gift"></i><span>Free Trial</span></div>
+                            <span class="fee-badge text-nowrap">{{ plan.trial_days }} days</span>
                         </div>
                         {% endif %}
-                        <div class="one-time-item">
-                            <div class="label"><i class="fas fa-cogs"></i><span>One-time Setup</span></div>
+                        <div class="one-time-item d-flex justify-content-between align-items-center flex-nowrap text-nowrap">
+                            <div class="label text-nowrap"><i class="fas fa-cogs"></i><span>One-time Setup</span></div>
                             {% if plan.setup_fee > 0 %}
-                                <span class="fee-amount">Ksh {{ plan.setup_fee|intcomma }}</span>
+                                <span class="fee-amount text-nowrap">Ksh {{ plan.setup_fee|intcomma }}</span>
                             {% else %}
-                                <span class="fee-badge free">Free</span>
+                                <span class="fee-badge free text-nowrap">Free</span>
                             {% endif %}
                         </div>
-                        <div class="one-time-item">
-                            <div class="label"><i class="fas fa-database"></i><span>Data Migration</span></div>
+                        <div class="one-time-item d-flex justify-content-between align-items-center flex-nowrap text-nowrap">
+                            <div class="label text-nowrap"><i class="fas fa-database"></i><span>Data Migration</span></div>
                             {% if plan.data_migration_fee > 0 %}
-                                <span class="fee-amount">Ksh {{ plan.data_migration_fee|intcomma }}</span>
+                                <span class="fee-amount text-nowrap">Ksh {{ plan.data_migration_fee|intcomma }}</span>
                             {% else %}
-                                <span class="fee-badge free">Free</span>
+                                <span class="fee-badge free text-nowrap">Free</span>
                             {% endif %}
                         </div>
-                        <div class="one-time-item">
-                            <div class="label"><i class="fas fa-id-badge"></i><span>License Fee</span></div>
+                        <div class="one-time-item d-flex justify-content-between align-items-center flex-nowrap text-nowrap">
+                            <div class="label text-nowrap"><i class="fas fa-id-badge"></i><span>License Fee</span></div>
                             {% if plan.license_fee > 0 %}
-                                <span class="fee-amount">Ksh {{ plan.license_fee|intcomma }}</span>
+                                <span class="fee-amount text-nowrap">Ksh {{ plan.license_fee|intcomma }}</span>
                             {% else %}
-                                <span class="fee-badge free">Free</span>
+                                <span class="fee-badge free text-nowrap">Free</span>
                             {% endif %}
                         </div>
-                        <div class="one-time-item">
-                            <div class="label"><i class="fas fa-chalkboard-teacher"></i><span>Training Fee</span></div>
+                        <div class="one-time-item d-flex justify-content-between align-items-center flex-nowrap text-nowrap">
+                            <div class="label text-nowrap"><i class="fas fa-chalkboard-teacher"></i><span>Training Fee</span></div>
                             {% if plan.training_fee > 0 %}
-                                <span class="fee-amount">Ksh {{ plan.training_fee|intcomma }}</span>
+                                <span class="fee-amount text-nowrap">Ksh {{ plan.training_fee|intcomma }}</span>
                             {% else %}
-                                <span class="fee-badge free">Free</span>
+                                <span class="fee-badge free text-nowrap">Free</span>
                             {% endif %}
                         </div>
                     </div>

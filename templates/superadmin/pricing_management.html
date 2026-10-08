@@ -193,17 +193,17 @@
             <table class="table modern-table">
                 <thead>
                     <tr>
-                        <th>Plan Name</th>
-                        <th>Price</th>
-                        <th>Duration</th>
-                        <th>Yearly Discount</th>
-                        <th>Annual Rate</th>
-                        <th>Period Disc.</th>
-                        <th>One-time Total</th>
-                        <th>Max Students</th>
-                        <th>Status</th>
-                        <th>Popular</th>
-                        <th>Actions</th>
+                        <th class="text-nowrap">Plan Name</th>
+                        <th class="text-nowrap">Price</th>
+                        <th class="text-nowrap">Duration</th>
+                        <th class="text-nowrap">Yearly Discount</th>
+                        <th class="text-nowrap">Annual Rate</th>
+                        <th class="text-nowrap">Period Disc.</th>
+                        <th class="text-nowrap">One-time Total</th>
+                        <th class="text-nowrap">Max Students</th>
+                        <th class="text-nowrap">Status</th>
+                        <th class="text-nowrap">Popular</th>
+                        <th class="text-nowrap text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -228,37 +228,37 @@
                                 is_active: {{ plan.is_active|yesno:'true,false' }},
                                 is_popular: {{ plan.is_popular|yesno:'true,false' }}
                             })" title="Click row to edit {{ plan.name }}">
-                        <td><strong>{{ plan.name }}</strong></td>
-                        <td>Ksh {{ plan.price|intcomma }}</td>
-                        <td>{{ plan.get_billing_cycle_display }}</td>
-                        <td>
+                        <td class="text-nowrap"><strong>{{ plan.name }}</strong></td>
+                        <td class="text-nowrap">Ksh {{ plan.price|intcomma }}</td>
+                        <td class="text-nowrap">{{ plan.get_billing_cycle_display }}</td>
+                        <td class="text-nowrap">
                             {% if plan.yearly_discount_percentage > 0 %}
                             <span class="badge bg-success-subtle text-success fw-bold">{{ plan.yearly_discount_percentage|floatformat:1 }}% off</span>
                             {% else %}
                             <span class="text-muted">0%</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="text-nowrap">
                             <strong>Ksh {{ plan.get_annual_price|intcomma }}</strong>
-                            <small class="text-muted d-block">/ yr</small>
+                            <small class="text-muted ms-1">/ yr</small>
                         </td>
-                        <td>
+                        <td class="text-nowrap">
                             {% if plan.discount_percentage > 0 %}
                             <span class="badge bg-primary-subtle text-primary fw-bold">{{ plan.discount_percentage|floatformat:1 }}% off</span>
                             {% else %}
                             <span class="text-muted">-</span>
                             {% endif %}
                         </td>
-                        <td><strong>Ksh {{ plan.one_time_total|intcomma }}</strong></td>
-                        <td>{{ plan.max_students|default:"Unlimited" }}</td>
-                        <td>
+                        <td class="text-nowrap"><strong>Ksh {{ plan.one_time_total|intcomma }}</strong></td>
+                        <td class="text-nowrap">{{ plan.max_students|default:"Unlimited" }}</td>
+                        <td class="text-nowrap">
                             {% if plan.is_active %}
                             <span class="badge bg-success">Active</span>
                             {% else %}
                             <span class="badge bg-secondary">Inactive</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="text-nowrap">
                             {% if plan.is_popular %}
                             <span class="badge bg-warning text-dark"><i class="fas fa-star me-1"></i> Popular</span>
                             {% else %}
