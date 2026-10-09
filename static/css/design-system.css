@@ -10618,21 +10618,32 @@ table td a[href*="/delete" i] {
 }
 
 /* ==========================================================================
-   Universal Form Check Inline Alignment
-   Ensures radios, checkboxes, and their labels are vertically centered
-   at the same baseline across all forms and inline selection groups.
+   Universal Form Check & Radio/Checkbox Alignment
+   Ensures radios, checkboxes, and their labels are optically and vertically
+   level on the exact same baseline across all forms, filters, and inline groups.
    ========================================================================== */
 .form-check-inline,
-.form-check.form-check-inline {
+.form-check.form-check-inline,
+.d-flex > .form-check,
+.d-inline-flex > .form-check,
+.form-check.d-flex,
+.form-check.d-inline-flex {
     display: inline-flex !important;
     align-items: center !important;
     vertical-align: middle !important;
+    min-height: auto !important;
+    padding-left: 0 !important;
     margin-right: 1rem;
     margin-bottom: 0 !important;
+    line-height: 1.2 !important;
 }
 
 .form-check-inline .form-check-input,
-.form-check.form-check-inline .form-check-input {
+.form-check.form-check-inline .form-check-input,
+.d-flex > .form-check .form-check-input,
+.d-inline-flex > .form-check .form-check-input,
+.form-check.d-flex .form-check-input,
+.form-check.d-inline-flex .form-check-input {
     float: none !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
@@ -10641,13 +10652,67 @@ table td a[href*="/delete" i] {
     flex-shrink: 0;
 }
 
+/* Radio buttons optically sit higher than font baselines in flex centering;
+   offsetting top: 2px brings their geometric and visual center level with text */
+.form-check-inline .form-check-input[type="radio"],
+.form-check.form-check-inline .form-check-input[type="radio"],
+.d-flex > .form-check .form-check-input[type="radio"],
+.d-inline-flex > .form-check .form-check-input[type="radio"],
+.form-check.d-flex .form-check-input[type="radio"],
+.form-check.d-inline-flex .form-check-input[type="radio"],
+.d-flex .form-check-input[type="radio"],
+.d-inline-flex .form-check-input[type="radio"],
+.form-check-input[type="radio"].section-mode-radio-all,
+.form-check-input[type="radio"].section-mode-radio-specific {
+    position: relative !important;
+    top: 2px !important;
+    border-radius: 50% !important;
+}
+
+/* Checkboxes also receive a subtle 1px offset for clean baseline grounding */
+.form-check-inline .form-check-input[type="checkbox"],
+.form-check.form-check-inline .form-check-input[type="checkbox"],
+.d-flex > .form-check .form-check-input[type="checkbox"],
+.d-inline-flex > .form-check .form-check-input[type="checkbox"],
+.form-check.d-flex .form-check-input[type="checkbox"],
+.form-check.d-inline-flex .form-check-input[type="checkbox"],
+.d-flex .form-check-input[type="checkbox"],
+.d-inline-flex .form-check-input[type="checkbox"] {
+    position: relative !important;
+    top: 1px !important;
+}
+
 .form-check-inline .form-check-label,
-.form-check.form-check-inline .form-check-label {
+.form-check.form-check-inline .form-check-label,
+.d-flex > .form-check .form-check-label,
+.d-inline-flex > .form-check .form-check-label,
+.form-check.d-flex .form-check-label,
+.form-check.d-inline-flex .form-check-label {
     margin-left: 0 !important;
     margin-bottom: 0 !important;
     line-height: 1.2 !important;
     display: inline-flex !important;
     align-items: center !important;
+    cursor: pointer;
+}
+
+/* Inline label + control alignment groups (e.g. "Sections: (•) All ( ) Specific") */
+.inline-radio-group,
+.inline-check-group {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.75rem;
+    line-height: 1.2 !important;
+}
+
+.inline-radio-group > span,
+.inline-radio-group > label,
+.inline-check-group > span,
+.inline-check-group > label {
+    display: inline-flex !important;
+    align-items: center !important;
+    line-height: 1.2 !important;
+    margin-bottom: 0 !important;
 }
 
 
