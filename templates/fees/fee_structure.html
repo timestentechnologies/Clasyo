@@ -75,12 +75,12 @@
 <div class="modern-card" id="feeListCard">
     <div class="table-responsive">
         <table class="table">
-            <thead><tr><th>Class</th><th>Fee Structure</th><th>Total Amount (Ksh)</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Class</th><th>Fee Structure</th><th>Total Amount (Ksh)</th></tr></thead>
     <tbody>
         {% regroup fee_structures by class_name as class_group %}
         {% for class_item in class_group %}
             {% for fee in class_item.list %}
-                <tr class="clickable-row" onclick="editFee({{ fee.pk }})">
+                <tr class="clickable-row" data-id="{{ fee.pk }}" onclick="editFee({{ fee.pk }})">
                 {% if forloop.first %}
                     <td rowspan="{{ class_item.list|length }}" class="align-middle" onclick="event.stopPropagation();">
                         <strong>{{ class_item.grouper.name }}</strong>
@@ -96,14 +96,11 @@
                         </div>
                     </td>
                     <td>Ksh {{ fee.amount|floatformat:0|intcomma }}</td>
-                    <td onclick="event.stopPropagation();">
-                        <button class="btn btn-sm btn-danger" title="Delete Fee" onclick="deleteFee({{ fee.pk }}, '{{ fee.name|escapejs }}')"><i class="fas fa-trash"></i></button>
-                    </td>
                 </tr>
             {% endfor %}
         {% empty %}
         <tr>
-            <td colspan="4" class="text-center py-5">
+            <td colspan="3" class="text-center py-5">
                 <i class="fas fa-money-bill-wave fa-3x text-muted mb-3 d-block"></i>
                 <p class="text-muted mb-0">No fee structures found.</p>
             </td>

@@ -1695,24 +1695,91 @@ class PaymentConfigurationDeleteView(SuperAdminRequiredMixin, DeleteView):
 
 # Payment Approval Views
 
-class PaymentApprovalListView(SuperAdminRequiredMixin, ListView):
-    """List payments pending approval"""
-    model = Payment
+class PaymentApprovalListView(SuperAdminRequiredMixin, TemplateView):
+    """Unified Payment Approvals and History View"""
     template_name = 'superadmin/payment_approval_list.html'
-    context_object_name = 'payments'
-    paginate_by = 20
-    
-    def get_queryset(self):
-        return Payment.objects.filter(
-            status__in=['pending_verification', 'pending', 'verified']
-        ).select_related('subscription__school', 'verified_by', 'approved_by').order_by('-created_at')
+    default_tab = 'pending'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['pending_count'] = Payment.objects.filter(
-            status__in=['pending_verification', 'pending']
-        ).count()
+        request = self.request
+        
+        # Determine active tab
+        active_tab = request.GET.get('tab', self.default_tab)
+        if active_tab not in ['pending', 'approved', 'all']:
+            active_tab = self.default_tab
+        context['active_tab'] = active_tab
+
+        # Filters from request
+        status_filter = request.GET.get('status', '').strip()
+        method_filter = request.GET.get('payment_method', '').strip()
+        school_search = request.GET.get('school', '').strip()
+
+        context['selected_status'] = status_filter
+        context['selected_method'] = method_filter
+        context['search_school'] = school_search
+        context['status_choices'] = Payment.STATUS_CHOICES
+        context['payment_method_choices'] = Payment.PAYMENT_METHOD_CHOICES
+
+        base_qs = Payment.objects.select_related(
+            'subscription__school', 'subscription__plan',
+            'verified_by', 'approved_by'
+        ).order_by('-created_at')
+
+        # Global counts
+        context['pending_count'] = Payment.objects.filter(status__in=['pending_verification', 'pending']).count()
         context['verified_count'] = Payment.objects.filter(status='verified').count()
+        context['pending_total'] = context['pending_count'] + context['verified_count']
+        context['approved_total'] = Payment.objects.filter(status__in=['approved', 'completed']).count()
+        context['all_total'] = Payment.objects.count()
+
+        # Sum of approved amounts
+        approved_sum = Payment.objects.filter(status__in=['approved', 'completed']).aggregate(total=Sum('amount'))['total'] or 0
+        context['approved_sum'] = approved_sum
+        context['approved_sum_formatted'] = f"{approved_sum:,.2f}"
+
+        # 1. Pending Payments (pending_verification, pending, verified)
+        pending_qs = base_qs.filter(status__in=['pending_verification', 'pending', 'verified'])
+        if school_search:
+            pending_qs = pending_qs.filter(subscription__school__name__icontains=school_search)
+        if method_filter:
+            pending_qs = pending_qs.filter(payment_method=method_filter)
+        context['pending_payments'] = pending_qs
+
+        # 2. Approved Payments (approved, completed)
+        approved_qs = base_qs.filter(status__in=['approved', 'completed'])
+        if school_search:
+            approved_qs = approved_qs.filter(subscription__school__name__icontains=school_search)
+        if method_filter:
+            approved_qs = approved_qs.filter(payment_method=method_filter)
+        context['approved_payments'] = approved_qs
+
+        # 3. All Payments (all statuses with status, method, and school filters)
+        all_qs = base_qs
+        if status_filter:
+            all_qs = all_qs.filter(status=status_filter)
+        if method_filter:
+            all_qs = all_qs.filter(payment_method=method_filter)
+        if school_search:
+            all_qs = all_qs.filter(subscription__school__name__icontains=school_search)
+
+        from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+        paginator = Paginator(all_qs, 25)
+        page = request.GET.get('page', 1)
+        try:
+            page_obj = paginator.page(page)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
+        context['all_payments'] = page_obj
+        context['page_obj'] = page_obj
+        context['paginator'] = paginator
+        context['is_paginated'] = page_obj.has_other_pages()
+
+        # Backwards compatibility
+        context['payments'] = pending_qs
         return context
 
 
@@ -1894,7 +1961,7 @@ class PaymentRejectView(SuperAdminRequiredMixin, View):
         
         if not rejection_reason.strip():
             messages.error(request, 'Please provide a reason for rejection.')
-            return redirect('superadmin:payment_detail', pk=payment_id)
+            return redirect('superadmin:payment_detail', payment_id=payment_id)
         
         payment.reject_payment(request.user, rejection_reason)
         # Notify school and superadmins using dynamic notification template
@@ -1954,24 +2021,10 @@ class PaymentRejectView(SuperAdminRequiredMixin, View):
         return redirect('superadmin:payment_approval_list')
 
 
-class PaymentHistoryListView(SuperAdminRequiredMixin, ListView):
-    """List all payment history"""
-    model = Payment
-    template_name = 'superadmin/payment_history_list.html'
-    context_object_name = 'payments'
-    paginate_by = 25
-    
-    def get_queryset(self):
-        return Payment.objects.select_related(
-            'subscription__school', 'subscription__plan',
-            'verified_by', 'approved_by'
-        ).order_by('-created_at')
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['status_choices'] = Payment.STATUS_CHOICES
-        context['payment_method_choices'] = Payment.PAYMENT_METHOD_CHOICES
-        return context
+class PaymentHistoryListView(PaymentApprovalListView):
+    """List all payment history - reuses unified view with 'all' tab as default"""
+    default_tab = 'all'
+
 
 
 class InvoiceListView(SuperAdminRequiredMixin, ListView):

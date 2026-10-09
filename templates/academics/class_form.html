@@ -202,31 +202,29 @@
                         <div id="sectionsContainer">
                             {% if form.instance.pk %}
                                 {% for section in form.instance.sections.all %}
-                                <div class="section-row card mb-3 border-start border-success border-4">
-                                    <div class="card-body">
-                                        <div class="row g-3 align-items-end">
-                                            <div class="col-md-3">
-                                                <label class="form-label fw-semibold">Section Name</label>
-                                                <input type="text" class="form-control" value="{{ section.name }}" 
-                                                       name="sections[]" placeholder="e.g., A, B, C" required>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label fw-semibold">Max Students</label>
-                                                <input type="number" class="form-control" value="{{ section.max_students }}" 
-                                                       name="section_capacity[]" placeholder="e.g., 40" min="1">
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label class="form-label fw-semibold">Class Teacher (Optional)</label>
-                                                <select class="form-select" name="section_teacher[]" data-teacher-id="{% if section.class_teacher %}{{ section.class_teacher.id }}{% endif %}">
-                                                    <option value="">Select Teacher</option>
-                                                    <!-- Teachers will be loaded dynamically -->
-                                                </select>
-                                            </div>
-                                            <div class="col-md-2">
-                                                <button type="button" class="btn btn-danger w-100" onclick="removeSection(this)">
-                                                    <i class="fas fa-trash"></i> Remove
-                                                </button>
-                                            </div>
+                                <div class="section-row mb-3">
+                                    <div class="row g-3 align-items-end">
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-semibold">Section Name</label>
+                                            <input type="text" class="form-control" value="{{ section.name }}" 
+                                                   name="sections[]" placeholder="e.g., A, B, C" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-semibold">Max Students</label>
+                                            <input type="number" class="form-control" value="{{ section.max_students }}" 
+                                                   name="section_capacity[]" placeholder="e.g., 40" min="1">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label class="form-label fw-semibold">Class Teacher (Optional)</label>
+                                            <select class="form-select" name="section_teacher[]" data-teacher-id="{% if section.class_teacher %}{{ section.class_teacher.id }}{% endif %}">
+                                                <option value="">Select Teacher</option>
+                                                <!-- Teachers will be loaded dynamically -->
+                                            </select>
+                                        </div>
+                                        <div class="col-md-1">
+                                            <button type="button" class="btn btn-outline-danger w-100" onclick="removeSection(this)" title="Remove Section">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -259,29 +257,27 @@
 
 <!-- Section Template (Hidden) -->
 <template id="sectionTemplate">
-    <div class="section-row card mb-3 border-start border-success border-4">
-        <div class="card-body">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">Section Name</label>
-                    <input type="text" class="form-control" name="sections[]" placeholder="e.g., A, B, C" required>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">Max Students</label>
-                    <input type="number" class="form-control" name="section_capacity[]" value="40" placeholder="e.g., 40" min="1">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Class Teacher (Optional)</label>
-                    <select class="form-select" name="section_teacher[]">
-                        <option value="">Select Teacher</option>
-                        <!-- Teachers will be loaded -->
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="button" class="btn btn-danger w-100" onclick="removeSection(this)">
-                        <i class="fas fa-trash"></i> Remove
-                    </button>
-                </div>
+    <div class="section-row mb-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Section Name</label>
+                <input type="text" class="form-control" name="sections[]" placeholder="e.g., A, B, C" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Max Students</label>
+                <input type="number" class="form-control" name="section_capacity[]" value="40" placeholder="e.g., 40" min="1">
+            </div>
+            <div class="col-md-5">
+                <label class="form-label fw-semibold">Class Teacher (Optional)</label>
+                <select class="form-select" name="section_teacher[]">
+                    <option value="">Select Teacher</option>
+                    <!-- Teachers will be loaded -->
+                </select>
+            </div>
+            <div class="col-md-1 text-end">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeSection(this)" title="Remove Section">
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -363,9 +359,18 @@ function populateAllTeacherDropdowns() {
 }
 
 function populateTeacherDropdown(selectElement) {
+    if (!selectElement) return;
+
     // Store current value if any (from data attribute for existing records)
     const currentValue = selectElement.value || selectElement.dataset.teacherId;
     
+    // Destroy existing TomSelect instance if present before mutating options
+    if (selectElement.tomselect) {
+        try {
+            selectElement.tomselect.destroy();
+        } catch(e) {}
+    }
+
     // Clear existing options except the first one
     selectElement.innerHTML = '<option value="">Select Teacher</option>';
     
@@ -374,12 +379,32 @@ function populateTeacherDropdown(selectElement) {
         const option = document.createElement('option');
         option.value = teacher.id;
         option.textContent = `${teacher.name} (${teacher.email})`;
+        if (currentValue && String(teacher.id) === String(currentValue)) {
+            option.selected = true;
+        }
         selectElement.appendChild(option);
     });
     
     // Restore previous value if it exists
     if (currentValue) {
         selectElement.value = currentValue;
+    }
+
+    if (typeof TomSelect !== 'undefined') {
+        try {
+            const ts = new TomSelect(selectElement, {
+                create: false,
+                placeholder: 'Select Teacher',
+                allowEmptyOption: true,
+                dropdownParent: 'body',
+                copyClassesToDropdown: false
+            });
+            if (currentValue) {
+                ts.setValue(String(currentValue), true);
+            }
+        } catch(e) {
+            console.warn('TomSelect init error on class_form section teacher:', e);
+        }
     }
 }
 
@@ -402,28 +427,38 @@ function addSection() {
     const sectionCount = sections.length;
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     if (sectionCount <= 26) {
-        const lastInput = sections[sectionCount - 1].querySelector('input[name="sections[]"]');
-        lastInput.value = letters[sectionCount - 1];
+        const lastSection = sections[sectionCount - 1];
+        const lastInput = lastSection.querySelector('input[name="sections[]"]');
+        if (lastInput) lastInput.value = letters[sectionCount - 1];
         
         // Populate teacher dropdown for new section
-        const lastSelect = sections[sectionCount - 1].querySelector('select[name="section_teacher[]"]');
+        const lastSelect = lastSection.querySelector('select[name="section_teacher[]"]');
         if (lastSelect && teachersData.length > 0) {
             populateTeacherDropdown(lastSelect);
         }
         
-        lastInput.focus();
+        if (lastInput) lastInput.focus();
     }
 }
 
 function removeSection(button) {
     const row = button.closest('.section-row');
+    if (!row) return;
+
+    // Clean up any TomSelect instances in this row to remove floating dropdowns
+    row.querySelectorAll('select').forEach(sel => {
+        if (sel.tomselect) {
+            try { sel.tomselect.destroy(); } catch(e) {}
+        }
+    });
+
     row.style.animation = 'slideOut 0.3s ease';
     setTimeout(() => {
         row.remove();
         
         // Show empty state if no sections
         const container = document.getElementById('sectionsContainer');
-        if (container.querySelectorAll('.section-row').length === 0) {
+        if (container && container.querySelectorAll('.section-row').length === 0) {
             container.innerHTML = `
                 <div class="text-center py-4 text-muted">
                     <i class="fas fa-users fa-3x mb-3 opacity-25"></i>

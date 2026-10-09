@@ -170,7 +170,7 @@
             </div>
             <div class="d-flex justify-content-end gap-2 mt-4">
                 <button type="button" class="btn btn-outline-secondary" onclick="toggleInPageFormView('leaveListCard', 'leaveFormPanel', 'hide')">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitLeave()"><i class="fas fa-paper-plane me-1"></i> Submit Application</button>
+                <button type="button" class="btn btn-primary" id="submitLeaveBtn" onclick="submitLeave()"><i class="fas fa-paper-plane me-1"></i> Submit Application</button>
             </div>
         </form>
     </div>
@@ -222,6 +222,15 @@ function loadApplicants() {
 
 function submitLeave() {
     const form = document.getElementById('applyLeaveForm');
+    const submitBtn = document.getElementById('submitLeaveBtn');
+    const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Submitting...';
+    }
+    document.body.style.cursor = 'wait';
+
     const formData = new FormData(form);
     
     fetch("{% url 'leave:leave_apply' school_slug=school_slug %}", {
@@ -234,22 +243,35 @@ function submitLeave() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('applyLeaveModal'));
-            if (modal) modal.hide();
-            showSuccessAndReload('Leave application submitted successfully!');
+            toggleInPageFormView('leaveListCard', 'leaveFormPanel', 'hide');
+            if (typeof window.showSuccessAndReload === 'function') {
+                window.showSuccessAndReload('Leave application submitted successfully!', 0);
+            } else {
+                location.reload();
+            }
         } else {
-            alert('Error: ' + (data.error || 'Failed to submit leave application'));
+            if (typeof showError === 'function') {
+                showError(data.error || 'Failed to submit leave application');
+            } else {
+                alert('Error: ' + (data.error || 'Failed to submit leave application'));
+            }
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Failed to submit leave application: ' + error.message);
+        if (typeof showError === 'function') {
+            showError('Failed to submit leave application: ' + error.message);
+        } else {
+            alert('Failed to submit leave application: ' + error.message);
+        }
+    })
+    .finally(() => {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnHtml;
+        }
+        document.body.style.cursor = '';
     });
-}
-
-function showSuccessAndReload(message) {
-    document.getElementById('successMessage').innerHTML = message;
-    $('#successModal').modal('show');
 }
 
 function showError(message) {

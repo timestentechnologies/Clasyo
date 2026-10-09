@@ -4,14 +4,18 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy, reverse
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db import transaction
+from django.db.models import Q, Prefetch
 from core.utils import get_current_school
 from core.models import AcademicYear
-from .models import Class, Section, Subject, ClassRoutine, ClassTime, ClassRoom, StudyMaterial, Assignment
+from .models import Class, Section, Subject, ClassRoutine, ClassTime, ClassRoom, StudyMaterial, Assignment, AssignedSubject
 from accounts.models import User
 from tenants.models import School
 import json
+import logging
 from datetime import datetime, time
+
+logger = logging.getLogger(__name__)
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -104,7 +108,7 @@ class ClassListView(LoginRequiredMixin, ListView):
         education_level = self.request.GET.get('education_level')
         if education_level:
             queryset = queryset.filter(education_level=education_level)
-        return queryset
+        return queryset.prefetch_related('sections')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -121,7 +125,96 @@ class ClassListView(LoginRequiredMixin, ListView):
         context['school'] = school
         context['education_level_choices'] = get_allowed_education_level_choices_for_school(school)
         context['selected_education_level'] = self.request.GET.get('education_level', '')
+
+        # Preload teachers for the school so frontend doesn't need to make extra AJAX calls
+        try:
+            teachers_qs = User.objects.filter(role='teacher', is_active=True)
+            if school:
+                teachers_qs = teachers_qs.filter(school=school)
+            teachers_list = [
+                {'id': t.id, 'name': (t.get_full_name().strip() if t.get_full_name() else '') or t.email or f"Teacher #{t.id}"}
+                for t in teachers_qs
+            ]
+        except Exception as e:
+            teachers_list = []
+        context['teachers_json'] = json.dumps(teachers_list)
         return context
+
+
+def _save_sections_for_class(class_obj, section_names, section_capacities, section_teachers, tenant_db=None):
+    """
+    Saves or updates sections for a class, safely coercing inputs and ensuring
+    foreign keys (like class_teacher) resolve without integrity errors.
+    """
+    from accounts.models import User
+    from tenants.school_sync import sync_tenant_user_by_id
+    from tenants.threadlocals import get_current_tenant_db
+
+    tenant_db = tenant_db or get_current_tenant_db() or (class_obj.school.slug if class_obj.school else 'default')
+    processed_section_ids = set()
+
+    for i, raw_name in enumerate(section_names):
+        name = (raw_name or '').strip()
+        if not name:
+            continue
+
+        # Coerce capacity safely
+        capacity = 40
+        if i < len(section_capacities):
+            cap_val = section_capacities[i]
+            if cap_val not in (None, '', 'null', 'None'):
+                try:
+                    capacity = max(1, int(cap_val))
+                except (ValueError, TypeError):
+                    capacity = 40
+
+        # Coerce teacher ID safely
+        teacher_id = None
+        if i < len(section_teachers):
+            t_val = section_teachers[i]
+            if t_val not in (None, '', 'null', 'None'):
+                try:
+                    teacher_id = int(t_val)
+                except (ValueError, TypeError):
+                    teacher_id = None
+
+        # Verify teacher exists and sync to tenant DB if needed
+        if teacher_id:
+            try:
+                sync_tenant_user_by_id(teacher_id, db_alias=tenant_db)
+            except Exception as e:
+                logger.warning(f"Could not sync teacher {teacher_id} for section {name}: {e}")
+
+            # Check if teacher exists in tenant DB before assigning FK
+            try:
+                if not User.objects.using(tenant_db).filter(pk=teacher_id).exists():
+                    logger.warning(f"Teacher {teacher_id} not present in tenant DB {tenant_db}, omitting FK.")
+                    teacher_id = None
+            except Exception:
+                teacher_id = None
+
+        section, _ = Section.objects.using(tenant_db).update_or_create(
+            class_name=class_obj,
+            name=name,
+            defaults={
+                'max_students': capacity,
+                'class_teacher_id': teacher_id,
+                'is_active': True,
+            }
+        )
+        processed_section_ids.add(section.id)
+
+    # For any existing sections belonging to this class that were not in the submitted list:
+    # Safely deactivate them or delete if no dependents exist
+    existing_sections = Section.objects.using(tenant_db).filter(class_name=class_obj)
+    for existing in existing_sections:
+        if existing.id not in processed_section_ids:
+            try:
+                existing.delete()
+            except Exception as e:
+                logger.info(f"Could not delete orphaned section {existing.name} (has dependencies), deactivating instead: {e}")
+                existing.is_active = False
+                existing.save(using=tenant_db, update_fields=['is_active'])
 
 
 class ClassCreateView(LoginRequiredMixin, CreateView):
@@ -138,7 +231,10 @@ class ClassCreateView(LoginRequiredMixin, CreateView):
                 school = School.objects.get(slug=school_slug, is_active=True)
             except School.DoesNotExist:
                 school = None
-        form.fields['education_level'].choices = get_allowed_education_level_choices_for_school(school)
+        choices = get_allowed_education_level_choices_for_school(school)
+        if not any(c[0] == 'unspecified' for c in choices):
+            choices = [('unspecified', 'Unspecified')] + list(choices)
+        form.fields['education_level'].choices = choices
         return form
 
     def get_context_data(self, **kwargs):
@@ -161,30 +257,40 @@ class ClassCreateView(LoginRequiredMixin, CreateView):
         return reverse('academics:class_list', kwargs={'school_slug': self.kwargs.get('school_slug')})
     
     def form_valid(self, form):
-        # Save the class first
         school_slug = self.kwargs.get('school_slug', '')
         school = None
         if school_slug:
             school = School.objects.filter(slug=school_slug, is_active=True).first()
         if school:
             form.instance.school = school
-        self.object = form.save()
-        
-        # Handle sections
-        section_names = self.request.POST.getlist('sections[]')
-        section_capacities = self.request.POST.getlist('section_capacity[]')
-        section_teachers = self.request.POST.getlist('section_teacher[]')
-        
-        for i, name in enumerate(section_names):
-            if name.strip():  # Only create if name is not empty
-                Section.objects.create(
-                    class_name=self.object,
-                    name=name.strip(),
-                    max_students=section_capacities[i] if i < len(section_capacities) else 40,
-                    class_teacher_id=section_teachers[i] if i < len(section_teachers) and section_teachers[i] else None
+
+        is_ajax = (
+            self.request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+            self.request.headers.get('accept', '').find('application/json') != -1
+        )
+
+        try:
+            with transaction.atomic():
+                self.object = form.save()
+                
+                section_names = self.request.POST.getlist('sections[]')
+                section_capacities = self.request.POST.getlist('section_capacity[]')
+                section_teachers = self.request.POST.getlist('section_teacher[]')
+                
+                _save_sections_for_class(
+                    class_obj=self.object,
+                    section_names=section_names,
+                    section_capacities=section_capacities,
+                    section_teachers=section_teachers
                 )
-        
-        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        except Exception as e:
+            logger.exception(f"Error creating class: {e}")
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': str(e)}, status=400)
+            form.add_error(None, str(e))
+            return self.form_invalid(form)
+
+        if is_ajax:
             return JsonResponse({'success': True, 'id': self.object.pk})
         
         return super().form_valid(form)
@@ -209,7 +315,10 @@ class ClassUpdateView(LoginRequiredMixin, UpdateView):
                 school = School.objects.get(slug=school_slug, is_active=True)
             except School.DoesNotExist:
                 school = None
-        form.fields['education_level'].choices = get_allowed_education_level_choices_for_school(school)
+        choices = get_allowed_education_level_choices_for_school(school)
+        if not any(c[0] == 'unspecified' for c in choices):
+            choices = [('unspecified', 'Unspecified')] + list(choices)
+        form.fields['education_level'].choices = choices
         return form
 
     def get_context_data(self, **kwargs):
@@ -232,27 +341,33 @@ class ClassUpdateView(LoginRequiredMixin, UpdateView):
         return reverse('academics:class_list', kwargs={'school_slug': self.kwargs.get('school_slug')})
     
     def form_valid(self, form):
-        # Save the class first
-        self.object = form.save()
-        
-        # Delete existing sections (we'll recreate them)
-        self.object.sections.all().delete()
-        
-        # Handle sections
-        section_names = self.request.POST.getlist('sections[]')
-        section_capacities = self.request.POST.getlist('section_capacity[]')
-        section_teachers = self.request.POST.getlist('section_teacher[]')
-        
-        for i, name in enumerate(section_names):
-            if name.strip():  # Only create if name is not empty
-                Section.objects.create(
-                    class_name=self.object,
-                    name=name.strip(),
-                    max_students=section_capacities[i] if i < len(section_capacities) else 40,
-                    class_teacher_id=section_teachers[i] if i < len(section_teachers) and section_teachers[i] else None
+        is_ajax = (
+            self.request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+            self.request.headers.get('accept', '').find('application/json') != -1
+        )
+
+        try:
+            with transaction.atomic():
+                self.object = form.save()
+                
+                section_names = self.request.POST.getlist('sections[]')
+                section_capacities = self.request.POST.getlist('section_capacity[]')
+                section_teachers = self.request.POST.getlist('section_teacher[]')
+                
+                _save_sections_for_class(
+                    class_obj=self.object,
+                    section_names=section_names,
+                    section_capacities=section_capacities,
+                    section_teachers=section_teachers
                 )
-        
-        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        except Exception as e:
+            logger.exception(f"Error updating class: {e}")
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': str(e)}, status=400)
+            form.add_error(None, str(e))
+            return self.form_invalid(form)
+
+        if is_ajax:
             return JsonResponse({'success': True, 'id': self.object.pk})
         
         return super().form_valid(form)
@@ -287,69 +402,12 @@ class ClassSubjectAssignmentsView(LoginRequiredMixin, View):
         return qs.first()
 
     def get(self, request, *args, **kwargs):
-        from .models import AssignedSubject
-
         school_slug = self.kwargs.get('school_slug', '')
-        school = get_current_school(request)
-        active_year = self._get_active_year(school)
-
-        classes_qs = Class.objects.filter(is_active=True)
-        subjects_qs = Subject.objects.filter(is_active=True)
-        sections_qs = Section.objects.filter(is_active=True)
-        if school:
-            classes_qs = classes_qs.filter(school=school)
-            subjects_qs = subjects_qs.filter(school=school)
-            sections_qs = sections_qs.filter(class_name__school=school)
-
-        assigned_qs = AssignedSubject.objects.filter(is_active=True)
-        if active_year:
-            assigned_qs = assigned_qs.filter(academic_year=active_year)
-        if school:
-            assigned_qs = assigned_qs.filter(class_name__school=school, subject__school=school)
-        assigned_qs = assigned_qs.select_related('class_name', 'section', 'subject', 'teacher', 'academic_year').order_by('class_name__order', 'class_name__name', 'section__name', 'subject__name')
-
-        context = {
-            'school_slug': school_slug,
-            'active_year': active_year,
-            'has_active_year': bool(active_year),
-            'classes': classes_qs.order_by('order', 'name'),
-            'sections': sections_qs.select_related('class_name').order_by('class_name__order', 'class_name__name', 'name'),
-            'subjects': subjects_qs.order_by('name'),
-            'assigned_subjects': assigned_qs,
-        }
-        return render(request, self.template_name, context)
+        return redirect('academics:subject_list', school_slug=school_slug)
 
     def post(self, request, *args, **kwargs):
-        from .models import AssignedSubject
-
-        school = get_current_school(request)
-        active_year = self._get_active_year(school)
-        if not active_year:
-            return self.get(request, *args, **kwargs)
-
-        delete_id = request.POST.get('delete_id')
-        if delete_id:
-            qs = AssignedSubject.objects.filter(pk=delete_id)
-            if school:
-                qs = qs.filter(class_name__school=school, subject__school=school)
-            qs.delete()
-            return redirect('academics:class_subjects', school_slug=self.kwargs.get('school_slug'))
-
-        class_id = request.POST.get('class_id')
-        section_id = request.POST.get('section_id') or None
-        subject_ids = request.POST.getlist('subject_ids')
-
-        if class_id and subject_ids:
-            for sid in subject_ids:
-                AssignedSubject.objects.get_or_create(
-                    class_name_id=class_id,
-                    section_id=section_id,
-                    subject_id=sid,
-                    academic_year=active_year,
-                    defaults={'is_active': True},
-                )
-
-        return redirect('academics:class_subjects', school_slug=self.kwargs.get('school_slug'))
+        school_slug = self.kwargs.get('school_slug', '')
+        return redirect('academics:subject_list', school_slug=school_slug)
 
 
 def get_class_api(request, pk, school_slug=None):
@@ -357,16 +415,7 @@ def get_class_api(request, pk, school_slug=None):
         return JsonResponse({'success': False, 'error': 'Authentication required'}, status=401)
     try:
         class_obj = Class.objects.get(pk=pk)
-        sections = [
-            {
-                'id': section.id,
-                'name': section.name,
-                'max_students': section.max_students,
-                'class_teacher_id': section.class_teacher_id,
-                'class_teacher_name': section.class_teacher.get_full_name() if section.class_teacher else None,
-            }
-            for section in class_obj.sections.all()
-        ]
+        sections = list(class_obj.sections.values('id', 'name', 'max_students', 'class_teacher_id'))
         return JsonResponse({
             'success': True,
             'id': class_obj.id,
@@ -415,16 +464,48 @@ class SectionCreateView(LoginRequiredMixin, CreateView):
     
     def post(self, request, *args, **kwargs):
         try:
-            Section.objects.create(
-                class_name_id=request.POST.get('class_name'),
-                name=request.POST.get('name'),
-                max_students=request.POST.get('max_students') or None,
-                room=request.POST.get('room', ''),
-                is_active=request.POST.get('is_active') == 'on'
+            from tenants.school_sync import sync_tenant_user_by_id
+
+            class_id = request.POST.get('class_name')
+            name = (request.POST.get('name') or '').strip()
+            if not class_id or not name:
+                return JsonResponse({'success': False, 'error': 'Class and section name are required.'}, status=400)
+
+            cap_raw = request.POST.get('max_students')
+            try:
+                max_students = max(1, int(cap_raw)) if cap_raw else 40
+            except (ValueError, TypeError):
+                max_students = 40
+
+            teacher_raw = request.POST.get('class_teacher')
+            teacher_id = None
+            if teacher_raw not in (None, '', 'null', 'None'):
+                try:
+                    teacher_id = int(teacher_raw)
+                    sync_tenant_user_by_id(teacher_id)
+                except (ValueError, TypeError):
+                    teacher_id = None
+
+            room_raw = request.POST.get('room')
+            room_id = None
+            if room_raw not in (None, '', 'null', 'None'):
+                try:
+                    room_id = int(room_raw)
+                except (ValueError, TypeError):
+                    room_id = None
+
+            section = Section.objects.create(
+                class_name_id=class_id,
+                name=name,
+                max_students=max_students,
+                class_teacher_id=teacher_id,
+                room_id=room_id,
+                is_active=request.POST.get('is_active') in ('on', 'true', True)
             )
-            return JsonResponse({'success': True})
+            return JsonResponse({'success': True, 'id': section.id})
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+            logger.exception(f"Error creating section: {e}")
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
 class SectionUpdateView(LoginRequiredMixin, UpdateView):
@@ -433,17 +514,51 @@ class SectionUpdateView(LoginRequiredMixin, UpdateView):
     
     def post(self, request, *args, **kwargs):
         try:
+            from tenants.school_sync import sync_tenant_user_by_id
+
             section = self.get_object()
             if request.POST.get('class_name'):
                 section.class_name_id = request.POST.get('class_name')
-            section.name = request.POST.get('name')
-            section.max_students = request.POST.get('max_students') or None
-            section.room = request.POST.get('room', '')
-            section.is_active = request.POST.get('is_active') == 'on'
+            if request.POST.get('name'):
+                section.name = request.POST.get('name').strip()
+            
+            cap_raw = request.POST.get('max_students')
+            if cap_raw is not None:
+                try:
+                    section.max_students = max(1, int(cap_raw)) if cap_raw else 40
+                except (ValueError, TypeError):
+                    section.max_students = 40
+            
+            if 'class_teacher' in request.POST:
+                teacher_raw = request.POST.get('class_teacher')
+                if teacher_raw in (None, '', 'null', 'None'):
+                    section.class_teacher_id = None
+                else:
+                    try:
+                        t_id = int(teacher_raw)
+                        sync_tenant_user_by_id(t_id)
+                        section.class_teacher_id = t_id
+                    except (ValueError, TypeError):
+                        section.class_teacher_id = None
+
+            if 'room' in request.POST:
+                room_raw = request.POST.get('room')
+                if room_raw in (None, '', 'null', 'None'):
+                    section.room_id = None
+                else:
+                    try:
+                        section.room_id = int(room_raw)
+                    except (ValueError, TypeError):
+                        section.room_id = None
+
+            if 'is_active' in request.POST:
+                section.is_active = request.POST.get('is_active') in ('on', 'true', True)
+
             section.save()
-            return JsonResponse({'success': True})
+            return JsonResponse({'success': True, 'id': section.id})
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+            logger.exception(f"Error updating section: {e}")
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
 class SectionDeleteView(LoginRequiredMixin, DeleteView):
@@ -455,6 +570,92 @@ class SectionDeleteView(LoginRequiredMixin, DeleteView):
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
+
+
+def _sync_subject_assignments(subject, school, request):
+    """Synchronize class and section linkages for a subject in the active academic year."""
+    if 'sync_classes' not in request.POST:
+        return
+
+    # Resolve active academic year
+    active_year = AcademicYear.objects.filter(is_active=True)
+    if school:
+        active_year = active_year.filter(school=school)
+    active_year = active_year.first()
+
+    if not active_year and school:
+        active_year = AcademicYear.objects.filter(school=school).order_by('-start_date').first()
+
+    if not active_year:
+        logger.warning(f"No academic year found when syncing subject assignments for {subject}")
+        return
+
+    # Parse class IDs and section IDs from POST
+    all_class_ids = [int(cid) for cid in request.POST.getlist('class_ids') if cid.isdigit()]
+    specific_section_ids = [int(sid) for sid in request.POST.getlist('section_ids') if sid.isdigit()]
+
+    # Fetch existing assignments to preserve teachers
+    existing_assignments = AssignedSubject.objects.filter(
+        subject=subject,
+        academic_year=active_year
+    )
+    if school:
+        existing_assignments = existing_assignments.filter(class_name__school=school)
+
+    # Map (class_id, section_id) -> teacher_id
+    teacher_map = {
+        (a.class_name_id, a.section_id): a.teacher_id
+        for a in existing_assignments
+    }
+
+    # Desired (class_id, section_id) pairs
+    desired_pairs = set()
+
+    # Find classes of specific sections
+    valid_sections = []
+    specific_section_class_ids = set()
+    if specific_section_ids:
+        valid_sections = list(Section.objects.filter(id__in=specific_section_ids).select_related('class_name'))
+        if school:
+            valid_sections = [s for s in valid_sections if s.class_name.school_id == school.id]
+        specific_section_class_ids = {s.class_name_id for s in valid_sections}
+
+    # Process class_ids
+    valid_classes = Class.objects.filter(id__in=all_class_ids)
+    if school:
+        valid_classes = valid_classes.filter(school=school)
+    for c in valid_classes:
+        # If specific sections were chosen for this class, don't assign all sections (None)
+        if c.id not in specific_section_class_ids:
+            desired_pairs.add((c.id, None))
+
+    # Add specific section pairs
+    for s in valid_sections:
+        desired_pairs.add((s.class_name_id, s.id))
+
+    existing_pairs = set(teacher_map.keys())
+
+    # Delete unselected pairs
+    to_remove = existing_pairs - desired_pairs
+    for cid, sid in to_remove:
+        q = existing_assignments.filter(class_name_id=cid)
+        if sid is None:
+            q = q.filter(section__isnull=True)
+        else:
+            q = q.filter(section_id=sid)
+        q.delete()
+
+    # Create new pairs
+    to_add = desired_pairs - existing_pairs
+    for cid, sid in to_add:
+        AssignedSubject.objects.create(
+            subject=subject,
+            class_name_id=cid,
+            section_id=sid,
+            academic_year=active_year,
+            is_active=True,
+            teacher_id=teacher_map.get((cid, sid))
+        )
 
 
 class SubjectListView(LoginRequiredMixin, ListView):
@@ -474,17 +675,81 @@ class SubjectListView(LoginRequiredMixin, ListView):
             messages.error(request, "Access denied.")
             return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
         return super().dispatch(request, *args, **kwargs)
-    
+
+    def _get_active_year(self, school):
+        year = AcademicYear.objects.filter(is_active=True)
+        if school:
+            year = year.filter(school=school)
+        year = year.first()
+        if not year and school:
+            year = AcademicYear.objects.filter(school=school).order_by('-start_date').first()
+        return year
+
     def get_queryset(self):
         school = get_current_school(self.request)
         qs = Subject.objects.filter(is_active=True)
         if school:
             qs = qs.filter(school=school)
+        active_year = self._get_active_year(school)
+        if active_year:
+            assignment_qs = AssignedSubject.objects.filter(
+                academic_year=active_year,
+                is_active=True
+            ).select_related('class_name', 'section').order_by('class_name__order', 'class_name__name', 'section__name')
+            qs = qs.prefetch_related(
+                Prefetch('subject_assignments', queryset=assignment_qs, to_attr='active_assignments')
+            )
         return qs
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        school = get_current_school(self.request)
         context['school_slug'] = self.kwargs.get('school_slug', '')
+        active_year = self._get_active_year(school)
+        context['active_year'] = active_year
+
+        # Active classes with sections for the school to link in add/edit panel
+        classes_qs = Class.objects.filter(is_active=True)
+        if school:
+            classes_qs = classes_qs.filter(school=school)
+        context['classes'] = list(classes_qs.prefetch_related('sections').order_by('order', 'name'))
+
+        # Decorate subjects with assigned classes data for UI and filtering
+        for subject in context['subjects']:
+            active_assignments = getattr(subject, 'active_assignments', None)
+            if active_assignments is None:
+                if active_year:
+                    active_assignments = list(subject.subject_assignments.filter(
+                        academic_year=active_year, is_active=True
+                    ).select_related('class_name', 'section').order_by('class_name__order', 'class_name__name', 'section__name'))
+                else:
+                    active_assignments = []
+
+            assigned_classes_list = []
+            badges = []
+            class_names_set = set()
+            class_ids_set = set()
+
+            for a in active_assignments:
+                class_ids_set.add(str(a.class_name_id))
+                class_names_set.add(a.class_name.name.lower())
+                assigned_classes_list.append({
+                    'class_id': a.class_name_id,
+                    'class_name': a.class_name.name,
+                    'section_id': a.section_id,
+                    'section_name': a.section.name if a.section else None
+                })
+                badges.append({
+                    'class_id': a.class_name_id,
+                    'name': a.class_name.name,
+                    'section_name': a.section.name if a.section else None
+                })
+
+            subject.assigned_classes_json = json.dumps(assigned_classes_list)
+            subject.assigned_display_badges = badges
+            subject.assigned_class_ids_str = ' '.join(class_ids_set)
+            subject.assigned_class_names_str = ', '.join(sorted(class_names_set))
+
         return context
 
 
@@ -506,21 +771,24 @@ class SubjectCreateView(LoginRequiredMixin, CreateView):
             messages.error(request, "Access denied.")
             return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
         return super().dispatch(request, *args, **kwargs)
-    
+
     def post(self, request, *args, **kwargs):
         try:
             school = get_current_school(request)
-            Subject.objects.create(
-                name=request.POST.get('name'),
-                code=request.POST.get('code'),
-                subject_type=request.POST.get('subject_type', 'theory'),
-                description=request.POST.get('description', ''),
-                credits=request.POST.get('credits', 1),
-                is_active=request.POST.get('is_active') == 'on',
-                school=school
-            )
-            return JsonResponse({'success': True})
+            with transaction.atomic():
+                subject = Subject.objects.create(
+                    name=request.POST.get('name'),
+                    code=request.POST.get('code'),
+                    subject_type=request.POST.get('subject_type', 'theory'),
+                    description=request.POST.get('description', ''),
+                    credits=request.POST.get('credits', 1) or 1,
+                    is_active=request.POST.get('is_active') == 'on',
+                    school=school
+                )
+                _sync_subject_assignments(subject, school, request)
+            return JsonResponse({'success': True, 'id': subject.id})
         except Exception as e:
+            logger.exception(f"Error creating subject: {e}")
             return JsonResponse({'success': False, 'error': str(e)})
 
 
@@ -542,19 +810,23 @@ class SubjectUpdateView(LoginRequiredMixin, UpdateView):
             messages.error(request, "Access denied.")
             return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
         return super().dispatch(request, *args, **kwargs)
-    
+
     def post(self, request, *args, **kwargs):
         try:
             subject = self.get_object()
-            subject.name = request.POST.get('name')
-            subject.code = request.POST.get('code')
-            subject.subject_type = request.POST.get('subject_type', 'theory')
-            subject.description = request.POST.get('description', '')
-            subject.credits = request.POST.get('credits', 1)
-            subject.is_active = request.POST.get('is_active') == 'on'
-            subject.save()
+            school = get_current_school(request) or subject.school
+            with transaction.atomic():
+                subject.name = request.POST.get('name')
+                subject.code = request.POST.get('code')
+                subject.subject_type = request.POST.get('subject_type', 'theory')
+                subject.description = request.POST.get('description', '')
+                subject.credits = request.POST.get('credits', 1) or 1
+                subject.is_active = request.POST.get('is_active') == 'on'
+                subject.save()
+                _sync_subject_assignments(subject, school, request)
             return JsonResponse({'success': True, 'message': 'Subject updated successfully'})
         except Exception as e:
+            logger.exception(f"Error updating subject: {e}")
             return JsonResponse({'success': False, 'error': str(e)})
 
 

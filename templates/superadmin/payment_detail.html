@@ -8,21 +8,43 @@
 {% block page_subtitle %}Review payment information and take action{% endblock %}
 
 {% block page_actions %}
-<div class="btn-group" role="group">
+<div class="d-flex align-items-center gap-2 flex-wrap">
     <a href="{% url 'superadmin:payment_approval_list' %}" class="btn btn-secondary">
         <i class="fas fa-arrow-left me-2"></i>Back to Approvals
     </a>
+    {% if payment.status == 'pending_verification' or payment.status == 'pending' %}
+    <form method="post" action="{% url 'superadmin:payment_verify' payment.payment_id %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-info text-white" onclick="return confirm('Verify this payment?');">
+            <i class="fas fa-check me-1"></i>Verify Payment
+        </button>
+    </form>
+    {% elif payment.status == 'verified' %}
+    <form method="post" action="{% url 'superadmin:payment_approve' payment.payment_id %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success" onclick="return confirm('Approve this payment and activate subscription?');">
+            <i class="fas fa-check-circle me-1"></i>Approve Payment
+        </button>
+    </form>
+    {% endif %}
+    {% if payment.status != 'approved' and payment.status != 'rejected' %}
+    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
+        <i class="fas fa-times-circle me-1"></i>Reject
+    </button>
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="row">
-        <div class="col-lg-8">
-            <!-- Payment Information -->
+        <div class="col-12">
+            <!-- Unified Payment Details Card -->
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Payment Information</h5>
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fas fa-receipt me-2 text-primary"></i>Payment Information
+                    </h5>
                     <div>
                         {% if payment.status == 'pending_verification' %}
                             <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Pending Verification</span>
@@ -40,12 +62,13 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
+                    <!-- Primary Payment Details -->
+                    <div class="row g-4">
+                        <div class="col-md-6 col-lg-4">
                             <label class="text-muted small d-block mb-1">Payment ID</label>
                             <p class="mb-0"><code>{{ payment.payment_id }}</code></p>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-lg-4">
                             <label class="text-muted small d-block mb-1">Invoice Number</label>
                             <p class="mb-0">
                                 {% if invoice and payment.subscription.school.slug %}
@@ -59,17 +82,17 @@
                                 {% endif %}
                             </p>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-lg-4">
                             <label class="text-muted small d-block mb-1">Amount</label>
                             <p class="mb-0"><strong>{{ payment.amount }} {{ payment.currency }}</strong></p>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-lg-4">
                             <label class="text-muted small d-block mb-1">Payment Method</label>
                             <p class="mb-0">
                                 <span class="badge bg-secondary">{{ payment.get_payment_method_display }}</span>
                             </p>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-lg-4">
                             <label class="text-muted small d-block mb-1">Status</label>
                             <p class="mb-0">
                                 {% if payment.status == 'pending_verification' %}
@@ -87,56 +110,56 @@
                                 {% endif %}
                             </p>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-lg-4">
                             <label class="text-muted small d-block mb-1">Created</label>
                             <p class="mb-0">{{ payment.created_at|date:"M d, Y H:i" }}</p>
                         </div>
 
                         <!-- Payment Method Specific Details -->
                         {% if payment.phone_number %}
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-lg-4">
                             <label class="text-muted small d-block mb-1">Phone Number</label>
                             <p class="mb-0">{{ payment.phone_number }}</p>
                         </div>
                         {% endif %}
 
                         {% if payment.full_name %}
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-lg-4">
                             <label class="text-muted small d-block mb-1">Full Name</label>
                             <p class="mb-0">{{ payment.full_name }}</p>
                         </div>
                         {% endif %}
 
                         {% if payment.account_name %}
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-lg-4">
                             <label class="text-muted small d-block mb-1">Account Name</label>
                             <p class="mb-0">{{ payment.account_name }}</p>
                         </div>
                         {% endif %}
 
                         {% if payment.account_number %}
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-lg-4">
                             <label class="text-muted small d-block mb-1">Account Number</label>
                             <p class="mb-0">{{ payment.account_number }}</p>
                         </div>
                         {% endif %}
 
                         {% if payment.paypal_email %}
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-lg-4">
                             <label class="text-muted small d-block mb-1">PayPal Email</label>
                             <p class="mb-0">{{ payment.paypal_email }}</p>
                         </div>
                         {% endif %}
 
                         {% if payment.transaction_id %}
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-lg-4">
                             <label class="text-muted small d-block mb-1">Transaction ID</label>
                             <p class="mb-0"><code>{{ payment.transaction_id }}</code></p>
                         </div>
                         {% endif %}
 
                         {% if payment.invoice_number_ref %}
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-lg-4">
                             <label class="text-muted small d-block mb-1">Invoice Reference</label>
                             <p class="mb-0">{{ payment.invoice_number_ref }}</p>
                         </div>
@@ -150,15 +173,15 @@
                         {% endif %}
                     </div>
 
-                    <!-- Subscription Information -->
+                    <!-- Subscription Information Section -->
                     <hr class="my-4 border-secondary opacity-25">
                     
                     <h6 class="fw-bold mb-3 d-flex align-items-center text-primary">
                         <i class="fas fa-id-badge me-2"></i>Subscription Information
                     </h6>
                     
-                    <div class="row g-3">
-                        <div class="col-md-6">
+                    <div class="row g-4">
+                        <div class="col-md-6 col-lg-3">
                             <label class="text-muted small d-block mb-1">School</label>
                             <p class="mb-0 fw-bold">
                                 {% if payment.subscription.school %}
@@ -174,7 +197,7 @@
                             {% endif %}
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-lg-3">
                             <label class="text-muted small d-block mb-1">Plan</label>
                             <p class="mb-0 fw-bold">{{ payment.subscription.plan.name|default:"-" }}</p>
                             {% if payment.subscription.plan.get_billing_cycle_display %}
@@ -182,7 +205,7 @@
                             {% endif %}
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-lg-3">
                             <label class="text-muted small d-block mb-1">Subscription Status</label>
                             <p class="mb-0">
                                 {% if payment.subscription.status == 'active' %}
@@ -197,7 +220,7 @@
                             </p>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-lg-3">
                             <label class="text-muted small d-block mb-1">Subscription Period</label>
                             <p class="mb-0 fw-semibold">
                                 {% if payment.subscription.start_date and payment.subscription.end_date %}
@@ -208,76 +231,74 @@
                             </p>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
 
-        <div class="col-lg-4">
-            <!-- Approval History -->
-            {% if payment.verified_by or payment.approved_by %}
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h6 class="mb-0 fw-bold"><i class="fas fa-history me-2 text-info"></i>Approval History</h6>
-                </div>
-                <div class="card-body">
-                    {% if payment.verified_by %}
-                    <div class="mb-3 pb-2 border-bottom">
-                        <label class="text-muted small d-block mb-1">Verified By</label>
-                        <p class="mb-0 fw-bold">{{ payment.verified_by.get_full_name|default:payment.verified_by.username }}</p>
-                        <small class="text-muted"><i class="far fa-clock me-1"></i>{{ payment.verified_at|date:"M d, Y H:i" }}</small>
+                    <!-- Approval History Section (Integrated into the main section) -->
+                    {% if payment.verified_by or payment.approved_by %}
+                    <hr class="my-4 border-secondary opacity-25">
+                    
+                    <h6 class="fw-bold mb-3 d-flex align-items-center text-info">
+                        <i class="fas fa-history me-2"></i>Approval & Verification History
+                    </h6>
+                    
+                    <div class="row g-4">
+                        {% if payment.verified_by %}
+                        <div class="col-md-6">
+                            <label class="text-muted small d-block mb-1">Verified By</label>
+                            <p class="mb-0 fw-bold">{{ payment.verified_by.get_full_name|default:payment.verified_by.username }}</p>
+                            <small class="text-muted"><i class="far fa-clock me-1"></i>{{ payment.verified_at|date:"M d, Y H:i" }}</small>
+                        </div>
+                        {% endif %}
+
+                        {% if payment.approved_by %}
+                        <div class="col-md-6">
+                            <label class="text-muted small d-block mb-1">
+                                {% if payment.status == 'rejected' %}Rejected By{% else %}Approved By{% endif %}
+                            </label>
+                            <p class="mb-0 fw-bold">{{ payment.approved_by.get_full_name|default:payment.approved_by.username }}</p>
+                            <small class="text-muted"><i class="far fa-clock me-1"></i>{{ payment.approved_at|date:"M d, Y H:i" }}</small>
+                        </div>
+                        {% endif %}
+
+                        {% if payment.rejection_reason %}
+                        <div class="col-12 mt-2">
+                            <label class="text-muted small d-block mb-1">Rejection Reason</label>
+                            <div class="alert alert-danger py-2 px-3 small mb-0">
+                                {{ payment.rejection_reason|linebreaks }}
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                     {% endif %}
-
-                    {% if payment.approved_by %}
-                    <div class="mb-0">
-                        <label class="text-muted small d-block mb-1">
-                            {% if payment.status == 'rejected' %}Rejected By{% else %}Approved By{% endif %}
-                        </label>
-                        <p class="mb-0 fw-bold">{{ payment.approved_by.get_full_name|default:payment.approved_by.username }}</p>
-                        <small class="text-muted"><i class="far fa-clock me-1"></i>{{ payment.approved_at|date:"M d, Y H:i" }}</small>
-                    </div>
-                    {% endif %}
-
-                    {% if payment.rejection_reason %}
-                    <div class="mt-3">
-                        <label class="text-muted small d-block mb-1">Rejection Reason</label>
-                        <div class="alert alert-danger py-2 px-3 small mb-0">
-                            {{ payment.rejection_reason|linebreaks }}
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Status Guide -->
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0 fw-bold">Payment Status Guide</h6>
-                </div>
-                <div class="card-body">
-                    <div class="small">
-                        <div class="mb-2">
-                            <span class="badge bg-warning">Pending Verification</span>
-                            <p class="mb-1">Payment submitted, awaiting verification</p>
-                        </div>
-                        <div class="mb-2">
-                            <span class="badge bg-info">Verified</span>
-                            <p class="mb-1">Payment details verified, ready for approval</p>
-                        </div>
-                        <div class="mb-2">
-                            <span class="badge bg-success">Approved</span>
-                            <p class="mb-1">Payment approved, subscription activated</p>
-                        </div>
-                        <div class="mb-2">
-                            <span class="badge bg-danger">Rejected</span>
-                            <p class="mb-1">Payment rejected, subscription not activated</p>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Reject Modal -->
+{% if payment.status != 'approved' and payment.status != 'rejected' %}
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'superadmin:payment_reject' payment.payment_id %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rejectModalLabel">Reject Payment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">Please provide a reason for rejecting this payment:</p>
+                    <div class="mb-3">
+                        <textarea name="rejection_reason" class="form-control" rows="3" required placeholder="Enter rejection reason..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Confirm Rejection</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

@@ -74,12 +74,11 @@
                                         <th>Title</th>
                                         <th>Priority</th>
                                         <th>Due Date</th>
-                                        <th width="180">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for todo in todos %}
-                                    <tr class="clickable-row {% if todo.is_completed %}table-success{% endif %}" onclick="openTaskModal('{{ todo.id }}')" style="cursor: pointer;">
+                                    <tr class="clickable-row {% if todo.is_completed %}table-success{% endif %}" data-id="{{ todo.id }}" onclick="openTaskModal('{{ todo.id }}')" style="cursor: pointer;">
                                         <td onclick="event.stopPropagation();">
                                             <form method="post" action="{% url 'core:todo_toggle' school_slug=school_slug pk=todo.id %}" class="d-inline">
                                                 {% csrf_token %}
@@ -115,11 +114,6 @@
                                             {% else %}
                                                 <span class="text-muted">-</span>
                                             {% endif %}
-                                        </td>
-                                        <td onclick="event.stopPropagation();">
-                                            <button class="btn btn-sm btn-outline-danger btn-delete-task" data-bs-toggle="modal" data-bs-target="#deleteTaskModal" data-task-id="{{ todo.id }}" data-task-title="{{ todo.title|default:'Untitled' }}" title="Delete Task">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
                                         </td>
                                     </tr>
                                     {% endfor %}

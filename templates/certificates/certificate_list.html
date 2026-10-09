@@ -97,7 +97,7 @@
                             </thead>
                             <tbody>
                                 {% for certificate in certificates %}
-                                <tr class="clickable-row" data-edit-url="{% url 'certificates:edit' school_slug=school_slug pk=certificate.id %}" style="cursor: pointer;">
+                                <tr class="clickable-row" data-id="{{ certificate.id }}" data-edit-url="{% url 'certificates:edit' school_slug=school_slug pk=certificate.id %}" style="cursor: pointer;">
                                     <td>{{ certificate.certificate_number }}</td>
                                     <td>{{ certificate.certificate_type.name }}</td>
                                     <td>
@@ -127,14 +127,6 @@
                                             <a href="{% url 'certificates:download' school_slug=school_slug pk=certificate.id %}" class="btn btn-sm btn-primary" title="Download" data-toggle="tooltip">
                                                 <i class="fas fa-download"></i>
                                             </a>
-                                            {% if perms.certificates.delete_certificate or user.is_school_admin %}
-                                            <a href="{% url 'certificates:delete' school_slug=school_slug pk=certificate.id %}" class="btn btn-sm btn-danger" title="Delete" data-toggle="tooltip"
-                                               data-confirm="Are you sure you want to delete this certificate?"
-                                               data-confirm-title="Delete Certificate"
-                                               data-confirm-btn="Delete">
-                                                <i class="fas fa-trash"></i>
-                                            </a>
-                                            {% endif %}
                                             {% if certificate.verification_uuid %}
                                             <a href="{% url 'certificates:verify' school_slug=school_slug certificate_uuid=certificate.verification_uuid %}" class="btn btn-sm btn-success" title="Verify" data-toggle="tooltip">
                                                 <i class="fas fa-check-circle"></i>

@@ -123,12 +123,11 @@
                     <th>Date</th>
                     <th>Location</th>
                     <th>Status</th>
-                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
             {% for event in events %}
-            <tr>
+            <tr class="clickable-row" data-id="{{ event.pk }}" onclick="viewEvent('{{ event.pk }}')">
                 <td><strong>{{ event.title }}</strong></td>
                 <td>{{ event.event_type|title }}</td>
                 <td>{{ event.start_date|date:"M d, Y" }}</td>
@@ -136,18 +135,10 @@
                 <td>
                     <span class="badge bg-info">Upcoming</span>
                 </td>
-                <td>
-                    <button class="btn btn-sm btn-primary btn-view-event" data-event-id="{{ event.pk }}">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger btn-delete-event" data-event-id="{{ event.pk }}">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6">No events found.</td>
+                <td colspan="5">No events found.</td>
             </tr>
             {% endfor %}
             </tbody>

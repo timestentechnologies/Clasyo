@@ -31,7 +31,10 @@
                 </h5>
                 <span class="form-mode-badge mode-edit">Editing</span>
             </div>
-            <div class="form-header-actions">
+            <div class="form-header-actions d-flex align-items-center gap-2">
+                <a id="btnSubscriptionViewPayment" class="btn btn-sm btn-outline-info d-none" target="_blank" title="View Payment Details">
+                    <i class="fas fa-credit-card me-1"></i> View Payment
+                </a>
                 <button type="button" class="btn btn-sm btn-light" onclick="toggleInPageFormView('subscriptionListCard', 'subscriptionFormPanel', 'list')">Cancel</button>
                 <button type="submit" form="subscriptionForm" class="btn btn-sm btn-primary form-submit-btn">
                     <i class="fas fa-save me-1"></i> Save Changes
@@ -128,12 +131,11 @@
                             <th>Start Date</th>
                             <th>End Date</th>
                             <th>Payment Status</th>
-                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for subscription in subscriptions %}
-                        <tr class="clickable-row" onclick="openSubscriptionEdit('{{ subscription.id }}', '{{ subscription.school.name|escapejs }}', '{{ subscription.plan.name|escapejs }}', '{{ subscription.status }}', '{{ subscription.start_date|date:'Y-m-d' }}', '{{ subscription.end_date|date:'Y-m-d' }}', {{ subscription.is_trial|yesno:'true,false' }})" title="Click row to edit subscription">
+                        <tr class="clickable-row" onclick="openSubscriptionEdit('{{ subscription.id }}', '{{ subscription.school.name|escapejs }}', '{{ subscription.plan.name|escapejs }}', '{{ subscription.status }}', '{{ subscription.start_date|date:'Y-m-d' }}', '{{ subscription.end_date|date:'Y-m-d' }}', {{ subscription.is_trial|yesno:'true,false' }}, '{% if subscription.payments.last %}{% url 'superadmin:payment_detail' subscription.payments.last.payment_id %}{% endif %}')" title="Click row to edit subscription">
                             <td>
                                 <strong>{{ subscription.school.name }}</strong>
                                 <br><small class="text-muted">{{ subscription.school.code }}</small>
@@ -166,22 +168,10 @@
                                     {% endif %}
                                 {% endwith %}
                             </td>
-                            <td onclick="event.stopPropagation();">
-                                <div class="d-inline-flex align-items-center gap-1">
-                                    {% with latest_payment=subscription.payments.last %}
-                                        {% if latest_payment %}
-                                            <a href="{% url 'superadmin:payment_detail' latest_payment.payment_id %}" 
-                                               class="btn-action-icon text-info" title="View Payment">
-                                                <i class="fas fa-credit-card"></i>
-                                            </a>
-                                        {% endif %}
-                                    {% endwith %}
-                                </div>
-                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center py-5">
+                            <td colspan="6" class="text-center py-5">
                                 <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
                                 <p class="text-muted mb-0">No subscriptions found</p>
                             </td>
@@ -195,7 +185,7 @@
 </div>
 
 <script>
-function openSubscriptionEdit(id, school, plan, status, startDate, endDate, isTrial) {
+function openSubscriptionEdit(id, school, plan, status, startDate, endDate, isTrial, paymentUrl) {
     toggleInPageFormView('subscriptionListCard', 'subscriptionFormPanel', 'edit');
     document.getElementById('edit_subscription_id').value = id;
     document.getElementById('edit_school_name').value = school;
@@ -204,6 +194,16 @@ function openSubscriptionEdit(id, school, plan, status, startDate, endDate, isTr
     document.getElementById('edit_end_date').value = endDate;
     document.getElementById('edit_status').value = status;
     document.getElementById('edit_is_trial').checked = isTrial;
+
+    const btnPayment = document.getElementById('btnSubscriptionViewPayment');
+    if (btnPayment) {
+        if (paymentUrl) {
+            btnPayment.href = paymentUrl;
+            btnPayment.classList.remove('d-none');
+        } else {
+            btnPayment.classList.add('d-none');
+        }
+    }
 }
 
 function extendSubscription(days) {

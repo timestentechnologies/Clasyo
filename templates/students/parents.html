@@ -50,12 +50,22 @@
                     <th>Phone</th>
                     <th>Children</th>
                     <th>Status</th>
-                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
             {% for parent in parents %}
-            <tr class="clickable-row" onclick="editParent({{ parent.pk }})" data-name="{{ parent.get_full_name|default:parent.email|lower }}" data-email="{{ parent.email|lower }}" data-phone="{{ parent.phone|lower }}" data-children="{{ parent.children.count|default:0 }}" data-status="{% if parent.is_active %}active{% else %}inactive{% endif %}">
+            <tr class="clickable-row" onclick="editParent(this, '{{ parent.pk }}')"
+                data-id="{{ parent.pk }}"
+                data-name="{{ parent.get_full_name|default:parent.email|lower }}"
+                data-first-name="{{ parent.first_name|default:''|escape }}"
+                data-last-name="{{ parent.last_name|default:''|escape }}"
+                data-email="{{ parent.email|default:''|escape }}"
+                data-phone="{{ parent.phone|default:''|escape }}"
+                data-children="{{ parent.children.count|default:0 }}"
+                data-status="{% if parent.is_active %}active{% else %}inactive{% endif %}"
+                {% if request.user.role in 'admin,school_admin,super_admin' or request.original_user and request.original_user.role == 'admin' %}
+                data-login-as-url="{% url 'core:login_as' school_slug=school_slug user_id=parent.pk %}"
+                {% endif %}>
                 <td><strong>{{ parent.get_full_name|default:parent.email }}</strong></td>
                 <td>{{ parent.email }}</td>
                 <td>{{ parent.phone|default:"Not set" }}</td>
@@ -65,29 +75,10 @@
                         {% if parent.is_active %}Active{% else %}Inactive{% endif %}
                     </span>
                 </td>
-                <td onclick="event.stopPropagation();">
-                    {% comment %} Show Login As button for admins {% endcomment %}
-                    {% if request.user.role == 'admin' or request.user.role == 'school_admin' or request.user.role == 'super_admin' %}
-                        <a href="{% url 'core:login_as' school_slug=school_slug user_id=parent.pk %}" 
-                           class="btn btn-sm btn-warning" 
-                           title="Login as {{ parent.first_name }}">
-                            <i class="fas fa-sign-in-alt"></i>
-                        </a>
-                    {% elif request.original_user and request.original_user.role == 'admin' %}
-                        <a href="{% url 'core:login_as' school_slug=school_slug user_id=parent.pk %}" 
-                           class="btn btn-sm btn-warning" 
-                           title="Login as {{ parent.first_name }}">
-                            <i class="fas fa-sign-in-alt"></i>
-                        </a>
-                    {% endif %}
-                    <button class="btn btn-sm btn-primary" title="View" onclick="viewParent({{ parent.pk }})">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6">No parents found.</td>
+                <td colspan="5">No parents found.</td>
             </tr>
             {% endfor %}
             </tbody>
@@ -104,9 +95,20 @@
                 <h5 class="fw-bold mb-1" id="parentFormTitle">Add New Parent</h5>
                 <span class="form-mode-badge badge bg-primary" id="parentFormBadge">Creation Mode</span>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('parentListCard', 'parentFormPanel', 'hide')">
-                <i class="fas fa-times me-1"></i> Close
-            </button>
+            <div class="form-header-actions d-flex align-items-center gap-2">
+                <a id="btnParentLoginAs" class="btn btn-sm btn-warning d-none" target="_blank" title="Login as Parent">
+                    <i class="fas fa-sign-in-alt me-1"></i> Login as Parent
+                </a>
+                <button type="button" id="btnParentViewDetails" class="btn btn-sm btn-info d-none" title="View Full Details">
+                    <i class="fas fa-eye me-1"></i> View Details
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('parentListCard', 'parentFormPanel', 'hide')">
+                    <i class="fas fa-times me-1"></i> Close
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="submitParentForm()">
+                    <i class="fas fa-save me-1"></i> Save Parent
+                </button>
+            </div>
         </div>
         <form id="parentForm">
             {% csrf_token %}
@@ -144,34 +146,80 @@
 
 <script>
 function openCreateParentForm() {
+    document.getElementById('editParentId').value = '';
+    document.getElementById('parentForm').reset();
     document.getElementById('passwordFieldContainer').style.display = 'none';
+    const btnLoginAs = document.getElementById('btnParentLoginAs');
+    const btnViewDetails = document.getElementById('btnParentViewDetails');
+    if (btnLoginAs) btnLoginAs.classList.add('d-none');
+    if (btnViewDetails) btnViewDetails.classList.add('d-none');
     toggleInPageFormView('parentListCard', 'parentFormPanel', 'create');
 }
 
-function editParent(id) {
-    fetch(window.location.pathname + id + '/', {
+function editParent(rowEl, id) {
+    let row = null;
+    let parentId = id;
+    if (rowEl instanceof HTMLElement) {
+        row = rowEl;
+        if (!parentId && row.dataset.id) {
+            parentId = row.dataset.id;
+        }
+    } else {
+        parentId = rowEl;
+        row = document.querySelector(`tr.clickable-row[data-id="${parentId}"]`);
+    }
+
+    document.getElementById('editParentId').value = parentId;
+    document.getElementById('passwordFieldContainer').style.display = 'block';
+
+    // 1. Immediately toggle into Edit Mode (0ms UI lag!)
+    toggleInPageFormView('parentListCard', 'parentFormPanel', 'edit');
+
+    // 2. Prepopulate immediately from dataset in 0ms
+    if (row) {
+        document.getElementById('first_name').value = row.getAttribute('data-first-name') || '';
+        document.getElementById('last_name').value = row.getAttribute('data-last-name') || '';
+        document.getElementById('email').value = row.getAttribute('data-email') || '';
+        document.getElementById('phone').value = row.getAttribute('data-phone') || '';
+
+        const loginAsUrl = row.getAttribute('data-login-as-url') || '';
+        const btnLoginAs = document.getElementById('btnParentLoginAs');
+        if (btnLoginAs) {
+            if (loginAsUrl) {
+                btnLoginAs.href = loginAsUrl;
+                btnLoginAs.classList.remove('d-none');
+            } else {
+                btnLoginAs.classList.add('d-none');
+            }
+        }
+
+        const btnViewDetails = document.getElementById('btnParentViewDetails');
+        if (btnViewDetails) {
+            btnViewDetails.classList.remove('d-none');
+            btnViewDetails.onclick = function() {
+                viewParent(parentId);
+            };
+        }
+    }
+
+    // 3. Background fetch for any additional authoritative data
+    fetch(window.location.pathname + parentId + '/', {
         headers: {
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            const parent = data.parent;
-            document.getElementById('editParentId').value = id;
-            document.getElementById('first_name').value = parent.first_name || '';
-            document.getElementById('last_name').value = parent.last_name || '';
-            document.getElementById('email').value = parent.email || '';
-            document.getElementById('phone').value = parent.phone || '';
-            document.getElementById('passwordFieldContainer').style.display = 'block';
-            
-            toggleInPageFormView('parentListCard', 'parentFormPanel', 'edit');
-        } else {
-            alert('Failed to load parent details');
+        if (data.success && data.parent) {
+            const p = data.parent;
+            if (p.first_name) document.getElementById('first_name').value = p.first_name;
+            if (p.last_name) document.getElementById('last_name').value = p.last_name;
+            if (p.email) document.getElementById('email').value = p.email;
+            if (p.phone) document.getElementById('phone').value = p.phone;
         }
     })
     .catch(error => {
-        alert('Error: ' + error.message);
+        console.error('Background sync parent data error:', error);
     });
 }
 

@@ -155,16 +155,16 @@
                 name: "{{ club.name|escapejs }}",
                 club_type: "{{ club.club_type }}",
                 description: "{{ club.description|escapejs }}",
-                meeting_day: "{{ club.meeting_day|default:\'\' }}",
-                meeting_time: "{{ club.meeting_time|default:\'\' }}",
+                meeting_day: "{{ club.meeting_day|default:'' }}",
+                meeting_time: "{{ club.meeting_time|default:'' }}",
                 meeting_venue: "{{ club.meeting_venue|escapejs }}",
                 max_members: {{ club.max_members|default:50 }},
                 membership_fee: "{{ club.membership_fee|default:0.00 }}",
-                application_deadline: "{{ club.application_deadline|date:\'Y-m-d\'|default:\'\' }}",
+                application_deadline: "{{ club.application_deadline|date:'Y-m-d'|default:'' }}",
                 requires_application: {{ club.requires_application|yesno:"true,false" }},
-                teacher_advisor: "{{ club.teacher_advisor_id|default:\'\' }}",
-                student_president: "{{ club.student_president_id|default:\'\' }}",
-                student_secretary: "{{ club.student_secretary_id|default:\'\' }}"
+                teacher_advisor: "{{ club.teacher_advisor_id|default:'' }}",
+                student_president: "{{ club.student_president_id|default:'' }}",
+                student_secretary: "{{ club.student_secretary_id|default:'' }}"
             })'{% else %}onclick="window.location.href='{% url 'clubs:club_detail' school_slug=school_slug pk=club.id %}'"{% endif %}>
                 <div class="card-header bg-primary text-white">
                     <div class="d-flex justify-content-between align-items-center">

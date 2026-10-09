@@ -54,8 +54,8 @@
             <input type="hidden" id="class_id" name="class_id">
             
             <!-- Class Information -->
-            <div class="border-start border-primary border-4 ps-3 mb-4">
-                <h6 class="text-primary fw-bold mb-3"><i class="fas fa-school"></i> Class Information</h6>
+            <div class="mb-4">
+                <h6 class="text-primary fw-bold mb-3"><i class="fas fa-school me-2"></i>Class Information</h6>
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Class Name *</label>
@@ -93,9 +93,9 @@
             </div>
             
             <!-- Sections -->
-            <div class="border-start border-success border-4 ps-3">
+            <div class="mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="text-success fw-bold mb-0"><i class="fas fa-users"></i> Sections (Optional)</h6>
+                    <h6 class="text-success fw-bold mb-0"><i class="fas fa-users me-2"></i>Sections (Optional)</h6>
                     <button type="button" class="btn btn-success btn-sm" onclick="addSectionRow()">
                         <i class="fas fa-plus"></i> Add Section
                     </button>
@@ -158,12 +158,11 @@
                     <th>Sections</th>
                     <th>Description</th>
                     <th>Status</th>
-                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
             {% for class in classes %}
-            <tr class="clickable-row" onclick="openClassForm('edit', {{ class.pk }})" data-name="{{ class.name|lower }}" data-description="{{ class.description|default:''|lower }}" data-level="{{ class.education_level }}" data-status="{% if class.is_active %}active{% else %}inactive{% endif %}">
+            <tr class="clickable-row" id="class-row-{{ class.pk }}" data-id="{{ class.pk }}" onclick="openClassForm('edit', {{ class.pk }}, this)" data-name="{{ class.name|lower }}" data-raw-name="{{ class.name|escape }}" data-numeric-name="{{ class.numeric_name|default:'' }}" data-order="{{ class.order|default:0 }}" data-description="{{ class.description|default:''|lower }}" data-raw-description="{{ class.description|default:''|escape }}" data-level="{{ class.education_level }}" data-raw-level="{{ class.education_level|default:'unspecified' }}" data-status="{% if class.is_active %}active{% else %}inactive{% endif %}" data-raw-status="{% if class.is_active %}1{% else %}0{% endif %}" data-sections='[{% for s in class.sections.all %}{"name":"{{ s.name|escapejs }}","capacity":{{ s.max_students|default:40 }},"teacherId":{% if s.class_teacher_id %}{{ s.class_teacher_id }}{% else %}null{% endif %}}{% if not forloop.last %},{% endif %}{% endfor %}]'>
                 <td>
                     <strong>{{ class.name }}</strong>
                     {% if class.numeric_name %}
@@ -199,15 +198,10 @@
                         {% if class.is_active %}Active{% else %}Inactive{% endif %}
                     </span>
                 </td>
-                <td onclick="event.stopPropagation();">
-                    <button class="btn btn-sm btn-danger" title="Delete Class" onclick="deleteClass({{ class.pk }}, '{{ class.name|escapejs }}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5" class="text-center py-5">
+                <td colspan="4" class="text-center py-5">
                     <i class="fas fa-chalkboard fa-3x text-muted mb-3 d-block"></i>
                     <p class="text-muted mb-0">No classes found. Create your first class!</p>
                 </td>
@@ -219,47 +213,25 @@
 </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteClassModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title"><i class="fas fa-trash"></i> Confirm Delete</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete class <strong id="deleteClassName"></strong>?</p>
-                <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> This will also delete all sections and related data!</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteClassBtn">Delete Class</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Section Template -->
 <template id="sectionTemplate">
-    <div class="card mb-2 section-card border-success">
-        <div class="card-body py-2">
-            <div class="row g-2 align-items-center">
-                <div class="col-md-4">
-                    <input type="text" class="form-control form-control-sm" name="sections[]" placeholder="e.g., A, B, C" required>
-                </div>
-                <div class="col-md-3">
-                    <input type="number" class="form-control form-control-sm" name="section_capacity[]" value="40" placeholder="Max students" min="1">
-                </div>
-                <div class="col-md-3">
-                    <select class="form-select form-select-sm" name="section_teacher[]">
-                        <option value="">No teacher</option>
-                    </select>
-                </div>
-                <div class="col-md-2 text-end">
-                    <button type="button" class="btn btn-danger btn-sm" onclick="removeSection(this)">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
+    <div class="section-row mb-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <input type="text" class="form-control" name="sections[]" placeholder="Section Name (e.g. A, B)" required>
+            </div>
+            <div class="col-md-3">
+                <input type="number" class="form-control" name="section_capacity[]" value="40" placeholder="Max students" min="1">
+            </div>
+            <div class="col-md-4">
+                <select class="form-select" name="section_teacher[]">
+                    <option value="">No teacher</option>
+                </select>
+            </div>
+            <div class="col-md-1 text-end">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeSection(this)" title="Delete Section">
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -267,42 +239,99 @@
 
 
 
+<script id="preloadedTeachersData" type="application/json">{{ teachers_json|default:'[]'|safe }}</script>
+
 <script>
 let sectionCounter = 0;
 let teachersCache = null;
 
+// Initialize teachers cache from preloaded server JSON
+try {
+    const preloadedEl = document.getElementById('preloadedTeachersData');
+    if (preloadedEl && preloadedEl.textContent.trim()) {
+        teachersCache = JSON.parse(preloadedEl.textContent.trim());
+    }
+} catch (e) {
+    console.warn('Could not parse preloaded teachers:', e);
+}
+
 // Function to load teachers into dropdown
 function loadTeachersIntoDropdown(selectElement, selectedTeacherId = null) {
-    if (teachersCache) {
+    if (!selectElement) return;
+
+    if (teachersCache !== null) {
         populateTeacherDropdown(selectElement, teachersCache, selectedTeacherId);
         return;
     }
     
-    fetch(`/school/{{ school_slug }}/academics/api/teachers/`)
+    if (window._teachersFetchPromise) {
+        window._teachersFetchPromise.then(teachers => {
+            populateTeacherDropdown(selectElement, teachers, selectedTeacherId);
+        });
+        return;
+    }
+
+    window._teachersFetchPromise = fetch(`/school/{{ school_slug }}/academics/api/teachers/`)
         .then(response => response.json())
         .then(data => {
             teachersCache = data.teachers || [];
-            populateTeacherDropdown(selectElement, teachersCache, selectedTeacherId);
+            return teachersCache;
         })
         .catch(error => {
             console.error('Error loading teachers:', error);
-            // Still populate with empty option
-            populateTeacherDropdown(selectElement, [], selectedTeacherId);
+            teachersCache = [];
+            return [];
         });
+
+    window._teachersFetchPromise.then(teachers => {
+        populateTeacherDropdown(selectElement, teachers, selectedTeacherId);
+    });
 }
 
 function populateTeacherDropdown(selectElement, teachers, selectedTeacherId = null) {
+    if (!selectElement) return;
+
+    // Destroy existing TomSelect instance if present before mutating options
+    if (selectElement.tomselect) {
+        try {
+            selectElement.tomselect.destroy();
+        } catch(e) {}
+    }
+
     selectElement.innerHTML = '<option value="">No teacher</option>';
     
-    teachers.forEach(teacher => {
-        const option = document.createElement('option');
-        option.value = teacher.id;
-        option.textContent = teacher.name;
-        if (selectedTeacherId && teacher.id == selectedTeacherId) {
-            option.selected = true;
+    if (Array.isArray(teachers)) {
+        teachers.forEach(teacher => {
+            const option = document.createElement('option');
+            option.value = teacher.id;
+            option.textContent = teacher.name;
+            if (selectedTeacherId && String(teacher.id) === String(selectedTeacherId)) {
+                option.selected = true;
+            }
+            selectElement.appendChild(option);
+        });
+    }
+
+    if (selectedTeacherId) {
+        selectElement.value = selectedTeacherId;
+    }
+
+    if (typeof TomSelect !== 'undefined') {
+        try {
+            const ts = new TomSelect(selectElement, {
+                create: false,
+                placeholder: 'No teacher',
+                allowEmptyOption: true,
+                dropdownParent: 'body',
+                copyClassesToDropdown: false
+            });
+            if (selectedTeacherId) {
+                ts.setValue(String(selectedTeacherId), true);
+            }
+        } catch(e) {
+            console.warn('TomSelect init on section teacher failed:', e);
         }
-        selectElement.appendChild(option);
-    });
+    }
 }
 
 function addSectionRow(name = '', capacity = '40', teacherId = null) {
@@ -310,9 +339,9 @@ function addSectionRow(name = '', capacity = '40', teacherId = null) {
     const template = document.getElementById('sectionTemplate');
     if (!container || !template) return;
     
-    // Remove empty state
-    const emptyState = container.querySelector('.text-center');
-    if (emptyState) emptyState.remove();
+    // Remove empty state or loader
+    const placeholder = container.querySelector('.text-center');
+    if (placeholder) placeholder.remove();
     
     const clone = template.content.cloneNode(true);
     const input = clone.querySelector('input[name="sections[]"]');
@@ -322,78 +351,164 @@ function addSectionRow(name = '', capacity = '40', teacherId = null) {
         input.value = name;
     } else {
         const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        const count = container.querySelectorAll('.section-card').length;
+        const count = container.querySelectorAll('.section-row').length;
         if (count < 26) {
             input.value = letters[count];
         }
     }
     if (capacity) capInput.value = capacity;
     
-    // Load teachers into dropdown
-    loadTeachersIntoDropdown(clone.querySelector('select[name="section_teacher[]"]'), teacherId);
-    
+    // Append to container first so element is in the active DOM tree
     container.appendChild(clone);
+
+    // Get the newly appended row and initialize teacher TomSelect
+    const rows = container.querySelectorAll('.section-row');
+    const newRow = rows[rows.length - 1];
+    if (newRow) {
+        const teacherSelect = newRow.querySelector('select[name="section_teacher[]"]');
+        if (teacherSelect) {
+            loadTeachersIntoDropdown(teacherSelect, teacherId);
+        }
+    }
 }
 
 function removeSection(btn) {
-    const card = btn.closest('.section-card');
-    card.style.animation = 'slideOut 0.3s ease';
+    const row = btn.closest('.section-row') || btn.closest('.section-card');
+    if (!row) return;
+
+    // Clean up any TomSelect instances in this row to remove floating dropdowns
+    row.querySelectorAll('select').forEach(sel => {
+        if (sel.tomselect) {
+            try { sel.tomselect.destroy(); } catch(e) {}
+        }
+    });
+
+    row.style.animation = 'slideOut 0.2s ease';
     setTimeout(() => {
-        card.remove();
+        row.remove();
         const container = document.getElementById('sectionsContainer');
-        if (container && container.querySelectorAll('.section-card').length === 0) {
+        if (container && container.querySelectorAll('.section-row').length === 0) {
             container.innerHTML = '<div class="text-center py-3 text-muted"><small><i class="fas fa-users opacity-25"></i> No sections yet. Click "Add Section" above.</small></div>';
         }
-    }, 300);
+    }, 200);
 }
 
-function openClassForm(mode, id) {
+function openClassForm(mode, id, rowEl) {
     const form = document.getElementById('classForm');
     if (form) form.reset();
     document.getElementById('class_id').value = '';
     const container = document.getElementById('sectionsContainer');
-    if (container) {
-        container.innerHTML = '<div class="text-center py-3 text-muted"><small><i class="fas fa-users opacity-25"></i> No sections yet. Click "Add Section" above.</small></div>';
-    }
     
+    // Clean up any existing TomSelect dropdowns inside sections container
+    if (container) {
+        container.querySelectorAll('select').forEach(sel => {
+            if (sel.tomselect) {
+                try { sel.tomselect.destroy(); } catch(e) {}
+            }
+        });
+    }
+
+    const eduLevelEl = document.getElementById('class_education_level');
+
     if (mode === 'create' || !id) {
+        if (eduLevelEl) {
+            eduLevelEl.value = 'unspecified';
+            if (eduLevelEl.tomselect) {
+                eduLevelEl.tomselect.setValue('unspecified', true);
+            }
+        }
+        if (container) {
+            container.innerHTML = '<div class="text-center py-3 text-muted"><small><i class="fas fa-users opacity-25"></i> No sections yet. Click "Add Section" above.</small></div>';
+        }
         toggleInPageFormView('classListCard', 'classFormPanel', 'create');
         return;
     }
     
-    // Edit mode
-    fetch(`/school/{{ school_slug }}/academics/classes/${id}/`)
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('class_id').value = id;
-            document.getElementById('class_name').value = data.name || '';
-            document.getElementById('class_numeric_name').value = data.numeric_name || '';
-            document.getElementById('class_description').value = data.description || '';
-            document.getElementById('class_order').value = data.order || 0;
-            document.getElementById('class_is_active').checked = !!data.is_active;
-            if (document.getElementById('class_education_level')) {
-                document.getElementById('class_education_level').value = data.education_level || 'unspecified';
+    // Instant switch to Edit mode - ZERO lag!
+    toggleInPageFormView('classListCard', 'classFormPanel', 'edit');
+    
+    // Pre-populate fields and sections immediately from row dataset - 0ms wait!
+    const row = rowEl || document.getElementById('class-row-' + id);
+    if (row && row.dataset) {
+        document.getElementById('class_id').value = id;
+        document.getElementById('class_name').value = row.dataset.rawName || '';
+        document.getElementById('class_numeric_name').value = row.dataset.numericName || '';
+        document.getElementById('class_description').value = row.dataset.rawDescription || '';
+        document.getElementById('class_order').value = row.dataset.order || 0;
+        document.getElementById('class_is_active').checked = (row.dataset.rawStatus === '1');
+        if (eduLevelEl && row.dataset.rawLevel) {
+            eduLevelEl.value = row.dataset.rawLevel;
+            if (eduLevelEl.tomselect) {
+                eduLevelEl.tomselect.setValue(row.dataset.rawLevel, true);
             }
-            
-            if (container) {
-                container.innerHTML = '';
-                if (data.sections && data.sections.length > 0) {
-                    data.sections.forEach(section => {
-                        addSectionRow(section.name, section.max_students, section.class_teacher_id);
-                    });
-                } else {
-                    container.innerHTML = '<div class="text-center py-3 text-muted"><small><i class="fas fa-users opacity-25"></i> No sections yet. Click "Add Section" above.</small></div>';
+        }
+
+        // Render sections IMMEDIATELY without any waiting/spinner!
+        if (container) {
+            container.innerHTML = '';
+            let preloadedSections = [];
+            try {
+                if (row.dataset.sections) {
+                    preloadedSections = JSON.parse(row.dataset.sections);
+                }
+            } catch (e) {
+                console.error('Error parsing preloaded sections:', e);
+            }
+
+            if (preloadedSections && preloadedSections.length > 0) {
+                preloadedSections.forEach(section => {
+                    addSectionRow(section.name, section.capacity, section.teacherId);
+                });
+            } else {
+                container.innerHTML = '<div class="text-center py-3 text-muted"><small><i class="fas fa-users opacity-25"></i> No sections yet. Click "Add Section" above.</small></div>';
+            }
+        }
+    }
+    
+    // Fetch authoritative class details in the background (silent update)
+    fetch(`/school/{{ school_slug }}/academics/classes/${id}/`)
+        .then(response => {
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            return response.json();
+        })
+        .then(data => {
+            if (document.getElementById('class_id').value != id) return;
+            if (data.name && !document.getElementById('class_name').value) document.getElementById('class_name').value = data.name;
+            if (data.numeric_name !== undefined && !document.getElementById('class_numeric_name').value) document.getElementById('class_numeric_name').value = data.numeric_name || '';
+            if (data.description !== undefined && !document.getElementById('class_description').value) document.getElementById('class_description').value = data.description || '';
+            if (data.order !== undefined && !document.getElementById('class_order').value) document.getElementById('class_order').value = data.order || 0;
+            if (data.is_active !== undefined) document.getElementById('class_is_active').checked = !!data.is_active;
+            if (eduLevelEl && data.education_level && !eduLevelEl.value) {
+                eduLevelEl.value = data.education_level;
+                if (eduLevelEl.tomselect) {
+                    eduLevelEl.tomselect.setValue(data.education_level, true);
                 }
             }
-            toggleInPageFormView('classListCard', 'classFormPanel', 'edit');
+            
+            // Only update sections if they were not already rendered from preloaded data
+            if (container && container.querySelectorAll('.section-row').length === 0 && data.sections && data.sections.length > 0) {
+                container.innerHTML = '';
+                data.sections.forEach(section => {
+                    addSectionRow(section.name, section.max_students, section.class_teacher_id);
+                });
+            }
         })
         .catch(err => {
-            showError('Failed to load class details: ' + err.message);
+            console.error('Background fetch of class details error:', err);
         });
 }
 
 function submitClassForm() {
     const form = document.getElementById('classForm');
+    const submitBtn = document.querySelector('.form-submit-btn');
+    const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+    
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
+    }
+    document.body.style.cursor = 'wait';
+    
     const formData = new FormData(form);
     const id = document.getElementById('class_id').value;
     const url = id 
@@ -408,18 +523,54 @@ function submitClassForm() {
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            form.reset();
-            toggleInPageFormView('classListCard', 'classFormPanel', 'list');
-            showSuccessAndReload(id ? 'Class updated successfully!' : 'Class added successfully!');
+    .then(async response => {
+        const text = await response.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            const stripped = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+            throw new Error(`Server returned error (${response.status}): ${stripped.slice(0, 200)}`);
+        }
+        if (!response.ok || !data.success) {
+            let errorMsg = data.error;
+            if (!errorMsg && data.errors) {
+                if (typeof data.errors === 'object') {
+                    errorMsg = Object.entries(data.errors)
+                        .map(([field, errs]) => `${field}: ${Array.isArray(errs) ? errs.join(', ') : errs}`)
+                        .join('\n');
+                } else {
+                    errorMsg = String(data.errors);
+                }
+            }
+            if (typeof showError === 'function') {
+                showError(errorMsg || 'Failed to save class');
+            } else {
+                alert(errorMsg || 'Failed to save class');
+            }
+            return;
+        }
+        form.reset();
+        toggleInPageFormView('classListCard', 'classFormPanel', 'list');
+        if (typeof window.showSuccessAndReload === 'function') {
+            window.showSuccessAndReload(id ? 'Class updated successfully!' : 'Class added successfully!', 0);
         } else {
-            showError(data.error || 'Failed to save class');
+            location.reload();
         }
     })
     .catch(error => {
-        showError('Error: ' + error.message);
+        if (typeof showError === 'function') {
+            showError('Error: ' + error.message);
+        } else {
+            alert('Error: ' + error.message);
+        }
+    })
+    .finally(() => {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnHtml;
+        }
+        document.body.style.cursor = '';
     });
 }
 
@@ -429,6 +580,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const levelFilter = document.getElementById('levelFilter');
     const statusFilter = document.getElementById('statusFilter');
     const table = document.getElementById('classesTable');
+    if (!table) return;
     const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
 
     function filterTable() {
@@ -463,43 +615,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Add event listeners for real-time filtering
-    searchInput.addEventListener('input', filterTable);
-    levelFilter.addEventListener('change', filterTable);
-    statusFilter.addEventListener('change', filterTable);
+    if (searchInput) searchInput.addEventListener('input', filterTable);
+    if (levelFilter) levelFilter.addEventListener('change', filterTable);
+    if (statusFilter) statusFilter.addEventListener('change', filterTable);
 });
 
-function showSuccessAndReload(message) {
-    document.getElementById('successMessage').innerHTML = message;
-    $('#successModal').modal('show');
-}
 
-function deleteClass(id, name) {
-    document.getElementById('deleteClassName').textContent = name;
-    const modal = new bootstrap.Modal(document.getElementById('deleteClassModal'));
-    modal.show();
-    
-    document.getElementById('confirmDeleteClassBtn').onclick = function() {
-        fetch(window.location.pathname + id + '/delete/', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showSuccessAndReload('Class deleted successfully!');
-            } else {
-                showError(data.error || 'Failed to delete class');
-            }
-        })
-        .catch(error => {
-            showError('Error: ' + error.message);
-        });
-    };
-}
 
 // Slideout animation
 const style = document.createElement('style');

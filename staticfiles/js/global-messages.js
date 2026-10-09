@@ -96,14 +96,39 @@
             }
         }
         
-        // Handle callback when modal is closed
-        if (callback && typeof callback === 'function') {
-            modalEl.addEventListener('hidden.bs.modal', function onModalHidden() {
+        // Handle callback and backdrop cleanup when modal is closed
+        modalEl.addEventListener('hidden.bs.modal', function onModalHidden() {
+            if (!document.querySelector('.modal.show')) {
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('padding-right');
+                document.body.style.removeProperty('overflow');
+            }
+            if (callback && typeof callback === 'function') {
                 callback();
-                modalEl.removeEventListener('hidden.bs.modal', onModalHidden);
-            }, { once: true });
-        }
+            }
+            modalEl.removeEventListener('hidden.bs.modal', onModalHidden);
+        }, { once: true });
         
+        // Ensure any other open modals are hidden first to prevent modal stacking
+        document.querySelectorAll('.modal.show').forEach(openModal => {
+            if (openModal !== modalEl) {
+                try {
+                    const inst = (window.bootstrap && window.bootstrap.Modal)
+                        ? (bootstrap.Modal.getInstance(openModal) || bootstrap.Modal.getOrCreateInstance(openModal))
+                        : null;
+                    if (inst) inst.hide();
+                    else {
+                        openModal.classList.remove('show');
+                        openModal.style.display = 'none';
+                    }
+                } catch (e) {
+                    openModal.classList.remove('show');
+                    openModal.style.display = 'none';
+                }
+            }
+        });
+
         // Show modal via Bootstrap
         if (window.bootstrap && window.bootstrap.Modal) {
             const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
@@ -151,9 +176,13 @@
     /**
      * Show success message and reload page
      */
-    function showSuccessAndReload(message, delay = 1500) {
+    function showSuccessAndReload(message, delay = 0) {
         showSuccess(message, () => {
-            setTimeout(() => location.reload(), delay);
+            if (delay > 0) {
+                setTimeout(() => location.reload(), delay);
+            } else {
+                location.reload();
+            }
         });
     }
 

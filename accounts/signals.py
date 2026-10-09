@@ -52,3 +52,15 @@ def user_created(sender, instance, created, **kwargs):
         )
     except Exception as e:
         logger.error(f"Error sending welcome email via notification template: {e}")
+
+
+@receiver(post_save, sender=User)
+def sync_user_to_tenant(sender, instance, **kwargs):
+    """Ensure user records assigned to a school tenant are mirrored into the tenant database."""
+    try:
+        if getattr(instance, 'school_id', None):
+            from tenants.school_sync import sync_tenant_user_record
+            sync_tenant_user_record(instance)
+    except Exception as e:
+        logger.warning(f"[Tenants] Failed syncing user pk={instance.pk} to tenant database: {e}")
+

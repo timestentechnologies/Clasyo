@@ -653,40 +653,51 @@
             display: inline-block !important;
         }
 
-        /* Strictly remove edit and delete actions from table action columns system-wide */
-        table td .btn-action-edit,
-        .table td .btn-action-edit,
-        .modern-table td .btn-action-edit,
+        /* Strictly remove delete actions and trash icons from table rows system-wide */
+        table td .fa-trash,
+        table td .fa-trash-alt,
+        .table td .fa-trash,
+        .table td .fa-trash-alt,
+        .modern-table td .fa-trash,
+        .modern-table td .fa-trash-alt,
         table td .btn-action-delete,
         .table td .btn-action-delete,
         .modern-table td .btn-action-delete,
-        table td a[title*="Edit"],
-        table td a[title*="Delete"],
-        table td a[aria-label*="Edit"],
-        table td a[aria-label*="Delete"],
-        table td button[title*="Edit"],
-        table td button[title*="Delete"],
-        table td button[aria-label*="Edit"],
-        table td button[aria-label*="Delete"],
-        table td a[href*="/edit"],
-        table td a[href*="/update"],
-        table td a[href*="/delete"],
-        table td button:has(.fa-trash),
-        table td button:has(.fa-trash-alt),
-        table td a:has(.fa-trash),
-        table td a:has(.fa-trash-alt),
-        table td button:has(.fa-edit),
-        table td a:has(.fa-edit),
-        table td form:has(button[title*="Delete"]),
-        table td form:has(.btn-action-delete),
-        table td form:has(.fa-trash),
-        table td form:has(.fa-trash-alt),
-        table td form:has(input[value="delete"]),
+        table td .btn-delete-action,
+        table td .action-delete,
+        table td a[title*="Delete" i],
+        table td a[aria-label*="Delete" i],
+        table td button[title*="Delete" i],
+        table td button[aria-label*="Delete" i],
+        table td a[href*="/delete" i],
+        table td .btn-action-edit,
+        .table td .btn-action-edit,
+        .modern-table td .btn-action-edit,
         table td .btn-edit-action,
         table td .action-edit,
-        table td .btn-delete-action,
-        table td .action-delete {
+        table td a[title*="Edit" i],
+        table td a[aria-label*="Edit" i],
+        table td button[title*="Edit" i],
+        table td button[aria-label*="Edit" i],
+        table td a[href*="/edit" i],
+        table td a[href*="/update" i] {
             display: none !important;
+        }
+
+        @supports selector(:has(*)) {
+            table td button:has(.fa-trash),
+            table td button:has(.fa-trash-alt),
+            table td a:has(.fa-trash),
+            table td a:has(.fa-trash-alt),
+            table td button:has(.fa-edit),
+            table td a:has(.fa-edit),
+            table td form:has(button[title*="Delete" i]),
+            table td form:has(.btn-action-delete),
+            table td form:has(.fa-trash),
+            table td form:has(.fa-trash-alt),
+            table td form:has(input[value="delete" i]) {
+                display: none !important;
+            }
         }
 
         /* Strictly suppress sorting icons on table checkbox selection headers system-wide */
@@ -988,7 +999,7 @@
                         </h1>
                         <p class="page-subtitle">{% block page_subtitle %}Welcome back!{% endblock %}</p>
                     </div>
-                    <div class="d-flex flex-wrap gap-2 w-100 w-md-auto justify-content-start justify-content-md-end">
+                    <div class="page-header-actions page-actions d-flex flex-wrap gap-2 w-100 w-md-auto justify-content-start justify-content-md-end" data-page-actions="true">
                         {% block page_actions %}{% endblock %}
                     </div>
                 </div>
@@ -1134,36 +1145,77 @@
         const formEl = document.getElementById(formPanelId);
         if (!listEl || !formEl) return;
 
-        // Target all create/edit action buttons and parent action wrappers globally
-        const actionElements = document.querySelectorAll(
-            '[onclick*="toggleInPageFormView"][onclick*="create"], ' +
-            '[onclick*="toggleInPageFormView"][onclick*="edit"], ' +
-            '[onclick*="toggleInPageFormView"][onclick*="show"], ' +
-            '.page-actions-container, .page-header-actions, .page-actions'
-        );
+        // Function to collect and update all page-level Add/Create action buttons and wrappers globally
+        function setPageActionButtonsVisibility(show) {
+            const elements = new Set();
+            // 1. All standard page action containers
+            document.querySelectorAll(
+                '.page-header-actions, .page-actions-container, .page-actions, [data-page-actions]'
+            ).forEach(el => elements.add(el));
+
+            // 2. Buttons/links inside .page-header that trigger add/create
+            const pageHeader = document.querySelector('.page-header');
+            if (pageHeader) {
+                pageHeader.querySelectorAll('button, a.btn').forEach(btn => elements.add(btn));
+            }
+
+            // 3. Any Add/Create buttons outside form panels (preceding list/form)
+            document.querySelectorAll(
+                'button[onclick*="create" i], button[onclick*="add" i], ' +
+                'a[onclick*="create" i], a[onclick*="add" i], ' +
+                'button[onclick*="toggleInPageFormView"][onclick*="create"], ' +
+                'button[onclick*="toggleInPageFormView"][onclick*="show"], ' +
+                '[data-action="add"], [data-action="create"]'
+            ).forEach(el => {
+                if (!el.closest('.form-panel-view')) {
+                    elements.add(el);
+                    if (el.parentElement && (el.parentElement.classList.contains('d-flex') || el.parentElement.classList.contains('mb-3')) && !el.parentElement.classList.contains('container-fluid') && !el.parentElement.closest('.form-panel-view')) {
+                        elements.add(el.parentElement);
+                    }
+                }
+            });
+
+            // 4. Any buttons or links outside form panels with fa-plus icons or Add/Create text
+            document.querySelectorAll('button, a.btn').forEach(btn => {
+                if (!btn.closest('.form-panel-view') && !btn.closest('#navbar') && !btn.closest('.sidebar') && !btn.closest('.modal') && !btn.closest('table')) {
+                    const txt = (btn.textContent || '').trim().toLowerCase();
+                    const hasAddIcon = btn.querySelector('.fa-plus, .fa-plus-circle, .fa-user-plus, .fa-calendar-plus');
+                    if (hasAddIcon || txt.startsWith('add ') || txt.startsWith('+ add') || txt.startsWith('create ') || txt.startsWith('+ create')) {
+                        elements.add(btn);
+                        if (btn.parentElement && (btn.parentElement.classList.contains('d-flex') || btn.parentElement.classList.contains('mb-3')) && !btn.parentElement.classList.contains('container-fluid') && !btn.parentElement.closest('.form-panel-view')) {
+                            elements.add(btn.parentElement);
+                        }
+                    }
+                }
+            });
+
+            elements.forEach(el => {
+                if (show) {
+                    el.classList.remove('d-none');
+                    el.style.display = '';
+                } else {
+                    el.classList.add('d-none');
+                    el.style.display = 'none';
+                }
+            });
+        }
 
         if (mode === 'list' || mode === 'hide' || !mode) {
             formEl.classList.add('d-none');
+            formEl.style.display = 'none';
             listEl.classList.remove('d-none');
-            actionElements.forEach(el => {
-                el.classList.remove('d-none');
-                if (el.parentElement && (el.parentElement.classList.contains('d-flex') || el.parentElement.classList.contains('mb-3')) && !el.parentElement.classList.contains('container-fluid')) {
-                    el.parentElement.classList.remove('d-none');
-                }
-            });
-            window.scrollTo({ top: listEl.offsetTop - 80, behavior: 'smooth' });
+            listEl.style.display = '';
+            setPageActionButtonsVisibility(true);
+            window.scrollTo({ top: Math.max(0, listEl.offsetTop - 80), behavior: 'auto' });
             return;
         }
 
-        // Hide list and all page action buttons/wrappers, show form
+        // Hide list and all page action buttons/wrappers, show form immediately (0ms lag)
         listEl.classList.add('d-none');
+        listEl.style.display = 'none';
         formEl.classList.remove('d-none');
-        actionElements.forEach(el => {
-            el.classList.add('d-none');
-            if (el.parentElement && (el.parentElement.classList.contains('d-flex') || el.parentElement.classList.contains('mb-3')) && !el.parentElement.classList.contains('container-fluid')) {
-                el.parentElement.classList.add('d-none');
-            }
-        });
+        formEl.style.display = 'block';
+        setPageActionButtonsVisibility(false);
 
         // Hide mode badge if present
         const badgeEl = formEl.querySelector('.form-mode-badge');
@@ -1182,6 +1234,16 @@
             if (form) {
                 form.reset();
                 form.querySelectorAll('input[type="range"]').forEach(r => r.dispatchEvent(new Event('input')));
+                // Reset TomSelect dropdowns inside the form
+                form.querySelectorAll('select').forEach(sel => {
+                    if (sel.tomselect) {
+                        sel.tomselect.clear(true);
+                        const defaultOpt = sel.querySelector('option[selected]');
+                        if (defaultOpt) {
+                            sel.tomselect.setValue(defaultOpt.value, true);
+                        }
+                    }
+                });
             }
             const idInput = formEl.querySelector('input[name="id"], input[name="pk"], input[name="object_id"], input[name$="_id"], input[name="staff_id"], input[name="student_id"], input[name="teacher_id"]');
             if (idInput) idInput.value = '';
@@ -1198,6 +1260,9 @@
                             field.checked = Boolean(data[key]);
                         } else {
                             field.value = data[key];
+                            if (field.tomselect) {
+                                field.tomselect.setValue(data[key] != null ? String(data[key]) : '', true);
+                            }
                             if (field.type === 'range') {
                                 field.dispatchEvent(new Event('input'));
                             }
@@ -1206,17 +1271,38 @@
                 });
             }
         }
-        window.scrollTo({ top: formEl.offsetTop - 80, behavior: 'smooth' });
+        if (typeof window.initAllTomSelects === 'function') {
+            window.initAllTomSelects(formEl);
+        }
+        if (typeof window.initSystemWidePopovers === 'function') {
+            window.initSystemWidePopovers(formEl);
+        }
+        window.scrollTo({ top: Math.max(0, formEl.offsetTop - 80), behavior: 'auto' });
     };
     </script>
 
     <!-- TomSelect Library & Global Auto Initializer -->
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
     <script>
+    window.syncTomSelect = function(el) {
+        if (!el || !el.tomselect) return;
+        try {
+            el.tomselect.sync();
+            if (el.value) {
+                el.tomselect.setValue(el.value, true);
+            }
+        } catch(e) {
+            console.warn('TomSelect sync error:', e);
+        }
+    };
+
     window.initAllTomSelects = function(container) {
         if (typeof TomSelect === 'undefined') return;
-        const root = container || document;
-        root.querySelectorAll('select').forEach(function(el) {
+        const selects = (container && container.tagName === 'SELECT')
+            ? [container]
+            : (container || document).querySelectorAll('select');
+
+        selects.forEach(function(el) {
             if (el.tomselect || el.classList.contains('no-tomselect') || el.dataset.noTomselect !== undefined || el.classList.contains('swal2-select') || el.classList.contains('select2-hidden-accessible') || el.classList.contains('flatpickr-monthDropdown-months') || el.closest('.flatpickr-calendar')) {
                 return;
             }
@@ -1247,6 +1333,95 @@
     document.addEventListener('shown.bs.modal', function(e) {
         window.initAllTomSelects(e.target);
     });
+
+    // Global MutationObserver to automatically convert any dynamically added <select> into TomSelect
+    // and sync existing TomSelect instances when <option> items are dynamically altered
+    if (typeof MutationObserver !== 'undefined') {
+        let tsMutationTimer = null;
+        const pendingSyncSelects = new Set();
+
+        const observer = new MutationObserver(function(mutations) {
+            let hasNewSelects = false;
+
+            for (let i = 0; i < mutations.length; i++) {
+                const mutation = mutations[i];
+
+                // Check for dynamic changes to options of an existing TomSelect
+                const target = mutation.target;
+                if (target && target.tagName === 'SELECT' && target.tomselect) {
+                    pendingSyncSelects.add(target);
+                } else if (target && target.tagName === 'OPTION' && target.parentElement && target.parentElement.tagName === 'SELECT' && target.parentElement.tomselect) {
+                    pendingSyncSelects.add(target.parentElement);
+                }
+
+                // Check for new DOM elements containing uninitialized selects
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    for (let j = 0; j < mutation.addedNodes.length; j++) {
+                        const node = mutation.addedNodes[j];
+                        if (node.nodeType === 1) { // ELEMENT_NODE
+                            if (node.tagName === 'SELECT' && !node.tomselect && !node.classList.contains('no-tomselect') && node.dataset.noTomselect === undefined) {
+                                hasNewSelects = true;
+                            } else if (node.querySelector && node.querySelector('select:not(.no-tomselect):not([data-no-tomselect])')) {
+                                hasNewSelects = true;
+                            }
+                        }
+                    }
+                }
+
+                // Clean up TomSelect instances if removed from DOM
+                if (mutation.type === 'childList' && mutation.removedNodes.length > 0) {
+                    for (let k = 0; k < mutation.removedNodes.length; k++) {
+                        const rnode = mutation.removedNodes[k];
+                        if (rnode.nodeType === 1) {
+                            if (rnode.tagName === 'SELECT' && rnode.tomselect) {
+                                try { rnode.tomselect.destroy(); } catch(e) {}
+                            } else if (rnode.querySelectorAll) {
+                                rnode.querySelectorAll('select').forEach(function(s) {
+                                    if (s.tomselect) {
+                                        try { s.tomselect.destroy(); } catch(e) {}
+                                    }
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (pendingSyncSelects.size > 0 || hasNewSelects) {
+                if (tsMutationTimer) clearTimeout(tsMutationTimer);
+                tsMutationTimer = setTimeout(function() {
+                    pendingSyncSelects.forEach(function(sel) {
+                        if (sel && sel.tomselect && !sel._ts_syncing) {
+                            sel._ts_syncing = true;
+                            try {
+                                sel.tomselect.sync();
+                                if (sel.value) {
+                                    sel.tomselect.setValue(sel.value, true);
+                                }
+                            } catch(err) {
+                                console.warn('TomSelect auto-sync error:', err);
+                            } finally {
+                                setTimeout(function() { sel._ts_syncing = false; }, 0);
+                            }
+                        }
+                    });
+                    pendingSyncSelects.clear();
+
+                    if (hasNewSelects) {
+                        window.initAllTomSelects();
+                    }
+                }, 30);
+            }
+        });
+
+        if (document.body) {
+            observer.observe(document.body, { childList: true, subtree: true });
+        } else {
+            document.addEventListener('DOMContentLoaded', function() {
+                observer.observe(document.body, { childList: true, subtree: true });
+            });
+        }
+    }
     </script>
 
     <!-- =========================================================================
@@ -1596,6 +1771,19 @@
             // 2. Setup Body Row Checkboxes
             setupTableRows(table);
 
+            // Clean up any remaining row delete buttons in table
+            table.querySelectorAll('tbody tr').forEach(function(tr) {
+                tr.querySelectorAll('button, a, form').forEach(function(el) {
+                    var title = (el.getAttribute('title') || el.getAttribute('aria-label') || '').toLowerCase();
+                    var href = (el.getAttribute('href') || '').toLowerCase();
+                    var hasTrash = el.querySelector('.fa-trash, .fa-trash-alt');
+                    if (hasTrash || title.includes('delete') || href.includes('/delete')) {
+                        el.style.display = 'none';
+                        el.setAttribute('data-hidden-delete', 'true');
+                    }
+                });
+            });
+
             // 2b. Clean up Actions column if it now has no visible actions remaining
             var headerCells = headRow.querySelectorAll('th');
             var actionColIdx = -1;
@@ -1606,13 +1794,18 @@
                 }
             });
             if (actionColIdx !== -1) {
-                var dataRows = tbody.querySelectorAll('tr:not(.no-data):not(:has(td[colspan]))');
+                var allRows = Array.from(tbody.querySelectorAll('tr:not(.no-data)'));
+                var dataRows = allRows.filter(function(tr) {
+                    return !tr.querySelector('td[colspan]');
+                });
                 var hasVisibleOtherActions = false;
                 dataRows.forEach(function(tr) {
                     var cell = tr.children[actionColIdx];
                     if (cell) {
                         var visibleInteractive = Array.from(cell.children).filter(function(child) {
-                            return window.getComputedStyle(child).display !== 'none';
+                            if (child.style.display === 'none' || child.getAttribute('data-hidden-delete') === 'true') return false;
+                            var comp = window.getComputedStyle(child);
+                            return comp.display !== 'none' && comp.visibility !== 'hidden' && comp.opacity !== '0';
                         });
                         if (visibleInteractive.length > 0) {
                             hasVisibleOtherActions = true;

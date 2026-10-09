@@ -73,12 +73,7 @@
                         </div>
                     </div>
                     
-                    <div class="d-flex justify-content-end" onclick="event.stopPropagation();">
-                        <button onclick="deleteRoom({{ room.pk }}, '{{ room.room_number|escapejs }}')" 
-                                class="btn btn-sm btn-outline-danger" title="Delete Room">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -112,35 +107,5 @@
 </div>
 
 <script>
-function deleteRoom(id, number) {
-    window.showConfirmModal({
-        title: 'Delete Room',
-        message: `Are you sure you want to delete Room ${number}?\n\nThis will also affect any routine entries using this room.`,
-        confirmText: 'Delete Room',
-        confirmClass: 'btn-danger',
-        onConfirm: function() {
-            fetch(`/school/{{ school_slug }}/academics/classrooms/${id}/delete/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    if (typeof window.showMessage === 'function') window.showMessage('Error', 'Error: ' + (data.error || 'Could not delete room'), false, null, 'error');
-                    else window.alert('Error: ' + (data.error || 'Could not delete room'));
-                }
-            })
-            .catch(error => {
-                if (typeof window.showMessage === 'function') window.showMessage('Error', 'Error: ' + error, false, null, 'error');
-                else window.alert('Error: ' + error);
-            });
-        }
-    });
-}
 </script>
 {% endblock %}

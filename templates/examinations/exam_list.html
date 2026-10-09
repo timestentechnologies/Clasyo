@@ -37,12 +37,18 @@
                     <th>Start Date</th>
                     <th>End Date</th>
                     <th>Status</th>
+                    {% if user.role == 'student' %}
                     <th>Actions</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
             {% for exam in exams %}
-            <tr {% if user.role in 'school_admin,teacher' %}class="clickable-row" onclick="editExam({{ exam.pk }})"{% else %}class="clickable-row" onclick="window.location.href='{% url 'examinations:student_exam_view' school_slug=school_slug exam_id=exam.pk %}'"{% endif %}>
+            <tr data-id="{{ exam.pk }}"
+                data-name="{{ exam.name|escape }}"
+                data-exam-type="{{ exam.exam_type }}"
+                data-is-online="{% if exam.is_online %}true{% else %}false{% endif %}"
+                {% if user.role in 'school_admin,teacher' %}class="clickable-row" onclick="editExam(this, '{{ exam.pk }}')"{% else %}class="clickable-row" onclick="window.location.href='{% url 'examinations:student_exam_view' school_slug=school_slug exam_id=exam.pk %}'"{% endif %}>
                 <td>
                     <strong>{{ exam.name }}</strong>
                     {% if exam.is_online %}
@@ -57,31 +63,22 @@
                         {% if exam.is_published %}Published{% else %}Draft{% endif %}
                     </span>
                 </td>
+                {% if user.role == 'student' %}
                 <td onclick="event.stopPropagation();">
-                    {% if user.role == 'student' %}
-                        {% if exam.is_online %}
-                        <a href="{% url 'examinations:student_take_exam' school_slug=school_slug exam_id=exam.pk %}" class="btn btn-sm btn-success" title="Take Exam">
-                            <i class="fas fa-pen"></i>
-                        </a>
-                        {% endif %}
-                        <a href="{% url 'examinations:student_exam_view' school_slug=school_slug exam_id=exam.pk %}" class="btn btn-sm btn-primary" title="View Exam">
-                            <i class="fas fa-eye"></i>
-                        </a>
-                    {% elif user.role in 'school_admin,teacher' %}
-                        {% if exam.is_online %}
-                        <button class="btn btn-sm btn-success" onclick="manageQuestions({{ exam.pk }}, '{{ exam.name|escapejs }}')" title="Manage Questions">
-                            <i class="fas fa-question-circle"></i>
-                        </button>
-                        {% endif %}
-                        <button class="btn btn-sm btn-danger" title="Delete Exam" onclick="deleteExam({{ exam.pk }}, '{{ exam.name|escapejs }}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                    {% if exam.is_online %}
+                    <a href="{% url 'examinations:student_take_exam' school_slug=school_slug exam_id=exam.pk %}" class="btn btn-sm btn-success" title="Take Exam">
+                        <i class="fas fa-pen"></i>
+                    </a>
                     {% endif %}
+                    <a href="{% url 'examinations:student_exam_view' school_slug=school_slug exam_id=exam.pk %}" class="btn btn-sm btn-primary" title="View Exam">
+                        <i class="fas fa-eye"></i>
+                    </a>
                 </td>
+                {% endif %}
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6" class="text-center py-5">
+                <td colspan="{% if user.role == 'student' %}6{% else %}5{% endif %}" class="text-center py-5">
                     <i class="fas fa-file-alt fa-3x text-muted mb-3 d-block"></i>
                     <p class="text-muted mb-0">No examinations found.</p>
                 </td>
@@ -121,9 +118,17 @@
                 <h5 class="fw-bold mb-1" id="examFormTitle">Add Exam</h5>
                 <span class="form-mode-badge badge bg-primary" id="examFormBadge">Creation Mode</span>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('examListCard', 'examFormPanel', 'hide')">
-                <i class="fas fa-times me-1"></i> Close
-            </button>
+            <div class="form-header-actions d-flex align-items-center gap-2">
+                <button type="button" id="btnExamManageQuestions" class="btn btn-sm btn-success d-none" title="Manage Online Exam Questions">
+                    <i class="fas fa-question-circle me-1"></i> Manage Questions
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('examListCard', 'examFormPanel', 'hide')">
+                    <i class="fas fa-times me-1"></i> Close
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="submitExam()">
+                    <i class="fas fa-save me-1"></i> Save Exam
+                </button>
+            </div>
         </div>
         <form id="examForm" enctype="multipart/form-data">
             {% csrf_token %}
@@ -214,7 +219,7 @@
 
             <div class="d-flex justify-content-end gap-2 mt-4">
                 <button type="button" class="btn btn-outline-secondary" onclick="toggleInPageFormView('examListCard', 'examFormPanel', 'hide')">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitExam()"><i class="fas fa-save me-1"></i> Save Exam</button>
+                <button type="button" class="btn btn-primary" id="submitExamBtn" onclick="submitExam()"><i class="fas fa-save me-1"></i> Save Exam</button>
             </div>
         </form>
     </div>
@@ -385,6 +390,15 @@ function removeSubject(subjectId) {
 
 function submitExam() {
     const form = document.getElementById('examForm');
+    const submitBtn = document.getElementById('submitExamBtn');
+    const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
+    }
+    document.body.style.cursor = 'wait';
+
     const formData = new FormData(form);
     
     // Set is_online based on exam_type
@@ -419,13 +433,32 @@ function submitExam() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showSuccessAndReload(editingExamId ? 'Exam updated successfully!' : 'Exam created successfully!');
+            if (typeof window.showSuccessAndReload === 'function') {
+                window.showSuccessAndReload(editingExamId ? 'Exam updated successfully!' : 'Exam created successfully!', 0);
+            } else {
+                location.reload();
+            }
         } else {
-            showError(data.error || 'Failed to create exam');
+            if (typeof showError === 'function') {
+                showError(data.error || 'Failed to create exam');
+            } else {
+                alert(data.error || 'Failed to create exam');
+            }
         }
     })
     .catch(error => {
-        showError('Error: ' + error.message);
+        if (typeof showError === 'function') {
+            showError('Error: ' + error.message);
+        } else {
+            alert('Error: ' + error.message);
+        }
+    })
+    .finally(() => {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnHtml;
+        }
+        document.body.style.cursor = '';
     });
 }
 
@@ -438,12 +471,58 @@ function openCreateExamForm() {
     if (clearCb) clearCb.checked = false;
     selectedSubjectsData = {};
     renderSelectedSubjects();
+    const btnManage = document.getElementById('btnExamManageQuestions');
+    if (btnManage) btnManage.classList.add('d-none');
     toggleInPageFormView('examListCard', 'examFormPanel', 'create');
 }
 
-function editExam(id) {
-    editingExamId = id;
-    document.getElementById('examForm').reset();
+function editExam(rowEl, id) {
+    let row = null;
+    let examId = id;
+    if (rowEl instanceof HTMLElement) {
+        row = rowEl;
+        if (!examId && row.dataset.id) {
+            examId = row.dataset.id;
+        }
+    } else {
+        examId = rowEl;
+        row = document.querySelector(`tr[data-id="${examId}"]`);
+    }
+    editingExamId = examId;
+
+    // 1. Immediately toggle into Edit Mode (0ms delay)
+    toggleInPageFormView('examListCard', 'examFormPanel', 'edit');
+
+    // 2. Pre-populate what we have in the row dataset immediately
+    if (row) {
+        const examName = row.getAttribute('data-name') || '';
+        const examType = row.getAttribute('data-exam-type') || '';
+        const isOnline = row.getAttribute('data-is-online') === 'true';
+
+        if (examName) {
+            const nameEl = document.getElementById('exam_name');
+            if (nameEl) nameEl.value = examName;
+        }
+        if (examType) {
+            const typeEl = document.getElementById('exam_type');
+            if (typeEl) {
+                typeEl.value = examType;
+                toggleOnlineExam();
+            }
+        }
+        const btnManage = document.getElementById('btnExamManageQuestions');
+        if (btnManage) {
+            if (isOnline) {
+                btnManage.classList.remove('d-none');
+                btnManage.onclick = function() {
+                    manageQuestions(examId, examName);
+                };
+            } else {
+                btnManage.classList.add('d-none');
+            }
+        }
+    }
+
     const currentWrap = document.getElementById('currentAttachmentWrap');
     if (currentWrap) currentWrap.style.display = 'none';
     const clearCb = document.getElementById('clearAttachment');
@@ -451,7 +530,8 @@ function editExam(id) {
     selectedSubjectsData = {};
     renderSelectedSubjects();
 
-    fetch(window.location.pathname + id + '/detail/')
+    // 3. Background fetch authoritative details without UI freezing
+    fetch(window.location.pathname + examId + '/detail/')
         .then(r => r.json())
         .then(data => {
             if (!data.success) {
@@ -469,10 +549,22 @@ function editExam(id) {
             document.getElementById('exam_duration_minutes').value = ex.duration_minutes || '';
             toggleOnlineExam();
 
+            const isOnline = ex.is_online || (ex.exam_type === 'online');
+            const btnManage = document.getElementById('btnExamManageQuestions');
+            if (btnManage) {
+                if (isOnline) {
+                    btnManage.classList.remove('d-none');
+                    btnManage.onclick = function() {
+                        manageQuestions(examId, ex.name || '');
+                    };
+                } else {
+                    btnManage.classList.add('d-none');
+                }
+            }
+
             // Load class subjects then populate selected subjects and totals
             if (ex.class_assigned) {
                 loadClassSubjects();
-                // Populate selected subjects from backend payload
                 if (ex.subjects && Array.isArray(ex.subjects)) {
                     ex.subjects.forEach(s => {
                         selectedSubjectsData[s.subject_id] = {
@@ -480,7 +572,6 @@ function editExam(id) {
                             total_marks: s.total_marks
                         };
                     });
-                    // After subjects list renders, check the boxes
                     setTimeout(() => {
                         Object.keys(selectedSubjectsData).forEach(sid => {
                             const cb = document.getElementById(`subj_${sid}`);
@@ -499,10 +590,10 @@ function editExam(id) {
                 }
                 if (currentWrap) currentWrap.style.display = 'block';
             }
-
-            toggleInPageFormView('examListCard', 'examFormPanel', 'edit');
         })
-        .catch(err => showError('Error: ' + err.message));
+        .catch(err => {
+            console.error('Error loading exam details:', err);
+        });
 }
 
 // Hook class selector change to load subjects
@@ -631,27 +722,58 @@ function deleteQuestion(questionId, examId) {
 
 function deleteExam(id, name) {
     document.getElementById('deleteExamName').textContent = name;
-    const modal = new bootstrap.Modal(document.getElementById('deleteExamModal'));
+    const modalEl = document.getElementById('deleteExamModal');
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     modal.show();
     
-    document.getElementById('confirmDeleteExamBtn').onclick = function() {
+    const confirmBtn = document.getElementById('confirmDeleteExamBtn');
+    const originalBtnText = confirmBtn.innerHTML;
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = originalBtnText;
+
+    confirmBtn.onclick = function() {
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Deleting...';
+
         fetch(window.location.pathname + id + '/delete/', {
             method: 'POST',
             headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
         })
         .then(response => response.json())
         .then(data => {
-            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteExamModal'));
-            if (deleteModal) deleteModal.hide();
-            
+            modal.hide();
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('padding-right');
+            document.body.style.removeProperty('overflow');
+
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = originalBtnText;
+
             if (data.success) {
-                showSuccessAndReload('Exam deleted successfully!');
+                if (typeof window.showSuccessAndReload === 'function') {
+                    window.showSuccessAndReload('Exam deleted successfully!', 0);
+                } else if (typeof window.showMessage === 'function') {
+                    window.showMessage('Success!', 'Exam deleted successfully!', true, () => location.reload(), 'success');
+                } else {
+                    location.reload();
+                }
             } else {
-                showError('Failed to delete exam: ' + (data.error || ''));
+                if (typeof showError === 'function') {
+                    showError('Failed to delete exam: ' + (data.error || ''));
+                } else {
+                    alert('Failed to delete exam: ' + (data.error || ''));
+                }
             }
         })
         .catch(error => {
-            showError('Error: ' + error.message);
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = originalBtnText;
+            if (typeof showError === 'function') {
+                showError('Error: ' + error.message);
+            } else {
+                alert('Error: ' + error.message);
+            }
         });
     };
 }

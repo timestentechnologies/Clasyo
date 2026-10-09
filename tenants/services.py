@@ -9,12 +9,50 @@ from .tenant_ops import run_tenant_migrations
 logger = logging.getLogger(__name__)
 
 
+_checked_user_schemas = set()
+
+
+def ensure_tenant_user_schema(db_alias: str) -> None:
+    """Ensure that the local accounts_user table in tenant database has all necessary columns."""
+    if db_alias in _checked_user_schemas or db_alias == 'default':
+        return
+    try:
+        conn = connections[db_alias]
+        with conn.cursor() as cursor:
+            if conn.vendor == 'postgresql':
+                cursor.execute("""
+                    SELECT 1 FROM information_schema.tables 
+                    WHERE table_schema = 'public' AND table_name = 'accounts_user';
+                """)
+                if cursor.fetchone():
+                    cursor.execute("""
+                        ALTER TABLE accounts_user 
+                        ADD COLUMN IF NOT EXISTS auth_provider VARCHAR(20) DEFAULT 'email' NOT NULL;
+                    """)
+                _checked_user_schemas.add(db_alias)
+            elif conn.vendor == 'sqlite':
+                cursor.execute("PRAGMA table_info(accounts_user);")
+                columns = [row[1] for row in cursor.fetchall()]
+                if columns:
+                    if 'auth_provider' not in columns:
+                        cursor.execute("""
+                            ALTER TABLE accounts_user 
+                            ADD COLUMN auth_provider VARCHAR(20) DEFAULT 'email' NOT NULL;
+                        """)
+                    _checked_user_schemas.add(db_alias)
+            else:
+                _checked_user_schemas.add(db_alias)
+    except Exception as e:
+        logger.warning(f"[Tenants] Could not ensure user schema in {db_alias}: {e}")
+
+
 def register_tenant_connection(db_alias: str) -> dict:
     """
     Dynamically register the tenant's database connection configuration 
     into django.conf.settings.DATABASES and django.db.connections if it is not already present.
     """
     if db_alias in settings.DATABASES:
+        ensure_tenant_user_schema(db_alias)
         return settings.DATABASES[db_alias]
 
     driver = get_tenant_database_driver()
@@ -25,6 +63,8 @@ def register_tenant_connection(db_alias: str) -> dict:
     conn_databases = getattr(connections, 'databases', None)
     if isinstance(conn_databases, dict):
         conn_databases[db_alias] = config
+
+    ensure_tenant_user_schema(db_alias)
 
     return config
 
@@ -236,7 +276,7 @@ def purge_school_and_tenant_data(school, notify_admins: bool = True) -> dict:
     }
 
     # 1. Notify school admins
-    admins = list(User.objects.filter(role__in=['admin', 'school_admin'], school=school))
+    admins = list(User.objects.using('default').filter(role__in=['admin', 'school_admin'], school=school))
     if notify_admins:
         from core.services.notification_templates import render_email_template
         from django.core.mail import EmailMultiAlternatives
@@ -269,7 +309,7 @@ def purge_school_and_tenant_data(school, notify_admins: bool = True) -> dict:
     # 2. Delete physical backup files from disk and metadata records
     try:
         from superadmin.models import DatabaseBackup
-        backups = DatabaseBackup.objects.filter(school=school)
+        backups = DatabaseBackup.objects.using('default').filter(school=school)
         for b in backups:
             if b.file_path and os.path.exists(b.file_path):
                 try:
@@ -340,7 +380,7 @@ def purge_school_and_tenant_data(school, notify_admins: bool = True) -> dict:
 
     # Delete all users linked to this school (admins, teachers, staff, etc.)
     try:
-        user_qs = User.objects.filter(school=school)
+        user_qs = User.objects.using('default').filter(school=school)
         summary['users_deleted'] = user_qs.count()
         user_qs.delete()
     except Exception as e:

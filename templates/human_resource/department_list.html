@@ -60,29 +60,23 @@
                         <th>Department Name</th>
                         <th>Code</th>
                         <th>Description</th>
-                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for dept in departments %}
-                <tr class="clickable-row" onclick="openDeptForm('edit', {
+                <tr class="clickable-row" data-id="{{ dept.pk }}" onclick="openDeptForm('edit', {
                     dept_id: '{{ dept.pk }}',
                     name: '{{ dept.name|escapejs }}',
                     code: '{{ dept.code|escapejs }}',
-                    description: '{{ dept.description|default:\'\'|escapejs }}'
+                    description: '{{ dept.description|default:""|escapejs }}'
                 })">
                     <td><strong>{{ dept.name }}</strong></td>
                     <td><span class="badge bg-secondary">{{ dept.code }}</span></td>
                     <td>{{ dept.description|default:"No description"|truncatewords:10 }}</td>
-                    <td onclick="event.stopPropagation();">
-                        <button class="btn btn-sm btn-outline-danger" title="Delete Department" onclick="deleteDepartment({{ dept.pk }}, '{{ dept.name|escapejs }}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="4" class="text-center py-5">
+                    <td colspan="3" class="text-center py-5">
                         <i class="fas fa-building fa-3x text-muted mb-3 d-block"></i>
                         <p class="text-muted mb-0">No departments found.</p>
                     </td>
@@ -90,26 +84,6 @@
                 {% endfor %}
                 </tbody>
             </table>
-        </div>
-    </div>
-</div>
-
-<!-- Confirmation / Status Alerts -->
-<div class="modal fade" id="deleteDepartmentModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title"><i class="fas fa-trash"></i> Confirm Delete</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete department <strong id="deleteDepartmentName"></strong>?</p>
-                <p class="text-danger mb-0">This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteDepartmentBtn">Delete Department</button>
-            </div>
         </div>
     </div>
 </div>
@@ -144,35 +118,6 @@ function submitDeptForm() {
     .catch(error => {
         alert('Error saving department: ' + error.message);
     });
-}
-
-function deleteDepartment(id, name) {
-    document.getElementById('deleteDepartmentName').textContent = name;
-    const modal = new bootstrap.Modal(document.getElementById('deleteDepartmentModal'));
-    modal.show();
-    
-    document.getElementById('confirmDeleteDepartmentBtn').onclick = function() {
-        fetch(window.location.pathname + id + '/delete/', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteDepartmentModal'));
-            if (deleteModal) deleteModal.hide();
-            
-            if (data.success) {
-                window.location.reload();
-            } else {
-                alert('Failed to delete department: ' + (data.error || ''));
-            }
-        })
-        .catch(error => {
-            alert('Error: ' + error.message);
-        });
-    };
 }
 </script>
 {% endblock %}

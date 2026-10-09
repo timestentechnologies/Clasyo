@@ -66,16 +66,15 @@
                         <th>Designation Name</th>
                         <th>Description</th>
                         <th>Status</th>
-                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for designation in designations %}
-                <tr class="clickable-row" onclick="openDesignationForm('edit', {
+                <tr class="clickable-row" data-id="{{ designation.pk }}" onclick="openDesignationForm('edit', {
                     designation_id: '{{ designation.pk }}',
                     name: '{{ designation.name|escapejs }}',
-                    code: '{{ designation.code|default:\'\'|escapejs }}',
-                    description: '{{ designation.description|default:\'\'|escapejs }}',
+                    code: '{{ designation.code|default:""|escapejs }}',
+                    description: '{{ designation.description|default:""|escapejs }}',
                     is_active: {{ designation.is_active|yesno:'true,false' }}
                 })">
                     <td><strong>{{ designation.name }}</strong></td>
@@ -85,15 +84,10 @@
                             {% if designation.is_active %}Active{% else %}Inactive{% endif %}
                         </span>
                     </td>
-                    <td onclick="event.stopPropagation();">
-                        <button class="btn btn-sm btn-outline-danger" title="Delete Designation" onclick="deleteDesignation({{ designation.pk }}, '{{ designation.name|escapejs }}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="4" class="text-center py-5">
+                    <td colspan="3" class="text-center py-5">
                         <i class="fas fa-id-badge fa-3x text-muted mb-3 d-block"></i>
                         <p class="text-muted mb-0">No designations found.</p>
                     </td>
@@ -101,26 +95,6 @@
                 {% endfor %}
                 </tbody>
             </table>
-        </div>
-    </div>
-</div>
-
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteDesignationModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title"><i class="fas fa-trash"></i> Confirm Delete</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete designation <strong id="deleteDesignationName"></strong>?</p>
-                <p class="text-danger mb-0">This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteDesignationBtn">Delete Designation</button>
-            </div>
         </div>
     </div>
 </div>
@@ -155,35 +129,6 @@ function submitDesignationForm() {
     .catch(error => {
         alert('Error saving designation: ' + error.message);
     });
-}
-
-function deleteDesignation(id, name) {
-    document.getElementById('deleteDesignationName').textContent = name;
-    const modal = new bootstrap.Modal(document.getElementById('deleteDesignationModal'));
-    modal.show();
-    
-    document.getElementById('confirmDeleteDesignationBtn').onclick = function() {
-        fetch(window.location.pathname + id + '/delete/', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteDesignationModal'));
-            if (deleteModal) deleteModal.hide();
-            
-            if (data.success) {
-                window.location.reload();
-            } else {
-                alert('Failed to delete designation: ' + (data.error || ''));
-            }
-        })
-        .catch(error => {
-            alert('Error: ' + error.message);
-        });
-    };
 }
 </script>
 {% endblock %}

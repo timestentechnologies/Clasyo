@@ -5069,16 +5069,32 @@ body.theme-dark .finance-quick-actions .card-header {
 }
 
 /* ==========================================================================
-   20. Academic Section Cards & Slide-in Animation
+   20. Academic Section Rows & Dynamic Fields (No Outer Border Boxing)
    ========================================================================== */
-.section-card {
-    transition: all 0.3s ease;
-    animation: slideIn 0.3s ease;
-    background-color: var(--bg-surface-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 1rem;
-    margin-bottom: 1rem;
+.section-card,
+.section-row,
+.dynamic-form-row,
+.formset-row,
+.repeater-row,
+.choice-form,
+.resource-form {
+    transition: all 0.2s ease;
+    animation: slideIn 0.2s ease;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin-bottom: 0.5rem;
+}
+
+.section-card > .card-body,
+.section-row > .card-body,
+.choice-form > .card-body,
+.resource-form > .card-body {
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
 }
 
 .dormitory-card {
@@ -9227,7 +9243,7 @@ html.dark-theme .cms-nav-tab.active i {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
     margin-bottom: 1.5rem;
     overflow: visible;
-    transition: all 0.25s ease-in-out;
+    transition: none !important;
 }
 
 .form-header-bar {
@@ -9269,13 +9285,46 @@ html.dark-theme .cms-nav-tab.active i {
 .form-card-body .modern-card,
 .form-card-body .card,
 .form-panel-view .card-body,
-.form-card-body .card-body {
+.form-card-body .card-body,
+.form-panel-view .section-card,
+.form-panel-view .section-row,
+.form-card-body .section-card,
+.form-card-body .section-row,
+.form-panel-view .term-row,
+.form-card-body .term-row,
+.term-row,
+.section-row,
+#termsContainer,
+#termsContainer .term-row,
+#termsContainer .card,
+#termsContainer .border,
+#sectionsContainer .section-card,
+#sectionsContainer .section-row,
+#sectionsContainer .card,
+#sectionsContainer .card-body {
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
     background: transparent !important;
     padding: 0 !important;
     border-radius: 0 !important;
+}
+
+/* Eliminate any artificial side borders or outer box borders boxing form sections or fields across the entire system */
+.form-panel-view .border-start,
+.form-card-body .border-start,
+#classForm .border-start,
+#sectionsContainer .border-start,
+#termsContainer .border-start,
+.section-row.border-start,
+.section-card.border-start,
+.term-row.border-start,
+.term-row.border,
+.term-row.card {
+    border-left: none !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
 }
 
 /* Universal Focus Outline & Glow Ring Removal Across All Inputs, Selects & Dropdowns */
@@ -10528,6 +10577,77 @@ tr.row-selected {
     padding: 0.35rem 0.8rem;
     font-size: 0.82rem;
     font-weight: 600;
+}
+
+/* ==========================================================================
+   Universal Suppression of Table Row-Level Delete Icons System-Wide
+   Deletion across the entire system is handled exclusively via multi-row
+   selection and the universal floating "Delete Selected" bulk action bar.
+   ========================================================================== */
+table td .fa-trash,
+table td .fa-trash-alt,
+.table td .fa-trash,
+.table td .fa-trash-alt,
+.modern-table td .fa-trash,
+.modern-table td .fa-trash-alt,
+table td .btn-action-delete,
+.table td .btn-action-delete,
+.modern-table td .btn-action-delete,
+table td .btn-delete-action,
+table td .action-delete,
+table td a[title*="Delete" i],
+table td a[aria-label*="Delete" i],
+table td button[title*="Delete" i],
+table td button[aria-label*="Delete" i],
+table td a[href*="/delete" i] {
+    display: none !important;
+}
+
+@supports selector(:has(*)) {
+    table td button:has(.fa-trash),
+    table td button:has(.fa-trash-alt),
+    table td a:has(.fa-trash),
+    table td a:has(.fa-trash-alt),
+    table td form:has(button[title*="Delete" i]),
+    table td form:has(.btn-action-delete),
+    table td form:has(.fa-trash),
+    table td form:has(.fa-trash-alt),
+    table td form:has(input[value="delete" i]) {
+        display: none !important;
+    }
+}
+
+/* ==========================================================================
+   Universal Form Check Inline Alignment
+   Ensures radios, checkboxes, and their labels are vertically centered
+   at the same baseline across all forms and inline selection groups.
+   ========================================================================== */
+.form-check-inline,
+.form-check.form-check-inline {
+    display: inline-flex !important;
+    align-items: center !important;
+    vertical-align: middle !important;
+    margin-right: 1rem;
+    margin-bottom: 0 !important;
+}
+
+.form-check-inline .form-check-input,
+.form-check.form-check-inline .form-check-input {
+    float: none !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0.375rem !important;
+    flex-shrink: 0;
+}
+
+.form-check-inline .form-check-label,
+.form-check.form-check-inline .form-check-label {
+    margin-left: 0 !important;
+    margin-bottom: 0 !important;
+    line-height: 1.2 !important;
+    display: inline-flex !important;
+    align-items: center !important;
 }
 
 

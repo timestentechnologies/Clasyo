@@ -62,15 +62,15 @@
                 </thead>
                 <tbody>
                     {% for dist in distributions %}
-                    <tr class="clickable-row"
+                    <tr class="clickable-row" data-id="{{ dist.id }}"
                         onclick="openEditDistribution({
                             distributionId: '{{ dist.id }}',
                             itemId: '{{ dist.item.id }}',
                             quantity: '{{ dist.quantity }}',
                             recipientType: '{{ dist.recipient_type }}',
-                            recipientId: '{{ dist.recipient_id|default:\'\' }}',
+                            recipientId: '{{ dist.recipient_id|default:"" }}',
                             recipientName: '{{ dist.recipient_name|escapejs }}',
-                            distributionDate: '{{ dist.distribution_date|date:\'Y-m-d\' }}',
+                            distributionDate: '{{ dist.distribution_date|date:"Y-m-d" }}',
                             purpose: '{{ dist.purpose|escapejs }}',
                             notes: '{{ dist.notes|escapejs }}'
                         })"
@@ -206,7 +206,7 @@
 
             <div class="d-flex justify-content-end gap-2 mt-4">
                 <button type="button" class="btn btn-outline-secondary" onclick="toggleInPageFormView('distListCard', 'distFormPanel', 'hide')">Cancel</button>
-                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Save Distribution</button>
+                <button type="submit" class="btn btn-primary" id="submitDistBtn"><i class="fas fa-save me-1"></i> Save Distribution</button>
             </div>
         </form>
     </div>
@@ -301,6 +301,15 @@ function openCreateDistForm() {
 // Distribution form submission
 document.getElementById('distributeForm').addEventListener('submit', function(e) {
     e.preventDefault();
+    const submitBtn = document.getElementById('submitDistBtn');
+    const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
+    }
+    document.body.style.cursor = 'wait';
+
     const formData = new FormData(this);
     
     fetch(window.location.pathname, {
@@ -313,11 +322,20 @@ document.getElementById('distributeForm').addEventListener('submit', function(e)
             const isEdit = document.getElementById('dist_action').value === 'edit_distribution';
             showSuccessAndReload(isEdit ? 'Distribution updated successfully!' : 'Item distributed successfully!');
         } else {
-            alert('Error: ' + data.error);
+            if (typeof showError === 'function') showError(data.error || 'Failed to save distribution');
+            else alert('Error: ' + data.error);
         }
     })
     .catch(error => {
-        alert('Error: ' + error.message);
+        if (typeof showError === 'function') showError('Error: ' + error.message);
+        else alert('Error: ' + error.message);
+    })
+    .finally(() => {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnHtml;
+        }
+        document.body.style.cursor = '';
     });
 });
 
@@ -350,8 +368,11 @@ function openEditDistribution(data) {
 }
 
 function showSuccessAndReload(message) {
-    document.getElementById('successMessage').innerHTML = message;
-    $('#successModal').modal('show');
+    if (typeof window.showSuccessAndReload === 'function') {
+        window.showSuccessAndReload(message, 0);
+    } else {
+        location.reload();
+    }
 }
 
 // Dynamic filtering for distribution table

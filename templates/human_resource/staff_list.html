@@ -172,12 +172,11 @@
                             <th>Role</th>
                             <th>Department</th>
                             <th>Status</th>
-                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                     {% for member in staff %}
-                    <tr class="clickable-row" onclick="viewStaff({{ member.pk }})" data-name="{{ member.get_full_name|default:member.email|lower }}" data-email="{{ member.email|lower }}" data-role="{{ member.role|lower }}" data-department="{{ member.department.name|default:'N/A'|lower }}" data-status="{% if member.is_active %}active{% else %}inactive{% endif %}">
+                    <tr class="clickable-row" onclick="viewStaff(this, '{{ member.pk }}')" data-id="{{ member.pk }}" data-name="{{ member.get_full_name|default:member.email|lower }}" data-email="{{ member.email|lower }}" data-role="{{ member.role|lower }}" data-department="{{ member.department.name|default:'N/A'|lower }}" data-status="{% if member.is_active %}active{% else %}inactive{% endif %}" {% if request.user.role in 'admin,school_admin,super_admin' or request.original_user and request.original_user.role == 'admin' %}data-login-as-url="{% url 'core:login_as' school_slug=school_slug user_id=member.pk %}"{% endif %}>
                         <td><strong>{{ member.get_full_name|default:member.email }}</strong></td>
                         <td>{{ member.email }}</td>
                         <td>{{ member.phone|default:"Not set" }}</td>
@@ -188,15 +187,10 @@
                                 {% if member.is_active %}Active{% else %}Inactive{% endif %}
                             </span>
                         </td>
-                        <td onclick="event.stopPropagation();">
-                            <button class="btn btn-sm btn-outline-info" title="View Staff Details" onclick="viewStaff({{ member.pk }})">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="text-center py-5">
+                        <td colspan="6" class="text-center py-5">
                             <i class="fas fa-users fa-3x text-muted mb-3 d-block"></i>
                             <p class="text-muted mb-0">No staff members found.</p>
                         </td>
@@ -213,9 +207,14 @@
 <div class="modal fade" id="viewStaffModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title"><i class="fas fa-user me-2"></i>Staff Details</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <div class="modal-header bg-info text-white d-flex align-items-center justify-content-between">
+                <h5 class="modal-title mb-0"><i class="fas fa-user me-2"></i>Staff Details</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <a id="btnStaffLoginAs" class="btn btn-sm btn-warning d-none" target="_blank" title="Login as Staff">
+                        <i class="fas fa-sign-in-alt me-1"></i> Login as Staff
+                    </a>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
             </div>
             <div class="modal-body" id="viewStaffContent">
                 <p class="text-muted">Loading details...</p>
@@ -245,14 +244,57 @@ function submitStaffForm() {
     .catch(error => alert('Error: ' + error.message));
 }
 
-function viewStaff(id) {
-    fetch(window.location.pathname + id + '/')
+function viewStaff(rowEl, id) {
+    let row = null;
+    let staffId = id;
+    if (rowEl instanceof HTMLElement) {
+        row = rowEl;
+        if (!staffId && row.dataset.id) {
+            staffId = row.dataset.id;
+        }
+    } else {
+        staffId = rowEl;
+        row = document.querySelector(`tr.clickable-row[data-id="${staffId}"]`);
+    }
+
+    const btnLoginAs = document.getElementById('btnStaffLoginAs');
+    if (btnLoginAs) {
+        const loginAsUrl = row ? (row.getAttribute('data-login-as-url') || '') : '';
+        if (loginAsUrl) {
+            btnLoginAs.href = loginAsUrl;
+            btnLoginAs.classList.remove('d-none');
+        } else {
+            btnLoginAs.classList.add('d-none');
+        }
+    }
+
+    const contentEl = document.getElementById('viewStaffContent');
+    if (contentEl) {
+        contentEl.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-info" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <div class="text-muted mt-2 small">Loading staff details...</div>
+            </div>
+        `;
+    }
+
+    const modalEl = document.getElementById('viewStaffModal');
+    let modal = bootstrap.Modal.getInstance(modalEl);
+    if (!modal) modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    fetch(window.location.pathname + staffId + '/')
     .then(response => response.text())
     .then(html => {
-        document.getElementById('viewStaffContent').innerHTML = html;
-        new bootstrap.Modal(document.getElementById('viewStaffModal')).show();
+        if (contentEl) contentEl.innerHTML = html;
     })
-    .catch(error => alert('Error loading staff details: ' + error.message));
+    .catch(error => {
+        if (contentEl) {
+            contentEl.innerHTML = `<div class="alert alert-danger">Error loading staff details: ${error.message}</div>`;
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', function() {

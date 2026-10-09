@@ -4,16 +4,18 @@
 {% block title %}Subjects - Academics{% endblock %}
 {% block page_icon %}book-open{% endblock %}
 {% block page_title %}Subjects{% endblock %}
-{% block page_subtitle %}Manage all subjects in your institution{% endblock %}
+{% block page_subtitle %}Manage all subjects and link them to classes{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <button class="btn btn-primary" onclick="openSubjectForm('create')">
         <i class="fas fa-plus me-1"></i> Add Subject
     </button>
-    <a class="btn btn-outline-info" href="{% url 'academics:class_subjects' school_slug=school_slug %}">
-        <i class="fas fa-link me-1"></i> Link Subjects to Classes
-    </a>
+    {% if active_year %}
+    <span class="badge bg-light text-dark border px-3 py-2">
+        <i class="fas fa-calendar-alt text-primary me-1"></i> Academic Year: <strong>{{ active_year.name }}</strong>
+    </span>
+    {% endif %}
 </div>
 
 <!-- Shared In-Page Single Form Panel -->
@@ -37,6 +39,8 @@
         <form id="subjectForm">
             {% csrf_token %}
             <input type="hidden" id="subject_id" name="id">
+            <input type="hidden" name="sync_classes" value="1">
+
             <div class="row g-3 mb-3">
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Subject Name *</label>
@@ -63,11 +67,91 @@
             </div>
             <div class="mb-3">
                 <label class="form-label fw-semibold">Description</label>
-                <textarea name="description" id="subject_description" class="form-control" rows="3" placeholder="Subject outline and objectives..."></textarea>
+                <textarea name="description" id="subject_description" class="form-control" rows="2" placeholder="Subject outline and objectives..."></textarea>
             </div>
-            <div class="form-check">
+            <div class="form-check mb-3">
                 <input type="checkbox" name="is_active" class="form-check-input" id="subject_is_active" checked>
                 <label class="form-check-label fw-semibold" for="subject_is_active">Active</label>
+            </div>
+
+            <!-- Integrated Class Linkage Section -->
+            <div class="border-top pt-3 mt-3">
+                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-1">
+                        <label class="form-label fw-bold mb-0 text-dark">
+                            <i class="fas fa-layer-group text-primary me-1"></i> Link to Classes
+                        </label>
+                        <button type="button" 
+                                class="more-info-btn ms-1" 
+                                data-bs-toggle="popover" 
+                                data-bs-placement="right" 
+                                data-bs-html="true" 
+                                data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-info-circle text-primary'></i><strong>Class Linkage Info</strong></div>" 
+                                data-bs-content="Select which classes take this subject{% if active_year %} for active academic year (<strong>{{ active_year.name }}</strong>){% endif %}." 
+                                aria-label="Class Linkage Info" 
+                                title="Class Linkage Info">
+                            <i class="fas fa-info-circle text-primary"></i>
+                        </button>
+                    </div>
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="checkbox" id="tickAllClasses" onchange="selectAllClasses(this.checked)">
+                        <label class="form-check-label fw-semibold text-dark cursor-pointer" for="tickAllClasses">
+                            Select All
+                        </label>
+                    </div>
+                </div>
+
+                {% if classes|length > 6 %}
+                <div class="mb-2">
+                    <input type="text" id="classSearchInput" class="form-control form-control-sm" placeholder="Filter classes..." oninput="filterClassGrid(this.value)">
+                </div>
+                {% endif %}
+
+                <div class="row g-2 pt-1 class-selection-grid" style="max-height: 380px; overflow-y: auto;">
+                    {% for c in classes %}
+                    <div class="col-md-6 col-lg-4 class-item-col" data-class-name="{{ c.name|lower }}">
+                        <div class="py-1">
+                            <div class="form-check form-check-inline mb-0">
+                                <input class="form-check-input class-assignment-checkbox" type="checkbox" name="class_ids" value="{{ c.id }}" id="class_cb_{{ c.id }}" onchange="onClassCheckboxChange({{ c.id }})">
+                                <label class="form-check-label fw-semibold text-dark cursor-pointer" for="class_cb_{{ c.id }}">
+                                    {{ c.name }}{% if c.education_level %} <span class="text-muted fw-normal small" style="font-size: 0.78rem;">({{ c.get_education_level_display }})</span>{% endif %}
+                                </label>
+                            </div>
+
+                            {% if c.sections.all %}
+                            <div class="class-sections-wrapper ms-4 mt-1 d-none" id="sections_wrapper_{{ c.id }}">
+                                <div class="d-flex align-items-center gap-3 mb-1 small text-muted">
+                                    <span class="fw-semibold text-secondary" style="font-size: 0.8rem;">Sections:</span>
+                                    <div class="form-check form-check-inline mb-0" style="font-size: 0.8rem;">
+                                        <input class="form-check-input section-mode-radio-all" type="radio" name="section_mode_{{ c.id }}" id="mode_all_{{ c.id }}" value="all" checked onchange="toggleSectionMode({{ c.id }}, 'all')">
+                                        <label class="form-check-label cursor-pointer" for="mode_all_{{ c.id }}">All</label>
+                                    </div>
+                                    <div class="form-check form-check-inline mb-0" style="font-size: 0.8rem;">
+                                        <input class="form-check-input section-mode-radio-specific" type="radio" name="section_mode_{{ c.id }}" id="mode_specific_{{ c.id }}" value="specific" onchange="toggleSectionMode({{ c.id }}, 'specific')">
+                                        <label class="form-check-label cursor-pointer" for="mode_specific_{{ c.id }}">Specific</label>
+                                    </div>
+                                </div>
+
+                                <div class="specific-sections-container d-none ms-2 d-flex flex-wrap align-items-center gap-2" id="specific_sections_{{ c.id }}">
+                                    {% for s in c.sections.all %}
+                                    <div class="form-check form-check-inline mb-1 small" style="font-size: 0.8rem;">
+                                        <input class="form-check-input section-assignment-checkbox section-cb-class-{{ c.id }}" type="checkbox" name="section_ids" value="{{ s.id }}" id="section_cb_{{ s.id }}" onchange="onSectionCheckboxChange({{ c.id }})">
+                                        <label class="form-check-label cursor-pointer" for="section_cb_{{ s.id }}">{{ s.name }}</label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <div class="text-muted small py-2">
+                            <i class="fas fa-info-circle me-1"></i> No active classes found. Create classes first to link them to subjects.
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </form>
     </div>
@@ -78,19 +162,28 @@
 <div class="row mb-3">
     <div class="col-md-12">
         <div class="row g-2">
-            <div class="col-md-4">
-                <input type="text" id="searchInput" class="form-control" placeholder="Search subjects by name, code, description...">
+            <div class="col-md-3">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search subjects by name, code...">
             </div>
-            <div class="col-md-4">
-                <select name="type_filter" id="typeFilter" class="form-select" placeholder="Filter by Subject Type" data-placeholder="Filter by Subject Type">
+            <div class="col-md-3">
+                <select name="class_filter" id="classFilter" class="form-select">
+                    <option value="">All Classes</option>
+                    <option value="__unassigned__">Unassigned Only</option>
+                    {% for c in classes %}
+                    <option value="{{ c.id }}">{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="type_filter" id="typeFilter" class="form-select">
                     <option value="">All Subject Types</option>
                     <option value="theory">Theory</option>
                     <option value="practical">Practical</option>
                     <option value="both">Theory + Practical</option>
                 </select>
             </div>
-            <div class="col-md-4">
-                <select name="credits_filter" id="creditsFilter" class="form-select" placeholder="Filter by Credits" data-placeholder="Filter by Credits">
+            <div class="col-md-3">
+                <select name="credits_filter" id="creditsFilter" class="form-select">
                     <option value="">All Credits</option>
                     <option value="has_credits">Has Credits</option>
                     <option value="no_credits">No Credits</option>
@@ -109,31 +202,47 @@
                     <th>Code</th>
                     <th>Type</th>
                     <th>Credits</th>
+                    <th>Assigned Classes</th>
                     <th>Description</th>
-                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
             {% for subject in subjects %}
-            <tr class="clickable-row" onclick="openSubjectForm('edit', {
+            <tr class="clickable-row" id="subject-row-{{ subject.pk }}" data-id="{{ subject.pk }}" onclick="openSubjectForm('edit', {
                 id: '{{ subject.pk }}',
                 name: '{{ subject.name|escapejs }}',
                 code: '{{ subject.code|escapejs }}',
                 type: '{{ subject.subject_type|escapejs }}',
-                credits: '{{ subject.credits|default:\'1\' }}',
-                description: '{{ subject.description|default:\'\'|escapejs }}',
-                is_active: {{ subject.is_active|yesno:'true,false' }}
-            })" data-name="{{ subject.name|lower }}" data-code="{{ subject.code|lower }}" data-type="{{ subject.subject_type|lower }}" data-credits="{{ subject.credits|default:'0' }}" data-description="{{ subject.description|lower }}">
+                credits: '{{ subject.credits|default:"1" }}',
+                description: '{{ subject.description|default:""|escapejs }}',
+                is_active: {{ subject.is_active|yesno:'true,false' }},
+                assigned_classes: {{ subject.assigned_classes_json|safe }}
+            })" data-name="{{ subject.name|lower }}" data-code="{{ subject.code|lower }}" data-type="{{ subject.subject_type|lower }}" data-credits="{{ subject.credits|default:'0' }}" data-description="{{ subject.description|lower }}" data-class-ids="{{ subject.assigned_class_ids_str }}" data-has-classes="{% if subject.assigned_display_badges %}1{% else %}0{% endif %}">
                 <td><strong>{{ subject.name }}</strong></td>
                 <td><span class="badge bg-secondary">{{ subject.code }}</span></td>
                 <td><span class="badge bg-info">{{ subject.subject_type|title }}</span></td>
                 <td>{{ subject.credits|default:"-" }}</td>
-                <td>{{ subject.description|default:"No description"|truncatewords:8 }}</td>
-                <td onclick="event.stopPropagation();">
-                    <button class="btn btn-sm btn-danger" title="Delete Subject" onclick="deleteSubject({{ subject.pk }}, '{{ subject.name|escapejs }}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                <td>
+                    {% if subject.assigned_display_badges %}
+                        <div class="d-flex flex-wrap gap-1">
+                        {% for badge in subject.assigned_display_badges|slice:":3" %}
+                            <span class="badge bg-light text-dark border">
+                                {{ badge.name }}{% if badge.section_name %} ({{ badge.section_name }}){% endif %}
+                            </span>
+                        {% endfor %}
+                        {% if subject.assigned_display_badges|length > 3 %}
+                            <span class="badge bg-secondary-subtle text-secondary border" title="{% for b in subject.assigned_display_badges %}{{ b.name }}{% if b.section_name %} ({{ b.section_name }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}">
+                                +{{ subject.assigned_display_badges|length|add:"-3" }} more
+                            </span>
+                        {% endif %}
+                        </div>
+                    {% else %}
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                            <i class="fas fa-exclamation-circle me-1"></i>Unassigned
+                        </span>
+                    {% endif %}
                 </td>
+                <td>{{ subject.description|default:"No description"|truncatewords:8 }}</td>
             </tr>
             {% empty %}
             <tr>
@@ -149,34 +258,140 @@
 </div>
 </div>
 
-<!-- Delete Subject Confirmation Modal -->
-<div class="modal fade" id="deleteSubjectModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title"><i class="fas fa-trash"></i> Confirm Delete</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete subject <strong id="deleteSubjectName"></strong>?</p>
-                <p class="text-danger">This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteSubjectBtn">Delete Subject</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
+function onClassCheckboxChange(classId) {
+    const cb = document.getElementById('class_cb_' + classId);
+    const wrapper = document.getElementById('sections_wrapper_' + classId);
+    
+    if (cb && cb.checked) {
+        if (wrapper) {
+            wrapper.classList.remove('d-none');
+        }
+    } else {
+        if (wrapper) {
+            wrapper.classList.add('d-none');
+            const allRadio = document.getElementById('mode_all_' + classId);
+            if (allRadio) allRadio.checked = true;
+            const container = document.getElementById('specific_sections_' + classId);
+            if (container) container.classList.add('d-none');
+            document.querySelectorAll('.section-cb-class-' + classId).forEach(secCb => {
+                secCb.checked = false;
+            });
+        }
+    }
+    updateTickAllState();
+}
+
+function updateTickAllState() {
+    const tickAll = document.getElementById('tickAllClasses');
+    if (!tickAll) return;
+    const allCbs = document.querySelectorAll('.class-assignment-checkbox');
+    if (allCbs.length === 0) {
+        tickAll.checked = false;
+        tickAll.indeterminate = false;
+        return;
+    }
+    let checkedCount = 0;
+    allCbs.forEach(cb => {
+        if (cb.checked) checkedCount++;
+    });
+    tickAll.checked = (checkedCount === allCbs.length);
+    tickAll.indeterminate = (checkedCount > 0 && checkedCount < allCbs.length);
+}
+
+function toggleSectionMode(classId, mode) {
+    const container = document.getElementById('specific_sections_' + classId);
+    const classCb = document.getElementById('class_cb_' + classId);
+    
+    if (classCb && !classCb.checked) {
+        classCb.checked = true;
+        onClassCheckboxChange(classId);
+    }
+    
+    if (mode === 'specific') {
+        if (container) container.classList.remove('d-none');
+    } else {
+        if (container) container.classList.add('d-none');
+        document.querySelectorAll('.section-cb-class-' + classId).forEach(secCb => {
+            secCb.checked = false;
+        });
+    }
+}
+
+function onSectionCheckboxChange(classId) {
+    const classCb = document.getElementById('class_cb_' + classId);
+    if (classCb && !classCb.checked) {
+        classCb.checked = true;
+        onClassCheckboxChange(classId);
+    }
+}
+
+function selectAllClasses(selectAll) {
+    const tickAll = document.getElementById('tickAllClasses');
+    if (tickAll && tickAll.checked !== selectAll) {
+        tickAll.checked = selectAll;
+    }
+    if (tickAll) {
+        tickAll.indeterminate = false;
+    }
+    document.querySelectorAll('.class-assignment-checkbox').forEach(cb => {
+        cb.checked = selectAll;
+        const cid = cb.value;
+        const wrapper = document.getElementById('sections_wrapper_' + cid);
+        if (selectAll) {
+            if (wrapper) wrapper.classList.remove('d-none');
+        } else {
+            if (wrapper) {
+                wrapper.classList.add('d-none');
+                const allRadio = document.getElementById('mode_all_' + cid);
+                if (allRadio) allRadio.checked = true;
+                const container = document.getElementById('specific_sections_' + cid);
+                if (container) container.classList.add('d-none');
+                document.querySelectorAll('.section-cb-class-' + cid).forEach(secCb => {
+                    secCb.checked = false;
+                });
+            }
+        }
+    });
+}
+
+function filterClassGrid(query) {
+    const term = (query || '').toLowerCase().trim();
+    document.querySelectorAll('.class-item-col').forEach(col => {
+        const name = col.getAttribute('data-class-name') || '';
+        if (!term || name.includes(term)) {
+            col.style.display = '';
+        } else {
+            col.style.display = 'none';
+        }
+    });
+}
+
 function openSubjectForm(mode, data) {
     const form = document.getElementById('subjectForm');
     if (form) form.reset();
     document.getElementById('subject_id').value = '';
     
+    // Clear all class assignments
+    selectAllClasses(false);
+    
+    const searchClassInput = document.getElementById('classSearchInput');
+    if (searchClassInput) {
+        searchClassInput.value = '';
+        filterClassGrid('');
+    }
+    
     if (mode === 'create' || !data) {
         document.getElementById('subject_is_active').checked = true;
+        const typeEl = document.getElementById('subject_type');
+        if (typeEl) {
+            if (typeEl.tomselect) {
+                typeEl.tomselect.setValue('theory');
+            } else {
+                typeEl.value = 'theory';
+            }
+        }
+        updateTickAllState();
         toggleInPageFormView('subjectListCard', 'subjectFormPanel', 'create');
         return;
     }
@@ -184,16 +399,69 @@ function openSubjectForm(mode, data) {
     document.getElementById('subject_id').value = data.id || '';
     document.getElementById('subject_name').value = data.name || '';
     document.getElementById('subject_code').value = data.code || '';
-    document.getElementById('subject_type').value = data.type || 'theory';
+    
+    const typeEl = document.getElementById('subject_type');
+    if (typeEl) {
+        if (typeEl.tomselect) {
+            typeEl.tomselect.setValue(data.type || 'theory');
+        } else {
+            typeEl.value = data.type || 'theory';
+        }
+    }
+    
     document.getElementById('subject_credits').value = data.credits || '1';
     document.getElementById('subject_description').value = data.description || '';
     document.getElementById('subject_is_active').checked = !!data.is_active;
     
+    // Pre-populate class assignments
+    if (Array.isArray(data.assigned_classes) && data.assigned_classes.length > 0) {
+        // Group by class_id
+        const classMap = {};
+        data.assigned_classes.forEach(item => {
+            const cid = item.class_id;
+            if (!classMap[cid]) classMap[cid] = [];
+            if (item.section_id) {
+                classMap[cid].push(item.section_id);
+            }
+        });
+
+        Object.keys(classMap).forEach(cid => {
+            const classCb = document.getElementById('class_cb_' + cid);
+            if (classCb) {
+                classCb.checked = true;
+                onClassCheckboxChange(cid);
+                
+                const sections = classMap[cid];
+                if (sections.length > 0) {
+                    const specificRadio = document.getElementById('mode_specific_' + cid);
+                    if (specificRadio) {
+                        specificRadio.checked = true;
+                        toggleSectionMode(cid, 'specific');
+                    }
+                    sections.forEach(sid => {
+                        const secCb = document.getElementById('section_cb_' + sid);
+                        if (secCb) secCb.checked = true;
+                    });
+                }
+            }
+        });
+    }
+    
+    updateTickAllState();
     toggleInPageFormView('subjectListCard', 'subjectFormPanel', 'edit');
 }
 
 function submitSubjectForm() {
     const form = document.getElementById('subjectForm');
+    const submitBtn = document.querySelector('.form-submit-btn');
+    const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+    
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
+    }
+    document.body.style.cursor = 'wait';
+    
     const formData = new FormData(form);
     const id = document.getElementById('subject_id').value;
     const url = id 
@@ -210,41 +478,77 @@ function submitSubjectForm() {
         if (data.success) {
             form.reset();
             toggleInPageFormView('subjectListCard', 'subjectFormPanel', 'list');
-            showSuccessAndReload(id ? 'Subject updated successfully!' : 'Subject added successfully!');
+            if (typeof window.showSuccessAndReload === 'function') {
+                window.showSuccessAndReload(id ? 'Subject updated successfully!' : 'Subject added successfully!', 0);
+            } else {
+                location.reload();
+            }
         } else {
-            showError(data.error || 'Failed to save subject');
+            if (typeof showError === 'function') {
+                showError(data.error || 'Failed to save subject');
+            } else {
+                alert(data.error || 'Failed to save subject');
+            }
         }
     })
     .catch(error => {
-        showError('Error saving subject: ' + error.message);
+        if (typeof showError === 'function') {
+            showError('Error saving subject: ' + error.message);
+        } else {
+            alert('Error saving subject: ' + error.message);
+        }
+    })
+    .finally(() => {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnHtml;
+        }
+        document.body.style.cursor = '';
     });
 }
 
 // Dynamic filtering for subjects table
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
+    const classFilter = document.getElementById('classFilter');
     const typeFilter = document.getElementById('typeFilter');
     const creditsFilter = document.getElementById('creditsFilter');
     const table = document.getElementById('subjectsTable');
+    if (!table) return;
     const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
 
     function filterTable() {
-        const searchTerm = searchInput.value.toLowerCase();
-        const selectedType = typeFilter.value.toLowerCase();
-        const selectedCredits = creditsFilter.value.toLowerCase();
+        const searchTerm = (searchInput ? searchInput.value : '').toLowerCase().trim();
+        const selectedClass = (classFilter ? classFilter.value : '').trim();
+        const selectedType = (typeFilter ? typeFilter.value : '').toLowerCase().trim();
+        const selectedCredits = (creditsFilter ? creditsFilter.value : '').toLowerCase().trim();
 
         for (let row of rows) {
+            // Ignore empty placeholder row if present
+            if (!row.dataset.name && !row.dataset.code) continue;
+
             const name = row.dataset.name || '';
             const code = row.dataset.code || '';
             const type = row.dataset.type || '';
             const credits = row.dataset.credits || '';
             const description = row.dataset.description || '';
+            const classIds = (row.dataset.classIds || '').split(' ').filter(Boolean);
+            const hasClasses = row.dataset.hasClasses === '1';
 
             let showRow = true;
 
             // Search filter
             if (searchTerm && !name.includes(searchTerm) && !code.includes(searchTerm) && !description.includes(searchTerm)) {
                 showRow = false;
+            }
+
+            // Class filter
+            if (selectedClass) {
+                if (selectedClass === '__unassigned__') {
+                    if (hasClasses) showRow = false;
+                } else if (!classIds.includes(selectedClass)) {
+                    showRow = false;
+                }
             }
 
             // Type filter
@@ -263,42 +567,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Add event listeners for real-time filtering
-    searchInput.addEventListener('input', filterTable);
-    typeFilter.addEventListener('change', filterTable);
-    creditsFilter.addEventListener('change', filterTable);
+    if (searchInput) searchInput.addEventListener('input', filterTable);
+    if (classFilter) classFilter.addEventListener('change', filterTable);
+    if (typeFilter) typeFilter.addEventListener('change', filterTable);
+    if (creditsFilter) creditsFilter.addEventListener('change', filterTable);
 });
-
-function showSuccessAndReload(message) {
-    document.getElementById('successMessage').innerHTML = message;
-    $('#successModal').modal('show');
-}
-
-function deleteSubject(id, name) {
-    document.getElementById('deleteSubjectName').textContent = name;
-    const modal = new bootstrap.Modal(document.getElementById('deleteSubjectModal'));
-    modal.show();
-    
-    document.getElementById('confirmDeleteSubjectBtn').onclick = function() {
-        fetch(window.location.pathname + id + '/delete/', {
-            method: 'POST',
-            headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
-        })
-        .then(response => response.json())
-        .then(data => {
-            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteSubjectModal'));
-            if (deleteModal) deleteModal.hide();
-            
-            if (data.success) {
-                showSuccessAndReload('Subject deleted successfully!');
-            } else {
-                alert('Error: ' + (data.error || 'Failed to delete subject'));
-            }
-        })
-        .catch(error => {
-            alert('Error deleting subject: ' + error.message);
-        });
-    };
-}
 </script>
 {% endblock %}

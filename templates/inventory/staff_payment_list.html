@@ -28,9 +28,14 @@
                 <h5 class="fw-bold mb-1" id="paymentFormTitle">Process Staff/Teacher Payment</h5>
                 <span class="form-mode-badge badge bg-primary" id="paymentFormBadge">Creation Mode</span>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('paymentListCard', 'paymentFormPanel', 'hide')">
-                <i class="fas fa-times me-1"></i> Close
-            </button>
+            <div class="form-header-actions d-flex align-items-center gap-2">
+                <a id="btnPrintPaymentReceipt" class="btn btn-sm btn-secondary d-none" target="_blank" title="Print Receipt">
+                    <i class="fas fa-print me-1"></i> Print Receipt
+                </a>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleInPageFormView('paymentListCard', 'paymentFormPanel', 'hide')">
+                    <i class="fas fa-times me-1"></i> Close
+                </button>
+            </div>
         </div>
         <form id="paymentForm">
             {% csrf_token %}
@@ -193,12 +198,11 @@
                         <th>Net Salary</th>
                         <th>Payment Date</th>
                         <th>Status</th>
-                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for payment in payments %}
-                    <tr class="clickable-row" onclick="openEditPaymentFromRow(this)" data-staff-name="{{ payment.staff_name|lower }}" data-staff-type="{{ payment.staff_type|lower }}" data-status="{{ payment.status|lower }}" data-payment-date="{{ payment.payment_date|date:'Y-m-d' }}" data-staff-id="{{ payment.staff_id }}" data-payment-month="{{ payment.payment_month|date:'Y-m' }}" data-payment-id="{{ payment.id }}" data-payment-method="{{ payment.payment_method }}" data-reference-number="{{ payment.reference_number|default:'' }}" data-notes="{{ payment.notes|default:''|escape }}" data-basic-salary="{{ payment.basic_salary }}" data-allowances="{{ payment.allowances }}" data-deductions="{{ payment.deductions }}">
+                    <tr class="clickable-row" onclick="openEditPaymentFromRow(this)" data-staff-name="{{ payment.staff_name|lower }}" data-staff-type="{{ payment.staff_type|lower }}" data-status="{{ payment.status|lower }}" data-payment-date="{{ payment.payment_date|date:'Y-m-d' }}" data-staff-id="{{ payment.staff_id }}" data-payment-month="{{ payment.payment_month|date:'Y-m' }}" data-payment-id="{{ payment.id }}" data-payment-method="{{ payment.payment_method }}" data-reference-number="{{ payment.reference_number|default:'' }}" data-notes="{{ payment.notes|default:''|escape }}" data-basic-salary="{{ payment.basic_salary }}" data-allowances="{{ payment.allowances }}" data-deductions="{{ payment.deductions }}" data-print-url="{% url 'inventory:print_payment_receipt' school_slug payment.id %}">
                         <td><strong>{{ payment.payment_number }}</strong></td>
                         <td>{{ payment.staff_name }}</td>
                         <td>
@@ -223,15 +227,10 @@
                             <span class="badge bg-danger">Cancelled</span>
                             {% endif %}
                         </td>
-                        <td onclick="event.stopPropagation();">
-                            <a href="{% url 'inventory:print_payment_receipt' school_slug payment.id %}" class="btn btn-sm btn-secondary" title="Print Receipt" target="_blank">
-                                <i class="fas fa-print"></i>
-                            </a>
-                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="11" class="text-center">No payment records found.</td>
+                        <td colspan="10" class="text-center">No payment records found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -560,6 +559,9 @@ function openCreatePaymentForm() {
     document.getElementById('createPaymentFields').style.display = 'block';
     document.getElementById('editPaymentFields').style.display = 'none';
 
+    const btnPrint = document.getElementById('btnPrintPaymentReceipt');
+    if (btnPrint) btnPrint.classList.add('d-none');
+
     if (!staffTypeSelect.value) {
         if (Array.isArray(teachers) && teachers.length) {
             staffTypeSelect.value = 'teacher';
@@ -639,6 +641,16 @@ function openEditPaymentFromRow(row) {
     document.getElementById('edit_payment_id').value = row.dataset.paymentId || '';
     document.getElementById('createPaymentFields').style.display = 'none';
     document.getElementById('editPaymentFields').style.display = 'flex';
+
+    const btnPrint = document.getElementById('btnPrintPaymentReceipt');
+    if (btnPrint) {
+        if (row.dataset.printUrl) {
+            btnPrint.href = row.dataset.printUrl;
+            btnPrint.classList.remove('d-none');
+        } else {
+            btnPrint.classList.add('d-none');
+        }
+    }
 
     document.getElementById('edit_status').value = (row.dataset.status || 'pending');
     document.getElementById('edit_payment_method').value = (row.dataset.paymentMethod || 'bank_transfer');

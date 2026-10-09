@@ -78,12 +78,11 @@
                         <th>Preview</th>
                         <th>Date</th>
                         <th>Status</th>
-                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for message in messages_list %}
-                <tr class="clickable-row" onclick="viewMessage({{ message.pk }})" style="cursor: pointer;">
+                <tr class="clickable-row" data-id="{{ message.pk }}" onclick="viewMessage({{ message.pk }})" style="cursor: pointer;">
                     <td><strong>{{ message.sender.get_full_name|default:message.sender.email }}</strong></td>
                     <td>{{ message.subject }}</td>
                     <td>{{ message.message|truncatewords:10 }}</td>
@@ -93,15 +92,10 @@
                             {% if message.is_read %}Read{% else %}Unread{% endif %}
                         </span>
                     </td>
-                    <td onclick="event.stopPropagation();">
-                        <button class="btn btn-sm btn-danger" onclick="deleteMessage({{ message.pk }})" title="Delete Message">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6">No messages found.</td>
+                    <td colspan="5">No messages found.</td>
                 </tr>
                 {% endfor %}
                 </tbody>

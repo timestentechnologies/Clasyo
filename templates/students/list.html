@@ -79,12 +79,23 @@
                         <th>Email</th>
                         <th>Phone</th>
                         <th>Status</th>
-                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for student in students %}
-                    <tr class="clickable-row" data-id="{{ student.pk }}" onclick="editStudent('{{ student.pk }}')" data-name="{{ student.get_full_name|lower }}" data-admission="{{ student.admission_number|lower }}" data-email="{{ student.email|lower }}" data-class="{{ student.current_class.id|lower }}" data-status="{% if student.is_active %}active{% else %}inactive{% endif %}">
+                    <tr class="clickable-row" data-id="{{ student.pk }}" onclick="editStudent(this, '{{ student.pk }}')"
+                        data-name="{{ student.get_full_name|lower }}"
+                        data-student-name="{{ student.get_full_name|escape }}"
+                        data-admission="{{ student.admission_number|lower }}"
+                        data-email="{{ student.email|lower }}"
+                        data-class="{{ student.current_class.id|lower }}"
+                        data-status="{% if student.is_active %}active{% else %}inactive{% endif %}"
+                        data-profile-url="{% url 'students:detail' school_slug=school_slug pk=student.pk %}"
+                        {% if student.user and request.user.role in 'admin,school_admin,super_admin' %}
+                        data-login-as-url="{% url 'core:login_as' school_slug=school_slug user_id=student.user.pk %}"
+                        {% elif student.user and request.original_user and request.original_user.role == 'admin' %}
+                        data-login-as-url="{% url 'core:login_as' school_slug=school_slug user_id=student.user.pk %}"
+                        {% endif %}>
                         <td>
                             {% if student.photo %}
                                 <img src="{{ student.photo.url }}" alt="{{ student.get_full_name }}" class="rounded-circle" style="width: 40px; height: 40px;">
@@ -110,35 +121,10 @@
                                 <span class="badge-modern badge-danger-modern">Inactive</span>
                             {% endif %}
                         </td>
-                        <td onclick="event.stopPropagation();">
-                            {% if student.user %}
-                                {% if request.user.role == 'admin' or request.user.role == 'school_admin' or request.user.role == 'super_admin' %}
-                                    <a href="{% url 'core:login_as' school_slug=school_slug user_id=student.user.pk %}" 
-                                       class="btn-modern btn-sm-modern" 
-                                       style="background: #ffc107; color: #000;"
-                                       title="Login as {{ student.first_name }}">
-                                        <i class="fas fa-sign-in-alt"></i>
-                                    </a>
-                                {% elif request.original_user and request.original_user.role == 'admin' %}
-                                    <a href="{% url 'core:login_as' school_slug=school_slug user_id=student.user.pk %}" 
-                                       class="btn-modern btn-sm-modern" 
-                                       style="background: #ffc107; color: #000;"
-                                       title="Login as {{ student.first_name }}">
-                                        <i class="fas fa-sign-in-alt"></i>
-                                    </a>
-                                {% endif %}
-                            {% endif %}
-                            <a class="btn-modern btn-sm-modern btn-primary-modern" title="View" href="{% url 'students:detail' school_slug=school_slug pk=student.pk %}">
-                                <i class="fas fa-eye"></i>
-                            </a>
-                            <button class="btn-modern btn-sm-modern btn-danger-modern" title="Delete" onclick="deleteStudent('{{ student.pk }}', '{{ student.first_name }} {{ student.last_name }}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="{% if students.0.dormitory or students.0.room %}10{% else %}8{% endif %}" class="text-center py-4">
+                        <td colspan="{% if students.0.dormitory or students.0.room %}9{% else %}7{% endif %}" class="text-center py-4">
                             <i class="fas fa-users fa-3x text-muted mb-3"></i>
                             <p class="text-muted">No students found. Add your first student!</p>
                             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">
@@ -414,7 +400,13 @@
             <h5 class="mb-0 fw-bold form-title-text">Edit Student</h5>
             <span class="form-mode-badge mode-edit">Edit</span>
         </div>
-        <div class="form-header-actions">
+        <div class="form-header-actions d-flex align-items-center gap-2">
+            <a id="btnStudentLoginAs" class="btn btn-sm btn-warning d-none" target="_blank" title="Login as Student">
+                <i class="fas fa-sign-in-alt me-1"></i> Login as Student
+            </a>
+            <a id="btnStudentViewProfile" class="btn btn-sm btn-info d-none" title="View Full Profile">
+                <i class="fas fa-id-card me-1"></i> View Profile
+            </a>
             <button type="button" class="btn btn-sm btn-light" onclick="toggleInPageFormView('studentListCard', 'editStudentFormPanel', 'list')">Cancel</button>
             <button type="button" class="btn btn-sm btn-primary form-submit-btn" id="saveEditStudentBtn">
                 <i class="fas fa-save me-1"></i> Update Student
@@ -514,12 +506,70 @@ function submitAddStudent() {
     });
 }
 
-function editStudent(id) {
-    currentEditStudentId = id;
-    fetch(window.location.pathname + id + '/edit/')
-    .then(response => response.text())
+function editStudent(rowEl, id) {
+    let row = null;
+    let studentId = id;
+    if (rowEl instanceof HTMLElement) {
+        row = rowEl;
+        if (!studentId && row.dataset.id) {
+            studentId = row.dataset.id;
+        }
+    } else {
+        studentId = rowEl;
+        row = document.querySelector(`tr.clickable-row[data-id="${studentId}"]`);
+    }
+    currentEditStudentId = studentId;
+
+    // 1. Immediately toggle into Edit Mode (0ms UI lag)
+    toggleInPageFormView('studentListCard', 'editStudentFormPanel', 'edit');
+
+    // 2. Wire up the header actions immediately from row dataset
+    const btnLoginAs = document.getElementById('btnStudentLoginAs');
+    const btnProfile = document.getElementById('btnStudentViewProfile');
+    if (row) {
+        const loginAsUrl = row.getAttribute('data-login-as-url') || '';
+        const profileUrl = row.getAttribute('data-profile-url') || '';
+        if (btnLoginAs) {
+            if (loginAsUrl) {
+                btnLoginAs.href = loginAsUrl;
+                btnLoginAs.classList.remove('d-none');
+            } else {
+                btnLoginAs.classList.add('d-none');
+            }
+        }
+        if (btnProfile) {
+            if (profileUrl) {
+                btnProfile.href = profileUrl;
+                btnProfile.classList.remove('d-none');
+            } else {
+                btnProfile.classList.add('d-none');
+            }
+        }
+    }
+
+    // 3. Show instant smooth loading spinner in form panel body
+    const contentEl = document.getElementById('editStudentContent');
+    if (contentEl) {
+        contentEl.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <div class="text-muted mt-2 small">Loading student details...</div>
+            </div>
+        `;
+    }
+
+    // 4. Fetch the edit form asynchronously in background
+    fetch(window.location.pathname + studentId + '/edit/')
+    .then(response => {
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.text();
+    })
     .then(html => {
-        document.getElementById('editStudentContent').innerHTML = html;
+        if (contentEl) {
+            contentEl.innerHTML = html;
+        }
         
         setTimeout(() => {
             const saveBtn = document.getElementById('saveEditStudentBtn');
@@ -554,12 +604,16 @@ function editStudent(id) {
                     });
                 };
             }
-        }, 100);
-        
-        toggleInPageFormView('studentListCard', 'editStudentFormPanel', 'edit');
+        }, 50);
     })
     .catch(error => {
-        showMessage('Error', 'Failed to load student data: ' + error.message, false);
+        if (contentEl) {
+            contentEl.innerHTML = `
+                <div class="alert alert-danger my-4">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Failed to load student data: ${error.message}
+                </div>
+            `;
+        }
         console.error(error);
     });
 }

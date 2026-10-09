@@ -4,6 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
+from django.db import transaction
 from django.db.models import Count, Q
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
@@ -1446,6 +1447,45 @@ class SystemSettingsView(LoginRequiredMixin, TemplateView):
         return context
 
 
+def _save_terms_for_academic_year(year_obj, term_ids, term_names, term_start_dates, term_end_dates):
+    """Save or update terms/sessions atomically for an academic year"""
+    processed_session_ids = set()
+    for i, name in enumerate(term_names):
+        name = name.strip() if name else ''
+        if not name:
+            continue
+        start_date = term_start_dates[i] if i < len(term_start_dates) and term_start_dates[i] else None
+        end_date = term_end_dates[i] if i < len(term_end_dates) and term_end_dates[i] else None
+        if not start_date or not end_date:
+            continue
+        term_id = term_ids[i] if i < len(term_ids) and term_ids[i] else None
+        
+        session = None
+        if term_id:
+            try:
+                session = Session.objects.filter(academic_year=year_obj, id=term_id).first()
+            except Exception:
+                session = None
+        
+        if session:
+            session.name = name
+            session.start_date = start_date
+            session.end_date = end_date
+            session.save()
+        else:
+            session = Session.objects.create(
+                academic_year=year_obj,
+                name=name,
+                start_date=start_date,
+                end_date=end_date,
+                is_active=True
+            )
+        processed_session_ids.add(session.id)
+        
+    # Delete removed sessions for this academic year
+    Session.objects.filter(academic_year=year_obj).exclude(id__in=processed_session_ids).delete()
+
+
 class AcademicYearListView(LoginRequiredMixin, ListView):
     """List academic years"""
     model = AcademicYear
@@ -1454,7 +1494,7 @@ class AcademicYearListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         school = get_current_school(self.request)
-        qs = AcademicYear.objects.all()
+        qs = AcademicYear.objects.all().prefetch_related('sessions')
         if school:
             qs = qs.filter(school=school)
         return qs
@@ -1467,21 +1507,28 @@ class AcademicYearListView(LoginRequiredMixin, ListView):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class AcademicYearCreateView(View):
-    """Create academic year"""
+    """Create academic year and its terms"""
     
     def post(self, request, *args, **kwargs):
         try:
             if not request.user.is_authenticated:
                 return JsonResponse({'success': False, 'error': 'Not authenticated'})
             
-            AcademicYear.objects.create(
-                school=get_current_school(request),
-                name=request.POST.get('name'),
-                start_date=request.POST.get('start_date'),
-                end_date=request.POST.get('end_date'),
-                is_active=request.POST.get('is_active') == 'on'
-            )
-            return JsonResponse({'success': True})
+            with transaction.atomic():
+                year = AcademicYear.objects.create(
+                    school=get_current_school(request),
+                    name=request.POST.get('name'),
+                    start_date=request.POST.get('start_date'),
+                    end_date=request.POST.get('end_date'),
+                    is_active=request.POST.get('is_active') == 'on'
+                )
+                term_ids = request.POST.getlist('terms_id[]')
+                term_names = request.POST.getlist('terms_name[]')
+                term_start_dates = request.POST.getlist('terms_start_date[]')
+                term_end_dates = request.POST.getlist('terms_end_date[]')
+                _save_terms_for_academic_year(year, term_ids, term_names, term_start_dates, term_end_dates)
+
+            return JsonResponse({'success': True, 'id': year.id})
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -1490,7 +1537,7 @@ class AcademicYearCreateView(View):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class AcademicYearUpdateView(View):
-    """Update academic year"""
+    """Update academic year and its terms"""
     
     def post(self, request, pk, *args, **kwargs):
         try:
@@ -1506,26 +1553,33 @@ class AcademicYearUpdateView(View):
             except AcademicYear.DoesNotExist:
                 return JsonResponse({'success': False, 'error': 'Academic year not found'})
                 
-            year.name = request.POST.get('name')
-            year.start_date = request.POST.get('start_date')
-            year.end_date = request.POST.get('end_date')
-            year.is_active = request.POST.get('is_active') == 'on'
-            year.save()
+            with transaction.atomic():
+                year.name = request.POST.get('name')
+                year.start_date = request.POST.get('start_date')
+                year.end_date = request.POST.get('end_date')
+                year.is_active = request.POST.get('is_active') == 'on'
+                year.save()
+                
+                term_ids = request.POST.getlist('terms_id[]')
+                term_names = request.POST.getlist('terms_name[]')
+                term_start_dates = request.POST.getlist('terms_start_date[]')
+                term_end_dates = request.POST.getlist('terms_end_date[]')
+                _save_terms_for_academic_year(year, term_ids, term_names, term_start_dates, term_end_dates)
             
-            return JsonResponse({'success': True})
+            return JsonResponse({'success': True, 'id': year.id})
         except Exception as e:
             import traceback
             traceback.print_exc()
             return JsonResponse({'success': False, 'error': str(e)})
     
     def get(self, request, pk, *args, **kwargs):
-        """Get academic year data for editing"""
+        """Get academic year data and its terms for editing"""
         try:
             if not request.user.is_authenticated:
                 return JsonResponse({'success': False, 'error': 'Not authenticated'})
             
             school = get_current_school(request)
-            qs = AcademicYear.objects.all()
+            qs = AcademicYear.objects.all().prefetch_related('sessions')
             if school:
                 qs = qs.filter(school=school)
             try:
@@ -1533,6 +1587,15 @@ class AcademicYearUpdateView(View):
             except AcademicYear.DoesNotExist:
                 return JsonResponse({'success': False, 'error': 'Academic year not found'})
                 
+            terms_data = [
+                {
+                    'id': s.id,
+                    'name': s.name,
+                    'start_date': s.start_date.strftime('%Y-%m-%d') if s.start_date else '',
+                    'end_date': s.end_date.strftime('%Y-%m-%d') if s.end_date else '',
+                }
+                for s in year.sessions.all().order_by('start_date')
+            ]
             return JsonResponse({
                 'success': True,
                 'data': {
@@ -1540,7 +1603,8 @@ class AcademicYearUpdateView(View):
                     'name': year.name,
                     'start_date': year.start_date.strftime('%Y-%m-%d'),
                     'end_date': year.end_date.strftime('%Y-%m-%d'),
-                    'is_active': year.is_active
+                    'is_active': year.is_active,
+                    'terms': terms_data
                 }
             })
         except Exception as e:
