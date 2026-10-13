@@ -207,6 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         students.forEach((student, index) => {
             const row = document.createElement('tr');
+            row.dataset.studentId = student.id;
             // Fixed columns
             let rowHtml = `
                 <td>${index + 1}</td>
@@ -215,20 +216,29 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             // Subject columns
             subjects.forEach(subj => {
+                const isEnrolled = !student.has_subject_tracking || (student.enrolled_subjects && student.enrolled_subjects.includes(subj.subject_id));
                 const marks = student.subject_marks && student.subject_marks[subj.subject_id] ? student.subject_marks[subj.subject_id].marks_obtained : '';
-                rowHtml += `
-                    <td class="subject-col">
-                        <input type="number" 
-                               class="form-control marks-input" 
-                               data-student-id="${student.id}"
-                               data-subject-id="${subj.subject_id}"
-                               value="${marks !== null && marks !== undefined ? marks : ''}" 
-                               min="0" 
-                               max="${subj.total_marks}"
-                               step="0.5"
-                               placeholder="0">
-                    </td>
-                `;
+                if (!isEnrolled) {
+                    rowHtml += `
+                        <td class="subject-col text-center align-middle bg-light">
+                            <span class="badge bg-secondary opacity-75" title="Not enrolled in this subject" style="font-size: 0.72rem;">N/A</span>
+                        </td>
+                    `;
+                } else {
+                    rowHtml += `
+                        <td class="subject-col">
+                            <input type="number" 
+                                   class="form-control marks-input" 
+                                   data-student-id="${student.id}"
+                                   data-subject-id="${subj.subject_id}"
+                                   value="${marks !== null && marks !== undefined ? marks : ''}" 
+                                   min="0" 
+                                   max="${subj.total_marks}"
+                                   step="0.5"
+                                   placeholder="0">
+                        </td>
+                    `;
+                }
             });
             // Total, Percentage, Remarks
             const totalMarks = subjects.reduce((sum, s) => sum + s.total_marks, 0);
@@ -303,13 +313,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const inputs = row.querySelectorAll('.marks-input');
         console.log('updateRowTotals for row, inputs count:', inputs.length);
         let sum = 0;
+        let rowTotalPossible = 0;
         inputs.forEach(input => {
             const val = parseFloat(input.value) || 0;
             sum += val;
+            const maxVal = parseFloat(input.getAttribute('max')) || 0;
+            rowTotalPossible += maxVal;
         });
         const totalSpan = row.querySelector('.total-marks');
         const percSpan = row.querySelector('.percentage-display');
-        const totalPossible = examSubjects.reduce((s, sub) => s + sub.total_marks, 0);
+        const defaultTotalPossible = examSubjects.reduce((s, sub) => s + sub.total_marks, 0);
+        const totalPossible = rowTotalPossible > 0 ? rowTotalPossible : defaultTotalPossible;
         const perc = totalPossible > 0 ? (sum / totalPossible * 100).toFixed(1) : '-';
         console.log('sum:', sum, 'totalPossible:', totalPossible, 'perc:', perc);
         if (totalSpan) {
@@ -343,13 +357,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const rows = document.querySelectorAll('#studentsTableBody tr');
         const marksData = [];
         rows.forEach(row => {
-            const studentId = row.querySelector('.marks-input')?.dataset.studentId;
+            const studentId = row.dataset.studentId || row.querySelector('.marks-input')?.dataset.studentId;
             if (!studentId) return;
             const subjectMarks = {};
             row.querySelectorAll('.marks-input[data-subject-id]').forEach(input => {
                 const subjId = input.dataset.subjectId;
-                const val = input.value === '' ? null : parseFloat(input.value);
-                subjectMarks[subjId] = val;
+                const val = input.value.trim() === '' ? null : parseFloat(input.value);
+                if (val !== null && !isNaN(val)) {
+                    subjectMarks[subjId] = val;
+                }
             });
             const remarks = row.querySelector('.remarks-input')?.value || '';
             marksData.push({ student_id: studentId, subject_marks: subjectMarks, remarks });

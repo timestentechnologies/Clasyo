@@ -28,9 +28,6 @@
                 <a id="btnTeacherLoginAs" class="btn btn-sm btn-warning d-none" target="_blank" title="Login as teacher">
                     <i class="fas fa-sign-in-alt me-1"></i> Login as Teacher
                 </a>
-                <a id="btnTeacherAssignments" class="btn btn-sm btn-info d-none" title="Manage assignments">
-                    <i class="fas fa-book me-1"></i> Manage Assignments
-                </a>
                 <button type="button" class="btn btn-sm btn-light" onclick="toggleInPageFormView('teacherListCard', 'teacherFormPanel', 'list')">Cancel</button>
                 <button type="button" class="btn btn-sm btn-primary form-submit-btn" onclick="submitTeacherForm()">
                     <i class="fas fa-save me-1"></i> Save Teacher
@@ -41,6 +38,7 @@
             <form id="teacherForm">
                 {% csrf_token %}
                 <input type="hidden" name="teacher_id" id="teacher_id">
+                <input type="hidden" name="assignments_submitted" value="1">
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Employee ID</label>
@@ -125,6 +123,71 @@
                     <label class="form-label fw-semibold">Residential Address</label>
                     <textarea name="address" id="address" class="form-control" rows="2" placeholder="Full address details..."></textarea>
                 </div>
+
+                <input type="hidden" name="assignments_submitted" value="1">
+
+                <!-- Class Teacher (Sections) Assignment -->
+                <div class="mt-4 pt-3 border-top mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <div>
+                            <h6 class="text-primary fw-bold mb-0">
+                                <i class="fas fa-chalkboard-teacher me-2"></i>Class Teacher Role (Sections)
+                            </h6>
+                            <small class="text-muted">Select sections where this teacher serves as the designated Class Teacher</small>
+                        </div>
+                    </div>
+                    <div class="row g-2 mt-1" id="classTeacherSectionsContainer">
+                        {% for s in sections %}
+                        <div class="col-md-4 col-sm-6">
+                            <label class="form-check p-2 border rounded d-flex align-items-center gap-2 mb-0 bg-light-subtle cursor-pointer" style="font-size: 0.88rem;">
+                                <input class="form-check-input ms-0 mt-0 section-teacher-checkbox" type="checkbox" name="section_ids" value="{{ s.id }}">
+                                <span class="flex-grow-1 text-truncate"><strong>{{ s.class_name.name }}</strong> - {{ s.name }}</span>
+                                {% if s.class_teacher %}
+                                <span class="badge bg-secondary-subtle text-secondary small" title="Assigned to {{ s.class_teacher.get_full_name|default:s.class_teacher.username }}">
+                                    {{ s.class_teacher.first_name|default:s.class_teacher.username }}
+                                </span>
+                                {% endif %}
+                            </label>
+                        </div>
+                        {% empty %}
+                        <div class="col-12 text-muted small py-1">No active sections found.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Subject Assignments Section (Line-by-Line) -->
+                <div class="mt-4 pt-3 border-top mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <div>
+                            <h6 class="text-primary fw-bold mb-0">
+                                <i class="fas fa-book-reader me-2"></i>Subject Assignments (Optional)
+                            </h6>
+                            <small class="text-muted">Assign subjects and classes/sections taught by this teacher</small>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="addTeachingSubjectRow()">
+                            <i class="fas fa-plus me-1"></i> Assign Subject
+                        </button>
+                    </div>
+
+                    <div class="alert alert-info py-2 small mb-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Select a class to automatically load its assigned subjects. You can choose a specific section or leave as "All Sections".
+                    </div>
+
+                    <!-- Column header row -->
+                    <div class="row g-2 text-muted fw-semibold small mb-2 px-1 d-none" id="teachingHeaderRow">
+                        <div class="col-md-4">Class *</div>
+                        <div class="col-md-3">Section (Optional)</div>
+                        <div class="col-md-4">Subject *</div>
+                        <div class="col-md-1 text-end"></div>
+                    </div>
+
+                    <div id="teachingSubjectsContainer">
+                        <div class="text-center py-3 text-muted" id="teachingEmptyState">
+                            <small><i class="fas fa-book opacity-25 me-1"></i> No subjects assigned yet. Click "Assign Subject" above.</small>
+                        </div>
+                    </div>
+                </div>
             </form>
         </div>
     </div>
@@ -185,10 +248,11 @@
                         data-date-of-joining="{{ teacher.date_of_joining|date:'Y-m-d'|default:'' }}"
                         data-address="{{ teacher.address|default:''|escape }}"
                         data-is-active="{% if teacher.is_active %}1{% else %}0{% endif %}"
+                        data-teaching-assignments="{{ teacher.teaching_assignments_json|escape }}"
+                        data-class-teacher-sections="{{ teacher.class_teacher_sections_json|default:'[]'|escape }}"
                         {% if request.user.role == 'admin' or request.user.role == 'school_admin' or request.user.role == 'super_admin' %}
                         data-login-as-url="{% url 'core:login_as' school_slug=school_slug user_id=teacher.pk %}"
                         {% endif %}
-                        data-assignments-url="{% url 'hr:teacher_assignments' school_slug=school_slug pk=teacher.pk %}"
                         data-name="{{ teacher.first_name|lower }} {{ teacher.last_name|lower }}"
                         data-department="{{ teacher.department.id|lower }}"
                         data-status="{% if teacher.is_active %}active{% else %}inactive{% endif %}">
@@ -224,14 +288,345 @@
     </div>
 </div>
 
+<!-- Row Templates -->
+<template id="teachingSubjectRowTemplate">
+    <div class="teaching-subject-row mb-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <select class="form-select teaching-class-select" name="teaching_class[]" required data-ts-managed>
+                    <option value="">Select Class...</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select teaching-section-select" name="teaching_section[]" data-ts-managed>
+                    <option value="">All Sections</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select class="form-select teaching-subject-select" name="teaching_subject[]" required data-ts-managed>
+                    <option value="">Select Class first...</option>
+                </select>
+            </div>
+            <div class="col-md-1 text-end">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeTeachingRow(this)" title="Remove line">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script id="preloadedClassesData" type="application/json">{{ classes_meta_json|default:'[]'|safe }}</script>
+<script id="preloadedAllSubjectsData" type="application/json">{{ all_subjects_meta_json|default:'[]'|safe }}</script>
+
 <script>
+let classesMeta = [];
+let allSubjectsMeta = [];
+
+try {
+    const clsEl = document.getElementById('preloadedClassesData');
+    if (clsEl && clsEl.textContent.trim()) {
+        classesMeta = JSON.parse(clsEl.textContent.trim());
+    }
+} catch (e) {
+    console.warn('Could not parse preloaded classes data:', e);
+}
+
+try {
+    const subEl = document.getElementById('preloadedAllSubjectsData');
+    if (subEl && subEl.textContent.trim()) {
+        allSubjectsMeta = JSON.parse(subEl.textContent.trim());
+    }
+} catch (e) {
+    console.warn('Could not parse preloaded all subjects data:', e);
+}
+
+function initTeachingTomSelect(selectEl, placeholder = 'Select option...', onChangeCb = null) {
+    if (!selectEl || typeof TomSelect === 'undefined') return null;
+    selectEl.setAttribute('data-ts-managed', '');
+    if (selectEl.tomselect) {
+        try { selectEl.tomselect.destroy(); } catch(e) {}
+    }
+    try {
+        const ts = new TomSelect(selectEl, {
+            create: false,
+            placeholder: placeholder,
+            allowEmptyOption: true,
+            hideSelected: false,
+            openOnFocus: true,
+            controlInput: null,
+            dropdownParent: 'body',
+            copyClassesToDropdown: false,
+            onChange: function(val) {
+                if (typeof onChangeCb === 'function') {
+                    onChangeCb(val);
+                }
+            }
+        });
+        return ts;
+    } catch(e) {
+        console.warn('TomSelect initialization error:', e);
+        return null;
+    }
+}
+
+function updateTeachingVisibility() {
+    const container = document.getElementById('teachingSubjectsContainer');
+    const header = document.getElementById('teachingHeaderRow');
+    const emptyState = document.getElementById('teachingEmptyState');
+    if (!container) return;
+    const count = container.querySelectorAll('.teaching-subject-row').length;
+    if (header) {
+        if (count > 0) header.classList.remove('d-none');
+        else header.classList.add('d-none');
+    }
+    if (emptyState) {
+        if (count > 0) emptyState.classList.add('d-none');
+        else emptyState.classList.remove('d-none');
+    }
+}
+
+function clearTeachingRows() {
+    const container = document.getElementById('teachingSubjectsContainer');
+    if (!container) return;
+    container.querySelectorAll('select').forEach(sel => {
+        if (sel.tomselect) {
+            try { sel.tomselect.destroy(); } catch(e) {}
+        }
+    });
+    container.querySelectorAll('.teaching-subject-row').forEach(el => el.remove());
+    updateTeachingVisibility();
+}
+
+function getSubjectsForClassAndSection(cls, sectionId) {
+    if (!cls || !cls.subjects || cls.subjects.length === 0) {
+        return allSubjectsMeta;
+    }
+    if (!sectionId) {
+        return cls.subjects;
+    }
+    const secIdNum = Number(sectionId);
+    const filtered = cls.subjects.filter(sub => {
+        if (sub.all_sections) return true;
+        if (Array.isArray(sub.section_ids) && sub.section_ids.includes(secIdNum)) return true;
+        if (!sub.all_sections && (!sub.section_ids || sub.section_ids.length === 0)) return true;
+        return false;
+    });
+    return (filtered.length > 0) ? filtered : cls.subjects;
+}
+
+function populateTeachingRowSections(rowEl, classId, selectedSectionId = null) {
+    if (!rowEl) return;
+    const sectionSelect = rowEl.querySelector('.teaching-section-select') || rowEl.querySelector('[name="teaching_section[]"]');
+    if (!sectionSelect) return;
+
+    if (sectionSelect.tomselect) {
+        try { sectionSelect.tomselect.destroy(); } catch(e) {}
+    }
+
+    sectionSelect.innerHTML = '<option value="">All Sections</option>';
+    if (classId) {
+        const cls = classesMeta.find(c => String(c.id) === String(classId));
+        if (cls && cls.sections && cls.sections.length > 0) {
+            cls.sections.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = s.name;
+                if (selectedSectionId && String(selectedSectionId) === String(s.id)) {
+                    opt.selected = true;
+                }
+                sectionSelect.appendChild(opt);
+            });
+        }
+    }
+
+    if (selectedSectionId) {
+        sectionSelect.value = String(selectedSectionId);
+    } else {
+        sectionSelect.value = '';
+    }
+
+    const ts = initTeachingTomSelect(sectionSelect, 'All Sections', function() {
+        onTeachingSectionChange(sectionSelect);
+    });
+    if (ts) {
+        if (selectedSectionId) {
+            ts.setValue(String(selectedSectionId), true);
+        } else {
+            ts.setValue('', true);
+        }
+    }
+}
+
+function populateTeachingRowSubjects(rowEl, classId, sectionId = null, selectedSubjectId = null) {
+    if (!rowEl) return;
+    const subjectSelect = rowEl.querySelector('.teaching-subject-select') || rowEl.querySelector('[name="teaching_subject[]"]');
+    if (!subjectSelect) return;
+
+    if (subjectSelect.tomselect) {
+        try { subjectSelect.tomselect.destroy(); } catch(e) {}
+    }
+
+    subjectSelect.innerHTML = '';
+    if (!classId) {
+        subjectSelect.innerHTML = '<option value="">Select Class first...</option>';
+        initTeachingTomSelect(subjectSelect, 'Select Class first...');
+        return;
+    }
+
+    const cls = classesMeta.find(c => String(c.id) === String(classId));
+    if (!cls) {
+        subjectSelect.innerHTML = '<option value="">Select Class first...</option>';
+        initTeachingTomSelect(subjectSelect, 'Select Class first...');
+        return;
+    }
+
+    const subjectsToDisplay = getSubjectsForClassAndSection(cls, sectionId);
+    if (subjectsToDisplay.length === 0) {
+        subjectSelect.innerHTML = '<option value="" disabled>No subjects available</option>';
+        initTeachingTomSelect(subjectSelect, 'No subjects available');
+        return;
+    }
+
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = 'Select Subject...';
+    subjectSelect.appendChild(defaultOpt);
+
+    let foundSelected = false;
+    subjectsToDisplay.forEach(sub => {
+        const opt = document.createElement('option');
+        opt.value = sub.id;
+        opt.textContent = sub.name + (sub.code ? ` (${sub.code})` : '');
+        if (selectedSubjectId && String(selectedSubjectId) === String(sub.id)) {
+            opt.selected = true;
+            foundSelected = true;
+        }
+        subjectSelect.appendChild(opt);
+    });
+
+    if (selectedSubjectId && !foundSelected) {
+        const fallbackSub = allSubjectsMeta.find(s => String(s.id) === String(selectedSubjectId));
+        if (fallbackSub) {
+            const opt = document.createElement('option');
+            opt.value = fallbackSub.id;
+            opt.textContent = fallbackSub.name + (fallbackSub.code ? ` (${fallbackSub.code})` : '');
+            opt.selected = true;
+            subjectSelect.appendChild(opt);
+        }
+    }
+
+    if (selectedSubjectId) {
+        subjectSelect.value = String(selectedSubjectId);
+    } else {
+        subjectSelect.value = '';
+    }
+
+    const ts = initTeachingTomSelect(subjectSelect, 'Select Subject...');
+    if (ts) {
+        if (selectedSubjectId) {
+            ts.setValue(String(selectedSubjectId), true);
+        } else {
+            ts.setValue('', true);
+        }
+    }
+}
+
+function addTeachingSubjectRow(classId = null, sectionId = null, subjectId = null) {
+    const template = document.getElementById('teachingSubjectRowTemplate');
+    const container = document.getElementById('teachingSubjectsContainer');
+    if (!template || !container) return;
+
+    const clone = template.content.cloneNode(true);
+    const rowEl = clone.querySelector('.teaching-subject-row');
+    if (!rowEl) return;
+
+    const classSelect = rowEl.querySelector('.teaching-class-select') || rowEl.querySelector('[name="teaching_class[]"]');
+    const sectionSelect = rowEl.querySelector('.teaching-section-select') || rowEl.querySelector('[name="teaching_section[]"]');
+    const subjectSelect = rowEl.querySelector('.teaching-subject-select') || rowEl.querySelector('[name="teaching_subject[]"]');
+
+    if (!classSelect || !sectionSelect || !subjectSelect) {
+        console.error('Teaching row select elements could not be found');
+        return;
+    }
+
+    classSelect.innerHTML = '<option value="">Select Class...</option>';
+    classesMeta.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.name;
+        if (classId && String(classId) === String(c.id)) {
+            opt.selected = true;
+        }
+        classSelect.appendChild(opt);
+    });
+
+    if (classId) {
+        classSelect.value = String(classId);
+    }
+
+    container.appendChild(rowEl);
+    updateTeachingVisibility();
+
+    // Initialize TomSelect on classSelect with callback to trigger onTeachingClassChange
+    const tsClass = initTeachingTomSelect(classSelect, 'Select Class...', function() {
+        onTeachingClassChange(classSelect);
+    });
+    if (tsClass) {
+        if (classId) {
+            tsClass.setValue(String(classId), true);
+        } else {
+            tsClass.setValue('', true);
+        }
+    }
+
+    // Populate dependent section & subject selects with TomSelect
+    populateTeachingRowSections(rowEl, classId, sectionId);
+    populateTeachingRowSubjects(rowEl, classId, sectionId, subjectId);
+}
+
+function onTeachingClassChange(classSelect) {
+    if (!classSelect) return;
+    const rowEl = classSelect.closest('.teaching-subject-row');
+    if (!rowEl) return;
+    const classId = classSelect.value;
+    populateTeachingRowSections(rowEl, classId, null);
+    populateTeachingRowSubjects(rowEl, classId, null, null);
+}
+
+function onTeachingSectionChange(sectionSelect) {
+    if (!sectionSelect) return;
+    const rowEl = sectionSelect.closest('.teaching-subject-row');
+    if (!rowEl) return;
+    const classSelect = rowEl.querySelector('.teaching-class-select') || rowEl.querySelector('[name="teaching_class[]"]');
+    const classId = classSelect ? classSelect.value : null;
+    const sectionId = sectionSelect.value;
+    const subjectSelect = rowEl.querySelector('.teaching-subject-select') || rowEl.querySelector('[name="teaching_subject[]"]');
+    const currentSubjectId = subjectSelect ? subjectSelect.value : null;
+    populateTeachingRowSubjects(rowEl, classId, sectionId, currentSubjectId);
+}
+
+function removeTeachingRow(btn) {
+    const row = btn.closest('.teaching-subject-row');
+    if (!row) return;
+    row.querySelectorAll('select').forEach(sel => {
+        if (sel.tomselect) {
+            try { sel.tomselect.destroy(); } catch(e) {}
+        }
+    });
+    row.remove();
+    updateTeachingVisibility();
+}
+
 function openTeacherAddForm() {
     document.getElementById('teacherForm').reset();
     document.getElementById('teacher_id').value = '';
     const loginBtn = document.getElementById('btnTeacherLoginAs');
     if (loginBtn) loginBtn.classList.add('d-none');
-    const assignBtn = document.getElementById('btnTeacherAssignments');
-    if (assignBtn) assignBtn.classList.add('d-none');
+
+    document.querySelectorAll('.section-teacher-checkbox').forEach(cb => cb.checked = false);
+    clearTeachingRows();
+
     toggleInPageFormView('teacherListCard', 'teacherFormPanel', 'create');
 }
 
@@ -241,7 +636,6 @@ function editTeacher(rowEl, id) {
         rowEl = document.querySelector(`tr[data-id="${id}"]`);
     }
     
-    // Instant switch to Edit mode - 0ms lag!
     toggleInPageFormView('teacherListCard', 'teacherFormPanel', 'edit');
 
     const row = rowEl || document.querySelector(`tr[data-id="${id}"]`);
@@ -270,14 +664,37 @@ function editTeacher(rowEl, id) {
                 loginBtn.classList.add('d-none');
             }
         }
-        const assignBtn = document.getElementById('btnTeacherAssignments');
-        if (assignBtn) {
-            if (row.dataset.assignmentsUrl) {
-                assignBtn.href = row.dataset.assignmentsUrl;
-                assignBtn.classList.remove('d-none');
-            } else {
-                assignBtn.classList.add('d-none');
+
+        // Instant line rendering from row dataset (0ms lag!)
+        clearTeachingRows();
+
+        try {
+            if (row.dataset.teachingAssignments) {
+                const teachingList = JSON.parse(row.dataset.teachingAssignments);
+                if (Array.isArray(teachingList)) {
+                    teachingList.forEach(item => {
+                        addTeachingSubjectRow(item.class_id, item.section_id, item.subject_id);
+                    });
+                }
             }
+        } catch (e) {
+            console.warn('Error parsing teachingAssignments from row:', e);
+        }
+
+        // Populate class teacher sections from dataset
+        document.querySelectorAll('.section-teacher-checkbox').forEach(cb => cb.checked = false);
+        try {
+            if (row.dataset.classTeacherSections) {
+                const secList = JSON.parse(row.dataset.classTeacherSections);
+                if (Array.isArray(secList)) {
+                    secList.forEach(secId => {
+                        const cb = document.querySelector(`.section-teacher-checkbox[value="${secId}"]`);
+                        if (cb) cb.checked = true;
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('Error parsing classTeacherSections from row:', e);
         }
     }
 
@@ -302,6 +719,21 @@ function editTeacher(rowEl, id) {
             if (t.date_of_joining) document.getElementById('date_of_joining').value = t.date_of_joining;
             if (t.address) document.getElementById('address').value = t.address;
             if (t.is_active !== undefined) document.getElementById('is_active').checked = !!t.is_active;
+
+            if (Array.isArray(t.teaching_assignments)) {
+                clearTeachingRows();
+                t.teaching_assignments.forEach(item => {
+                    addTeachingSubjectRow(item.class_id, item.section_id, item.subject_id);
+                });
+            }
+
+            if (Array.isArray(t.class_teacher_sections)) {
+                document.querySelectorAll('.section-teacher-checkbox').forEach(cb => cb.checked = false);
+                t.class_teacher_sections.forEach(secId => {
+                    const cb = document.querySelector(`.section-teacher-checkbox[value="${secId}"]`);
+                    if (cb) cb.checked = true;
+                });
+            }
         }
     })
     .catch(err => console.warn('Background teacher sync:', err));
@@ -310,11 +742,23 @@ function editTeacher(rowEl, id) {
 function submitTeacherForm() {
     const teacherId = document.getElementById('teacher_id').value;
     const form = document.getElementById('teacherForm');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
     const formData = new FormData(form);
 
     const url = teacherId 
         ? window.location.pathname + teacherId + '/update/'
         : window.location.pathname + 'add/';
+
+    const submitBtn = document.querySelector('.form-submit-btn');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+    }
 
     fetch(url, {
         method: 'POST',
@@ -327,50 +771,72 @@ function submitTeacherForm() {
             window.location.reload();
         } else {
             alert('Error: ' + (data.error || 'Failed to save teacher'));
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save Teacher';
+            }
         }
     })
-    .catch(error => alert('Error saving teacher: ' + error.message));
+    .catch(error => {
+        alert('Error saving teacher: ' + error.message);
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save Teacher';
+        }
+    });
 }
 
-// Dynamic filtering for teachers table
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
     const departmentFilter = document.getElementById('departmentFilter');
     const statusFilter = document.getElementById('statusFilter');
     const table = document.getElementById('teachersTable');
-    if (!table) return;
-    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+    if (table) {
+        const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
 
-    function filterTable() {
-        const searchTerm = searchInput.value.toLowerCase();
-        const selectedDepartment = departmentFilter.value.toLowerCase();
-        const selectedStatus = statusFilter.value.toLowerCase();
+        function filterTable() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const selectedDepartment = departmentFilter.value.toLowerCase();
+            const selectedStatus = statusFilter.value.toLowerCase();
 
-        for (let row of rows) {
-            const name = row.dataset.name || '';
-            const email = row.dataset.email || '';
-            const department = row.dataset.department || '';
-            const status = row.dataset.status || '';
+            for (let row of rows) {
+                const name = row.dataset.name || '';
+                const email = row.dataset.email || '';
+                const department = row.dataset.department || '';
+                const status = row.dataset.status || '';
 
-            let showRow = true;
+                let showRow = true;
 
-            if (searchTerm && !name.includes(searchTerm) && !email.includes(searchTerm)) {
-                showRow = false;
+                if (searchTerm && !name.includes(searchTerm) && !email.includes(searchTerm)) {
+                    showRow = false;
+                }
+                if (selectedDepartment && department !== selectedDepartment) {
+                    showRow = false;
+                }
+                if (selectedStatus && status !== selectedStatus) {
+                    showRow = false;
+                }
+
+                row.style.display = showRow ? '' : 'none';
             }
-            if (selectedDepartment && department !== selectedDepartment) {
-                showRow = false;
-            }
-            if (selectedStatus && status !== selectedStatus) {
-                showRow = false;
-            }
-
-            row.style.display = showRow ? '' : 'none';
         }
+
+        if (searchInput) searchInput.addEventListener('input', filterTable);
+        if (departmentFilter) departmentFilter.addEventListener('change', filterTable);
+        if (statusFilter) statusFilter.addEventListener('change', filterTable);
     }
 
-    if (searchInput) searchInput.addEventListener('input', filterTable);
-    if (departmentFilter) departmentFilter.addEventListener('change', filterTable);
-    if (statusFilter) statusFilter.addEventListener('change', filterTable);
+    // Check for ?edit=<id> query param in URL to auto-open edit form
+    const urlParams = new URLSearchParams(window.location.search);
+    const editId = urlParams.get('edit');
+    if (editId) {
+        const row = document.querySelector(`tr[data-id="${editId}"]`);
+        if (row) {
+            editTeacher(row, editId);
+        } else {
+            editTeacher(null, editId);
+        }
+    }
 });
 
 function deleteTeacher(id, name) {
@@ -398,4 +864,26 @@ function deleteTeacher(id, name) {
     };
 }
 </script>
+
+<style>
+.ts-wrapper.single.has-items:not(.dropdown-active) .ts-control > input {
+    opacity: 0 !important;
+    position: absolute !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+}
+.ts-wrapper.single .ts-control {
+    cursor: pointer !important;
+}
+.ts-wrapper.single .ts-control .item {
+    cursor: pointer !important;
+}
+.ts-dropdown {
+    z-index: 1080 !important;
+}
+</style>
 {% endblock %}

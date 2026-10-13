@@ -256,7 +256,12 @@
                 <div class="app-icon"><i class="fas fa-user-graduate"></i></div>
                 <p class="app-name">Students</p>
             </a>
-            {% if is_admin_view or user.role in 'admin,superadmin' %}
+            {% if is_admin_view or user.role in 'admin,superadmin' or user.is_school_admin %}
+            <a href="/school/{{ school_slug }}/students/promote/" class="app-card" data-name="student-promotion promotion"
+                data-category="academic">
+                <div class="app-icon"><i class="fas fa-level-up-alt"></i></div>
+                <p class="app-name">Student Promotion</p>
+            </a>
             <a href="/school/{{ school_slug }}/students/parents/" class="app-card" data-name="parents"
                 data-category="academic">
                 <div class="app-icon"><i class="fas fa-users"></i></div>

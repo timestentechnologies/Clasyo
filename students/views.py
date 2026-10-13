@@ -2,7 +2,7 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.contrib import messages
-from django.shortcuts import redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, Http404, HttpResponse
 from django.db.models import Q
 from django.views.decorators.http import require_http_methods
@@ -88,6 +88,13 @@ class StudentListView(LoginRequiredMixin, ListView):
                 context['clubs'] = Club.objects.filter(is_active=True).order_by('name')
         except ImportError:
             context['clubs'] = []
+
+        from core.models import AcademicYear
+        ay_qs = AcademicYear.objects.all().order_by('-start_date')
+        if context.get('school'):
+            ay_qs = ay_qs.filter(school=context['school'])
+        context['academic_years'] = ay_qs
+        context['active_academic_year'] = ay_qs.filter(is_active=True).first()
         
         return context
 
@@ -175,12 +182,39 @@ class StudentSubjectsView(LoginRequiredMixin, DetailView):
             except (TypeError, ValueError):
                 continue
 
-        from academics.models import Subject
+        from academics.models import Subject, OptionalSubject, AssignedSubject
 
-        subjects_qs = Subject.objects.filter(id__in=subject_ids, is_active=True)
-        if school:
-            subjects_qs = subjects_qs.filter(school=school)
-        subjects = list(subjects_qs)
+        # Validate against subjects available for this student's class, section, and active academic year
+        available_subjects = self._get_available_subjects(student, school, active_year)
+        available_subject_ids = set(available_subjects.values_list('id', flat=True))
+
+        invalid_ids = set(subject_ids) - available_subject_ids
+        if invalid_ids:
+            messages.error(request, "One or more selected subjects are not offered to this student's class or section.")
+            return redirect('students:subjects', school_slug=kwargs.get('school_slug'), pk=student.pk)
+
+        # Enforce compulsory subjects: check AssignedSubject.is_compulsory AND OptionalSubject
+        compulsory_ids = set()
+        if student.current_class:
+            compulsory_assigned = AssignedSubject.objects.filter(
+                class_name=student.current_class,
+                academic_year=active_year,
+                is_compulsory=True,
+                is_active=True
+            )
+            if student.section_id:
+                compulsory_assigned = compulsory_assigned.filter(Q(section_id=student.section_id) | Q(section__isnull=True))
+            compulsory_ids.update(compulsory_assigned.values_list('subject_id', flat=True))
+
+            optional_qs = OptionalSubject.objects.filter(class_name=student.current_class)
+            if optional_qs.exists():
+                optional_ids = set(optional_qs.values_list('subject_id', flat=True))
+                compulsory_ids.update(available_subject_ids - optional_ids)
+
+            if compulsory_ids:
+                subject_ids = list(set(subject_ids) | (compulsory_ids & available_subject_ids))
+
+        subjects = list(available_subjects.filter(id__in=subject_ids))
 
         with transaction.atomic():
             StudentSubject.objects.filter(
@@ -189,23 +223,46 @@ class StudentSubjectsView(LoginRequiredMixin, DetailView):
             ).update(is_active=False)
 
             for subj in subjects:
+                assigned_sub = None
+                if student.current_class:
+                    assigned_qs = AssignedSubject.objects.filter(
+                        class_name=student.current_class,
+                        subject=subj,
+                        academic_year=active_year,
+                        is_active=True
+                    )
+                    if student.section_id:
+                        assigned_sub = assigned_qs.filter(section_id=student.section_id).first()
+                    if not assigned_sub:
+                        assigned_sub = assigned_qs.filter(section__isnull=True).first()
+
                 obj, created = StudentSubject.objects.get_or_create(
                     student=student,
                     subject=subj,
                     academic_year=active_year,
                     defaults={
                         'school': school or student.school,
+                        'assigned_subject': assigned_sub,
                         'created_by': request.user,
                         'is_active': True,
                     }
                 )
-                if not created and not obj.is_active:
-                    obj.is_active = True
+                if not created:
+                    update_fields = []
+                    if not obj.is_active:
+                        obj.is_active = True
+                        update_fields.append('is_active')
+                    if assigned_sub and obj.assigned_subject_id != assigned_sub.id:
+                        obj.assigned_subject = assigned_sub
+                        update_fields.append('assigned_subject')
                     if not obj.school_id:
                         obj.school = school or student.school
+                        update_fields.append('school')
                     if not obj.created_by_id:
                         obj.created_by = request.user
-                    obj.save(update_fields=['is_active', 'school', 'created_by'])
+                        update_fields.append('created_by')
+                    if update_fields:
+                        obj.save(update_fields=update_fields)
 
         messages.success(request, "Student subjects updated successfully.")
         return redirect('students:subjects', school_slug=kwargs.get('school_slug'), pk=student.pk)
@@ -369,7 +426,21 @@ class StudentCreateView(CreateView):
                 else:
                     section = Section.objects.filter(id=section_id).first()
             
-            # Create student with all fields including parent details
+            # Resolve academic year
+            from core.models import AcademicYear
+            academic_year = None
+            ay_raw = request.POST.get('academic_year')
+            if ay_raw and str(ay_raw).isdigit():
+                academic_year = AcademicYear.objects.filter(id=int(ay_raw)).first()
+            if not academic_year:
+                ay_qs = AcademicYear.objects.filter(is_active=True)
+                if school:
+                    ay_qs = ay_qs.filter(school=school)
+                academic_year = ay_qs.first()
+            if not academic_year and school:
+                academic_year = AcademicYear.objects.filter(school=school).order_by('-start_date').first()
+
+            # Create student with all fields including parent details and academic year
             student = Student.objects.create(
                 user=user,
                 first_name=first_name,
@@ -402,9 +473,41 @@ class StudentCreateView(CreateView):
                 parent_user=parent_user,  # Link to parent user account
                 current_class=current_class,
                 section=section,
+                academic_year=academic_year,
                 school=school,
                 created_by=request.user
             )
+
+            if current_class and academic_year:
+                try:
+                    from .models import StudentClassEnrollment
+                    StudentClassEnrollment.objects.create(
+                        student=student,
+                        school=school,
+                        academic_year=academic_year,
+                        class_name=current_class,
+                        section=section,
+                        roll_number=student.roll_number or '',
+                        status='active',
+                        enrolled_date=admission_date,
+                        created_by=request.user
+                    )
+                except Exception as e:
+                    print(f"[WARNING] Could not create StudentClassEnrollment: {e}")
+
+            # Record admission timeline entry
+            try:
+                from .models import StudentTimeline
+                StudentTimeline.objects.create(
+                    student=student,
+                    timeline_type='admission',
+                    title='Student Admitted',
+                    description=f"Admitted to {current_class.name if current_class else 'Class'}" + (f" ({section.name})" if section else '') + (f" for {academic_year.name}" if academic_year else ''),
+                    date=admission_date,
+                    created_by=request.user
+                )
+            except Exception as e:
+                pass
 
             club_ids = request.POST.getlist('club_ids')
             if club_ids:
@@ -638,6 +741,35 @@ class StudentUpdateView(UpdateView):
                         print(f"[WARNING] Could not create parent account: {e}")
             
             student.save()
+
+            # Synchronize active class enrollment
+            if student.current_class and student.academic_year:
+                try:
+                    from .models import StudentClassEnrollment
+                    enr = StudentClassEnrollment.objects.filter(student=student, academic_year=student.academic_year).first()
+                    status = 'active' if student.is_active else ('completed' if student.is_alumni else 'withdrawn')
+                    if enr:
+                        enr.class_name = student.current_class
+                        enr.section = student.section
+                        enr.status = status
+                        if student.roll_number:
+                            enr.roll_number = student.roll_number
+                        enr.save(update_fields=['class_name', 'section', 'status', 'roll_number', 'updated_at'])
+                    else:
+                        from datetime import date
+                        StudentClassEnrollment.objects.create(
+                            student=student,
+                            school=student.school,
+                            academic_year=student.academic_year,
+                            class_name=student.current_class,
+                            section=student.section,
+                            roll_number=student.roll_number or '',
+                            status=status,
+                            enrolled_date=student.admission_date or date.today(),
+                            created_by=request.user
+                        )
+                except Exception as e:
+                    print(f"[WARNING] Could not sync StudentClassEnrollment: {e}")
 
             club_ids = set(map(int, request.POST.getlist('club_ids')))
             if club_ids is not None:
@@ -1158,12 +1290,24 @@ class StudentImportView(LoginRequiredMixin, View):
                 adm_dt = adm_dt.date()
                 class_name = str(row.get('current_class', '')).strip()
                 section_name = str(row.get('section', '')).strip()
-                if school:
-                    current_class = Class.objects.filter(name__iexact=class_name, school=school).first() if class_name else None
-                    section = Section.objects.filter(name__iexact=section_name, class_name__school=school).first() if section_name else None
+                if class_name:
+                    if school:
+                        current_class = Class.objects.filter(name__iexact=class_name, school=school).first()
+                    else:
+                        current_class = Class.objects.filter(name__iexact=class_name).first()
+                    if not current_class:
+                        raise ValueError(f"Class '{class_name}' does not exist for this school")
                 else:
-                    current_class = Class.objects.filter(name__iexact=class_name).first() if class_name else None
-                    section = Section.objects.filter(name__iexact=section_name).first() if section_name else None
+                    current_class = None
+
+                if section_name:
+                    if not current_class:
+                        raise ValueError(f"Cannot assign section '{section_name}' without a valid class")
+                    section = Section.objects.filter(name__iexact=section_name, class_name=current_class).first()
+                    if not section:
+                        raise ValueError(f"Section '{section_name}' does not exist for class '{class_name}'")
+                else:
+                    section = None
                 admission_number = str(row.get('admission_number', '')).strip() or None
                 email = str(row.get('email', '')).strip()
                 first_name = str(row.get('first_name', '')).strip()
@@ -1244,6 +1388,12 @@ class StudentImportView(LoginRequiredMixin, View):
                     'guardian_relation': str(row.get('guardian_relation', '')).strip(),
                     'current_class': current_class,
                     'section': section,
+                    'academic_year': (
+                        AcademicYear.objects.filter(school=school, is_active=True).first()
+                        or AcademicYear.objects.filter(is_active=True).first()
+                        or AcademicYear.objects.filter(school=school).order_by('-start_date').first()
+                        if school else AcademicYear.objects.filter(is_active=True).first()
+                    ),
                     'parent_user': parent_user,
                     'created_by': request.user
                 }
@@ -1260,7 +1410,439 @@ class StudentImportView(LoginRequiredMixin, View):
                         # Ensure new student is linked to this school
                         student = Student.objects.create(**data, school=school)
                         created_count += 1
+
+                    if student and student.current_class and student.academic_year:
+                        try:
+                            from .models import StudentClassEnrollment
+                            status = 'active' if student.is_active else ('completed' if student.is_alumni else 'withdrawn')
+                            StudentClassEnrollment.objects.update_or_create(
+                                student=student,
+                                academic_year=student.academic_year,
+                                defaults={
+                                    'school': student.school or school,
+                                    'class_name': student.current_class,
+                                    'section': student.section,
+                                    'roll_number': student.roll_number or '',
+                                    'status': status,
+                                    'enrolled_date': student.admission_date or adm_dt,
+                                    'created_by': request.user
+                                }
+                            )
+                        except Exception as e:
+                            print(f"[WARNING] Could not sync StudentClassEnrollment in import: {e}")
                 success_count += 1
             except Exception as e:
                 errors.append({'row': idx + 2, 'error': str(e)})
         return JsonResponse({'success': True, 'imported': success_count, 'created': created_count, 'updated': updated_count, 'errors': len(errors), 'error_rows': errors})
+
+
+class StudentPromotionView(LoginRequiredMixin, View):
+    """View to manage student promotions across classes, sections, and academic years."""
+    template_name = 'students/promote.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not (request.user.is_school_admin or request.user.role in ('admin', 'superadmin', 'teacher')):
+            messages.error(request, "Access denied. Only administrators and authorized staff can manage promotions.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        school_slug = self.kwargs.get('school_slug', '')
+        school = get_current_school(request)
+        from core.models import AcademicYear
+        from academics.models import Class, Section
+        from .models import StudentPromotion
+
+        ay_qs = AcademicYear.objects.all().order_by('-start_date')
+        classes_qs = Class.objects.filter(is_active=True).order_by('order', 'name')
+        sections_qs = Section.objects.filter(is_active=True).order_by('class_name__order', 'name')
+        
+        if school:
+            ay_qs = ay_qs.filter(school=school)
+            classes_qs = classes_qs.filter(school=school)
+            sections_qs = sections_qs.filter(class_name__school=school)
+
+        active_year = ay_qs.filter(is_active=True).first()
+        recent_promotions = StudentPromotion.objects.all().select_related(
+            'student', 'from_class', 'to_class', 'from_section', 'to_section',
+            'from_academic_year', 'to_academic_year', 'created_by'
+        ).order_by('-created_at')
+
+        if school:
+            recent_promotions = recent_promotions.filter(
+                Q(student__school=school) | Q(from_class__school=school)
+            )
+
+        recent_promotions = recent_promotions[:30]
+
+        context = {
+            'school_slug': school_slug,
+            'school': school,
+            'academic_years': ay_qs,
+            'active_year': active_year,
+            'classes': classes_qs,
+            'sections': sections_qs,
+            'recent_promotions': recent_promotions,
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+        from django.shortcuts import get_object_or_404
+        school_slug = self.kwargs.get('school_slug', '')
+        school = get_current_school(request)
+        from core.models import AcademicYear
+        from academics.models import Class, Section
+        from .models import Student, StudentPromotion, StudentTimeline
+        from django.utils import timezone
+        from django.db import IntegrityError
+
+        from_year_id = request.POST.get('from_academic_year')
+        to_year_id = request.POST.get('to_academic_year')
+        from_class_id = request.POST.get('from_class')
+        from_section_id = request.POST.get('from_section') or None
+        to_class_id = request.POST.get('to_class')
+        to_section_id = request.POST.get('to_section') or None
+        remarks = request.POST.get('remarks', '').strip()
+        promotion_date_str = request.POST.get('promotion_date')
+
+        promotion_date = timezone.now().date()
+        if promotion_date_str:
+            try:
+                promotion_date = datetime.strptime(promotion_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+
+        if not from_year_id or not to_year_id or not from_class_id or not to_class_id:
+            messages.error(request, "Please select source and target academic years and classes.")
+            return redirect('students:promote', school_slug=school_slug)
+
+        if str(from_year_id) == str(to_year_id):
+            messages.error(request, "Source and destination academic years cannot be identical.")
+            return redirect('students:promote', school_slug=school_slug)
+
+        from_year = get_object_or_404(AcademicYear, pk=from_year_id)
+        to_year = get_object_or_404(AcademicYear, pk=to_year_id)
+        from_class = get_object_or_404(Class, pk=from_class_id)
+        to_class = get_object_or_404(Class, pk=to_class_id)
+
+        if school:
+            if (from_year.school and from_year.school != school) or (to_year.school and to_year.school != school):
+                messages.error(request, "Selected academic years do not belong to this school.")
+                return redirect('students:promote', school_slug=school_slug)
+            if from_class.school != school or to_class.school != school:
+                messages.error(request, "Selected classes do not belong to this school.")
+                return redirect('students:promote', school_slug=school_slug)
+
+        from_section = Section.objects.filter(pk=from_section_id, class_name=from_class).first() if from_section_id else None
+        default_to_section = None
+        if to_section_id:
+            to_sec_qs = Section.objects.filter(pk=to_section_id, class_name=to_class)
+            if school:
+                to_sec_qs = to_sec_qs.filter(class_name__school=school)
+            default_to_section = to_sec_qs.first()
+            if not default_to_section:
+                messages.error(request, "Selected destination section does not belong to the destination class or school.")
+                return redirect('students:promote', school_slug=school_slug)
+
+        student_ids = request.POST.getlist('student_ids')
+        if not student_ids:
+            messages.warning(request, "No students were selected for promotion.")
+            return redirect('students:promote', school_slug=school_slug)
+
+        promoted_count = 0
+        retained_count = 0
+        left_count = 0
+        skipped_duplicate_count = 0
+
+        with transaction.atomic():
+            for sid_str in student_ids:
+                try:
+                    sid = int(sid_str)
+                    stud_qs = Student.objects.select_for_update()
+                    if school:
+                        stud_qs = stud_qs.filter(school=school)
+                    student = stud_qs.get(pk=sid)
+                except (ValueError, Student.DoesNotExist):
+                    continue
+
+                # Prevent duplicate promotions into the same destination academic year
+                if StudentPromotion.objects.filter(student=student, to_academic_year=to_year).exists():
+                    skipped_duplicate_count += 1
+                    continue
+
+                action = request.POST.get(f'action_{sid}', 'promote')
+                override_sec_id = request.POST.get(f'target_section_{sid}')
+                target_section = default_to_section
+                if override_sec_id:
+                    override_sec_qs = Section.objects.filter(pk=override_sec_id, class_name=to_class)
+                    if school:
+                        override_sec_qs = override_sec_qs.filter(class_name__school=school)
+                    target_sec_obj = override_sec_qs.first()
+                    if target_sec_obj:
+                        target_section = target_sec_obj
+
+                student_from_class = student.current_class or from_class
+                student_from_section = student.section or from_section
+
+                try:
+                    from .models import StudentClassEnrollment
+                    if action == 'promote':
+                        promo = StudentPromotion.objects.create(
+                            student=student,
+                            from_class=student_from_class,
+                            from_section=student_from_section,
+                            to_class=to_class,
+                            to_section=target_section,
+                            from_academic_year=from_year,
+                            to_academic_year=to_year,
+                            promotion_date=promotion_date,
+                            remarks=remarks or f"Promoted to {to_class.name}",
+                            created_by=request.user
+                        )
+
+                        # Mark source year enrollment as completed
+                        StudentClassEnrollment.objects.filter(
+                            student=student,
+                            academic_year=from_year,
+                            status='active'
+                        ).update(status='completed')
+
+                        # Create destination year enrollment
+                        StudentClassEnrollment.objects.update_or_create(
+                            student=student,
+                            academic_year=to_year,
+                            defaults={
+                                'school': student.school or school,
+                                'class_name': to_class,
+                                'section': target_section,
+                                'roll_number': student.roll_number or '',
+                                'status': 'active',
+                                'enrolled_date': promotion_date,
+                                'promotion': promo,
+                                'remarks': remarks or f"Promoted to {to_class.name}",
+                                'created_by': request.user
+                            }
+                        )
+
+                        student.current_class = to_class
+                        student.section = target_section
+                        student.academic_year = to_year
+                        student.save(update_fields=['current_class', 'section', 'academic_year'])
+
+                        try:
+                            StudentTimeline.objects.create(
+                                student=student,
+                                timeline_type='promotion',
+                                title=f"Promoted to {to_class.name}",
+                                description=f"Promoted from {student_from_class.name} to {to_class.name}" + (f" ({target_section.name})" if target_section else "") + f" for academic year {to_year.name}.",
+                                date=promotion_date,
+                                created_by=request.user
+                            )
+                        except Exception:
+                            pass
+                        promoted_count += 1
+
+                    elif action == 'repeat':
+                        promo = StudentPromotion.objects.create(
+                            student=student,
+                            from_class=student_from_class,
+                            from_section=student_from_section,
+                            to_class=student_from_class,
+                            to_section=student_from_section,
+                            from_academic_year=from_year,
+                            to_academic_year=to_year,
+                            promotion_date=promotion_date,
+                            remarks=remarks or f"Retained in {student_from_class.name}",
+                            created_by=request.user
+                        )
+
+                        # Mark source year enrollment as repeated
+                        StudentClassEnrollment.objects.filter(
+                            student=student,
+                            academic_year=from_year,
+                            status='active'
+                        ).update(status='repeated')
+
+                        # Create destination year enrollment in current class
+                        StudentClassEnrollment.objects.update_or_create(
+                            student=student,
+                            academic_year=to_year,
+                            defaults={
+                                'school': student.school or school,
+                                'class_name': student_from_class,
+                                'section': student_from_section,
+                                'roll_number': student.roll_number or '',
+                                'status': 'active',
+                                'enrolled_date': promotion_date,
+                                'promotion': promo,
+                                'remarks': remarks or f"Retained in {student_from_class.name}",
+                                'created_by': request.user
+                            }
+                        )
+
+                        student.academic_year = to_year
+                        student.save(update_fields=['academic_year'])
+
+                        try:
+                            StudentTimeline.objects.create(
+                                student=student,
+                                timeline_type='promotion',
+                                title=f"Retained in {student_from_class.name}",
+                                description=f"Retained in {student_from_class.name} for academic year {to_year.name}.",
+                                date=promotion_date,
+                                created_by=request.user
+                            )
+                        except Exception:
+                            pass
+                        retained_count += 1
+
+                    elif action == 'leave':
+                        # Mark source year enrollment as withdrawn
+                        StudentClassEnrollment.objects.filter(
+                            student=student,
+                            academic_year=from_year,
+                            status='active'
+                        ).update(status='withdrawn')
+
+                        student.is_active = False
+                        student.is_alumni = True
+                        student.leaving_date = promotion_date
+                        student.leaving_reason = remarks or 'Graduated / Left school'
+                        student.save(update_fields=['is_active', 'is_alumni', 'leaving_date', 'leaving_reason'])
+
+                        try:
+                            StudentTimeline.objects.create(
+                                student=student,
+                                timeline_type='promotion',
+                                title="Graduated / Left School",
+                                description=remarks or f"Left school after completing {student_from_class.name}.",
+                                date=promotion_date,
+                                created_by=request.user
+                            )
+                        except Exception:
+                            pass
+                        left_count += 1
+                except IntegrityError:
+                    skipped_duplicate_count += 1
+                    continue
+
+        summary_msg = []
+        if promoted_count:
+            summary_msg.append(f"{promoted_count} promoted to {to_class.name}")
+        if retained_count:
+            summary_msg.append(f"{retained_count} retained in {from_class.name}")
+        if left_count:
+            summary_msg.append(f"{left_count} graduated/left")
+        if skipped_duplicate_count:
+            summary_msg.append(f"{skipped_duplicate_count} skipped (already promoted/processed for {to_year.name})")
+
+        messages.success(request, f"Promotion processed successfully: {', '.join(summary_msg) if summary_msg else 'Done'}.")
+        return redirect('students:promote', school_slug=school_slug)
+
+
+def get_promotion_students_api(request, school_slug=None):
+    """API endpoint to fetch eligible students for promotion based on class & section."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Authentication required'}, status=401)
+
+    class_id = request.GET.get('class_id')
+    section_id = request.GET.get('section_id')
+    school = get_current_school(request)
+
+    if not class_id or not str(class_id).isdigit():
+        return JsonResponse({'success': False, 'students': []})
+
+    from .models import Student
+    qs = Student.objects.filter(current_class_id=int(class_id), is_active=True).select_related('section', 'current_class')
+
+    if section_id and str(section_id).isdigit():
+        qs = qs.filter(section_id=int(section_id))
+
+    if school:
+        qs = qs.filter(school=school)
+
+    qs = qs.order_by('first_name', 'last_name')
+
+    students_data = []
+    for s in qs:
+        photo_url = s.photo.url if s.photo else None
+        students_data.append({
+            'id': s.id,
+            'admission_number': s.admission_number,
+            'full_name': s.get_full_name(),
+            'roll_number': s.roll_number or '',
+            'current_class': s.current_class.name if s.current_class else '',
+            'current_section': s.section.name if s.section else '',
+            'current_section_id': s.section_id or '',
+            'photo': photo_url,
+        })
+
+    return JsonResponse({
+        'success': True,
+        'count': len(students_data),
+        'students': students_data,
+    })
+
+
+class StudentPromotionHistoryView(LoginRequiredMixin, ListView):
+    """View to browse and filter student promotion history."""
+    template_name = 'students/promotion_history.html'
+    context_object_name = 'promotions'
+    paginate_by = 30
+
+    def dispatch(self, request, *args, **kwargs):
+        if not (request.user.is_school_admin or request.user.role in ('admin', 'superadmin', 'teacher')):
+            messages.error(request, "Access denied.")
+            return redirect('core:dashboard', school_slug=kwargs.get('school_slug'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        from .models import StudentPromotion
+        school = get_current_school(self.request)
+        qs = StudentPromotion.objects.all().select_related(
+            'student', 'from_class', 'to_class', 'from_section', 'to_section',
+            'from_academic_year', 'to_academic_year', 'created_by'
+        )
+
+        if school:
+            qs = qs.filter(Q(student__school=school) | Q(from_class__school=school))
+
+        ay = self.request.GET.get('academic_year')
+        if ay and str(ay).isdigit():
+            qs = qs.filter(to_academic_year_id=int(ay))
+
+        cls = self.request.GET.get('class_id')
+        if cls and str(cls).isdigit():
+            qs = qs.filter(to_class_id=int(cls))
+
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(
+                Q(student__first_name__icontains=q) |
+                Q(student__last_name__icontains=q) |
+                Q(student__admission_number__icontains=q)
+            )
+
+        return qs.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        school = get_current_school(self.request)
+        school_slug = self.kwargs.get('school_slug', '')
+        context['school_slug'] = school_slug
+
+        from core.models import AcademicYear
+        from academics.models import Class
+
+        ay_qs = AcademicYear.objects.all().order_by('-start_date')
+        cls_qs = Class.objects.filter(is_active=True).order_by('order', 'name')
+        if school:
+            ay_qs = ay_qs.filter(school=school)
+            cls_qs = cls_qs.filter(school=school)
+
+        context['academic_years'] = ay_qs
+        context['classes'] = cls_qs
+        context['selected_year'] = self.request.GET.get('academic_year', '')
+        context['selected_class'] = self.request.GET.get('class_id', '')
+        context['search_query'] = self.request.GET.get('q', '')
+        return context

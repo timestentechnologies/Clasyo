@@ -216,7 +216,7 @@
                                         </div>
                                         <div class="col-md-5">
                                             <label class="form-label fw-semibold">Class Teacher (Optional)</label>
-                                            <select class="form-select" name="section_teacher[]" data-teacher-id="{% if section.class_teacher %}{{ section.class_teacher.id }}{% endif %}">
+                                            <select class="form-select" name="section_teacher[]" data-ts-managed data-teacher-id="{% if section.class_teacher %}{{ section.class_teacher.id }}{% endif %}">
                                                 <option value="">Select Teacher</option>
                                                 <!-- Teachers will be loaded dynamically -->
                                             </select>
@@ -269,7 +269,7 @@
             </div>
             <div class="col-md-5">
                 <label class="form-label fw-semibold">Class Teacher (Optional)</label>
-                <select class="form-select" name="section_teacher[]">
+                <select class="form-select" name="section_teacher[]" data-ts-managed>
                     <option value="">Select Teacher</option>
                     <!-- Teachers will be loaded -->
                 </select>
@@ -371,8 +371,13 @@ function populateTeacherDropdown(selectElement) {
         } catch(e) {}
     }
 
-    // Clear existing options except the first one
-    selectElement.innerHTML = '<option value="">Select Teacher</option>';
+    selectElement.setAttribute('data-ts-managed', '');
+    selectElement.innerHTML = '';
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = 'Select Teacher';
+    if (!currentValue) defaultOpt.selected = true;
+    selectElement.appendChild(defaultOpt);
     
     // Add teacher options
     teachersData.forEach(teacher => {
@@ -396,11 +401,15 @@ function populateTeacherDropdown(selectElement) {
                 create: false,
                 placeholder: 'Select Teacher',
                 allowEmptyOption: true,
+                hideSelected: false,
+                controlInput: null,
                 dropdownParent: 'body',
                 copyClassesToDropdown: false
             });
             if (currentValue) {
                 ts.setValue(String(currentValue), true);
+            } else {
+                ts.setValue('', true);
             }
         } catch(e) {
             console.warn('TomSelect init error on class_form section teacher:', e);

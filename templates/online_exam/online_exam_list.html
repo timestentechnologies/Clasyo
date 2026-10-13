@@ -30,7 +30,7 @@
     
     <!-- Search Filter -->
     <div class="row filter-row mb-4">
-        <div class="col-sm-6 col-md-3">
+        <div class="col-md-4">
             <div class="form-group">
                 <label>Class</label>
                 <select class="form-control filter-select" id="class-filter">
@@ -41,7 +41,7 @@
                 </select>
             </div>
         </div>
-        <div class="col-sm-6 col-md-3">
+        <div class="col-md-4">
             <div class="form-group">
                 <label>Subject</label>
                 <select class="form-control filter-select" id="subject-filter">
@@ -52,7 +52,7 @@
                 </select>
             </div>
         </div>
-        <div class="col-sm-6 col-md-3">
+        <div class="col-md-4">
             <div class="form-group">
                 <label>Status</label>
                 <select class="form-control filter-select" id="status-filter">
@@ -61,12 +61,6 @@
                     <option value="ongoing" {% if request.GET.status == "ongoing" %}selected{% endif %}>Ongoing</option>
                     <option value="completed" {% if request.GET.status == "completed" %}selected{% endif %}>Completed</option>
                 </select>
-            </div>
-        </div>
-        <div class="col-sm-6 col-md-3">
-            <div class="form-group">
-                <label>&nbsp;</label>
-                <button class="btn btn-primary w-100" id="apply-filters"><i class="fas fa-filter me-2"></i>Apply Filters</button>
             </div>
         </div>
     </div>
@@ -169,8 +163,7 @@
 {% block custom_js %}
 <script>
     $(document).ready(function() {
-        // Apply filters
-        $('#apply-filters').click(function() {
+        function applyFilters() {
             var classId = $('#class-filter').val();
             var subjectId = $('#subject-filter').val();
             var status = $('#status-filter').val();
@@ -185,7 +178,9 @@
             if(status) url.searchParams.append('status', status);
             
             window.location.href = url.toString();
-        });
+        }
+
+        $('#class-filter, #subject-filter, #status-filter').on('change', applyFilters);
     });
 </script>
 {% endblock %}

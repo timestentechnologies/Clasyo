@@ -582,13 +582,14 @@ class MarksSubjectsView(LoginRequiredMixin, View):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class GetStudentsForMarksEntryView(LoginRequiredMixin, View):
-    """AJAX view to get students for marks entry based on exam"""
+    """AJAX view to get students for marks entry based on exam, filtered by active subject enrollments."""
     def get(self, request, exam_id, *args, **kwargs):
         try:
             if not MODELS_EXIST:
                 return JsonResponse({'success': False, 'error': 'Models not available'})
             
-            from students.models import Student
+            from students.models import Student, StudentSubject
+            from core.models import AcademicYear
             
             school = get_current_school(request)
             exam_qs = Exam.objects.all()
@@ -596,16 +597,91 @@ class GetStudentsForMarksEntryView(LoginRequiredMixin, View):
                 exam_qs = exam_qs.filter(school=school)
             exam = exam_qs.prefetch_related('subject_configs__subject').get(pk=exam_id)
             
-            # Get all students in the exam's class
-            students = Student.objects.filter(
-                current_class=exam.class_assigned,
-                is_active=True
-            ).order_by('first_name', 'last_name')
+            # Resolve appropriate academic year for the exam:
+            # 1. Explicit academic_year if available
+            # 2. Date ranges matching exam.start_date
+            # 3. Fallback to active academic year
+            exam_year = None
+            if hasattr(exam, 'academic_year') and exam.academic_year:
+                exam_year = exam.academic_year
+            elif exam.start_date:
+                ay_date_qs = AcademicYear.objects.filter(
+                    start_date__lte=exam.start_date,
+                    end_date__gte=exam.start_date
+                )
+                if school:
+                    ay_date_qs = ay_date_qs.filter(school=school)
+                exam_year = ay_date_qs.first()
+
+            if not exam_year:
+                ay_active_qs = AcademicYear.objects.filter(is_active=True)
+                if school:
+                    ay_active_qs = ay_active_qs.filter(school=school)
+                exam_year = ay_active_qs.first()
+
+            # Get all students in the exam's class (via StudentClassEnrollment for exam_year with fallback to current_class)
+            from students.models import StudentClassEnrollment
+            enrollment_qs = None
+            if exam_year and exam.class_assigned:
+                enrollment_qs = StudentClassEnrollment.objects.filter(
+                    academic_year=exam_year,
+                    class_name=exam.class_assigned,
+                    status__in=['active', 'completed']
+                )
+                if school:
+                    enrollment_qs = enrollment_qs.filter(school=school)
+
+            if enrollment_qs and enrollment_qs.exists():
+                student_ids_in_class = list(enrollment_qs.values_list('student_id', flat=True))
+                students = Student.objects.filter(
+                    id__in=student_ids_in_class,
+                    is_active=True
+                ).order_by('first_name', 'last_name')
+                if school:
+                    students = students.filter(school=school)
+            else:
+                students = Student.objects.filter(
+                    current_class=exam.class_assigned,
+                    is_active=True
+                ).order_by('first_name', 'last_name')
+                if school:
+                    students = students.filter(school=school)
             
-            # Fetch existing marks per student per subject
-            from django.db.models import Q
+            # If the exam is tied to a single specific subject
+            if exam.subject_id:
+                class_student_ids = list(students.values_list('id', flat=True))
+                enrollments_qs = StudentSubject.objects.filter(
+                    student_id__in=class_student_ids,
+                    subject_id=exam.subject_id,
+                    is_active=True
+                )
+                if exam_year:
+                    enrollments_qs = enrollments_qs.filter(academic_year=exam_year)
+                
+                # If subject enrollments exist for this subject in this class, filter to enrolled students
+                if enrollments_qs.exists():
+                    enrolled_student_ids = list(enrollments_qs.values_list('student_id', flat=True))
+                    students = students.filter(id__in=enrolled_student_ids)
+
             student_ids = list(students.values_list('id', flat=True))
             subject_ids = list(exam.subject_configs.values_list('subject_id', flat=True))
+            if exam.subject_id and exam.subject_id not in subject_ids:
+                subject_ids.append(exam.subject_id)
+
+            # Map student -> set of enrolled subject IDs (scoped to exam academic year)
+            student_enrolled_subjects = {}
+            if student_ids:
+                ss_qs = StudentSubject.objects.filter(
+                    student_id__in=student_ids,
+                    is_active=True
+                )
+                if exam_year:
+                    ss_qs = ss_qs.filter(academic_year=exam_year)
+                for ss in ss_qs:
+                    student_enrolled_subjects.setdefault(ss.student_id, set()).add(ss.subject_id)
+
+            # Fetch existing marks per student per subject
+            from django.db.models import Q
             existing_marks = {}
             if student_ids and subject_ids:
                 marks_qs = ExamMark.objects.filter(
@@ -619,10 +695,13 @@ class GetStudentsForMarksEntryView(LoginRequiredMixin, View):
             
             students_data = []
             for student in students:
+                enrolled_subjs = list(student_enrolled_subjects.get(student.id, []))
                 students_data.append({
                     'id': student.id,
                     'name': f"{student.first_name} {student.last_name}",
                     'admission_number': student.admission_number,
+                    'enrolled_subjects': enrolled_subjs,
+                    'has_subject_tracking': bool(student_enrolled_subjects.get(student.id)),
                     'subject_marks': existing_marks.get(student.id, {}),
                     'remarks': ''  # fallback; grid uses per-subject remarks or leave empty
                 })
@@ -650,7 +729,8 @@ class SaveMarksGridView(LoginRequiredMixin, View):
                 return JsonResponse({'success': False, 'error': 'Models not available'})
             import json
             from decimal import Decimal, InvalidOperation
-            from students.models import Student
+            from students.models import Student, StudentSubject
+            from core.models import AcademicYear
 
             school = get_current_school(request)
             exam_qs = Exam.objects.all()
@@ -658,12 +738,33 @@ class SaveMarksGridView(LoginRequiredMixin, View):
                 exam_qs = exam_qs.filter(school=school)
             exam = exam_qs.prefetch_related('subject_configs__subject').get(pk=exam_id)
 
+            # Resolve exam academic year: explicit relation -> date range matching -> active year
+            exam_year = None
+            if hasattr(exam, 'academic_year') and exam.academic_year:
+                exam_year = exam.academic_year
+            elif exam.start_date:
+                ay_date_qs = AcademicYear.objects.filter(
+                    start_date__lte=exam.start_date,
+                    end_date__gte=exam.start_date
+                )
+                if school:
+                    ay_date_qs = ay_date_qs.filter(school=school)
+                exam_year = ay_date_qs.first()
+
+            if not exam_year:
+                ay_active_qs = AcademicYear.objects.filter(is_active=True)
+                if school:
+                    ay_active_qs = ay_active_qs.filter(school=school)
+                exam_year = ay_active_qs.first()
+
             data = json.loads(request.POST.get('marks', '[]'))
             if not isinstance(data, list):
                 return JsonResponse({'success': False, 'error': 'Invalid marks data'})
 
             # Prepare a mapping of subject_id -> total_marks for validation
             subject_totals = {sc.subject_id: sc.total_marks for sc in exam.subject_configs.all()}
+            if exam.subject_id and exam.subject_id not in subject_totals:
+                subject_totals[exam.subject_id] = Decimal('100.00')
 
             with transaction.atomic():
                 for entry in data:
@@ -671,23 +772,57 @@ class SaveMarksGridView(LoginRequiredMixin, View):
                     subject_marks = entry.get('subject_marks', {})
                     remarks = entry.get('remarks', '')
 
-                    # Validate student
-                    student = Student.objects.get(pk=student_id, current_class=exam.class_assigned)
+                    # Validate student belongs to exam's class (via StudentClassEnrollment for exam_year or current_class fallback)
+                    from students.models import StudentClassEnrollment
+                    is_enrolled_in_exam = False
+                    if exam_year and exam.class_assigned and StudentClassEnrollment.objects.filter(
+                        student_id=student_id,
+                        class_name=exam.class_assigned,
+                        academic_year=exam_year,
+                        status__in=['active', 'completed']
+                    ).exists():
+                        is_enrolled_in_exam = True
+
+                    stud_filter = {'pk': student_id}
+                    if school:
+                        stud_filter['school'] = school
+                    student = Student.objects.get(**stud_filter)
+
+                    if not is_enrolled_in_exam and student.current_class != exam.class_assigned:
+                        return JsonResponse({'success': False, 'error': f'Student {student} is not in class {exam.class_assigned}.'})
+
+                    # Student active enrollments for this academic year
+                    ss_qs = StudentSubject.objects.filter(student=student, is_active=True)
+                    if exam_year:
+                        ss_qs = ss_qs.filter(academic_year=exam_year)
+                    has_subject_tracking = ss_qs.exists()
+                    enrolled_subject_ids = set(ss_qs.values_list('subject_id', flat=True)) if has_subject_tracking else None
 
                     # Save per-subject marks
-                    for subj_id, marks_obtained in subject_marks.items():
-                        subj_id = int(subj_id)
+                    for subj_id_raw, marks_obtained in subject_marks.items():
+                        subj_id = int(subj_id_raw)
                         # Validate against total marks
                         total_marks = subject_totals.get(subj_id)
                         if total_marks is None:
-                            return JsonResponse({'success': False, 'error': f'Subject {subj_id} not part of exam'})
-                        if marks_obtained is not None:
-                            try:
-                                marks_val = Decimal(str(marks_obtained))
-                                if marks_val < 0 or marks_val > total_marks:
-                                    return JsonResponse({'success': False, 'error': f'Marks out of range for subject {subj_id}'})
-                            except InvalidOperation:
-                                return JsonResponse({'success': False, 'error': f'Invalid marks value for subject {subj_id}'})
+                            return JsonResponse({'success': False, 'error': f'Subject {subj_id} not part of exam'}, status=400)
+
+                        # Enforce subject eligibility
+                        if has_subject_tracking and subj_id not in enrolled_subject_ids:
+                            return JsonResponse({
+                                'success': False,
+                                'error': f"Student {student.get_full_name()} is not enrolled in subject ID {subj_id}"
+                            }, status=400)
+
+                        # Empty / N/A handling - preserves existing marks or skips unassigned
+                        if marks_obtained is None or str(marks_obtained).strip() == '' or str(marks_obtained).strip().upper() == 'N/A':
+                            continue
+
+                        try:
+                            marks_val = Decimal(str(marks_obtained))
+                            if marks_val < 0 or marks_val > total_marks:
+                                return JsonResponse({'success': False, 'error': f'Marks out of range for subject {subj_id}'}, status=400)
+                        except InvalidOperation:
+                            return JsonResponse({'success': False, 'error': f'Invalid marks value for subject {subj_id}'}, status=400)
 
                         # Create or update ExamMark
                         ExamMark.objects.update_or_create(
@@ -695,19 +830,20 @@ class SaveMarksGridView(LoginRequiredMixin, View):
                             student=student,
                             subject_id=subj_id,
                             defaults={
-                                'marks_obtained': marks_obtained if marks_obtained is not None else Decimal('0'),
+                                'marks_obtained': marks_val,
+                                'total_marks': total_marks,
                                 'remarks': remarks
                             }
                         )
             return JsonResponse({'success': True, 'message': 'Marks saved successfully!'})
         except Exam.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Exam not found'})
+            return JsonResponse({'success': False, 'error': 'Exam not found'}, status=404)
         except Student.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Student not found in class'})
+            return JsonResponse({'success': False, 'error': 'Student not found in class'}, status=400)
         except Exception as e:
             import traceback
             traceback.print_exc()
-            return JsonResponse({'success': False, 'error': str(e)})
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -720,23 +856,62 @@ class SaveMarksEntryView(LoginRequiredMixin, View):
             
             import json
             from decimal import Decimal
-            from students.models import Student
+            from students.models import Student, StudentSubject
+            from core.models import AcademicYear
             
             school = get_current_school(request)
             exam_qs = Exam.objects.all()
             if school:
                 exam_qs = exam_qs.filter(school=school)
             exam = exam_qs.get(pk=exam_id)
+
+            # Resolve exam academic year
+            exam_year = None
+            if hasattr(exam, 'academic_year') and exam.academic_year:
+                exam_year = exam.academic_year
+            elif exam.start_date:
+                ay_date_qs = AcademicYear.objects.filter(
+                    start_date__lte=exam.start_date,
+                    end_date__gte=exam.start_date
+                )
+                if school:
+                    ay_date_qs = ay_date_qs.filter(school=school)
+                exam_year = ay_date_qs.first()
+
+            if not exam_year:
+                ay_active_qs = AcademicYear.objects.filter(is_active=True)
+                if school:
+                    ay_active_qs = ay_active_qs.filter(school=school)
+                exam_year = ay_active_qs.first()
+
             marks_data = json.loads(request.POST.get('marks', '[]'))
             total_marks = Decimal(request.POST.get('total_marks', '100'))
             
             saved_count = 0
             for mark_entry in marks_data:
-                student = Student.objects.get(
-                    pk=mark_entry['student_id'],
-                    current_class=exam.class_assigned,
-                )
-                marks_obtained = Decimal(str(mark_entry.get('marks_obtained', 0)))
+                stud_filter = {
+                    'pk': mark_entry['student_id'],
+                    'current_class': exam.class_assigned,
+                }
+                if school:
+                    stud_filter['school'] = school
+                student = Student.objects.get(**stud_filter)
+
+                # Check subject eligibility if exam has a single subject
+                if exam.subject_id:
+                    ss_qs = StudentSubject.objects.filter(student=student, is_active=True)
+                    if exam_year:
+                        ss_qs = ss_qs.filter(academic_year=exam_year)
+                    if ss_qs.exists() and not ss_qs.filter(subject_id=exam.subject_id).exists():
+                        return JsonResponse({
+                            'success': False,
+                            'error': f"Student {student.get_full_name()} is not enrolled in exam subject"
+                        }, status=400)
+
+                raw_marks = mark_entry.get('marks_obtained')
+                if raw_marks is None or str(raw_marks).strip() == '' or str(raw_marks).strip().upper() == 'N/A':
+                    continue
+                marks_obtained = Decimal(str(raw_marks))
                 
                 # Create or update exam mark
                 mark, created = ExamMark.objects.update_or_create(

@@ -8,10 +8,12 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <button class="btn btn-primary" onclick="toggleInPageFormView('studentListCard', 'studentFormPanel', 'create')">
-        <i class="fas fa-user-plus me-1"></i> Add New Student
-    </button>
-    <div class="d-flex gap-2 ms-auto">
+    <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-primary" onclick="toggleInPageFormView('studentListCard', 'studentFormPanel', 'create')">
+            <i class="fas fa-user-plus me-1"></i> Add New Student
+        </button>
+    </div>
+    <div class="d-flex align-items-center gap-2">
         <a class="btn" href="{% url 'students:template' school_slug=school_slug %}"
            style="background-color: #1E3A5F; color: #fff; border: none;">
             <i class="fas fa-file-download"></i> Download Template
@@ -214,7 +216,17 @@
             <!-- Academic Information -->
             <h6 class="mb-3 mt-4 text-primary fw-bold"><i class="fas fa-graduation-cap me-2"></i>Academic Details</h6>
             <div class="row g-3 mb-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Academic Year</label>
+                    <select name="academic_year" class="form-select">
+                        <option value="">-- Active Year Default --</option>
+                        {% for ay in academic_years %}
+                        <option value="{{ ay.id }}" {% if ay == active_academic_year %}selected{% endif %}>{{ ay.name }}{% if ay.is_active %} (Active){% endif %}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted" style="font-size: 0.75rem;">Defaults to active year</small>
+                </div>
+                <div class="col-md-3">
                     <label class="form-label fw-semibold">Class <span class="text-danger">*</span></label>
                     <select name="current_class" class="form-select" required>
                         <option value="">Select Class</option>
@@ -223,7 +235,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label fw-semibold">Section</label>
                     <select name="section" class="form-select">
                         <option value="">Select Section (Optional)</option>
@@ -232,8 +244,8 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Admission Date *</label>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Admission Date <span class="text-danger">*</span></label>
                     <input type="date" name="admission_date" class="form-control" required>
                 </div>
             </div>

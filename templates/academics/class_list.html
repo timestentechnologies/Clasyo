@@ -224,7 +224,7 @@
                 <input type="number" class="form-control" name="section_capacity[]" value="40" placeholder="Max students" min="1">
             </div>
             <div class="col-md-4">
-                <select class="form-select" name="section_teacher[]">
+                <select class="form-select" name="section_teacher[]" data-ts-managed>
                     <option value="">No teacher</option>
                 </select>
             </div>
@@ -298,12 +298,21 @@ function populateTeacherDropdown(selectElement, teachers, selectedTeacherId = nu
         } catch(e) {}
     }
 
-    selectElement.innerHTML = '<option value="">No teacher</option>';
+    selectElement.setAttribute('data-ts-managed', '');
+    selectElement.innerHTML = '';
+
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = 'No teacher';
+    if (!selectedTeacherId) {
+        defaultOpt.selected = true;
+    }
+    selectElement.appendChild(defaultOpt);
     
     if (Array.isArray(teachers)) {
         teachers.forEach(teacher => {
             const option = document.createElement('option');
-            option.value = teacher.id;
+            option.value = String(teacher.id);
             option.textContent = teacher.name;
             if (selectedTeacherId && String(teacher.id) === String(selectedTeacherId)) {
                 option.selected = true;
@@ -313,7 +322,9 @@ function populateTeacherDropdown(selectElement, teachers, selectedTeacherId = nu
     }
 
     if (selectedTeacherId) {
-        selectElement.value = selectedTeacherId;
+        selectElement.value = String(selectedTeacherId);
+    } else {
+        selectElement.value = '';
     }
 
     if (typeof TomSelect !== 'undefined') {
@@ -322,11 +333,16 @@ function populateTeacherDropdown(selectElement, teachers, selectedTeacherId = nu
                 create: false,
                 placeholder: 'No teacher',
                 allowEmptyOption: true,
+                hideSelected: false,
+                openOnFocus: true,
+                controlInput: null,
                 dropdownParent: 'body',
                 copyClassesToDropdown: false
             });
             if (selectedTeacherId) {
                 ts.setValue(String(selectedTeacherId), true);
+            } else {
+                ts.setValue('', true);
             }
         } catch(e) {
             console.warn('TomSelect init on section teacher failed:', e);
@@ -624,7 +640,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Slideout animation
 const style = document.createElement('style');
-style.textContent = '@keyframes slideOut { to { opacity: 0; transform: translateX(50px); } }';
+style.textContent = `
+@keyframes slideOut { to { opacity: 0; transform: translateX(50px); } }
+.ts-wrapper.single.has-items:not(.dropdown-active) .ts-control > input {
+    opacity: 0 !important;
+    position: absolute !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+}
+.ts-wrapper.single .ts-control {
+    cursor: pointer !important;
+}
+.ts-wrapper.single .ts-control .item {
+    cursor: pointer !important;
+}
+.ts-dropdown {
+    z-index: 1080 !important;
+}
+`;
 document.head.appendChild(style);
 </script>
 {% endblock %}

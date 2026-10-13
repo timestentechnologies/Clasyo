@@ -1,6 +1,7 @@
 from pathlib import Path
 from decouple import config
 import os
+import sys
 import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -204,6 +205,15 @@ else:
 # Multi-tenant Database Per School Configuration
 TENANT_DBS_DIR = BASE_DIR / 'tenant_dbs'
 DATABASE_ROUTERS = ['tenants.router.TenantDatabaseRouter']
+
+if 'test' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        }
+    }
+    DATABASE_ROUTERS = []
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

@@ -13,6 +13,11 @@ urlpatterns = [
     path('import/', views.StudentImportView.as_view(), name='import'),
     path('import/sheets/', views.StudentImportSheetsView.as_view(), name='import_sheets'),
     path('import/preview/', views.StudentImportPreviewView.as_view(), name='import_preview'),
+    # Promotion
+    path('promote/', views.StudentPromotionView.as_view(), name='promote'),
+    path('promote/api/students/', views.get_promotion_students_api, name='promotion_students_api'),
+    path('promote/history/', views.StudentPromotionHistoryView.as_view(), name='promotion_history'),
+    
     path('parents/', views.ParentListView.as_view(), name='parents'),
     path('parents/<int:pk>/', views.ParentDetailView.as_view(), name='parent_detail'),
     path('<int:pk>/', views.StudentDetailView.as_view(), name='detail'),

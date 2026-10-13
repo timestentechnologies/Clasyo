@@ -86,6 +86,14 @@ class LessonPlan(models.Model):
     lesson_number = models.PositiveIntegerField(_('Lesson Number'), null=True, blank=True)
     grade_level = models.CharField(_('Grade Level'), max_length=50, blank=True)
     unit_title = models.CharField(_('Unit Title'), max_length=200, blank=True)
+    topic = models.ForeignKey(
+        'academics.CurriculumTopic',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='lesson_plans',
+        verbose_name=_('Curriculum Topic')
+    )
     learning_objectives = models.TextField(_('Learning Objectives'))
     materials_resources = models.TextField(_('Materials & Resources'), blank=True)
     

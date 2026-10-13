@@ -33,6 +33,13 @@ urlpatterns = [
     path('routine/<int:pk>/edit/', views.class_routine_edit_api, name='routine_edit_api'),
     path('routine/<int:pk>/delete/', views.class_routine_delete_api, name='routine_delete_api'),
     
+    # Syllabus Management
+    path('syllabus/', views.SyllabusListView.as_view(), name='syllabus_list'),
+    path('syllabus/add/', views.SyllabusCreateView.as_view(), name='syllabus_create'),
+    path('syllabus/<int:pk>/', views.syllabus_detail_api, name='syllabus_detail_api'),
+    path('syllabus/<int:pk>/edit/', views.SyllabusUpdateView.as_view(), name='syllabus_update'),
+    path('syllabus/<int:pk>/delete/', views.SyllabusDeleteView.as_view(), name='syllabus_delete'),
+    
     # Class Time (Time Periods & Breaks)
     path('class-times/', views.ClassTimeListView.as_view(), name='class_time_list'),
     path('class-times/add/', views.ClassTimeCreateView.as_view(), name='class_time_create'),

@@ -1,4 +1,5 @@
-from django.shortcuts import render
+import json
+from django.shortcuts import render, redirect
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
@@ -9,6 +10,92 @@ from datetime import datetime
 from accounts.models import User
 from .models import Department, Designation, Teacher, Staff
 from core.utils import generate_email, get_school_slug_from_request, get_current_school
+
+
+def _save_teacher_inline_assignments(teacher, school, request):
+    from core.models import AcademicYear
+    from academics.models import AssignedSubject, Section
+
+    active_year = AcademicYear.objects.filter(is_active=True)
+    if school:
+        active_year = active_year.filter(school=school)
+    active_year = active_year.first()
+    if not active_year and school:
+        active_year = AcademicYear.objects.filter(school=school).order_by('-start_date').first()
+
+    teaching_classes = request.POST.getlist('teaching_class[]')
+    teaching_sections = request.POST.getlist('teaching_section[]')
+    teaching_subjects = request.POST.getlist('teaching_subject[]')
+
+    desired_tuples = []
+    for i in range(len(teaching_subjects)):
+        if i < len(teaching_classes) and str(teaching_classes[i]).isdigit() and str(teaching_subjects[i]).isdigit():
+            cid = int(teaching_classes[i])
+            sid = int(teaching_sections[i]) if (i < len(teaching_sections) and str(teaching_sections[i]).isdigit()) else None
+            subid = int(teaching_subjects[i])
+            desired_tuples.append((cid, sid, subid))
+
+    if active_year:
+        assigned_qs = AssignedSubject.objects.filter(is_active=True, academic_year=active_year)
+        if school:
+            assigned_qs = assigned_qs.filter(class_name__school=school, subject__school=school)
+
+        # Unassign any subjects previously taught by this teacher that are not in desired_tuples
+        for ca in assigned_qs.filter(teacher=teacher):
+            matched = (
+                (ca.class_name_id, ca.section_id, ca.subject_id) in desired_tuples or
+                (ca.section_id is not None and (ca.class_name_id, None, ca.subject_id) in desired_tuples)
+            )
+            if not matched:
+                ca.teacher = None
+                ca.save(update_fields=['teacher'])
+
+        # Assign or create desired assignments
+        for cid, sid, subid in desired_tuples:
+            if sid is not None:
+                asub = assigned_qs.filter(class_name_id=cid, section_id=sid, subject_id=subid).first()
+                if asub:
+                    if asub.teacher_id != teacher.id:
+                        asub.teacher = teacher
+                        asub.save(update_fields=['teacher'])
+                else:
+                    AssignedSubject.objects.create(
+                        class_name_id=cid,
+                        section_id=sid,
+                        subject_id=subid,
+                        teacher=teacher,
+                        academic_year=active_year,
+                        is_active=True
+                    )
+            else:
+                # All sections for this class & subject
+                all_subs = list(assigned_qs.filter(class_name_id=cid, subject_id=subid))
+                if all_subs:
+                    for asub in all_subs:
+                        if asub.teacher_id != teacher.id:
+                            asub.teacher = teacher
+                            asub.save(update_fields=['teacher'])
+                else:
+                    AssignedSubject.objects.create(
+                        class_name_id=cid,
+                        section_id=None,
+                        subject_id=subid,
+                        teacher=teacher,
+                        academic_year=active_year,
+                        is_active=True
+                    )
+
+        if 'section_ids' in request.POST or request.POST.get('assignments_submitted') == '1':
+            from academics.models import assign_class_teacher
+            submitted_sec_ids = [int(s) for s in request.POST.getlist('section_ids') if str(s).isdigit()]
+            sec_qs = Section.objects.filter(is_active=True)
+            if school:
+                sec_qs = sec_qs.filter(class_name__school=school)
+            for sec in sec_qs:
+                if sec.id in submitted_sec_ids:
+                    assign_class_teacher(sec, teacher, active_year)
+                elif sec.class_teacher_id == teacher.id:
+                    assign_class_teacher(sec, None, active_year)
 
 
 class TeacherListView(LoginRequiredMixin, ListView):
@@ -25,9 +112,9 @@ class TeacherListView(LoginRequiredMixin, ListView):
         if not school:
             if not self.request.user.is_superuser and getattr(self.request.user, 'role', '') != 'superadmin':
                 return User.objects.none()
-            return User.objects.filter(role='teacher', is_active=True)
+            return User.objects.filter(role='teacher', is_active=True).prefetch_related('assigned_subjects', 'class_sections')
             
-        return User.objects.filter(role='teacher', is_active=True, school=school)
+        return User.objects.filter(role='teacher', is_active=True, school=school).prefetch_related('assigned_subjects', 'class_sections')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -40,6 +127,124 @@ class TeacherListView(LoginRequiredMixin, ListView):
             designations_qs = designations_qs.filter(school=school)
         context['departments'] = departments_qs
         context['designations'] = designations_qs
+
+        # Classes, subjects and sections for dynamic line rows
+        from core.models import AcademicYear
+        from academics.models import Class, Section, Subject, AssignedSubject
+
+        active_year = AcademicYear.objects.filter(is_active=True)
+        if school:
+            active_year = active_year.filter(school=school)
+        active_year = active_year.first()
+        if not active_year and school:
+            active_year = AcademicYear.objects.filter(school=school).order_by('-start_date').first()
+        context['active_year'] = active_year
+        context['has_active_year'] = bool(active_year)
+
+        classes_qs = Class.objects.filter(is_active=True)
+        subjects_qs = Subject.objects.filter(is_active=True)
+        sections_qs = Section.objects.filter(is_active=True)
+        if school:
+            classes_qs = classes_qs.filter(school=school)
+            subjects_qs = subjects_qs.filter(school=school)
+            sections_qs = sections_qs.filter(class_name__school=school)
+
+        classes_qs = classes_qs.prefetch_related('sections').order_by('order', 'name')
+        subjects_qs = subjects_qs.order_by('name')
+
+        assigned_qs = AssignedSubject.objects.filter(is_active=True)
+        if active_year:
+            assigned_qs = assigned_qs.filter(academic_year=active_year)
+        if school:
+            assigned_qs = assigned_qs.filter(
+                class_name__school=school,
+                subject__school=school,
+            )
+        assigned_qs = assigned_qs.select_related('class_name', 'section', 'subject', 'teacher')
+
+        # Map class_id -> dict of subject_id -> {id, name, code, all_sections, section_ids}
+        class_subjects_dict = {}
+        for asub in assigned_qs:
+            cid = asub.class_name_id
+            sub_map = class_subjects_dict.setdefault(cid, {})
+            sub_info = sub_map.setdefault(asub.subject_id, {
+                'id': asub.subject_id,
+                'name': asub.subject.name,
+                'code': asub.subject.code,
+                'all_sections': False,
+                'section_ids': []
+            })
+            if asub.section_id:
+                if asub.section_id not in sub_info['section_ids']:
+                    sub_info['section_ids'].append(asub.section_id)
+            else:
+                sub_info['all_sections'] = True
+
+        # Fallback for classes that don't have active year assignments yet
+        classes_without_subs = [c.id for c in classes_qs if c.id not in class_subjects_dict]
+        if classes_without_subs:
+            fallback_qs = AssignedSubject.objects.filter(
+                class_name_id__in=classes_without_subs,
+                is_active=True
+            )
+            if school:
+                fallback_qs = fallback_qs.filter(class_name__school=school, subject__school=school)
+            fallback_qs = fallback_qs.select_related('subject')
+            for asub in fallback_qs:
+                cid = asub.class_name_id
+                sub_map = class_subjects_dict.setdefault(cid, {})
+                sub_info = sub_map.setdefault(asub.subject_id, {
+                    'id': asub.subject_id,
+                    'name': asub.subject.name,
+                    'code': asub.subject.code,
+                    'all_sections': False,
+                    'section_ids': []
+                })
+                if asub.section_id:
+                    if asub.section_id not in sub_info['section_ids']:
+                        sub_info['section_ids'].append(asub.section_id)
+                else:
+                    sub_info['all_sections'] = True
+
+        classes_meta = []
+        for c in classes_qs:
+            c_sections = [{'id': s.id, 'name': s.name} for s in c.sections.filter(is_active=True)]
+            assigned_subs = list(class_subjects_dict.get(c.id, {}).values())
+            classes_meta.append({
+                'id': c.id,
+                'name': c.name,
+                'sections': c_sections,
+                'subjects': assigned_subs
+            })
+
+        all_subjects_meta = [{'id': s.id, 'name': s.name, 'code': s.code} for s in subjects_qs]
+        context['classes_meta_json'] = json.dumps(classes_meta)
+        context['all_subjects_meta_json'] = json.dumps(all_subjects_meta)
+
+        # Precompute teacher teaching assignments
+        teacher_teaching_map = {}
+        if active_year:
+            for asub in assigned_qs.filter(teacher__isnull=False):
+                teacher_teaching_map.setdefault(asub.teacher_id, []).append({
+                    'class_id': asub.class_name_id,
+                    'section_id': asub.section_id or '',
+                    'subject_id': asub.subject_id
+                })
+
+        # Precompute teacher class teacher assignments (sections where teacher is class teacher)
+        class_teacher_map = {}
+        for s in sections_qs:
+            if s.class_teacher_id:
+                class_teacher_map.setdefault(s.class_teacher_id, []).append(s.id)
+
+        teachers_list = context.get('teachers')
+        if teachers_list:
+            for t in teachers_list:
+                t.teaching_assignments_json = json.dumps(teacher_teaching_map.get(t.id, []))
+                t.class_teacher_sections_json = json.dumps(class_teacher_map.get(t.id, []))
+
+        context['sections'] = sections_qs.select_related('class_name', 'class_teacher')
+
         return context
 
 
@@ -107,7 +312,12 @@ class TeacherCreateView(LoginRequiredMixin, CreateView):
                 address=address,
                 is_active=is_active,
             )
-            return JsonResponse({'success': True})
+
+            # Save inline teacher assignments
+            if request.POST.get('assignments_submitted') == '1' or 'teaching_subject[]' in request.POST or 'teaching_class[]' in request.POST or 'section_ids' in request.POST:
+                _save_teacher_inline_assignments(teacher, school, request)
+
+            return JsonResponse({'success': True, 'teacher_id': teacher.id})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 
@@ -134,6 +344,36 @@ class TeacherDetailView(LoginRequiredMixin, DetailView):
                 profile = teacher.teacher_profile
             except Teacher.DoesNotExist:
                 profile = None
+
+            # Get assigned subjects and sections for this teacher
+            from core.models import AcademicYear
+            from academics.models import AssignedSubject, Section
+
+            school = get_current_school(request)
+            active_year = AcademicYear.objects.filter(is_active=True)
+            if school:
+                active_year = active_year.filter(school=school)
+            active_year = active_year.first()
+            if not active_year and school:
+                active_year = AcademicYear.objects.filter(school=school).order_by('-start_date').first()
+
+            teaching_assignments = []
+            if active_year:
+                for a in AssignedSubject.objects.filter(
+                    is_active=True, academic_year=active_year, teacher=teacher
+                ):
+                    teaching_assignments.append({
+                        'class_id': a.class_name_id,
+                        'section_id': a.section_id or '',
+                        'subject_id': a.subject_id
+                    })
+
+            class_teacher_sections = []
+            sec_qs = Section.objects.filter(is_active=True, class_teacher=teacher)
+            if school:
+                sec_qs = sec_qs.filter(class_name__school=school)
+            class_teacher_sections = list(sec_qs.values_list('id', flat=True))
+
             return JsonResponse({
                 'success': True,
                 'teacher': {
@@ -153,6 +393,8 @@ class TeacherDetailView(LoginRequiredMixin, DetailView):
                     'date_of_joining': getattr(profile, 'date_of_joining', None).isoformat() if getattr(profile, 'date_of_joining', None) else '',
                     'employment_type': getattr(profile, 'employment_type', ''),
                     'address': getattr(profile, 'address', ''),
+                    'teaching_assignments': teaching_assignments,
+                    'class_teacher_sections': class_teacher_sections,
                 }
             })
         
@@ -161,85 +403,14 @@ class TeacherDetailView(LoginRequiredMixin, DetailView):
 
 
 class TeacherAssignmentsView(LoginRequiredMixin, View):
-    template_name = 'human_resource/teacher_assignments.html'
-
-    def _get_active_year(self, school):
-        from core.models import AcademicYear
-
-        qs = AcademicYear.objects.filter(is_active=True)
-        if school:
-            qs = qs.filter(school=school)
-        return qs.first()
-
-    def _get_teacher(self):
-        school = get_current_school(self.request)
-        qs = User.objects.filter(role='teacher')
-        if school:
-            qs = qs.filter(school=school)
-        return qs.get(pk=self.kwargs.get('pk'))
-
     def get(self, request, *args, **kwargs):
-        from academics.models import AssignedSubject, Class, Section, Subject
-
-        teacher = self._get_teacher()
-        school = get_current_school(request)
-        active_year = self._get_active_year(school)
-
-        classes_qs = Class.objects.filter(is_active=True)
-        subjects_qs = Subject.objects.filter(is_active=True)
-        sections_qs = Section.objects.filter(is_active=True)
-        if school:
-            classes_qs = classes_qs.filter(school=school)
-            subjects_qs = subjects_qs.filter(school=school)
-            sections_qs = sections_qs.filter(class_name__school=school)
-
-        assigned_qs = AssignedSubject.objects.filter(is_active=True)
-        if active_year:
-            assigned_qs = assigned_qs.filter(academic_year=active_year)
-        if school:
-            assigned_qs = assigned_qs.filter(
-                class_name__school=school,
-                subject__school=school,
-            )
-        assigned_qs = assigned_qs.select_related('class_name', 'section', 'subject', 'teacher').order_by('class_name__order', 'class_name__name', 'section__name', 'subject__name')
-
-        context = {
-            'school_slug': self.kwargs.get('school_slug', ''),
-            'teacher': teacher,
-            'active_year': active_year,
-            'assigned_subjects': assigned_qs,
-            'selected_assigned_ids': set(assigned_qs.filter(teacher=teacher).values_list('id', flat=True)),
-            'sections': sections_qs.select_related('class_name').order_by('class_name__order', 'class_name__name', 'name'),
-            'selected_section_ids': set(sections_qs.filter(class_teacher=teacher).values_list('id', flat=True)),
-            'has_active_year': bool(active_year),
-        }
-        return render(request, self.template_name, context)
+        pk = self.kwargs.get('pk')
+        school_slug = self.kwargs.get('school_slug', '')
+        if school_slug:
+            return redirect(f'/school/{school_slug}/hr/teachers/?edit={pk}')
+        return redirect(f'/hr/teachers/?edit={pk}')
 
     def post(self, request, *args, **kwargs):
-        from academics.models import AssignedSubject, Section
-
-        teacher = self._get_teacher()
-        school = get_current_school(request)
-        active_year = self._get_active_year(school)
-
-        selected_assigned_ids = set(map(int, request.POST.getlist('assigned_subject_ids')))
-        selected_section_ids = set(map(int, request.POST.getlist('section_ids')))
-
-        if active_year:
-            assigned_qs = AssignedSubject.objects.filter(is_active=True, academic_year=active_year)
-            if school:
-                assigned_qs = assigned_qs.filter(class_name__school=school, subject__school=school)
-
-            assigned_qs.filter(teacher=teacher).exclude(id__in=selected_assigned_ids).update(teacher=None)
-            assigned_qs.filter(id__in=selected_assigned_ids).update(teacher=teacher)
-
-        sections_qs = Section.objects.filter(is_active=True)
-        if school:
-            sections_qs = sections_qs.filter(class_name__school=school)
-
-        sections_qs.filter(class_teacher=teacher).exclude(id__in=selected_section_ids).update(class_teacher=None)
-        sections_qs.filter(id__in=selected_section_ids).update(class_teacher=teacher)
-
         return self.get(request, *args, **kwargs)
 
 
@@ -257,6 +428,7 @@ class TeacherUpdateView(LoginRequiredMixin, UpdateView):
     def post(self, request, *args, **kwargs):
         try:
             teacher = self.get_object()
+            school = get_current_school(request) or getattr(teacher, 'school', None)
             if teacher.role != 'teacher':
                 return JsonResponse({'success': False, 'error': 'Not a teacher'})
             
@@ -319,6 +491,11 @@ class TeacherUpdateView(LoginRequiredMixin, UpdateView):
             if prof_active is not None:
                 profile.is_active = str(prof_active).lower() in ['1', 'true', 'on', 'yes']
             profile.save()
+
+            # Save inline teacher assignments if submitted with form
+            if request.POST.get('assignments_submitted') == '1' or 'teaching_subject[]' in request.POST or 'teaching_class[]' in request.POST or 'section_ids' in request.POST:
+                _save_teacher_inline_assignments(teacher, school, request)
+
             return JsonResponse({'success': True, 'message': 'Teacher updated successfully'})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})

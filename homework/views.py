@@ -69,13 +69,35 @@ class HomeworkDashboardView(LoginRequiredMixin, TemplateView):
             # Student dashboard
             student = Student.objects.filter(user=user).first()
             if student:
+                from students.models import StudentSubject
+                from core.models import AcademicYear
+
+                # Resolve active academic year
+                ay_qs = AcademicYear.objects.filter(is_active=True)
+                if school:
+                    ay_qs = ay_qs.filter(school=school)
+                active_year = ay_qs.first()
+
+                # Check if student has specific active subject enrollments
+                ss_qs = StudentSubject.objects.filter(student=student, is_active=True)
+                if active_year:
+                    ss_qs = ss_qs.filter(academic_year=active_year)
+                enrolled_subj_ids = list(ss_qs.values_list('subject_id', flat=True))
+
+                base_assignments = HomeworkAssignment.objects.filter(
+                    class_ref=student.current_class,
+                    status='published'
+                ).filter(
+                    Q(section__isnull=True) | Q(section=student.section)
+                )
+                if enrolled_subj_ids:
+                    base_assignments = base_assignments.filter(subject_id__in=enrolled_subj_ids)
+
                 # Upcoming assignments (due in the next 7 days)
                 next_week = today + timezone.timedelta(days=7)
-                context['upcoming_assignments'] = HomeworkAssignment.objects.filter(
-                    class_ref=student.current_class,
+                context['upcoming_assignments'] = base_assignments.filter(
                     due_date__gte=today,
-                    due_date__lte=next_week,
-                    status='published'
+                    due_date__lte=next_week
                 ).order_by('due_date')
                 
                 # Recently submitted
@@ -84,10 +106,8 @@ class HomeworkDashboardView(LoginRequiredMixin, TemplateView):
                 ).order_by('-submitted_at')[:5]
                 
                 # Overdue assignments
-                context['overdue_assignments'] = HomeworkAssignment.objects.filter(
-                    class_ref=student.current_class,
-                    due_date__lt=today,
-                    status='published'
+                context['overdue_assignments'] = base_assignments.filter(
+                    due_date__lt=today
                 ).exclude(
                     submissions__student=student,
                     submissions__status__in=['submitted', 'late', 'graded', 'returned']
@@ -173,10 +193,26 @@ class HomeworkAssignmentListView(LoginRequiredMixin, ListView):
         elif user.is_student:
             student = Student.objects.filter(user=user).first()
             if student:
-                queryset = queryset.filter(
+                from students.models import StudentSubject
+                from core.models import AcademicYear
+
+                ay_qs = AcademicYear.objects.filter(is_active=True)
+                if school:
+                    ay_qs = ay_qs.filter(school=school)
+                active_year = ay_qs.first()
+
+                ss_qs = StudentSubject.objects.filter(student=student, is_active=True)
+                if active_year:
+                    ss_qs = ss_qs.filter(academic_year=active_year)
+                enrolled_subj_ids = list(ss_qs.values_list('subject_id', flat=True))
+
+                student_filter = (
                     Q(class_ref=student.current_class) &
                     (Q(section__isnull=True) | Q(section=student.section))
                 )
+                if enrolled_subj_ids:
+                    student_filter &= Q(subject_id__in=enrolled_subj_ids)
+                queryset = queryset.filter(student_filter)
         
         # Apply filters
         status = self.request.GET.get('status')
@@ -346,6 +382,76 @@ class HomeworkAssignmentDetailView(LoginRequiredMixin, DetailView):
     model = HomeworkAssignment
     template_name = 'homework/assignment_detail.html'
     context_object_name = 'assignment'
+
+    def dispatch(self, request, *args, **kwargs):
+        school = get_current_school(request)
+        assignment = self.get_object()
+
+        # Multi-tenant scoping
+        if school and assignment.school and assignment.school != school:
+            messages.error(request, _("Assignment not found in this school."))
+            return redirect('homework:dashboard', school_slug=self.kwargs.get('school_slug', ''))
+
+        user = request.user
+        if user.is_student:
+            student = Student.objects.filter(user=user).first()
+            if not student:
+                messages.error(request, _("Student profile not found."))
+                return redirect('homework:dashboard', school_slug=self.kwargs.get('school_slug', ''))
+
+            # Tenant check
+            if school and student.school and student.school != school:
+                messages.error(request, _("Access denied."))
+                return redirect('homework:dashboard', school_slug=self.kwargs.get('school_slug', ''))
+
+            # Class & enrollment check
+            from students.models import StudentClassEnrollment
+            is_enrolled_in_class = False
+            if assignment.academic_year:
+                enr = StudentClassEnrollment.objects.filter(
+                    student=student,
+                    academic_year=assignment.academic_year,
+                    class_name=assignment.class_ref,
+                    status__in=['active', 'completed']
+                ).first()
+                if enr:
+                    if not assignment.section or enr.section == assignment.section:
+                        is_enrolled_in_class = True
+
+            if not is_enrolled_in_class:
+                # Class check fallback
+                if student.current_class != assignment.class_ref:
+                    messages.error(request, _("This assignment is not for your class."))
+                    return redirect('homework:dashboard', school_slug=self.kwargs.get('school_slug', ''))
+
+                # Section check fallback
+                if assignment.section and student.section != assignment.section:
+                    messages.error(request, _("This assignment is not for your section."))
+                    return redirect('homework:dashboard', school_slug=self.kwargs.get('school_slug', ''))
+
+                # Academic year check fallback
+                if assignment.academic_year and student.academic_year and assignment.academic_year != student.academic_year:
+                    messages.error(request, _("This assignment belongs to a different academic year."))
+                    return redirect('homework:dashboard', school_slug=self.kwargs.get('school_slug', ''))
+
+            # Subject enrollment check
+            if assignment.subject:
+                from students.models import StudentSubject
+                ss_qs = StudentSubject.objects.filter(student=student, is_active=True)
+                if assignment.academic_year:
+                    ss_qs = ss_qs.filter(academic_year=assignment.academic_year)
+                elif student.academic_year:
+                    ss_qs = ss_qs.filter(academic_year=student.academic_year)
+                if ss_qs.exists() and not ss_qs.filter(subject=assignment.subject).exists():
+                    messages.error(request, _("You are not enrolled in the subject for this assignment."))
+                    return redirect('homework:dashboard', school_slug=self.kwargs.get('school_slug', ''))
+
+        elif user.is_teacher or user.is_school_admin:
+            if school and assignment.school and assignment.school != school:
+                messages.error(request, _("Access denied."))
+                return redirect('homework:dashboard', school_slug=self.kwargs.get('school_slug', ''))
+
+        return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -365,12 +471,28 @@ class HomeworkAssignmentDetailView(LoginRequiredMixin, DetailView):
             }
             
             # Get all students who should submit
-            context['students'] = Student.objects.filter(
-                current_class=assignment.class_ref,
-                is_active=True
-            ).filter(
-                Q(section__isnull=True) | Q(section=assignment.section) if assignment.section else Q()
-            )
+            from students.models import StudentClassEnrollment
+            students_qs = None
+            if assignment.academic_year and assignment.class_ref:
+                enr_qs = StudentClassEnrollment.objects.filter(
+                    academic_year=assignment.academic_year,
+                    class_name=assignment.class_ref,
+                    status__in=['active', 'completed']
+                )
+                if assignment.section:
+                    enr_qs = enr_qs.filter(section=assignment.section)
+                if enr_qs.exists():
+                    student_ids = list(enr_qs.values_list('student_id', flat=True))
+                    students_qs = Student.objects.filter(id__in=student_ids, is_active=True)
+
+            if students_qs is None:
+                students_qs = Student.objects.filter(
+                    current_class=assignment.class_ref,
+                    is_active=True
+                ).filter(
+                    Q(section__isnull=True) | Q(section=assignment.section) if assignment.section else Q()
+                )
+            context['students'] = students_qs
             
         elif user.is_student:
             # For students - show only their submission
@@ -539,15 +661,55 @@ class HomeworkSubmitView(LoginRequiredMixin, FormView):
             messages.error(request, _('Student profile not found'))
             return redirect('homework:dashboard', school_slug=self.kwargs.get('school_slug', ''))
         
-        # Check if student belongs to the right class
-        if self.student.current_class != self.assignment.class_ref:
-            messages.error(request, _('This assignment is not for your class'))
+        school = get_current_school(request)
+        if school and self.assignment.school and self.assignment.school != school:
+            messages.error(request, _('Assignment not found in this school'))
             return redirect('homework:dashboard', school_slug=self.kwargs.get('school_slug', ''))
-        
-        # Check if section matches (if assignment is section-specific)
-        if self.assignment.section and self.student.section != self.assignment.section:
-            messages.error(request, _('This assignment is not for your section'))
+
+        if school and self.student.school and self.student.school != school:
+            messages.error(request, _('Access denied'))
             return redirect('homework:dashboard', school_slug=self.kwargs.get('school_slug', ''))
+
+        # Check if student belongs to the right class and section
+        from students.models import StudentClassEnrollment
+        is_enrolled_in_class = False
+        if self.assignment.academic_year:
+            enr = StudentClassEnrollment.objects.filter(
+                student=self.student,
+                academic_year=self.assignment.academic_year,
+                class_name=self.assignment.class_ref,
+                status__in=['active', 'completed']
+            ).first()
+            if enr:
+                if not self.assignment.section or enr.section == self.assignment.section:
+                    is_enrolled_in_class = True
+
+        if not is_enrolled_in_class:
+            if self.student.current_class != self.assignment.class_ref:
+                messages.error(request, _('This assignment is not for your class'))
+                return redirect('homework:dashboard', school_slug=self.kwargs.get('school_slug', ''))
+            
+            # Check if section matches (if assignment is section-specific)
+            if self.assignment.section and self.student.section != self.assignment.section:
+                messages.error(request, _('This assignment is not for your section'))
+                return redirect('homework:dashboard', school_slug=self.kwargs.get('school_slug', ''))
+
+            # Check academic year
+            if self.assignment.academic_year and self.student.academic_year and self.assignment.academic_year != self.student.academic_year:
+                messages.error(request, _('This assignment belongs to a different academic year'))
+                return redirect('homework:dashboard', school_slug=self.kwargs.get('school_slug', ''))
+
+        # Check subject enrollment
+        if self.assignment.subject:
+            from students.models import StudentSubject
+            ss_qs = StudentSubject.objects.filter(student=self.student, is_active=True)
+            if self.assignment.academic_year:
+                ss_qs = ss_qs.filter(academic_year=self.assignment.academic_year)
+            elif self.student.academic_year:
+                ss_qs = ss_qs.filter(academic_year=self.student.academic_year)
+            if ss_qs.exists() and not ss_qs.filter(subject=self.assignment.subject).exists():
+                messages.error(request, _('You are not enrolled in the subject for this assignment'))
+                return redirect('homework:dashboard', school_slug=self.kwargs.get('school_slug', ''))
             
         # Check if past due date and late submissions are not allowed
         if self.assignment.is_past_due and not self.assignment.allow_late_submissions:

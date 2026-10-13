@@ -8,7 +8,7 @@ from django.db import transaction
 from django.db.models import Q, Prefetch
 from core.utils import get_current_school
 from core.models import AcademicYear
-from .models import Class, Section, Subject, ClassRoutine, ClassTime, ClassRoom, StudyMaterial, Assignment, AssignedSubject
+from .models import Class, Section, Subject, ClassRoutine, ClassTime, ClassRoom, StudyMaterial, Assignment, AssignedSubject, Syllabus
 from accounts.models import User
 from tenants.models import School
 import json
@@ -203,6 +203,13 @@ def _save_sections_for_class(class_obj, section_names, section_capacities, secti
             }
         )
         processed_section_ids.add(section.id)
+
+        try:
+            from academics.models import assign_class_teacher
+            teacher_obj = User.objects.using(tenant_db).get(pk=teacher_id) if teacher_id else None
+            assign_class_teacher(section, teacher_obj)
+        except Exception as e:
+            logger.warning(f"Could not sync ClassTeacherAssignment for section {section.name}: {e}")
 
     # For any existing sections belonging to this class that were not in the submitted list:
     # Safely deactivate them or delete if no dependents exist
@@ -502,6 +509,13 @@ class SectionCreateView(LoginRequiredMixin, CreateView):
                 room_id=room_id,
                 is_active=request.POST.get('is_active') in ('on', 'true', True)
             )
+            if teacher_id:
+                try:
+                    from academics.models import assign_class_teacher
+                    assign_class_teacher(section, section.class_teacher)
+                except Exception as ex:
+                    logger.warning(f"Could not assign class teacher on create: {ex}")
+
             return JsonResponse({'success': True, 'id': section.id})
         except Exception as e:
             logger.exception(f"Error creating section: {e}")
@@ -529,7 +543,9 @@ class SectionUpdateView(LoginRequiredMixin, UpdateView):
                 except (ValueError, TypeError):
                     section.max_students = 40
             
+            teacher_changed = False
             if 'class_teacher' in request.POST:
+                teacher_changed = True
                 teacher_raw = request.POST.get('class_teacher')
                 if teacher_raw in (None, '', 'null', 'None'):
                     section.class_teacher_id = None
@@ -555,6 +571,14 @@ class SectionUpdateView(LoginRequiredMixin, UpdateView):
                 section.is_active = request.POST.get('is_active') in ('on', 'true', True)
 
             section.save()
+
+            if teacher_changed:
+                try:
+                    from academics.models import assign_class_teacher
+                    assign_class_teacher(section, section.class_teacher)
+                except Exception as ex:
+                    logger.warning(f"Could not sync ClassTeacherAssignment on update: {ex}")
+
             return JsonResponse({'success': True, 'id': section.id})
         except Exception as e:
             logger.exception(f"Error updating section: {e}")
@@ -1586,3 +1610,302 @@ def export_routine_excel(request, school_slug):
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+# ============================================================================
+# SYLLABUS MANAGEMENT VIEWS
+# ============================================================================
+
+class SyllabusListView(LoginRequiredMixin, ListView):
+    model = Syllabus
+    template_name = 'academics/syllabus_list.html'
+    context_object_name = 'syllabi'
+    paginate_by = 15
+
+    def get_queryset(self):
+        school = get_current_school(self.request)
+        qs = Syllabus.objects.select_related('class_name', 'subject', 'academic_year', 'created_by')
+        if school:
+            qs = qs.filter(class_name__school=school)
+
+        class_id = self.request.GET.get('class_id')
+        if class_id and class_id.isdigit():
+            qs = qs.filter(class_name_id=int(class_id))
+
+        subject_id = self.request.GET.get('subject_id')
+        if subject_id and subject_id.isdigit():
+            qs = qs.filter(subject_id=int(subject_id))
+
+        academic_year_id = self.request.GET.get('academic_year_id')
+        if academic_year_id and academic_year_id.isdigit():
+            qs = qs.filter(academic_year_id=int(academic_year_id))
+
+        search = self.request.GET.get('search', '').strip()
+        if search:
+            qs = qs.filter(
+                Q(title__icontains=search) |
+                Q(description__icontains=search) |
+                Q(subject__name__icontains=search) |
+                Q(class_name__name__icontains=search)
+            )
+
+        return qs.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        school_slug = self.kwargs.get('school_slug', '')
+        context['school_slug'] = school_slug
+        school = get_current_school(self.request)
+
+        classes_qs = Class.objects.filter(is_active=True)
+        subjects_qs = Subject.objects.filter(is_active=True)
+        ay_qs = AcademicYear.objects.all().order_by('-start_date')
+        if school:
+            classes_qs = classes_qs.filter(school=school)
+            subjects_qs = subjects_qs.filter(school=school)
+            ay_qs = ay_qs.filter(school=school)
+
+        context['classes'] = classes_qs
+        context['subjects'] = subjects_qs
+        context['academic_years'] = ay_qs
+        context['active_year'] = ay_qs.filter(is_active=True).first()
+
+        context['selected_class_id'] = self.request.GET.get('class_id', '')
+        context['selected_subject_id'] = self.request.GET.get('subject_id', '')
+        context['selected_academic_year_id'] = self.request.GET.get('academic_year_id', '')
+        context['search_query'] = self.request.GET.get('search', '')
+        return context
+
+
+ALLOWED_SYLLABUS_EXTENSIONS = ('.pdf', '.docx', '.doc', '.xlsx', '.txt')
+MAX_SYLLABUS_FILE_SIZE = 15 * 1024 * 1024  # 15 MB
+
+
+def validate_syllabus_file(file):
+    if not file:
+        return None
+    import os
+    ext = os.path.splitext(file.name)[1].lower()
+    if ext not in ALLOWED_SYLLABUS_EXTENSIONS:
+        return f"Invalid file type '{ext}'. Allowed file extensions: .pdf, .docx, .doc, .xlsx, .txt."
+    if file.size > MAX_SYLLABUS_FILE_SIZE:
+        return "File size exceeds maximum allowed limit of 15 MB."
+    return None
+
+
+def validate_syllabus_subject_assignment(class_obj, subject_obj, ay_obj, school):
+    if school and subject_obj.school and subject_obj.school != school:
+        return "Selected subject does not belong to this school."
+    if school and class_obj.school and class_obj.school != school:
+        return "Selected class does not belong to this school."
+
+    # If class has assignments configured for this academic year, verify subject is among them
+    class_assignments = AssignedSubject.objects.filter(
+        class_name=class_obj,
+        academic_year=ay_obj,
+        is_active=True
+    )
+    if class_assignments.exists():
+        if not class_assignments.filter(subject=subject_obj).exists():
+            return f"Subject '{subject_obj.name}' is not assigned to class '{class_obj.name}' for {ay_obj.name}."
+    return None
+
+
+class SyllabusCreateView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        if not (request.user.is_school_admin or request.user.is_teacher or request.user.is_superuser):
+            return JsonResponse({'success': False, 'error': 'Permission denied.'}, status=403)
+        try:
+            school = get_current_school(request)
+            class_id = request.POST.get('class_name')
+            subject_id = request.POST.get('subject')
+            academic_year_id = request.POST.get('academic_year')
+            title = request.POST.get('title', '').strip()
+            description = request.POST.get('description', '').strip()
+            content = request.POST.get('content', '').strip()
+            file = request.FILES.get('file')
+
+            if not (class_id and subject_id and title):
+                return JsonResponse({'success': False, 'error': 'Class, subject, and title are required.'}, status=400)
+
+            class_obj = Class.objects.filter(pk=class_id)
+            if school:
+                class_obj = class_obj.filter(school=school)
+            class_obj = class_obj.first()
+            if not class_obj:
+                return JsonResponse({'success': False, 'error': 'Invalid class.'}, status=400)
+
+            subject_obj = Subject.objects.filter(pk=subject_id)
+            if school:
+                subject_obj = subject_obj.filter(school=school)
+            subject_obj = subject_obj.first()
+            if not subject_obj:
+                return JsonResponse({'success': False, 'error': 'Invalid subject.'}, status=400)
+
+            ay_obj = None
+            if academic_year_id and str(academic_year_id).isdigit():
+                ay_obj = AcademicYear.objects.filter(pk=int(academic_year_id)).first()
+            if not ay_obj:
+                ay_qs = AcademicYear.objects.filter(is_active=True)
+                if school:
+                    ay_qs = ay_qs.filter(school=school)
+                ay_obj = ay_qs.first()
+
+            if not ay_obj:
+                return JsonResponse({'success': False, 'error': 'No active academic year found.'}, status=400)
+
+            # Validate uploaded file
+            file_error = validate_syllabus_file(file)
+            if file_error:
+                return JsonResponse({'success': False, 'error': file_error}, status=400)
+
+            # Validate subject assignment to class
+            assignment_error = validate_syllabus_subject_assignment(class_obj, subject_obj, ay_obj, school)
+            if assignment_error:
+                return JsonResponse({'success': False, 'error': assignment_error}, status=400)
+
+            syllabus = Syllabus.objects.create(
+                class_name=class_obj,
+                subject=subject_obj,
+                academic_year=ay_obj,
+                title=title,
+                description=description,
+                content=content,
+                file=file,
+                created_by=request.user
+            )
+
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('accept', ''):
+                return JsonResponse({'success': True, 'id': syllabus.id, 'message': 'Syllabus created successfully.'})
+            from django.contrib import messages
+            messages.success(request, 'Syllabus added successfully.')
+            return redirect('academics:syllabus_list', school_slug=kwargs.get('school_slug'))
+        except Exception as e:
+            logger.exception(f"Error creating syllabus: {e}")
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+class SyllabusUpdateView(LoginRequiredMixin, View):
+    def post(self, request, pk, *args, **kwargs):
+        if not (request.user.is_school_admin or request.user.is_teacher or request.user.is_superuser):
+            return JsonResponse({'success': False, 'error': 'Permission denied.'}, status=403)
+        try:
+            school = get_current_school(request)
+            qs = Syllabus.objects.all()
+            if school:
+                qs = qs.filter(class_name__school=school)
+            syllabus = qs.get(pk=pk)
+
+            class_id = request.POST.get('class_name')
+            subject_id = request.POST.get('subject')
+            academic_year_id = request.POST.get('academic_year')
+            title = request.POST.get('title', '').strip()
+            description = request.POST.get('description', '').strip()
+            content = request.POST.get('content', '').strip()
+
+            target_class = syllabus.class_name
+            target_subject = syllabus.subject
+            target_ay = syllabus.academic_year
+
+            if class_id:
+                class_obj = Class.objects.filter(pk=class_id)
+                if school:
+                    class_obj = class_obj.filter(school=school)
+                if class_obj.exists():
+                    target_class = class_obj.first()
+                    syllabus.class_name = target_class
+
+            if subject_id:
+                subject_obj = Subject.objects.filter(pk=subject_id)
+                if school:
+                    subject_obj = subject_obj.filter(school=school)
+                if subject_obj.exists():
+                    target_subject = subject_obj.first()
+                    syllabus.subject = target_subject
+
+            if academic_year_id and str(academic_year_id).isdigit():
+                ay_obj = AcademicYear.objects.filter(pk=int(academic_year_id)).first()
+                if ay_obj:
+                    target_ay = ay_obj
+                    syllabus.academic_year = target_ay
+
+            # Validate subject assignment to class
+            assignment_error = validate_syllabus_subject_assignment(target_class, target_subject, target_ay, school)
+            if assignment_error:
+                return JsonResponse({'success': False, 'error': assignment_error}, status=400)
+
+            if title:
+                syllabus.title = title
+            syllabus.description = description
+            syllabus.content = content
+
+            if 'file' in request.FILES:
+                new_file = request.FILES['file']
+                file_error = validate_syllabus_file(new_file)
+                if file_error:
+                    return JsonResponse({'success': False, 'error': file_error}, status=400)
+                syllabus.file = new_file
+
+            syllabus.save()
+
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('accept', ''):
+                return JsonResponse({'success': True, 'message': 'Syllabus updated successfully.'})
+            from django.contrib import messages
+            messages.success(request, 'Syllabus updated successfully.')
+            return redirect('academics:syllabus_list', school_slug=kwargs.get('school_slug'))
+        except Syllabus.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Syllabus not found.'}, status=404)
+        except Exception as e:
+            logger.exception(f"Error updating syllabus: {e}")
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+class SyllabusDeleteView(LoginRequiredMixin, View):
+    def post(self, request, pk, *args, **kwargs):
+        if not (request.user.is_school_admin or request.user.is_teacher or request.user.is_superuser):
+            return JsonResponse({'success': False, 'error': 'Permission denied.'}, status=403)
+        try:
+            school = get_current_school(request)
+            qs = Syllabus.objects.all()
+            if school:
+                qs = qs.filter(class_name__school=school)
+            syllabus = qs.get(pk=pk)
+            syllabus.delete()
+            return JsonResponse({'success': True, 'message': 'Syllabus deleted successfully.'})
+        except Syllabus.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Syllabus not found.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def syllabus_detail_api(request, pk, school_slug=None):
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Authentication required'}, status=401)
+    try:
+        school = get_current_school(request)
+        qs = Syllabus.objects.select_related('class_name', 'subject', 'academic_year', 'created_by')
+        if school:
+            qs = qs.filter(class_name__school=school)
+        syllabus = qs.get(pk=pk)
+        return JsonResponse({
+            'success': True,
+            'id': syllabus.id,
+            'title': syllabus.title,
+            'description': syllabus.description,
+            'content': syllabus.content,
+            'class_id': syllabus.class_name_id,
+            'class_name': syllabus.class_name.name,
+            'subject_id': syllabus.subject_id,
+            'subject_name': syllabus.subject.name,
+            'academic_year_id': syllabus.academic_year_id,
+            'academic_year_name': syllabus.academic_year.name,
+            'file_url': syllabus.file.url if syllabus.file else None,
+            'file_name': syllabus.file.name.split('/')[-1] if syllabus.file else None,
+            'created_by': syllabus.created_by.get_full_name() if syllabus.created_by else 'Staff',
+            'created_at': syllabus.created_at.strftime('%b %d, %Y'),
+            'updated_at': syllabus.updated_at.strftime('%b %d, %Y')
+        })
+    except Syllabus.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Syllabus not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

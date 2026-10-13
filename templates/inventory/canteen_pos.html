@@ -11,9 +11,8 @@
 <div class="row g-3">
   <div class="col-lg-8">
     <div class="modern-card">
-      <div class="d-flex align-items-center mb-3 gap-2">
-        <input id="searchInput" type="text" class="form-control" placeholder="Search products by name or code..." />
-        <button id="searchBtn" class="btn btn-outline-primary"><i class="fas fa-search"></i></button>
+      <div class="mb-3">
+        <input id="searchInput" type="text" class="form-control" placeholder="Search products by name or code..." autocomplete="off" />
       </div>
       <div id="productsGrid" class="row g-3"></div>
       <div id="productsEmpty" class="text-center text-muted py-4" style="display:none">
@@ -24,19 +23,18 @@
   </div>
   <div class="col-lg-4">
     <div class="modern-card">
-      <div class="d-flex justify-content-between align-items-center mb-2">
+      <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Cart</h5>
-        <button id="clearCartBtn" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
       </div>
       <div class="table-responsive" style="max-height: 320px; overflow:auto;">
-        <table class="table table-sm align-middle">
+        <table class="table table-sm align-middle no-bulk-select no-sort">
           <thead>
             <tr>
-              <th>Item</th>
-              <th class="text-end">Price</th>
-              <th class="text-center" style="width:110px;">Qty</th>
-              <th class="text-end">Total</th>
-              <th></th>
+              <th class="no-sort">Item</th>
+              <th class="no-sort text-end">Price</th>
+              <th class="no-sort text-center" style="width:110px;">Qty</th>
+              <th class="no-sort text-end">Total</th>
+              <th class="no-sort text-end" style="width:40px;"></th>
             </tr>
           </thead>
           <tbody id="cartBody"></tbody>
@@ -81,9 +79,12 @@
           <div id="netTotalText" class="fw-bold">0</div>
         </div>
       </div>
-      <div class="mt-3 d-grid">
+      <div class="mt-3 d-grid gap-2">
         <button id="checkoutBtn" class="btn btn-primary">
           <i class="fas fa-receipt me-1"></i>Checkout
+        </button>
+        <button id="clearCartBtn" class="btn btn-outline-danger btn-sm" style="display:none;">
+          <i class="fas fa-trash-alt me-1"></i>Clear Cart
         </button>
       </div>
     </div>
@@ -166,11 +167,14 @@ function recompute(){
 
 function renderCart(){
   cartBody.innerHTML = '';
+  const clearBtn = document.getElementById('clearCartBtn');
   if(!cart.length){
-    cartBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Cart is empty</td></tr>`;
+    cartBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">Cart is empty</td></tr>`;
+    if(clearBtn) clearBtn.style.display = 'none';
     recompute();
     return;
   }
+  if(clearBtn) clearBtn.style.display = 'block';
   cart.forEach((it, idx) => {
     const tr = document.createElement('tr');
     const lineTotal = Number(it.unit_price) * Number(it.quantity);
@@ -185,7 +189,7 @@ function renderCart(){
         </div>
       </td>
       <td class="text-end">${money(lineTotal)}</td>
-      <td class="text-end"><button class="btn btn-sm btn-outline-danger remove" data-idx="${idx}"><i class="fas fa-times"></i></button></td>
+      <td class="text-end"><button class="btn btn-sm btn-outline-danger remove" data-idx="${idx}" title="Remove item"><i class="fas fa-trash-alt"></i></button></td>
     `;
     cartBody.appendChild(tr);
   });
@@ -250,11 +254,28 @@ function checkout(){
 
 // Events
 
-document.getElementById('searchBtn').addEventListener('click', searchProducts);
-document.getElementById('searchInput').addEventListener('keydown', e => { if(e.key === 'Enter'){ searchProducts(); }});
+let searchDebounce = null;
+const searchInput = document.getElementById('searchInput');
+if (searchInput) {
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(searchProducts, 250);
+  });
+  searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      clearTimeout(searchDebounce);
+      searchProducts();
+    }
+  });
+}
+
 document.getElementById('checkoutBtn').addEventListener('click', checkout);
 
-document.getElementById('clearCartBtn').addEventListener('click', () => { cart = []; renderCart(); });
+const clearCartBtn = document.getElementById('clearCartBtn');
+if (clearCartBtn) {
+  clearCartBtn.addEventListener('click', () => { cart = []; renderCart(); });
+}
 
 discountInput.addEventListener('input', recompute);
 amountReceivedInput.addEventListener('input', recompute);

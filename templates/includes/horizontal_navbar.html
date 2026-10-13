@@ -98,6 +98,9 @@
                 </a>
                 <ul class="modern-dropdown-menu dropdown-menu-columns">
                     <li><a class="dropdown-item" href="/school/{{ school_slug }}/students/"><i class="fas fa-user-graduate me-2"></i>Students</a></li>
+                    {% if user.role == 'admin' or user.role == 'superadmin' or user.is_school_admin %}
+                    <li><a class="dropdown-item" href="/school/{{ school_slug }}/students/promote/"><i class="fas fa-level-up-alt me-2"></i>Student Promotion</a></li>
+                    {% endif %}
                     <li><a class="dropdown-item" href="/school/{{ school_slug }}/hr/teachers/"><i class="fas fa-chalkboard-teacher me-2"></i>Teachers</a></li>
                     {% if user.role == 'admin' or user.role == 'superadmin' %}
                     <li><a class="dropdown-item" href="/school/{{ school_slug }}/students/parents/"><i class="fas fa-users me-2"></i>Parents</a></li>

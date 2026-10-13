@@ -28,7 +28,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=47.0">
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=48.0">
     <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}?v=53.0">
     <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=33.0">
     <style id="custom-theme-variables">
@@ -1296,6 +1296,19 @@
         }
     };
 
+    function isSelectManaged(el) {
+        if (!el) return false;
+        return el.classList.contains('no-tomselect') ||
+               el.dataset.noTomselect !== undefined ||
+               el.dataset.tsManaged !== undefined ||
+               el.hasAttribute('data-ts-managed') ||
+               el.hasAttribute('data-no-tomselect') ||
+               el.classList.contains('swal2-select') ||
+               el.classList.contains('select2-hidden-accessible') ||
+               el.classList.contains('flatpickr-monthDropdown-months') ||
+               Boolean(el.closest && el.closest('.flatpickr-calendar'));
+    }
+
     window.initAllTomSelects = function(container) {
         if (typeof TomSelect === 'undefined') return;
         const selects = (container && container.tagName === 'SELECT')
@@ -1303,7 +1316,7 @@
             : (container || document).querySelectorAll('select');
 
         selects.forEach(function(el) {
-            if (el.tomselect || el.classList.contains('no-tomselect') || el.dataset.noTomselect !== undefined || el.classList.contains('swal2-select') || el.classList.contains('select2-hidden-accessible') || el.classList.contains('flatpickr-monthDropdown-months') || el.closest('.flatpickr-calendar')) {
+            if (el.tomselect || isSelectManaged(el)) {
                 return;
             }
             try {
@@ -1348,9 +1361,9 @@
 
                 // Check for dynamic changes to options of an existing TomSelect
                 const target = mutation.target;
-                if (target && target.tagName === 'SELECT' && target.tomselect) {
+                if (target && target.tagName === 'SELECT' && target.tomselect && !isSelectManaged(target)) {
                     pendingSyncSelects.add(target);
-                } else if (target && target.tagName === 'OPTION' && target.parentElement && target.parentElement.tagName === 'SELECT' && target.parentElement.tomselect) {
+                } else if (target && target.tagName === 'OPTION' && target.parentElement && target.parentElement.tagName === 'SELECT' && target.parentElement.tomselect && !isSelectManaged(target.parentElement)) {
                     pendingSyncSelects.add(target.parentElement);
                 }
 
@@ -1359,9 +1372,9 @@
                     for (let j = 0; j < mutation.addedNodes.length; j++) {
                         const node = mutation.addedNodes[j];
                         if (node.nodeType === 1) { // ELEMENT_NODE
-                            if (node.tagName === 'SELECT' && !node.tomselect && !node.classList.contains('no-tomselect') && node.dataset.noTomselect === undefined) {
+                            if (node.tagName === 'SELECT' && !node.tomselect && !isSelectManaged(node)) {
                                 hasNewSelects = true;
-                            } else if (node.querySelector && node.querySelector('select:not(.no-tomselect):not([data-no-tomselect])')) {
+                            } else if (node.querySelector && node.querySelector('select:not(.no-tomselect):not([data-no-tomselect]):not([data-ts-managed])')) {
                                 hasNewSelects = true;
                             }
                         }
@@ -1391,12 +1404,13 @@
                 if (tsMutationTimer) clearTimeout(tsMutationTimer);
                 tsMutationTimer = setTimeout(function() {
                     pendingSyncSelects.forEach(function(sel) {
-                        if (sel && sel.tomselect && !sel._ts_syncing) {
+                        if (sel && sel.tomselect && !isSelectManaged(sel) && !sel._ts_syncing) {
                             sel._ts_syncing = true;
                             try {
-                                sel.tomselect.sync();
-                                if (sel.value) {
-                                    sel.tomselect.setValue(sel.value, true);
+                                const currentVal = sel.value || (sel.tomselect ? sel.tomselect.getValue() : '');
+                                sel.tomselect.sync(false);
+                                if (currentVal) {
+                                    sel.tomselect.setValue(currentVal, true);
                                 }
                             } catch(err) {
                                 console.warn('TomSelect auto-sync error:', err);
@@ -1446,8 +1460,7 @@
                     if (btn.classList.contains('page-link') || btn.classList.contains('nav-link') || btn.dataset.bsToggle || btn.closest('.pagination')) return;
 
                     const txt = (btn.textContent || btn.value || '').trim().toLowerCase();
-                    const hasIcon = btn.querySelector('.fa-filter, .fa-search, .fa-times, .fa-undo, .fa-rotate-left, .fa-sync');
-                    const isFilterOrApply = txt.includes('filter') || txt.includes('apply') || (txt.includes('search') && !btn.closest('.input-group') && !btn.closest('.search-box'));
+                    const isFilterOrApply = txt.includes('filter') || txt.includes('apply') || txt.includes('search');
                     const isResetOrClear = txt.includes('clear') || txt.includes('reset');
 
                     if (isFilterOrApply || isResetOrClear || hasIcon) {
@@ -1727,7 +1740,7 @@
             var container = root || document;
             var tables = container.querySelectorAll ? container.querySelectorAll('table.table, .table-responsive > table, table.modern-table') : [];
             return Array.from(tables).filter(function(t) {
-                if (t.classList.contains('no-bulk-select') || t.classList.contains('calendar-table')) return false;
+                if (t.classList.contains('no-bulk-select') || t.classList.contains('calendar-table') || t.classList.contains('cart-table') || t.closest('.cart-container') || t.closest('#cartBody') || t.querySelector('#cartBody') || t.closest('.modal')) return false;
                 var thead = t.querySelector('thead');
                 var tbody = t.querySelector('tbody');
                 if (!thead || !tbody) return false;

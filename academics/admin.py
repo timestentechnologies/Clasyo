@@ -1,8 +1,8 @@
 from django.contrib import admin
 from .models import (
-    Class, Section, Subject, OptionalSubject, AssignedSubject,
+    Class, Section, ClassTeacherAssignment, Subject, OptionalSubject, AssignedSubject,
     ClassRoom, ClassTime, ClassRoutine, House, StudyMaterial,
-    Syllabus, Assignment, AssignmentSubmission
+    Syllabus, CurriculumUnit, CurriculumTopic, Assignment, AssignmentSubmission
 )
 
 
@@ -18,6 +18,13 @@ class SectionAdmin(admin.ModelAdmin):
     list_display = ['name', 'class_name', 'class_teacher', 'max_students', 'is_active']
     list_filter = ['class_name', 'is_active']
     search_fields = ['name', 'class_name__name']
+
+
+@admin.register(ClassTeacherAssignment)
+class ClassTeacherAssignmentAdmin(admin.ModelAdmin):
+    list_display = ['section', 'teacher', 'academic_year', 'is_active', 'assigned_date']
+    list_filter = ['academic_year', 'is_active']
+    search_fields = ['section__name', 'section__class_name__name', 'teacher__username', 'teacher__first_name', 'teacher__last_name']
 
 
 @admin.register(Subject)
@@ -67,3 +74,24 @@ class AssignmentAdmin(admin.ModelAdmin):
     list_display = ['title', 'class_name', 'subject', 'assigned_date', 'due_date', 'max_marks', 'created_by']
     list_filter = ['class_name', 'subject', 'assigned_date']
     search_fields = ['title', 'description']
+
+
+class CurriculumTopicInline(admin.TabularInline):
+    model = CurriculumTopic
+    extra = 1
+
+
+@admin.register(CurriculumUnit)
+class CurriculumUnitAdmin(admin.ModelAdmin):
+    list_display = ['title', 'syllabus', 'unit_number', 'order', 'is_active']
+    list_filter = ['is_active', 'syllabus__class_name', 'syllabus__subject']
+    search_fields = ['title', 'description', 'syllabus__title']
+    inlines = [CurriculumTopicInline]
+
+
+@admin.register(CurriculumTopic)
+class CurriculumTopicAdmin(admin.ModelAdmin):
+    list_display = ['title', 'unit', 'topic_number', 'estimated_periods', 'order', 'is_active']
+    list_filter = ['is_active', 'unit__syllabus']
+    search_fields = ['title', 'learning_objectives', 'unit__title']
+

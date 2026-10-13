@@ -216,6 +216,14 @@ class Student(models.Model):
         
         return f"{prefix}{new_number:05d}"  # e.g., STU00001
 
+    def get_current_enrollment(self):
+        """Retrieve the active class enrollment for the student's current academic year or latest active."""
+        if self.academic_year:
+            enr = self.class_enrollments.filter(academic_year=self.academic_year, status='active').first()
+            if enr:
+                return enr
+        return self.class_enrollments.filter(status='active').order_by('-academic_year__start_date').first()
+
 
 class StudentGroup(models.Model):
     """Student Group Model for organizing students"""
@@ -265,14 +273,97 @@ class StudentPromotion(models.Model):
         verbose_name = _("Student Promotion")
         verbose_name_plural = _("Student Promotions")
         ordering = ['-promotion_date']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['student', 'to_academic_year'],
+                name='unique_student_promotion_to_year'
+            )
+        ]
     
     def __str__(self):
         return f"{self.student.get_full_name()} - {self.from_class} to {self.to_class}"
 
 
+class StudentClassEnrollment(models.Model):
+    """Academic-year-scoped student class enrolment history model"""
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('completed', 'Completed'),
+        ('repeated', 'Repeated'),
+        ('transferred', 'Transferred'),
+        ('withdrawn', 'Withdrawn'),
+    ]
+
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='class_enrollments')
+    school = models.ForeignKey('tenants.School', on_delete=models.CASCADE, related_name='student_class_enrollments', null=True, blank=True)
+    academic_year = models.ForeignKey('core.AcademicYear', on_delete=models.CASCADE, related_name='student_class_enrollments')
+    class_name = models.ForeignKey('academics.Class', on_delete=models.CASCADE, related_name='student_class_enrollments')
+    section = models.ForeignKey('academics.Section', on_delete=models.SET_NULL, null=True, blank=True, related_name='student_class_enrollments')
+    roll_number = models.CharField(_("Roll Number"), max_length=50, blank=True)
+    status = models.CharField(_("Enrolment Status"), max_length=20, choices=STATUS_CHOICES, default='active')
+    enrolled_date = models.DateField(_("Enrolment Date"))
+    promotion = models.ForeignKey('StudentPromotion', on_delete=models.SET_NULL, null=True, blank=True, related_name='result_enrollments')
+    remarks = models.TextField(_("Remarks"), blank=True)
+
+    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
+    created_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_class_enrollments')
+
+    class Meta:
+        verbose_name = _("Student Class Enrolment")
+        verbose_name_plural = _("Student Class Enrolments")
+        ordering = ['-academic_year__start_date', 'student']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['student', 'academic_year'],
+                name='unique_student_academic_year_enrollment'
+            )
+        ]
+        indexes = [
+            models.Index(fields=['student', 'academic_year']),
+            models.Index(fields=['class_name', 'section']),
+            models.Index(fields=['school', 'academic_year']),
+        ]
+
+    def __str__(self):
+        return f"{self.student.get_full_name()} - {self.class_name} ({self.academic_year})"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.section and self.section.class_name_id != self.class_name_id:
+            raise ValidationError(_("The section must belong to the selected class."))
+        if self.school_id:
+            if self.student.school_id and self.student.school_id != self.school_id:
+                raise ValidationError(_("Enrolment school must match student's school."))
+            if self.academic_year.school_id and self.academic_year.school_id != self.school_id:
+                raise ValidationError(_("Academic year must belong to the same school."))
+            if self.class_name.school_id and self.class_name.school_id != self.school_id:
+                raise ValidationError(_("Class must belong to the same school."))
+
+    def sync_to_student(self):
+        """Keep Student legacy placement fields synchronized with this enrollment."""
+        if self.status == 'active':
+            fields_to_update = []
+            if self.student.current_class_id != self.class_name_id:
+                self.student.current_class = self.class_name
+                fields_to_update.append('current_class')
+            if self.student.section_id != (self.section_id if self.section else None):
+                self.student.section = self.section
+                fields_to_update.append('section')
+            if self.student.academic_year_id != self.academic_year_id:
+                self.student.academic_year = self.academic_year
+                fields_to_update.append('academic_year')
+            if self.roll_number and self.student.roll_number != self.roll_number:
+                self.student.roll_number = self.roll_number
+                fields_to_update.append('roll_number')
+            if fields_to_update:
+                self.student.save(update_fields=fields_to_update)
+
+
 class StudentSubject(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='subject_enrollments')
     subject = models.ForeignKey('academics.Subject', on_delete=models.CASCADE, related_name='student_enrollments')
+    assigned_subject = models.ForeignKey('academics.AssignedSubject', on_delete=models.SET_NULL, null=True, blank=True, related_name='student_subject_enrollments')
     academic_year = models.ForeignKey('core.AcademicYear', on_delete=models.CASCADE, related_name='student_subjects')
     school = models.ForeignKey('tenants.School', on_delete=models.SET_NULL, null=True, blank=True, related_name='student_subjects')
     is_active = models.BooleanField(_("Is Active"), default=True)

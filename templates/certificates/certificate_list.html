@@ -38,7 +38,7 @@
 
     <!-- Search Filter -->
     <div class="row filter-row mb-4">
-        <div class="col-sm-6 col-md-3">
+        <div class="col-md-4">
             <div class="form-group">
                 <label>Certificate Type</label>
                 <select class="form-control select2" id="certificate-type-filter">
@@ -49,7 +49,7 @@
                 </select>
             </div>
         </div>
-        <div class="col-sm-6 col-md-3">
+        <div class="col-md-4">
             <div class="form-group">
                 <label>Class</label>
                 <select class="form-control select2" id="class-filter">
@@ -60,18 +60,12 @@
                 </select>
             </div>
         </div>
-        <div class="col-sm-6 col-md-3">
+        <div class="col-md-4">
             <div class="form-group">
                 <label>Date Range</label>
                 <div class="cal-icon">
                     <input type="text" class="form-control" id="date-range" placeholder="Select date range">
                 </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-md-3">
-            <div class="form-group">
-                <label>&nbsp;</label>
-                <button class="btn btn-primary btn-block" id="apply-filters">Apply Filter</button>
             </div>
         </div>
     </div>
@@ -220,8 +214,7 @@
             });
         }
         
-        // Apply filters
-        $('#apply-filters').click(function() {
+        function applyFilters() {
             var typeId = $('#certificate-type-filter').val();
             var classId = $('#class-filter').val();
             var dateRange = $('#date-range').val();
@@ -236,7 +229,16 @@
             if(dateRange) url.searchParams.append('date_range', dateRange);
             
             window.location.href = url.toString();
-        });
+        }
+
+        $('#certificate-type-filter, #class-filter').on('change', applyFilters);
+        if ($('#date-range').length) {
+            $('#date-range').on('apply.daterangepicker', applyFilters);
+            $('#date-range').on('cancel.daterangepicker', function() {
+                $(this).val('');
+                applyFilters();
+            });
+        }
     });
 </script>
 {% endblock %}

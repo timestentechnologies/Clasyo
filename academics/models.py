@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator
 from tenants.models import School
@@ -70,6 +71,165 @@ class Section(models.Model):
     def __str__(self):
         return f"{self.class_name.name} - {self.name}"
 
+    def get_class_teacher(self, academic_year=None):
+        """
+        Returns the assigned class teacher for the given academic year (or active year).
+        Falls back to self.class_teacher to maintain full legacy compatibility.
+        """
+        from core.models import AcademicYear
+        if academic_year is None:
+            school = getattr(self.class_name, 'school', None)
+            year_qs = AcademicYear.objects.filter(is_active=True)
+            if school:
+                year_qs = year_qs.filter(school=school)
+            academic_year = year_qs.first()
+
+        if academic_year:
+            assignment = self.teacher_assignments.filter(
+                academic_year=academic_year,
+                is_active=True
+            ).select_related('teacher').first()
+            if assignment and assignment.teacher:
+                return assignment.teacher
+
+        return self.class_teacher
+
+
+class ClassTeacherAssignment(models.Model):
+    """
+    Academic-year-scoped class teacher assignment for a section.
+    Preserves historical class teacher records across academic years.
+    """
+    section = models.ForeignKey(
+        Section,
+        on_delete=models.CASCADE,
+        related_name='teacher_assignments',
+        verbose_name=_("Section")
+    )
+    teacher = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.CASCADE,
+        related_name='class_teacher_assignments',
+        limit_choices_to={'role': 'teacher'},
+        verbose_name=_("Teacher")
+    )
+    academic_year = models.ForeignKey(
+        'core.AcademicYear',
+        on_delete=models.CASCADE,
+        related_name='class_teacher_assignments',
+        verbose_name=_("Academic Year")
+    )
+    is_active = models.BooleanField(_("Is Active"), default=True)
+    assigned_date = models.DateField(_("Assigned Date"), default=timezone.now)
+    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
+
+    class Meta:
+        verbose_name = _("Class Teacher Assignment")
+        verbose_name_plural = _("Class Teacher Assignments")
+        ordering = ['-academic_year__start_date', 'section', '-is_active']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['section', 'academic_year'],
+                condition=models.Q(is_active=True),
+                name='unique_active_class_teacher_per_section_year'
+            )
+        ]
+
+    def __str__(self):
+        teacher_name = self.teacher.get_full_name() or self.teacher.username if self.teacher else "Unknown"
+        return f"{self.section} - {teacher_name} ({self.academic_year})"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        super().clean()
+        if self.teacher and getattr(self.teacher, 'role', None) and self.teacher.role != 'teacher':
+            raise ValidationError({'teacher': _("Selected user must have the teacher role.")})
+        if self.section and self.academic_year:
+            section_school = getattr(getattr(self.section, 'class_name', None), 'school', None)
+            year_school = getattr(self.academic_year, 'school', None)
+            if section_school and year_school and section_school != year_school:
+                raise ValidationError({
+                    'academic_year': _("Section school and Academic Year school must match.")
+                })
+
+    def sync_to_section(self):
+        """
+        Synchronizes this assignment to Section.class_teacher if active and academic year is active.
+        """
+        if not self.section_id:
+            return
+        if self.is_active and self.academic_year and getattr(self.academic_year, 'is_active', False):
+            Section.objects.filter(pk=self.section_id).update(class_teacher=self.teacher)
+
+    def save(self, *args, **kwargs):
+        if self.is_active and self.section_id and self.academic_year_id:
+            # Deactivate other active assignments for this section and academic year
+            ClassTeacherAssignment.objects.filter(
+                section_id=self.section_id,
+                academic_year_id=self.academic_year_id,
+                is_active=True
+            ).exclude(pk=self.pk).update(is_active=False)
+        super().save(*args, **kwargs)
+        self.sync_to_section()
+
+
+def assign_class_teacher(section, teacher, academic_year=None):
+    """
+    Assigns or unassigns a class teacher for a section in a specific academic year.
+    Maintains historical ClassTeacherAssignment records and keeps Section.class_teacher
+    synchronized when managing the active academic year.
+    """
+    from core.models import AcademicYear
+    if academic_year is None:
+        school = getattr(section.class_name, 'school', None)
+        year_qs = AcademicYear.objects.filter(is_active=True)
+        if school:
+            year_qs = year_qs.filter(school=school)
+        academic_year = year_qs.first()
+        if not academic_year and school:
+            academic_year = AcademicYear.objects.filter(school=school).order_by('-start_date').first()
+
+    if not academic_year:
+        section.class_teacher = teacher
+        section.save(update_fields=['class_teacher'])
+        return None
+
+    if teacher is None:
+        ClassTeacherAssignment.objects.filter(
+            section=section,
+            academic_year=academic_year,
+            is_active=True
+        ).update(is_active=False)
+        if getattr(academic_year, 'is_active', False):
+            section.class_teacher = None
+            section.save(update_fields=['class_teacher'])
+        return None
+
+    # Deactivate existing active assignment for different teachers in the same year
+    ClassTeacherAssignment.objects.filter(
+        section=section,
+        academic_year=academic_year,
+        is_active=True
+    ).exclude(teacher=teacher).update(is_active=False)
+
+    assignment, created = ClassTeacherAssignment.objects.get_or_create(
+        section=section,
+        academic_year=academic_year,
+        teacher=teacher,
+        defaults={'is_active': True}
+    )
+    if not created and not assignment.is_active:
+        assignment.is_active = True
+        assignment.save(update_fields=['is_active'])
+
+    if getattr(academic_year, 'is_active', False):
+        section.class_teacher = teacher
+        section.save(update_fields=['class_teacher'])
+
+    return assignment
+
+
 
 class Subject(models.Model):
     """Subject Model"""
@@ -133,6 +293,7 @@ class AssignedSubject(models.Model):
     academic_year = models.ForeignKey('core.AcademicYear', on_delete=models.CASCADE,
                                      related_name='subject_assignments')
     
+    is_compulsory = models.BooleanField(_("Is Compulsory"), default=True)
     is_active = models.BooleanField(_("Is Active"), default=True)
     created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
     
@@ -140,6 +301,18 @@ class AssignedSubject(models.Model):
         verbose_name = _("Assigned Subject")
         verbose_name_plural = _("Assigned Subjects")
         ordering = ['class_name', 'subject']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['class_name', 'section', 'subject', 'academic_year'],
+                condition=models.Q(section__isnull=False),
+                name='unique_class_section_subject_academic_year'
+            ),
+            models.UniqueConstraint(
+                fields=['class_name', 'subject', 'academic_year'],
+                condition=models.Q(section__isnull=True),
+                name='unique_class_null_section_subject_academic_year'
+            ),
+        ]
     
     def __str__(self):
         return f"{self.subject.name} - {self.class_name.name}"
@@ -358,6 +531,63 @@ class Syllabus(models.Model):
     
     def __str__(self):
         return f"{self.class_name} - {self.subject} - {self.academic_year}"
+
+
+class CurriculumUnit(models.Model):
+    """
+    Curriculum unit within a syllabus.
+    Breaks down course syllabi into structured instructional modules/chapters.
+    """
+    syllabus = models.ForeignKey(
+        Syllabus,
+        on_delete=models.CASCADE,
+        related_name='units',
+        verbose_name=_("Syllabus")
+    )
+    unit_number = models.PositiveIntegerField(_("Unit Number"), default=1)
+    title = models.CharField(_("Unit Title"), max_length=255)
+    description = models.TextField(_("Description"), blank=True)
+    order = models.IntegerField(_("Order"), default=0)
+    is_active = models.BooleanField(_("Is Active"), default=True)
+    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
+
+    class Meta:
+        verbose_name = _("Curriculum Unit")
+        verbose_name_plural = _("Curriculum Units")
+        ordering = ['order', 'unit_number']
+
+    def __str__(self):
+        return f"Unit {self.unit_number}: {self.title}"
+
+
+class CurriculumTopic(models.Model):
+    """
+    Specific instructional topic or lesson breakdown within a curriculum unit.
+    """
+    unit = models.ForeignKey(
+        CurriculumUnit,
+        on_delete=models.CASCADE,
+        related_name='topics',
+        verbose_name=_("Curriculum Unit")
+    )
+    topic_number = models.PositiveIntegerField(_("Topic Number"), default=1)
+    title = models.CharField(_("Topic Title"), max_length=255)
+    learning_objectives = models.TextField(_("Learning Objectives"), blank=True)
+    estimated_periods = models.PositiveIntegerField(_("Estimated Periods"), default=1)
+    order = models.IntegerField(_("Order"), default=0)
+    is_active = models.BooleanField(_("Is Active"), default=True)
+    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
+
+    class Meta:
+        verbose_name = _("Curriculum Topic")
+        verbose_name_plural = _("Curriculum Topics")
+        ordering = ['order', 'topic_number']
+
+    def __str__(self):
+        return f"{self.unit.title} - Topic {self.topic_number}: {self.title}"
+
 
 
 class Assignment(models.Model):

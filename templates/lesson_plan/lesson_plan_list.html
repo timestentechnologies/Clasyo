@@ -24,7 +24,7 @@
     
     <!-- Search Filter -->
     <div class="row filter-row mb-4">
-        <div class="col-sm-6 col-md-3">
+        <div class="col-md-4">
             <div class="form-group">
                 <label>Subject</label>
                 <select class="form-control filter-select" id="subject-filter">
@@ -35,7 +35,7 @@
                 </select>
             </div>
         </div>
-        <div class="col-sm-6 col-md-3">
+        <div class="col-md-4">
             <div class="form-group">
                 <label>Class</label>
                 <select class="form-control filter-select" id="class-filter">
@@ -46,16 +46,10 @@
                 </select>
             </div>
         </div>
-        <div class="col-sm-6 col-md-3">
+        <div class="col-md-4">
             <div class="form-group">
                 <label>Date Range</label>
                 <input type="text" class="form-control" id="date-range" placeholder="From - To" value="{{ request.GET.date_range }}">
-            </div>
-        </div>
-        <div class="col-sm-6 col-md-3">
-            <div class="form-group">
-                <label>&nbsp;</label>
-                <button class="btn btn-primary w-100" id="apply-filters"><i class="fas fa-filter me-2"></i>Apply Filters</button>
             </div>
         </div>
     </div>
@@ -141,8 +135,7 @@
             });
         }
         
-        // Apply filters
-        $('#apply-filters').click(function() {
+        function applyFilters() {
             var subject = $('#subject-filter').val();
             var classId = $('#class-filter').val();
             var dateRange = $('#date-range').val();
@@ -157,7 +150,16 @@
             if(dateRange) url.searchParams.append('date_range', dateRange);
             
             window.location.href = url.toString();
-        });
+        }
+
+        $('#subject-filter, #class-filter').on('change', applyFilters);
+        if ($('#date-range').length) {
+            $('#date-range').on('apply.daterangepicker', applyFilters);
+            $('#date-range').on('cancel.daterangepicker', function() {
+                $(this).val('');
+                applyFilters();
+            });
+        }
     });
 </script>
 {% endblock %}

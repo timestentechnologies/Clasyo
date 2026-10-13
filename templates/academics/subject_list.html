@@ -208,16 +208,21 @@
             </thead>
             <tbody>
             {% for subject in subjects %}
-            <tr class="clickable-row" id="subject-row-{{ subject.pk }}" data-id="{{ subject.pk }}" onclick="openSubjectForm('edit', {
-                id: '{{ subject.pk }}',
-                name: '{{ subject.name|escapejs }}',
-                code: '{{ subject.code|escapejs }}',
-                type: '{{ subject.subject_type|escapejs }}',
-                credits: '{{ subject.credits|default:"1" }}',
-                description: '{{ subject.description|default:""|escapejs }}',
-                is_active: {{ subject.is_active|yesno:'true,false' }},
-                assigned_classes: {{ subject.assigned_classes_json|safe }}
-            })" data-name="{{ subject.name|lower }}" data-code="{{ subject.code|lower }}" data-type="{{ subject.subject_type|lower }}" data-credits="{{ subject.credits|default:'0' }}" data-description="{{ subject.description|lower }}" data-class-ids="{{ subject.assigned_class_ids_str }}" data-has-classes="{% if subject.assigned_display_badges %}1{% else %}0{% endif %}">
+            <tr class="clickable-row" id="subject-row-{{ subject.pk }}" 
+                data-id="{{ subject.pk }}" 
+                data-raw-name="{{ subject.name|escape }}" 
+                data-name="{{ subject.name|lower }}" 
+                data-raw-code="{{ subject.code|escape }}" 
+                data-code="{{ subject.code|lower }}" 
+                data-type="{{ subject.subject_type|default:'theory' }}" 
+                data-credits="{{ subject.credits|default:'1' }}" 
+                data-raw-description="{{ subject.description|default:''|escape }}" 
+                data-description="{{ subject.description|default:''|lower }}" 
+                data-is-active="{% if subject.is_active %}1{% else %}0{% endif %}" 
+                data-assigned-classes="{{ subject.assigned_classes_json|default:'[]'|escape }}" 
+                onclick="openSubjectRow(this)" 
+                data-class-ids="{{ subject.assigned_class_ids_str }}" 
+                data-has-classes="{% if subject.assigned_display_badges %}1{% else %}0{% endif %}">
                 <td><strong>{{ subject.name }}</strong></td>
                 <td><span class="badge bg-secondary">{{ subject.code }}</span></td>
                 <td><span class="badge bg-info">{{ subject.subject_type|title }}</span></td>
@@ -364,6 +369,29 @@ function filterClassGrid(query) {
         } else {
             col.style.display = 'none';
         }
+    });
+}
+
+function openSubjectRow(rowEl) {
+    if (!rowEl || !rowEl.dataset) return;
+    const d = rowEl.dataset;
+    let assignedClasses = [];
+    try {
+        if (d.assignedClasses) {
+            assignedClasses = JSON.parse(d.assignedClasses);
+        }
+    } catch (e) {
+        console.warn('Error parsing assigned classes:', e);
+    }
+    openSubjectForm('edit', {
+        id: d.id,
+        name: d.rawName || d.name || '',
+        code: d.rawCode || d.code || '',
+        type: d.type || 'theory',
+        credits: d.credits || '1',
+        description: d.rawDescription || d.description || '',
+        is_active: d.isActive === '1',
+        assigned_classes: assignedClasses
     });
 }
 

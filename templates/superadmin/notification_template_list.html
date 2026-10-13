@@ -46,12 +46,7 @@
             <form method="get" class="d-flex align-items-center gap-2">
                 {% if active_channel != 'all' %}<input type="hidden" name="channel" value="{{ active_channel }}">{% endif %}
                 {% if active_category != 'all' %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
-                <div class="input-group input-group-sm" style="max-width: 220px;">
-                    <input type="text" name="q" value="{{ search_q }}" class="form-control" placeholder="Search templates...">
-                    <button class="btn btn-outline-secondary" type="submit">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
+                <input type="text" name="q" value="{{ search_q }}" class="form-control form-control-sm" placeholder="Search templates..." style="max-width: 220px;" autocomplete="off">
             </form>
             <a href="{% url 'superadmin:notification_template_create' %}" class="btn btn-sm btn-primary">
                 <i class="fas fa-plus me-1"></i> New Template

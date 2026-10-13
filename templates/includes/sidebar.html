@@ -191,10 +191,17 @@
         </a>
         </li>
         {% endif %}
-        <li class="{% if '/students/' in request.path and '/parents/' not in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/students/">
+        <li class="{% if '/students/' in request.path and '/parents/' not in request.path and '/promote/' not in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/students/">
             <i class="fas fa-user-graduate"></i>
             <span>Students</span>
         </a></li>
+
+        {% if user.role == 'admin' or user.role == 'superadmin' or user.is_school_admin %}
+        <li class="{% if '/students/promote/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/students/promote/">
+            <i class="fas fa-level-up-alt"></i>
+            <span>Student Promotion</span>
+        </a></li>
+        {% endif %}
 
         <li class="{% if '/teachers/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/hr/teachers/">
             <i class="fas fa-chalkboard-teacher"></i>
@@ -221,6 +228,11 @@
         <li class="{% if '/routine/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/academics/routine/">
             <i class="fas fa-clock"></i>
             <span>Class Routine</span>
+        </a></li>
+
+        <li class="{% if '/syllabus/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/academics/syllabus/">
+            <i class="fas fa-file-invoice"></i>
+            <span>Syllabus</span>
         </a></li>
 
         <li class="{% if '/attendance/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/attendance/mark/">

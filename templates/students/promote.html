@@ -1,0 +1,385 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Student Promotion - {{ school.name|default:"School ERP" }}{% endblock %}
+{% block page_icon %}level-up-alt{% endblock %}
+{% block page_title %}Student Promotion{% endblock %}
+{% block page_subtitle %}Promote or retain students across academic sessions and grade levels{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'students:promotion_history' school_slug=school_slug %}" class="btn btn-outline-primary">
+    <i class="fas fa-history me-1"></i> Promotion History
+</a>
+<a href="{% url 'students:list' school_slug=school_slug %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-1"></i> Back to Students
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-12">
+        <div class="modern-card">
+            <div class="card-body">
+                <form method="post" id="promotionForm" action="{% url 'students:promote' school_slug=school_slug %}">
+                    {% csrf_token %}
+
+                    <div class="row g-4 mb-4">
+                        <!-- Step 1: Source Cohort -->
+                        <div class="col-lg-6">
+                            <div class="p-3 border rounded-3 bg-light-subtle h-100">
+                                <h6 class="fw-bold text-primary mb-3">
+                                    <i class="fas fa-sign-out-alt me-2"></i>1. Source Cohort (Promote From)
+                                </h6>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">From Academic Year <span class="text-danger">*</span></label>
+                                        <select name="from_academic_year" id="fromAcademicYear" class="form-select" required>
+                                            <option value="">Select Session</option>
+                                            {% for ay in academic_years %}
+                                                <option value="{{ ay.id }}" {% if ay.is_active %}selected{% endif %}>
+                                                    {{ ay.name }}{% if ay.is_active %} (Active){% endif %}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">From Class <span class="text-danger">*</span></label>
+                                        <select name="from_class" id="fromClass" class="form-select" required onchange="loadSourceStudents()">
+                                            <option value="">Select Class</option>
+                                            {% for c in classes %}
+                                                <option value="{{ c.id }}">{{ c.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">From Section</label>
+                                        <select name="from_section" id="fromSection" class="form-select" onchange="loadSourceStudents()">
+                                            <option value="">All Sections</option>
+                                            {% for s in sections %}
+                                                <option value="{{ s.id }}" data-class="{{ s.class_name_id }}">{{ s.class_name.name }} - {{ s.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Promotion Date</label>
+                                        <input type="date" name="promotion_date" id="promotionDate" class="form-control" value="{% now 'Y-m-d' %}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Target Cohort -->
+                        <div class="col-lg-6">
+                            <div class="p-3 border rounded-3 bg-light-subtle h-100">
+                                <h6 class="fw-bold text-success mb-3">
+                                    <i class="fas fa-sign-in-alt me-2"></i>2. Target Cohort (Promote To)
+                                </h6>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">To Academic Year <span class="text-danger">*</span></label>
+                                        <select name="to_academic_year" id="toAcademicYear" class="form-select" required>
+                                            <option value="">Select Next Session</option>
+                                            {% for ay in academic_years %}
+                                                <option value="{{ ay.id }}">{{ ay.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">To Class <span class="text-danger">*</span></label>
+                                        <select name="to_class" id="toClass" class="form-select" required onchange="filterTargetSections()">
+                                            <option value="">Select Next Class</option>
+                                            {% for c in classes %}
+                                                <option value="{{ c.id }}">{{ c.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Default Target Section</label>
+                                        <select name="to_section" id="toSection" class="form-select">
+                                            <option value="">Select Section (Optional)</option>
+                                            {% for s in sections %}
+                                                <option value="{{ s.id }}" data-class="{{ s.class_name_id }}">{{ s.class_name.name }} - {{ s.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Remarks</label>
+                                        <input type="text" name="remarks" class="form-control" placeholder="e.g., Annual Promotion">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Student Selection Grid -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                            <div>
+                                <h6 class="fw-bold mb-0">
+                                    <i class="fas fa-users me-2"></i>3. Select Students to Promote
+                                </h6>
+                                <small class="text-muted" id="selectionSummary">Select a source class to load students.</small>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setAllActions('promote')">
+                                    <i class="fas fa-check-double me-1"></i> Set All to Promote
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setAllActions('repeat')">
+                                    <i class="fas fa-redo me-1"></i> Set All to Repeat
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive border rounded-3">
+                            <table class="table table-hover align-middle mb-0" id="promotionStudentsTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 48px;" class="text-center">
+                                            <input type="checkbox" id="selectAllStudents" class="form-check-input" onchange="toggleSelectAll(this)">
+                                        </th>
+                                        <th>Admission No</th>
+                                        <th>Student Name</th>
+                                        <th>Current Section</th>
+                                        <th style="min-width: 160px;">Action</th>
+                                        <th style="min-width: 180px;">Target Section</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="studentsTableBody">
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5 text-muted">
+                                            <i class="fas fa-user-graduate fa-3x mb-3 text-secondary d-block"></i>
+                                            Please choose a <strong>From Class</strong> above to view students eligible for promotion.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Submission Buttons -->
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <div class="text-muted" id="selectedCountBadge">
+                            <span class="badge bg-secondary">0 selected</span>
+                        </div>
+                        <button type="submit" class="btn btn-primary px-4 py-2" id="submitPromotionBtn" disabled>
+                            <i class="fas fa-level-up-alt me-1"></i> Execute Student Promotion
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Promotions Log -->
+    {% if recent_promotions %}
+    <div class="col-12">
+        <div class="modern-card">
+            <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-primary">
+                    <i class="fas fa-history me-2"></i>Recent Promotions
+                </h6>
+                <a href="{% url 'students:promotion_history' school_slug=school_slug %}" class="btn btn-sm btn-link text-decoration-none">
+                    View Complete Log &rarr;
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Student</th>
+                                <th>From Class</th>
+                                <th>To Class</th>
+                                <th>From Year &rarr; To Year</th>
+                                <th>Promoted By</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in recent_promotions %}
+                            <tr>
+                                <td>{{ p.promotion_date|date:"Y-m-d" }}</td>
+                                <td>
+                                    <strong>{{ p.student.get_full_name }}</strong>
+                                    <small class="text-muted d-block">{{ p.student.admission_number }}</small>
+                                </td>
+                                <td>{{ p.from_class.name }}{% if p.from_section %} ({{ p.from_section.name }}){% endif %}</td>
+                                <td>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        {{ p.to_class.name }}{% if p.to_section %} ({{ p.to_section.name }}){% endif %}
+                                    </span>
+                                </td>
+                                <td>{{ p.from_academic_year.name }} &rarr; {{ p.to_academic_year.name }}</td>
+                                <td>{{ p.created_by.get_full_name|default:"Admin" }}</td>
+                                <td><small class="text-muted">{{ p.remarks|default:"-" }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    const allSections = [
+        {% for s in sections %}
+            { id: {{ s.id }}, classId: {{ s.class_name_id }}, name: "{{ s.name|escapejs }}" },
+        {% endfor %}
+    ];
+
+    function filterFromSections() {
+        const classId = document.getElementById('fromClass').value;
+        const select = document.getElementById('fromSection');
+        select.innerHTML = '<option value="">All Sections</option>';
+        if (!classId) return;
+        allSections.filter(s => s.classId == classId).forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = s.name;
+            select.appendChild(opt);
+        });
+    }
+
+    function filterTargetSections() {
+        const classId = document.getElementById('toClass').value;
+        const select = document.getElementById('toSection');
+        select.innerHTML = '<option value="">Select Section (Optional)</option>';
+        if (!classId) return;
+        allSections.filter(s => s.classId == classId).forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = s.name;
+            select.appendChild(opt);
+        });
+
+        // Also update any per-student section dropdowns
+        document.querySelectorAll('.target-section-select').forEach(sel => {
+            const currentVal = sel.value;
+            sel.innerHTML = '<option value="">Use Default Section</option>';
+            allSections.filter(s => s.classId == classId).forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = s.name;
+                sel.appendChild(opt);
+            });
+            sel.value = currentVal;
+        });
+    }
+
+    function loadSourceStudents() {
+        const classId = document.getElementById('fromClass').value;
+        const sectionId = document.getElementById('fromSection').value;
+        const tbody = document.getElementById('studentsTableBody');
+
+        filterFromSections();
+
+        if (!classId) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted">Please select a class.</td></tr>`;
+            updateSelectedCounter();
+            return;
+        }
+
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-muted">Loading students...</div></td></tr>`;
+
+        const url = `{% url 'students:promotion_students_api' school_slug=school_slug %}?class_id=${classId}&section_id=${sectionId}`;
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success || !data.students || data.students.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted"><i class="fas fa-info-circle fa-2x mb-2 d-block"></i>No active students found in this class/section.</td></tr>`;
+                    updateSelectedCounter();
+                    return;
+                }
+
+                const toClassId = document.getElementById('toClass').value;
+                const targetSections = allSections.filter(s => s.classId == toClassId);
+
+                let rowsHtml = '';
+                data.students.forEach(st => {
+                    let secOptions = '<option value="">Default Target Section</option>';
+                    targetSections.forEach(ts => {
+                        secOptions += `<option value="${ts.id}">${ts.name}</option>`;
+                    });
+
+                    rowsHtml += `
+                        <tr>
+                            <td class="text-center">
+                                <input type="checkbox" name="student_ids" value="${st.id}" class="form-check-input student-checkbox" checked onchange="updateSelectedCounter()">
+                            </td>
+                            <td><strong>${st.admission_number}</strong></td>
+                            <td>${st.full_name}</td>
+                            <td><span class="badge bg-light text-dark border">${st.current_section || 'N/A'}</span></td>
+                            <td>
+                                <select name="action_${st.id}" class="form-select form-select-sm student-action-select">
+                                    <option value="promote" selected>Promote</option>
+                                    <option value="repeat">Repeat / Retain</option>
+                                    <option value="leave">Graduated / Alumni</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select name="target_section_${st.id}" class="form-select form-select-sm target-section-select">
+                                    ${secOptions}
+                                </select>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                tbody.innerHTML = rowsHtml;
+                document.getElementById('selectAllStudents').checked = true;
+                updateSelectedCounter();
+            })
+            .catch(err => {
+                console.error(err);
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">Failed to load students.</td></tr>`;
+            });
+    }
+
+    function toggleSelectAll(master) {
+        document.querySelectorAll('.student-checkbox').forEach(cb => {
+            cb.checked = master.checked;
+        });
+        updateSelectedCounter();
+    }
+
+    function updateSelectedCounter() {
+        const checked = document.querySelectorAll('.student-checkbox:checked').length;
+        const total = document.querySelectorAll('.student-checkbox').length;
+        const btn = document.getElementById('submitPromotionBtn');
+        const badge = document.getElementById('selectedCountBadge');
+        const summary = document.getElementById('selectionSummary');
+
+        badge.innerHTML = `<span class="badge ${checked > 0 ? 'bg-primary' : 'bg-secondary'}">${checked} of ${total} students selected</span>`;
+        if (summary) {
+            summary.textContent = `${total} student(s) loaded.`;
+        }
+        btn.disabled = checked === 0;
+    }
+
+    function setAllActions(action) {
+        document.querySelectorAll('.student-action-select').forEach(sel => {
+            sel.value = action;
+        });
+    }
+
+    document.getElementById('promotionForm').addEventListener('submit', function (e) {
+        const checked = document.querySelectorAll('.student-checkbox:checked').length;
+        if (checked === 0) {
+            e.preventDefault();
+            alert('Please select at least one student to promote.');
+            return;
+        }
+
+        const fromClassName = document.getElementById('fromClass').selectedOptions[0]?.text || '';
+        const toClassName = document.getElementById('toClass').selectedOptions[0]?.text || '';
+
+        if (!confirm(`Are you sure you want to process promotion for ${checked} student(s) from ${fromClassName} to ${toClassName}?`)) {
+            e.preventDefault();
+        }
+    });
+</script>
+{% endblock %}

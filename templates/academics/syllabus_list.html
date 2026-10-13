@@ -1,0 +1,466 @@
+{% extends 'core/admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Curriculum & Syllabus - Academics{% endblock %}
+{% block page_icon %}file-invoice{% endblock %}
+{% block page_title %}Curriculum & Syllabus{% endblock %}
+{% block page_subtitle %}Manage syllabus outlines, learning objectives, and curriculum attachments across academic sessions{% endblock %}
+
+{% block content %}
+<!-- Top Action Bar -->
+<div class="row align-items-center mb-4">
+    <div class="col-md-6 mb-2 mb-md-0">
+        {% if user.role in 'admin,teacher,superadmin' %}
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#syllabusModal" onclick="openAddSyllabusModal()">
+            <i class="fas fa-plus-circle me-1"></i> Add Syllabus
+        </button>
+        {% endif %}
+        {% if active_year %}
+        <span class="badge bg-light text-dark border px-3 py-2 ms-2">
+            <i class="fas fa-calendar-alt text-primary me-1"></i> Active Session: <strong>{{ active_year.name }}</strong>
+        </span>
+        {% endif %}
+    </div>
+    <div class="col-md-6 text-md-end">
+        <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#filterPanel" aria-expanded="false" aria-controls="filterPanel">
+            <i class="fas fa-filter me-1"></i> Filters & Search
+        </button>
+    </div>
+</div>
+
+<!-- Filter Panel -->
+<div class="collapse {% if selected_class_id or selected_subject_id or selected_academic_year_id or search_query %}show{% endif %} mb-4" id="filterPanel">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold">Academic Year</label>
+                    <select name="academic_year_id" class="form-select form-select-sm">
+                        <option value="">All Academic Years</option>
+                        {% for ay in academic_years %}
+                        <option value="{{ ay.id }}" {% if selected_academic_year_id == ay.id|stringformat:"s" or not selected_academic_year_id and ay == active_year %}selected{% endif %}>
+                            {{ ay.name }}{% if ay.is_active %} (Current){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold">Class</label>
+                    <select name="class_id" class="form-select form-select-sm">
+                        <option value="">All Classes</option>
+                        {% for c in classes %}
+                        <option value="{{ c.id }}" {% if selected_class_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold">Subject</label>
+                    <select name="subject_id" class="form-select form-select-sm">
+                        <option value="">All Subjects</option>
+                        {% for s in subjects %}
+                        <option value="{{ s.id }}" {% if selected_subject_id == s.id|stringformat:"s" %}selected{% endif %}>{{ s.name }} ({{ s.code }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold">Keyword Search</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" name="search" class="form-control" placeholder="Title, topic, code..." value="{{ search_query }}">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i></button>
+                        {% if selected_class_id or selected_subject_id or selected_academic_year_id or search_query %}
+                        <a href="{% url 'academics:syllabus_list' school_slug=school_slug %}" class="btn btn-outline-secondary" title="Clear Filters">
+                            <i class="fas fa-times"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Syllabus Records Card -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold text-primary">
+            <i class="fas fa-book-reader me-2"></i>Curriculum Syllabus List
+            <span class="badge bg-secondary ms-2">{{ paginator.count|default:syllabi|length }} Records</span>
+        </h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3" style="width: 5%;">#</th>
+                        <th style="width: 25%;">Title & Subject</th>
+                        <th style="width: 15%;">Class & Session</th>
+                        <th style="width: 30%;">Overview / Content</th>
+                        <th style="width: 10%;">Attachment</th>
+                        <th class="text-end pe-3" style="width: 15%;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in syllabi %}
+                    <tr>
+                        <td class="ps-3 text-muted">{{ forloop.counter }}</td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ item.title }}</div>
+                            <div class="small">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                    <i class="fas fa-book me-1"></i>{{ item.subject.name }}
+                                </span>
+                                <span class="text-muted ms-1">({{ item.subject.code }})</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div><i class="fas fa-chalkboard text-secondary me-1"></i><strong>{{ item.class_name.name }}</strong></div>
+                            <div class="small text-muted"><i class="fas fa-calendar-alt me-1"></i>{{ item.academic_year.name }}</div>
+                        </td>
+                        <td>
+                            {% if item.description %}
+                            <div class="small text-dark mb-1">{{ item.description|truncatechars:120 }}</div>
+                            {% endif %}
+                            <div class="small text-muted">{{ item.content|truncatechars:90 }}</div>
+                        </td>
+                        <td>
+                            {% if item.file %}
+                            <a href="{{ item.file.url }}" target="_blank" class="btn btn-sm btn-outline-success" title="Download Document">
+                                <i class="fas fa-file-download me-1"></i> File
+                            </a>
+                            {% else %}
+                            <span class="text-muted small">No file</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-3">
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-info" title="Preview Syllabus" onclick="previewSyllabus({{ item.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                {% if user.role in 'admin,teacher,superadmin' %}
+                                <button type="button" class="btn btn-outline-primary" title="Edit Syllabus" onclick="editSyllabus({{ item.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" title="Delete Syllabus" onclick="deleteSyllabus({{ item.id }}, '{{ item.title|escapejs }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="fas fa-folder-open fa-3x mb-3 text-secondary opacity-50"></i>
+                                <h6>No syllabus records found</h6>
+                                <p class="small mb-3">No syllabus uploaded for the selected criteria.</p>
+                                {% if user.role in 'admin,teacher,superadmin' %}
+                                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#syllabusModal" onclick="openAddSyllabusModal()">
+                                    <i class="fas fa-plus me-1"></i> Add First Syllabus
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="p-3 border-top d-flex justify-content-between align-items-center">
+            <span class="small text-muted">
+                Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_class_id %}&class_id={{ selected_class_id }}{% endif %}{% if selected_subject_id %}&subject_id={{ selected_subject_id }}{% endif %}{% if selected_academic_year_id %}&academic_year_id={{ selected_academic_year_id }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a>
+                    </li>
+                    {% endif %}
+                    <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_class_id %}&class_id={{ selected_class_id }}{% endif %}{% if selected_subject_id %}&subject_id={{ selected_subject_id }}{% endif %}{% if selected_academic_year_id %}&academic_year_id={{ selected_academic_year_id }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add/Edit Syllabus Modal -->
+<div class="modal fade" id="syllabusModal" tabindex="-1" aria-labelledby="syllabusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="syllabusModalLabel">Add Syllabus</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="syllabusForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" id="syllabus_id" name="syllabus_id">
+                <div class="modal-body">
+                    <div id="syllabusFormAlert" class="alert alert-danger d-none" role="alert"></div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Academic Year <span class="text-danger">*</span></label>
+                            <select name="academic_year" id="syllabus_academic_year" class="form-select" required>
+                                {% for ay in academic_years %}
+                                <option value="{{ ay.id }}" {% if ay == active_year %}selected{% endif %}>
+                                    {{ ay.name }}{% if ay.is_active %} (Active){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Class <span class="text-danger">*</span></label>
+                            <select name="class_name" id="syllabus_class" class="form-select" required>
+                                <option value="">Select Class</option>
+                                {% for c in classes %}
+                                <option value="{{ c.id }}">{{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Subject <span class="text-danger">*</span></label>
+                            <select name="subject" id="syllabus_subject" class="form-select" required>
+                                <option value="">Select Subject</option>
+                                {% for s in subjects %}
+                                <option value="{{ s.id }}">{{ s.name }} ({{ s.code }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Syllabus Title <span class="text-danger">*</span></label>
+                        <input type="text" name="title" id="syllabus_title" class="form-control" required placeholder="e.g., Grade 9 Mathematics - Term 1 Curriculum">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Short Description</label>
+                        <textarea name="description" id="syllabus_description" class="form-control" rows="2" placeholder="Brief summary of goals and scope..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Syllabus Content / Topics Covered</label>
+                        <textarea name="content" id="syllabus_content" class="form-control" rows="6" placeholder="Enter week-by-week curriculum, topics, learning objectives, and reading materials..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Curriculum Document (PDF, Word, etc.)</label>
+                        <input type="file" name="file" id="syllabus_file" class="form-control">
+                        <small class="text-muted" id="fileHelpText">Upload optional downloadable syllabus file.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveSyllabusBtn">
+                        <i class="fas fa-save me-1"></i> Save Syllabus
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Syllabus Modal -->
+<div class="modal fade" id="previewSyllabusModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0" id="previewTitle">Syllabus Preview</h5>
+                    <span class="badge bg-primary-subtle text-primary border" id="previewSubjectBadge">Subject</span>
+                    <span class="badge bg-secondary-subtle text-secondary border" id="previewClassBadge">Class</span>
+                    <span class="badge bg-info-subtle text-info border" id="previewYearBadge">Session</span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3" id="previewDescriptionBox">
+                    <h6 class="fw-bold text-muted small text-uppercase mb-1">Description</h6>
+                    <p class="text-dark" id="previewDescription">-</p>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="fw-bold text-muted small text-uppercase mb-1">Curriculum Content & Topics</h6>
+                    <div class="p-3 bg-light rounded border text-pre-wrap" id="previewContent" style="white-space: pre-wrap; font-family: inherit; font-size: 0.95rem; line-height: 1.6;">-</div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center p-3 bg-white border rounded">
+                    <div>
+                        <div class="small text-muted">Created by: <strong id="previewAuthor">-</strong></div>
+                        <div class="small text-muted">Last Updated: <span id="previewDate">-</span></div>
+                    </div>
+                    <div id="previewDownloadContainer">
+                        <!-- Dynamic download link -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const schoolSlug = "{{ school_slug }}";
+
+function openAddSyllabusModal() {
+    document.getElementById('syllabusModalLabel').textContent = 'Add Syllabus';
+    document.getElementById('syllabusForm').reset();
+    document.getElementById('syllabus_id').value = '';
+    document.getElementById('syllabusFormAlert').classList.add('d-none');
+    document.getElementById('fileHelpText').textContent = 'Upload optional downloadable syllabus file.';
+}
+
+function previewSyllabus(id) {
+    fetch(`/school/${schoolSlug}/academics/syllabus/${id}/`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success) {
+            alert(data.error || 'Failed to load syllabus details');
+            return;
+        }
+        document.getElementById('previewTitle').textContent = data.title;
+        document.getElementById('previewSubjectBadge').textContent = data.subject_name;
+        document.getElementById('previewClassBadge').textContent = data.class_name;
+        document.getElementById('previewYearBadge').textContent = data.academic_year_name;
+        document.getElementById('previewDescription').textContent = data.description || 'No description provided.';
+        document.getElementById('previewContent').textContent = data.content || 'No detailed content written.';
+        document.getElementById('previewAuthor').textContent = data.created_by;
+        document.getElementById('previewDate').textContent = data.updated_at;
+
+        const downloadBox = document.getElementById('previewDownloadContainer');
+        if (data.file_url) {
+            downloadBox.innerHTML = `
+                <a href="${data.file_url}" target="_blank" class="btn btn-success btn-sm">
+                    <i class="fas fa-file-download me-1"></i> Download ${data.file_name || 'Document'}
+                </a>
+            `;
+        } else {
+            downloadBox.innerHTML = `<span class="badge bg-light text-muted border">No attached file</span>`;
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('previewSyllabusModal'));
+        modal.show();
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Could not fetch syllabus details.');
+    });
+}
+
+function editSyllabus(id) {
+    fetch(`/school/${schoolSlug}/academics/syllabus/${id}/`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success) {
+            alert(data.error || 'Failed to load syllabus details');
+            return;
+        }
+        document.getElementById('syllabusModalLabel').textContent = 'Edit Syllabus';
+        document.getElementById('syllabus_id').value = data.id;
+        document.getElementById('syllabus_title').value = data.title;
+        document.getElementById('syllabus_class').value = data.class_id;
+        document.getElementById('syllabus_subject').value = data.subject_id;
+        document.getElementById('syllabus_academic_year').value = data.academic_year_id;
+        document.getElementById('syllabus_description').value = data.description;
+        document.getElementById('syllabus_content').value = data.content;
+        document.getElementById('syllabusFormAlert').classList.add('d-none');
+        if (data.file_url) {
+            document.getElementById('fileHelpText').innerHTML = `Current file: <a href="${data.file_url}" target="_blank">${data.file_name}</a>. Upload a new file to replace it.`;
+        } else {
+            document.getElementById('fileHelpText').textContent = 'Upload optional downloadable syllabus file.';
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('syllabusModal'));
+        modal.show();
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Could not fetch syllabus details for editing.');
+    });
+}
+
+document.getElementById('syllabusForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('saveSyllabusBtn');
+    const alertBox = document.getElementById('syllabusFormAlert');
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i> Saving...`;
+    alertBox.classList.add('d-none');
+
+    const formData = new FormData(this);
+    const syllabusId = document.getElementById('syllabus_id').value;
+    const url = syllabusId 
+        ? `/school/${schoolSlug}/academics/syllabus/${syllabusId}/edit/`
+        : `/school/${schoolSlug}/academics/syllabus/add/`;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alertBox.textContent = data.error || 'Failed to save syllabus.';
+            alertBox.classList.remove('d-none');
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-save me-1"></i> Save Syllabus`;
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alertBox.textContent = 'Server error occurred while saving syllabus.';
+        alertBox.classList.remove('d-none');
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-save me-1"></i> Save Syllabus`;
+    });
+});
+
+function deleteSyllabus(id, title) {
+    if (!confirm(`Are you sure you want to delete syllabus "${title}"? This action cannot be undone.`)) {
+        return;
+    }
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    fetch(`/school/${schoolSlug}/academics/syllabus/${id}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert(data.error || 'Failed to delete syllabus.');
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Server error occurred while deleting syllabus.');
+    });
+}
+</script>
+{% endblock %}
