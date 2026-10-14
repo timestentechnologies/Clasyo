@@ -174,10 +174,11 @@ def calculate_fee_aggregates(class_id=None, balance_status=None, school=None):
         per_student_fee = fee_per_class.get(cls_id, 0)
         total_expected += per_student_fee * student_count
 
-    # Total collected from active students
+    # Total collected from active students for the active class fee structures
     total_collected = FeeCollection.objects.filter(
         student__is_active=True,
-        student__current_class__isnull=False
+        student__current_class__isnull=False,
+        fee_structure__class_name_id__in=class_ids
     )
     if school:
         total_collected = total_collected.filter(student__current_class__school=school)
@@ -500,10 +501,13 @@ class MyFeesView(LoginRequiredMixin, ListView):
                     class_name=child.current_class,
                     is_active=True
                 )
+                structure_ids = list(fee_structures.values_list('id', flat=True))
 
                 total_fees = sum(structure.amount for structure in fee_structures)
-                total_paid = FeeCollection.objects.filter(student=child).aggregate(
-                    total=models.Sum('paid_amount'))['total'] or 0
+                total_paid = FeeCollection.objects.filter(
+                    student=child,
+                    fee_structure_id__in=structure_ids
+                ).aggregate(total=models.Sum('paid_amount'))['total'] or 0
                 balance = total_fees - total_paid
 
                 for structure in fee_structures:
@@ -560,10 +564,13 @@ class MyFeesView(LoginRequiredMixin, ListView):
                 is_active=True
             )
             context['fee_structures'] = fee_structures
+            structure_ids = list(fee_structures.values_list('id', flat=True))
 
             total_fees = sum(structure.amount for structure in fee_structures)
-            total_paid = FeeCollection.objects.filter(student=student).aggregate(
-                total=models.Sum('paid_amount'))['total'] or 0
+            total_paid = FeeCollection.objects.filter(
+                student=student,
+                fee_structure_id__in=structure_ids
+            ).aggregate(total=models.Sum('paid_amount'))['total'] or 0
             balance = total_fees - total_paid
 
             context['total_fees'] = total_fees

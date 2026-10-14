@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
+from django.db.models import Q
 from academics.models import Class, Section
 from students.models import Student
 from datetime import date
@@ -62,11 +63,15 @@ class MarkAttendanceView(LoginRequiredMixin, ListView):
                 selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
             
             existing_qs = StudentAttendance.objects.filter(
-                date=selected_date,
-                student__current_class_id=context['selected_class_id']
+                date=selected_date
+            ).filter(
+                Q(class_name_id=context['selected_class_id']) |
+                Q(class_name__isnull=True, student__current_class_id=context['selected_class_id'])
             ).select_related('student')
             if school:
-                existing_qs = existing_qs.filter(student__current_class__school=school)
+                existing_qs = existing_qs.filter(
+                    Q(school=school) | Q(class_name__school=school) | Q(student__school=school) | Q(student__current_class__school=school)
+                )
             context['existing_attendance'] = existing_qs
             
             print(f"Found {context['existing_attendance'].count()} existing attendance records for {selected_date}")
@@ -137,9 +142,11 @@ class AttendanceReportView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         if MODELS_EXIST:
             school = get_current_school(self.request)
-            qs = StudentAttendance.objects.all()
+            qs = StudentAttendance.objects.all().select_related('student', 'class_name', 'section')
             if school:
-                qs = qs.filter(student__current_class__school=school)
+                qs = qs.filter(
+                    Q(school=school) | Q(class_name__school=school) | Q(student__school=school) | Q(student__current_class__school=school)
+                )
             return qs
         return []
     

@@ -824,6 +824,16 @@ class SaveMarksGridView(LoginRequiredMixin, View):
                         except InvalidOperation:
                             return JsonResponse({'success': False, 'error': f'Invalid marks value for subject {subj_id}'}, status=400)
 
+                        # Compute per-subject percentage and grade
+                        subj_percentage = (marks_val / total_marks) * 100 if total_marks > 0 else 0
+                        subj_grade_qs = Grade.objects.filter(
+                            min_percentage__lte=subj_percentage,
+                            max_percentage__gte=subj_percentage
+                        )
+                        if school:
+                            subj_grade_qs = subj_grade_qs.filter(school=school)
+                        subj_grade = subj_grade_qs.first()
+
                         # Create or update ExamMark
                         ExamMark.objects.update_or_create(
                             exam=exam,
@@ -832,7 +842,48 @@ class SaveMarksGridView(LoginRequiredMixin, View):
                             defaults={
                                 'marks_obtained': marks_val,
                                 'total_marks': total_marks,
+                                'grade': subj_grade,
                                 'remarks': remarks
+                            }
+                        )
+
+                    # After saving all subject marks for this student, aggregate total and update ExamResult and ExamSubmission
+                    all_marks = list(ExamMark.objects.filter(exam=exam, student=student))
+                    if all_marks:
+                        total_obtained = sum(m.marks_obtained for m in all_marks)
+                        total_possible = sum(m.total_marks for m in all_marks)
+                        pct = (total_obtained / total_possible * Decimal('100')) if total_possible > 0 else Decimal('0.00')
+
+                        overall_grade_qs = Grade.objects.filter(min_percentage__lte=pct, max_percentage__gte=pct)
+                        if school:
+                            overall_grade_qs = overall_grade_qs.filter(school=school)
+                        overall_grade = overall_grade_qs.first()
+
+                        ExamResult.objects.update_or_create(
+                            exam=exam,
+                            student=student,
+                            defaults={
+                                'total_marks': total_possible,
+                                'marks_obtained': total_obtained,
+                                'percentage': pct,
+                                'grade': overall_grade,
+                                'remarks': remarks or ''
+                            }
+                        )
+
+                        ExamSubmission.objects.update_or_create(
+                            exam=exam,
+                            student=student,
+                            defaults={
+                                'status': 'graded',
+                                'total_points': total_possible,
+                                'points_obtained': total_obtained,
+                                'percentage': pct,
+                                'grade': overall_grade,
+                                'teacher_remarks': remarks or '',
+                                'graded_by': request.user,
+                                'graded_at': timezone.now(),
+                                'submitted_at': timezone.now(),
                             }
                         )
             return JsonResponse({'success': True, 'message': 'Marks saved successfully!'})
@@ -955,6 +1006,19 @@ class SaveMarksEntryView(LoginRequiredMixin, View):
                     exam=exam,
                     student=student,
                     defaults=submission_defaults,
+                )
+
+                # Also create/update ExamResult
+                ExamResult.objects.update_or_create(
+                    exam=exam,
+                    student=student,
+                    defaults={
+                        'total_marks': total_marks,
+                        'marks_obtained': marks_obtained,
+                        'percentage': percentage,
+                        'grade': grade,
+                        'remarks': mark_entry.get('remarks', '') or '',
+                    }
                 )
                 
                 saved_count += 1
@@ -1295,6 +1359,52 @@ class StudentResultsView(LoginRequiredMixin, ListView):
         
         student = self.request.user.student_profile
         school = get_current_school(self.request)
+
+        # Ensure ExamSubmission and ExamResult exist for all exams where this student has marks
+        try:
+            exam_ids = ExamMark.objects.filter(student=student).values_list('exam_id', flat=True).distinct()
+            for eid in exam_ids:
+                exam_obj = Exam.objects.filter(pk=eid).first()
+                if not exam_obj:
+                    continue
+                marks = list(ExamMark.objects.filter(exam=exam_obj, student=student))
+                if not marks:
+                    continue
+                tot_obtained = sum(m.marks_obtained for m in marks)
+                tot_possible = sum(m.total_marks for m in marks)
+                pct = (tot_obtained / tot_possible * Decimal('100')) if tot_possible > 0 else Decimal('0.00')
+
+                grd_qs = Grade.objects.filter(min_percentage__lte=pct, max_percentage__gte=pct)
+                if school:
+                    grd_qs = grd_qs.filter(school=school)
+                grd = grd_qs.first()
+
+                ExamResult.objects.update_or_create(
+                    exam=exam_obj,
+                    student=student,
+                    defaults={
+                        'total_marks': tot_possible,
+                        'marks_obtained': tot_obtained,
+                        'percentage': pct,
+                        'grade': grd,
+                    }
+                )
+                ExamSubmission.objects.get_or_create(
+                    exam=exam_obj,
+                    student=student,
+                    defaults={
+                        'status': 'graded',
+                        'total_points': tot_possible,
+                        'points_obtained': tot_obtained,
+                        'percentage': pct,
+                        'grade': grd,
+                        'submitted_at': timezone.now(),
+                        'graded_at': timezone.now(),
+                    }
+                )
+        except Exception:
+            pass
+
         qs = ExamSubmission.objects.filter(
             student=student,
             status='graded'

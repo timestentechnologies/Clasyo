@@ -57,6 +57,14 @@ class HomeworkDashboardView(LoginRequiredMixin, TemplateView):
     """Dashboard for homework"""
     template_name = 'homework/dashboard.html'
     
+    def dispatch(self, request, *args, **kwargs):
+        if getattr(request.user, 'is_parent', False) or getattr(request.user, 'role', '') == 'parent':
+            school_slug = kwargs.get('school_slug') or (request.user.school.slug if hasattr(request.user, 'school') and request.user.school else None)
+            if school_slug:
+                return redirect('core:children_homework', school_slug=school_slug)
+            return redirect('core:children_homework')
+        return super().dispatch(request, *args, **kwargs)
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
@@ -179,6 +187,14 @@ class HomeworkAssignmentListView(LoginRequiredMixin, ListView):
     template_name = 'homework/assignment_list.html'
     context_object_name = 'assignments'
     paginate_by = 15
+    
+    def dispatch(self, request, *args, **kwargs):
+        if getattr(request.user, 'is_parent', False) or getattr(request.user, 'role', '') == 'parent':
+            school_slug = kwargs.get('school_slug') or (request.user.school.slug if hasattr(request.user, 'school') and request.user.school else None)
+            if school_slug:
+                return redirect('core:children_homework', school_slug=school_slug)
+            return redirect('core:children_homework')
+        return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
         queryset = HomeworkAssignment.objects.all()

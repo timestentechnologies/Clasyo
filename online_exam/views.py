@@ -41,6 +41,8 @@ class OnlineExamDashboardView(LoginRequiredMixin, TemplateView):
                     is_published=True,
                     start_time__lte=now,
                     end_time__gte=now
+                ).filter(
+                    Q(section__isnull=True) | Q(section=student.section)
                 )
                 if school:
                     current_qs = current_qs.filter(school=school)
@@ -51,6 +53,8 @@ class OnlineExamDashboardView(LoginRequiredMixin, TemplateView):
                     class_ref=student.current_class,
                     is_published=True,
                     start_time__gt=now
+                ).filter(
+                    Q(section__isnull=True) | Q(section=student.section)
                 )
                 if school:
                     upcoming_qs = upcoming_qs.filter(school=school)
@@ -72,6 +76,36 @@ class OnlineExamDashboardView(LoginRequiredMixin, TemplateView):
                     'exams_passed': attempts_qs.filter(passed=True).count(),
                     'average_score': attempts_qs.aggregate(avg=Avg('percentage'))['avg']
                 }
+
+        elif getattr(user, 'is_parent', False) or getattr(user, 'role', '') == 'parent':
+            # Parent dashboard
+            children = Student.objects.filter(parent_user=user, is_active=True)
+            class_ids = [c.current_class_id for c in children if c.current_class_id]
+            section_ids = [c.section_id for c in children if c.section_id]
+            now = timezone.now()
+            children_exams = OnlineExam.objects.filter(
+                class_ref_id__in=class_ids,
+                is_published=True
+            ).filter(
+                Q(section__isnull=True) | Q(section_id__in=section_ids)
+            )
+            if school:
+                children_exams = children_exams.filter(school=school)
+            context['current_exams'] = children_exams.filter(start_time__lte=now, end_time__gte=now).order_by('end_time')
+            context['upcoming_exams'] = children_exams.filter(start_time__gt=now).order_by('start_time')[:5]
+            attempts_qs = ExamAttempt.objects.filter(
+                student__in=children,
+                is_completed=True
+            ).select_related('student', 'exam')
+            if school:
+                attempts_qs = attempts_qs.filter(exam__school=school)
+            context['recent_attempts'] = attempts_qs.order_by('-submitted_at')[:5]
+            total_attempts = attempts_qs.count()
+            context['stats'] = {
+                'total_attempts': total_attempts,
+                'exams_passed': attempts_qs.filter(passed=True).count(),
+                'average_score': attempts_qs.aggregate(avg=Avg('percentage'))['avg']
+            }
         
         elif user.is_teacher or user.is_school_admin:
             # Teacher dashboard
@@ -155,13 +189,26 @@ class OnlineExamListView(LoginRequiredMixin, ListView):
         
         # Filter by user role
         if user.is_student:
-            # Students see only published exams for their class
+            # Students see only published exams for their class and section
             student = Student.objects.filter(user=user).first()
             if student:
                 queryset = queryset.filter(
                     is_published=True,
                     class_ref=student.current_class
+                ).filter(
+                    Q(section__isnull=True) | Q(section=student.section)
                 )
+        elif getattr(user, 'is_parent', False) or getattr(user, 'role', '') == 'parent':
+            # Parents see exams for their children's classes and sections
+            children = Student.objects.filter(parent_user=user, is_active=True)
+            class_ids = [c.current_class_id for c in children if c.current_class_id]
+            section_ids = [c.section_id for c in children if c.section_id]
+            queryset = queryset.filter(
+                is_published=True,
+                class_ref_id__in=class_ids
+            ).filter(
+                Q(section__isnull=True) | Q(section_id__in=section_ids)
+            )
         elif user.is_teacher and not user.is_school_admin:
             # Teachers see exams they created
             queryset = queryset.filter(created_by=user)

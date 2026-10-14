@@ -31,6 +31,7 @@ from .forms import (
 from students.models import Student
 from academics.models import Class
 from tenants.models import School
+from core.utils import get_current_school
 
 
 # Certificate Type Views
@@ -40,7 +41,11 @@ class CertificateTypeListView(LoginRequiredMixin, ListView):
     context_object_name = 'certificate_types'
     
     def get_queryset(self):
-        return CertificateType.objects.filter(is_active=True)
+        school = get_current_school(self.request)
+        qs = CertificateType.objects.filter(is_active=True)
+        if school:
+            qs = qs.filter(Q(school=school) | Q(school__isnull=True))
+        return qs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -120,7 +125,11 @@ class CertificateListView(LoginRequiredMixin, ListView):
     context_object_name = 'certificates'
     
     def get_queryset(self):
-        return Certificate.objects.filter(is_active=True).select_related('student', 'certificate_type')
+        school = get_current_school(self.request)
+        qs = Certificate.objects.filter(is_active=True).select_related('student', 'certificate_type')
+        if school:
+            qs = qs.filter(Q(certificate_type__school=school) | Q(student__school=school) | Q(student__user__school=school))
+        return qs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -619,7 +628,11 @@ class IDCardTemplateListView(LoginRequiredMixin, ListView):
     context_object_name = 'templates'
     
     def get_queryset(self):
-        return IDCardTemplate.objects.filter(is_active=True)
+        school = get_current_school(self.request)
+        qs = IDCardTemplate.objects.filter(is_active=True)
+        if school:
+            qs = qs.filter(Q(school=school) | Q(school__isnull=True))
+        return qs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -695,7 +708,11 @@ class IDCardListView(LoginRequiredMixin, ListView):
     context_object_name = 'idcards'
     
     def get_queryset(self):
-        return IDCard.objects.filter(is_active=True).select_related('student', 'card_template')
+        school = get_current_school(self.request)
+        qs = IDCard.objects.filter(is_active=True).select_related('student', 'card_template')
+        if school:
+            qs = qs.filter(Q(card_template__school=school) | Q(student__school=school) | Q(student__user__school=school))
+        return qs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

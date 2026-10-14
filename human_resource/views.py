@@ -510,8 +510,25 @@ class TeacherDeleteView(LoginRequiredMixin, DeleteView):
             if getattr(teacher, 'is_sample_data', False):
                 return JsonResponse({'success': False, 'error': 'Sample/Demo data cannot be deleted.'})
             if teacher.role == 'teacher':
-                teacher.delete()
-                return JsonResponse({'success': True})
+                from academics.models import ClassTeacherAssignment, Section, AssignedSubject
+                
+                # Soft deactivate teacher user
+                teacher.is_active = False
+                teacher.save(update_fields=['is_active'])
+                
+                # Soft deactivate HR profile if exists
+                if hasattr(teacher, 'teacher_profile'):
+                    profile = teacher.teacher_profile
+                    profile.is_active = False
+                    profile.save(update_fields=['is_active'])
+                
+                # Cleanly unassign active class teaching & subject assignments
+                ClassTeacherAssignment.objects.filter(teacher=teacher, is_active=True).update(is_active=False)
+                Section.objects.filter(class_teacher=teacher).update(class_teacher=None)
+                AssignedSubject.objects.filter(teacher=teacher, is_active=True).update(is_active=False)
+                Department.objects.filter(head=teacher).update(head=None)
+                
+                return JsonResponse({'success': True, 'message': 'Teacher deactivated successfully'})
             return JsonResponse({'success': False, 'error': 'Not a teacher'})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
@@ -742,8 +759,21 @@ class StaffDeleteView(LoginRequiredMixin, DeleteView):
             obj = self.get_object()
             if getattr(obj, 'is_sample_data', False):
                 return JsonResponse({'success': False, 'error': 'Sample/Demo data cannot be deleted.'})
-            obj.delete()
-            return JsonResponse({'success': True})
+            
+            # Soft deactivate staff user
+            obj.is_active = False
+            obj.save(update_fields=['is_active'])
+            
+            # Soft deactivate HR staff profile if exists
+            if hasattr(obj, 'staff_profile'):
+                profile = obj.staff_profile
+                profile.is_active = False
+                profile.save(update_fields=['is_active'])
+            
+            # Cleanly unassign from headed departments
+            Department.objects.filter(head=obj).update(head=None)
+            
+            return JsonResponse({'success': True, 'message': 'Staff deactivated successfully'})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 

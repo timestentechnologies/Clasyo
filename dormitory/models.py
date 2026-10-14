@@ -95,8 +95,44 @@ class RoomAllocation(models.Model):
         return f"{self.student.get_full_name()} - {self.room}"
     
     def save(self, *args, **kwargs):
-        # Update room occupancy
-        if self.pk is None:  # New allocation
-            self.room.current_occupancy += 1
-            self.room.save()
+        old_room_id = None
+        if self.pk:
+            try:
+                old_room_id = RoomAllocation.objects.filter(pk=self.pk).values_list('room_id', flat=True).first()
+            except Exception:
+                pass
         super().save(*args, **kwargs)
+
+        # Synchronize Student hostel & room references
+        if self.student_id and self.room_id:
+            if self.is_active:
+                Student.objects.filter(pk=self.student_id).update(
+                    is_hostel_required=True,
+                    dormitory_id=self.room.dormitory_id,
+                    room_id=self.room_id
+                )
+            else:
+                Student.objects.filter(pk=self.student_id, room_id=self.room_id).update(
+                    room=None
+                )
+
+        # Recalculate current room occupancy
+        if self.room_id:
+            active_count = RoomAllocation.objects.filter(room_id=self.room_id, is_active=True).count()
+            Room.objects.filter(pk=self.room_id).update(current_occupancy=active_count)
+
+        # Recalculate old room occupancy if transferred
+        if old_room_id and old_room_id != self.room_id:
+            old_count = RoomAllocation.objects.filter(room_id=old_room_id, is_active=True).count()
+            Room.objects.filter(pk=old_room_id).update(current_occupancy=old_count)
+
+    def delete(self, *args, **kwargs):
+        room_id = self.room_id
+        student_id = self.student_id
+        res = super().delete(*args, **kwargs)
+        if room_id:
+            active_count = RoomAllocation.objects.filter(room_id=room_id, is_active=True).count()
+            Room.objects.filter(pk=room_id).update(current_occupancy=active_count)
+        if student_id:
+            Student.objects.filter(pk=student_id, room_id=room_id).update(room=None)
+        return res

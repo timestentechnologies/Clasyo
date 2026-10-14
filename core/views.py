@@ -524,10 +524,40 @@ class MyChildrenView(LoginRequiredMixin, TemplateView):
             
             # Get recent exam results (only for THIS child)
             try:
-                from examinations.models import ExamResult
+                from examinations.models import ExamResult, ExamMark, Grade, Exam
                 recent_results = ExamResult.objects.filter(
                     student=child
                 ).select_related('exam', 'student', 'grade').order_by('-exam__start_date')[:5]
+
+                # If no ExamResult exists yet, check if ExamMark exists and auto-populate
+                if not recent_results.exists():
+                    child_exam_ids = ExamMark.objects.filter(student=child).values_list('exam_id', flat=True).distinct()[:5]
+                    for ceid in child_exam_ids:
+                        exam_obj = Exam.objects.filter(pk=ceid).first()
+                        if not exam_obj:
+                            continue
+                        c_marks = list(ExamMark.objects.filter(exam=exam_obj, student=child))
+                        if c_marks:
+                            tot_obt = sum(m.marks_obtained for m in c_marks)
+                            tot_pos = sum(m.total_marks for m in c_marks)
+                            pct = (tot_obt / tot_pos * 100) if tot_pos > 0 else 0
+                            grd_qs = Grade.objects.filter(min_percentage__lte=pct, max_percentage__gte=pct)
+                            if school:
+                                grd_qs = grd_qs.filter(school=school)
+                            ExamResult.objects.update_or_create(
+                                exam=exam_obj,
+                                student=child,
+                                defaults={
+                                    'total_marks': tot_pos,
+                                    'marks_obtained': tot_obt,
+                                    'percentage': pct,
+                                    'grade': grd_qs.first(),
+                                }
+                            )
+                    recent_results = ExamResult.objects.filter(
+                        student=child
+                    ).select_related('exam', 'student', 'grade').order_by('-exam__start_date')[:5]
+
                 child_info['recent_results'] = recent_results
                 
                 # Calculate average grade

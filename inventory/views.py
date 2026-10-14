@@ -200,7 +200,16 @@ class CanteenPOSView(LoginRequiredMixin, TemplateView):
                 student = None
                 if student_adm:
                     from students.models import Student as _Stu
-                    student = _Stu.objects.filter(admission_number=student_adm).first()
+                    stu_qs = _Stu.objects.filter(admission_number=student_adm)
+                    if school:
+                        stu_qs = stu_qs.filter(
+                            Q(school=school) |
+                            Q(current_class__school=school) |
+                            Q(user__school=school)
+                        )
+                    student = stu_qs.first()
+                    if not student:
+                        return JsonResponse({'success': False, 'error': f'Student with admission number "{student_adm}" not found in this school.'})
 
                 # Validate stock and compute totals
                 product_ids = [int(it.get('product_id')) for it in cart if it.get('product_id')]
@@ -523,9 +532,17 @@ class ItemDistributionView(LoginRequiredMixin, ListView):
         from human_resource.models import Teacher, Staff
         from students.models import Student
         
-        context['teachers'] = Teacher.objects.filter(is_active=True)
-        context['staff'] = Staff.objects.filter(is_active=True)
-        context['students'] = Student.objects.all()[:100]  # Limit for performance
+        teachers_qs = Teacher.objects.filter(is_active=True).select_related('user')
+        staff_qs = Staff.objects.filter(is_active=True).select_related('user')
+        students_qs = Student.objects.filter(is_active=True).select_related('user')
+        if school:
+            teachers_qs = teachers_qs.filter(user__school=school)
+            staff_qs = staff_qs.filter(user__school=school)
+            students_qs = students_qs.filter(Q(school=school) | Q(user__school=school))
+        
+        context['teachers'] = teachers_qs
+        context['staff'] = staff_qs
+        context['students'] = students_qs[:100]  # Limit for performance
         
         return context
     

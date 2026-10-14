@@ -835,8 +835,42 @@ class StudentDeleteView(DeleteView):
             student = self.get_object()
             if getattr(student, 'is_sample_data', False) or getattr(student.user, 'is_sample_data', False):
                 return JsonResponse({'success': False, 'error': 'Sample/Demo data cannot be deleted.'})
-            student.user.delete()  # This will cascade delete the student
-            return JsonResponse({'success': True, 'message': 'Student deleted successfully'})
+
+            # Check if student has historical academic or financial records
+            has_fee_records = hasattr(student, 'fee_collections') and student.fee_collections.exists()
+            has_exam_records = (
+                (hasattr(student, 'exam_marks') and student.exam_marks.exists()) or
+                (hasattr(student, 'exam_results') and student.exam_results.exists())
+            )
+            has_attendance_records = hasattr(student, 'attendance_records') and student.attendance_records.exists()
+            has_canteen_sales = hasattr(student, 'canteen_sales') and student.canteen_sales.exists()
+
+            if has_fee_records or has_exam_records or has_attendance_records or has_canteen_sales:
+                from django.utils import timezone
+                # Preserve historical audits: soft-deactivate student
+                student.is_active = False
+                student.leaving_date = timezone.now().date()
+                student.leaving_reason = request.POST.get('reason', 'Transferred / Deactivated')
+                student.save(update_fields=['is_active', 'leaving_date', 'leaving_reason'])
+
+                # Deactivate user account
+                if student.user:
+                    student.user.is_active = False
+                    student.user.save(update_fields=['is_active'])
+
+                # Deactivate room allocation if present
+                if hasattr(student, 'room_allocation'):
+                    ra = student.room_allocation
+                    ra.is_active = False
+                    ra.save()
+
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Student has historical fee/academic records; safely deactivated and preserved for audits.'
+                })
+            else:
+                student.user.delete()  # Safe to delete clean record without historical data
+                return JsonResponse({'success': True, 'message': 'Student deleted successfully'})
         except Exception as e:
             import traceback
             traceback.print_exc()
