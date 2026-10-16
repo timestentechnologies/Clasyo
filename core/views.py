@@ -340,29 +340,99 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             pass
         
         # Role-specific data
-        if user.is_school_admin or user.role == 'school_admin':
+        if user.is_school_admin or user.role in ('admin', 'school_admin', 'superadmin'):
             from students.models import Student
             from accounts.models import User
             from academics.models import Class
-            from django.db.models import Q
+            from django.db.models import Q, Sum
+            from decimal import Decimal
+            from django.utils import timezone
 
             school = context.get('school')
 
             # Students and classes scoped to school
             if school:
-                context['total_students'] = Student.objects.filter(
-                    is_active=True,
-                ).filter(
-                    Q(current_class__school=school) | Q(user__school=school)
-                ).distinct().count()
+                student_qs = Student.objects.filter(is_active=True).filter(
+                    Q(current_class__school=school) | Q(user__school=school) | Q(school=school)
+                ).distinct()
+                context['total_students'] = student_qs.count()
                 context['total_classes'] = Class.objects.filter(
                     is_active=True,
                     school=school,
                 ).count()
             else:
-                # Fallback (should not happen if URL has correct slug)
-                context['total_students'] = 0
-                context['total_classes'] = 0
+                student_qs = Student.objects.filter(is_active=True)
+                context['total_students'] = student_qs.count()
+                context['total_classes'] = Class.objects.filter(is_active=True).count()
+
+            # Admissions breakdown for quick stats & insights
+            if school:
+                adm_qs = Student.objects.filter(
+                    Q(current_class__school=school) | Q(user__school=school) | Q(school=school)
+                ).distinct()
+            else:
+                adm_qs = Student.objects.all()
+
+            context['admissions_enrolled'] = adm_qs.filter(is_active=True, enrollment_status='enrolled').count()
+            context['admissions_pending'] = adm_qs.filter(enrollment_status='pending').count()
+            context['admissions_transferred'] = adm_qs.filter(enrollment_status__in=['transferred', 'withdrawn', 'graduated']).count()
+
+            # Currency and Symbol
+            currency_code = getattr(school, 'clean_currency', None) or (getattr(school, 'currency', 'USD') or 'USD').strip().upper()
+            currency_symbol = getattr(school, 'clean_currency_symbol', None) or (getattr(school, 'currency_symbol', '$') or '$').strip()
+            context['currency'] = currency_code
+            context['currency_code'] = currency_code
+            context['currency_symbol'] = currency_symbol
+
+            # Financial metrics: fees billed, collected, pending, collection rate
+            try:
+                from fees.models import FeeCollection
+                fc_qs = FeeCollection.objects.all()
+                if school:
+                    fc_qs = fc_qs.filter(
+                        Q(student__school=school) | Q(fee_structure__class_name__school=school)
+                    )
+
+                billed_total = fc_qs.aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+                collected_total = fc_qs.aggregate(s=Sum('paid_amount'))['s'] or Decimal('0.00')
+
+                # Check finance Transactions if fee collections didn't yield anything
+                try:
+                    from finance.models import Transaction
+                    txn_qs = Transaction.objects.filter(status='posted', txn_type='fee_collection')
+                    if school:
+                        txn_qs = txn_qs.filter(school=school)
+                    txn_collected = txn_qs.aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+                    if collected_total == Decimal('0.00') and txn_collected > Decimal('0.00'):
+                        collected_total = txn_collected
+                        if billed_total < collected_total:
+                            billed_total = collected_total
+                except Exception:
+                    pass
+
+                pending_total = max(Decimal('0.00'), billed_total - collected_total)
+                collection_rate = round(float(collected_total / billed_total * 100), 1) if billed_total > 0 else (100.0 if collected_total > 0 else 0.0)
+
+                # Overdue balance
+                today = timezone.now().date()
+                overdue_qs = fc_qs.filter(due_date__lt=today).exclude(payment_status='paid')
+                overdue_total = overdue_qs.aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+                overdue_paid = overdue_qs.aggregate(s=Sum('paid_amount'))['s'] or Decimal('0.00')
+                overdue_balance = max(Decimal('0.00'), overdue_total - overdue_paid)
+
+                context['total_fees_billed'] = billed_total
+                context['total_fees_collected'] = collected_total
+                context['total_fees_pending'] = pending_total
+                context['total_fees_overdue'] = overdue_balance
+                context['fee_collection_rate'] = collection_rate
+                context['has_financial_data'] = bool(billed_total > 0 or collected_total > 0)
+            except Exception as e:
+                context['total_fees_billed'] = Decimal('0.00')
+                context['total_fees_collected'] = Decimal('0.00')
+                context['total_fees_pending'] = Decimal('0.00')
+                context['total_fees_overdue'] = Decimal('0.00')
+                context['fee_collection_rate'] = 0.0
+                context['has_financial_data'] = False
 
             # Teachers: prefer direct user.school link; also include teachers linked via classes/sections/assignments
             if school:
@@ -991,6 +1061,62 @@ class ToDoCreateView(LoginRequiredMixin, CreateView):
         return reverse_lazy('core:todos')
 
 
+class ToDoUpdateView(LoginRequiredMixin, View):
+    """Update an existing to-do (submitted from the in-page edit form panel)"""
+    def post(self, request, pk, *args, **kwargs):
+        todo = get_object_or_404(ToDoList, pk=pk, user=request.user)
+        title = (request.POST.get('title') or '').strip()
+        priority = request.POST.get('priority') or todo.priority
+        valid_priorities = [choice[0] for choice in ToDoList.PRIORITY_CHOICES]
+
+        if not title:
+            messages.error(request, 'Task title is required.')
+        else:
+            todo.title = title
+            todo.description = request.POST.get('description', '').strip()
+            if priority in valid_priorities:
+                todo.priority = priority
+            due_date = request.POST.get('due_date') or None
+            if due_date:
+                from django.utils.dateparse import parse_date
+                todo.due_date = parse_date(due_date)
+            else:
+                todo.due_date = None
+            status = request.POST.get('status')
+            if status in ('completed', 'pending'):
+                should_complete = status == 'completed'
+                if should_complete and not todo.is_completed:
+                    todo.completed_at = timezone.now()
+                elif not should_complete:
+                    todo.completed_at = None
+                todo.is_completed = should_complete
+            todo.save()
+            messages.success(request, 'To-do item updated successfully!')
+
+        school_slug = kwargs.get('school_slug')
+        if school_slug:
+            return redirect('core:todos', school_slug=school_slug)
+        return redirect('core:todos')
+
+
+class ToDoBulkCompleteView(LoginRequiredMixin, View):
+    """Mark the selected to-dos as done (used by the bulk action bar)"""
+    def post(self, request, *args, **kwargs):
+        ids = [i for i in request.POST.getlist('selected_ids') if str(i).isdigit()]
+        updated = ToDoList.objects.filter(
+            user=request.user, pk__in=ids, is_completed=False
+        ).update(is_completed=True, completed_at=timezone.now())
+
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'updated': updated})
+
+        messages.success(request, f'{updated} task(s) marked as done.')
+        school_slug = kwargs.get('school_slug')
+        if school_slug:
+            return redirect('core:todos', school_slug=school_slug)
+        return redirect('core:todos')
+
+
 class ToDoToggleView(LoginRequiredMixin, View):
     """Toggle to-do completion status"""
     def post(self, request, pk, *args, **kwargs):
@@ -1082,19 +1208,95 @@ class SystemSettingsApiView(View):
                 return JsonResponse({'success': True, 'message': 'Grading system updated.'})
 
             # Update school fields if provided
-            if school and any(field in request.POST for field in ['school_name', 'school_email', 'school_phone', 'school_address', 'school_website']):
+            school_candidate_fields = [
+                'school_name', 'school_email', 'school_phone', 
+                'school_address', 'school_website', 'currency', 
+                'currency_symbol', 'language'
+            ]
+            if school and any(field in request.POST for field in school_candidate_fields):
+                updated_school_fields = []
                 if 'school_name' in request.POST:
-                    school.name = request.POST.get('school_name', '').strip() or school.name
+                    val = request.POST.get('school_name', '').strip()
+                    if val:
+                        school.name = val
+                        updated_school_fields.append('name')
                 if 'school_email' in request.POST:
-                    school.email = request.POST.get('school_email', '').strip() or school.email
+                    val = request.POST.get('school_email', '').strip()
+                    if val:
+                        school.email = val
+                        updated_school_fields.append('email')
                 if 'school_phone' in request.POST:
-                    school.phone = request.POST.get('school_phone', '').strip() or school.phone
+                    val = request.POST.get('school_phone', '').strip()
+                    if val:
+                        school.phone = val
+                        updated_school_fields.append('phone')
                 if 'school_address' in request.POST:
-                    school.address = request.POST.get('school_address', '').strip() or school.address
+                    val = request.POST.get('school_address', '').strip()
+                    if val:
+                        school.address = val
+                        updated_school_fields.append('address')
                 if 'school_website' in request.POST:
-                    school.website = request.POST.get('school_website', '').strip() or school.website
-                school.save(update_fields=['name', 'email', 'phone', 'address', 'website'])
-                return JsonResponse({'success': True, 'message': 'School information updated.'})
+                    school.website = request.POST.get('school_website', '').strip()
+                    updated_school_fields.append('website')
+                if 'currency' in request.POST:
+                    curr = request.POST.get('currency', '').strip().upper()
+                    if curr:
+                        school.currency = curr
+                        updated_school_fields.append('currency')
+                if 'currency_symbol' in request.POST:
+                    sym = request.POST.get('currency_symbol', '').strip()
+                    if not sym and 'currency' in request.POST:
+                        from tenants.models import School as SchoolModel
+                        sym = getattr(SchoolModel, 'DEFAULT_CURRENCY_SYMBOLS', {}).get(school.currency, '$')
+                    if sym:
+                        school.currency_symbol = sym
+                        updated_school_fields.append('currency_symbol')
+                if 'language' in request.POST:
+                    lang = request.POST.get('language', '').strip().lower()
+                    if lang:
+                        school.language = lang
+                        updated_school_fields.append('language')
+
+                if updated_school_fields:
+                    school.save(update_fields=list(set(updated_school_fields)))
+
+                # Also sync settings to tenant SystemSetting
+                if settings_obj:
+                    sys_fields = []
+                    if 'currency' in request.POST and school.currency:
+                        settings_obj.currency_code = school.currency
+                        sys_fields.append('currency_code')
+                    if ('currency_symbol' in request.POST or 'currency' in request.POST) and school.currency_symbol:
+                        settings_obj.currency_symbol = school.currency_symbol
+                        sys_fields.append('currency_symbol')
+                    if 'language' in request.POST and hasattr(school, 'language') and school.language:
+                        settings_obj.default_language = school.language
+                        sys_fields.append('default_language')
+                    if sys_fields:
+                        settings_obj.save(update_fields=list(set(sys_fields)))
+
+                return JsonResponse({
+                    'success': True, 
+                    'message': 'School settings updated successfully.',
+                    'currency': school.currency,
+                    'currency_symbol': school.currency_symbol,
+                    'language': getattr(school, 'language', 'en'),
+                })
+
+            if not school and any(field in request.POST for field in ['currency', 'currency_symbol', 'language']):
+                sys_fields = []
+                if 'currency' in request.POST:
+                    settings_obj.currency_code = request.POST.get('currency', '').strip().upper()
+                    sys_fields.append('currency_code')
+                if 'currency_symbol' in request.POST:
+                    settings_obj.currency_symbol = request.POST.get('currency_symbol', '').strip()
+                    sys_fields.append('currency_symbol')
+                if 'language' in request.POST:
+                    settings_obj.default_language = request.POST.get('language', '').strip().lower()
+                    sys_fields.append('default_language')
+                if sys_fields:
+                    settings_obj.save(update_fields=list(set(sys_fields)))
+                    return JsonResponse({'success': True, 'message': 'System settings updated.'})
 
             # Update institution type for the current school
             if 'institution_type' in request.POST:
@@ -1130,28 +1332,68 @@ class SystemSettingsApiView(View):
                     settings_obj.admission_number_prefix = prefix
                     updated = True
 
-            # Toggle maintenance mode if provided
-            # Toggle maintenance mode and schedule if provided
-            if 'maintenance_mode' in request.POST:
-                enabled_val = request.POST.get('maintenance_mode', '').lower()
-                enabled = enabled_val in ['1', 'true', 'on', 'yes']
-                settings_obj.maintenance_mode = enabled
-                
-                # Also capture start/end times if available
-                if 'maintenance_start' in request.POST:
-                    start_val = request.POST.get('maintenance_start')
-                    settings_obj.maintenance_start = parse_datetime(start_val) if start_val else None
-                if 'maintenance_end' in request.POST:
-                    end_val = request.POST.get('maintenance_end')
-                    settings_obj.maintenance_end = parse_datetime(end_val) if end_val else None
-                
-                settings_obj.save()
-                return JsonResponse({
-                    'success': True, 
-                    'maintenance_mode': settings_obj.maintenance_mode,
-                    'maintenance_start': settings_obj.maintenance_start.isoformat() if settings_obj.maintenance_start else None,
-                    'maintenance_end': settings_obj.maintenance_end.isoformat() if settings_obj.maintenance_end else None,
-                })
+            # Toggle maintenance mode and schedule
+            if 'maintenance_mode' in request.POST or 'school_maintenance' in request.POST:
+                from django.utils.dateparse import parse_datetime
+                if school:
+                    enabled_val = request.POST.get('maintenance_mode', '').lower()
+                    enabled = enabled_val in ['1', 'true', 'on', 'yes']
+
+                    if enabled:
+                        start_val = request.POST.get('maintenance_start', '').strip()
+                        end_val = request.POST.get('maintenance_end', '').strip()
+                        msg_val = request.POST.get('maintenance_message', '').strip()
+
+                        if not start_val:
+                            return JsonResponse({'success': False, 'error': 'Please provide a maintenance start date and time.'}, status=400)
+                        if not end_val:
+                            return JsonResponse({'success': False, 'error': 'Please provide an expected end date and time.'}, status=400)
+
+                        start_dt = parse_datetime(start_val)
+                        end_dt = parse_datetime(end_val)
+                        if not start_dt:
+                            return JsonResponse({'success': False, 'error': 'Invalid start date and time format.'}, status=400)
+                        if not end_dt:
+                            return JsonResponse({'success': False, 'error': 'Invalid end date and time format.'}, status=400)
+                        if end_dt <= start_dt:
+                            return JsonResponse({'success': False, 'error': 'Expected end date and time must be after the start date and time.'}, status=400)
+                        if not msg_val:
+                            return JsonResponse({'success': False, 'error': 'Please enter a maintenance message to display to visitors.'}, status=400)
+
+                        school.maintenance_mode = True
+                        school.maintenance_start = start_dt
+                        school.maintenance_end = end_dt
+                        school.maintenance_message = msg_val
+                    else:
+                        school.maintenance_mode = False
+
+                    school.save(update_fields=['maintenance_mode', 'maintenance_start', 'maintenance_end', 'maintenance_message'])
+                    return JsonResponse({
+                        'success': True,
+                        'maintenance_mode': school.maintenance_mode,
+                        'is_in_maintenance': school.is_in_maintenance,
+                        'maintenance_start': school.maintenance_start.isoformat() if school.maintenance_start else None,
+                        'maintenance_end': school.maintenance_end.isoformat() if school.maintenance_end else None,
+                        'maintenance_message': school.maintenance_message,
+                        'message': 'School maintenance settings updated successfully.'
+                    })
+                else:
+                    enabled_val = request.POST.get('maintenance_mode', '').lower()
+                    enabled = enabled_val in ['1', 'true', 'on', 'yes']
+                    settings_obj.maintenance_mode = enabled
+                    if 'maintenance_start' in request.POST:
+                        start_val = request.POST.get('maintenance_start')
+                        settings_obj.maintenance_start = parse_datetime(start_val) if start_val else None
+                    if 'maintenance_end' in request.POST:
+                        end_val = request.POST.get('maintenance_end')
+                        settings_obj.maintenance_end = parse_datetime(end_val) if end_val else None
+                    settings_obj.save()
+                    return JsonResponse({
+                        'success': True, 
+                        'maintenance_mode': settings_obj.maintenance_mode,
+                        'maintenance_start': settings_obj.maintenance_start.isoformat() if settings_obj.maintenance_start else None,
+                        'maintenance_end': settings_obj.maintenance_end.isoformat() if settings_obj.maintenance_end else None,
+                    })
 
             if updated:
                 settings_obj.save()
@@ -1415,6 +1657,9 @@ class SystemSettingsView(LoginRequiredMixin, TemplateView):
 
         context['school'] = school
         context['institution_type_choices'] = School.INSTITUTION_TYPE_CHOICES
+        context['currency_choices'] = getattr(School, 'CURRENCY_CHOICES', [])
+        context['language_choices'] = getattr(School, 'LANGUAGE_CHOICES', [])
+        context['default_currency_symbols'] = getattr(School, 'DEFAULT_CURRENCY_SYMBOLS', {})
 
         # Academic years
         context['academic_years'] = AcademicYear.objects.all()
@@ -3987,16 +4232,37 @@ def offline_view(request, *args, **kwargs):
 @require_GET
 def maintenance_view(request, *args, **kwargs):
     """View for maintenance mode page.
+    Supports both platform-wide (superadmin) and per-school (school admin) maintenance.
     """
+    school_slug = kwargs.get('school_slug')
+    school = None
+    school_maintenance = False
+
+    if school_slug and school_slug != 'default':
+        try:
+            school = School.objects.get(slug=school_slug, is_active=True)
+            if school.is_in_maintenance:
+                school_maintenance = True
+        except School.DoesNotExist:
+            school = None
+
     settings = SystemSetting.get_settings()
     duration = None
-    # Pick the correct dates based on the mode
-    start_dt = settings.maintenance_start
-    end_dt = settings.maintenance_end
-    
-    if settings.superadmin_only_mode:
-        start_dt = settings.superadmin_maintenance_start or start_dt
-        end_dt = settings.superadmin_maintenance_end or end_dt
+
+    if school_maintenance and school:
+        start_dt = school.maintenance_start
+        end_dt = school.maintenance_end
+        message = school.maintenance_message or "We are currently performing scheduled maintenance on our school portal. Please check back shortly."
+        title = f"{school.name} Maintenance"
+    else:
+        # Platform-level maintenance
+        start_dt = settings.maintenance_start
+        end_dt = settings.maintenance_end
+        if settings.superadmin_only_mode:
+            start_dt = settings.superadmin_maintenance_start or start_dt
+            end_dt = settings.superadmin_maintenance_end or end_dt
+        message = "We're currently updating our system to serve you better. We'll be back shortly!"
+        title = "System Maintenance"
 
     if start_dt and end_dt:
         diff = end_dt - start_dt
@@ -4009,15 +4275,20 @@ def maintenance_view(request, *args, **kwargs):
             parts.append(f"{days} day{'s' if days > 1 else ''}")
         if hours > 0:
             parts.append(f"{hours} hr{'s' if hours > 1 else ''}")
-        if minutes > 0 and days == 0:  # Only show minutes if less than a day for brevity
+        if minutes > 0 and days == 0:
             parts.append(f"{minutes} min{'s' if minutes > 1 else ''}")
         
         duration = ", ".join(parts) if parts else "a few moments"
 
     context = {
         'system_settings': settings,
+        'school': school,
+        'maintenance_title': title,
+        'maintenance_message': message,
+        'start_dt': start_dt,
+        'end_dt': end_dt,
         'duration': duration,
-        'school_slug': kwargs.get('school_slug', 'default')
+        'school_slug': school_slug or 'default'
     }
     return render(request, 'maintenance.html', context, status=200)
 

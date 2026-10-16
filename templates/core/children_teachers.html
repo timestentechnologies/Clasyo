@@ -40,7 +40,25 @@
                         <tbody>
                             {% for t in item.teachers %}
                                 <tr>
-                                    <td>{{ t.teacher.get_full_name }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            {% if t.teacher.avatar %}
+                                                <img src="{{ t.teacher.avatar.url }}" alt="{{ t.teacher.get_full_name }}" class="rounded-circle shadow-sm" style="width: 32px; height: 32px; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                <div class="rounded-circle text-white align-items-center justify-content-center shadow-sm fw-bold" style="width: 32px; height: 32px; font-size: 12px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); display: none;">
+                                                    {{ t.teacher.first_name.0|upper }}{{ t.teacher.last_name.0|default:''|upper }}
+                                                </div>
+                                            {% else %}
+                                                <div class="rounded-circle text-white d-flex align-items-center justify-content-center shadow-sm fw-bold" style="width: 32px; height: 32px; font-size: 12px; background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
+                                                    {% if t.teacher.first_name %}
+                                                        {{ t.teacher.first_name.0|upper }}{{ t.teacher.last_name.0|default:''|upper }}
+                                                    {% else %}
+                                                        <i class="fas fa-chalkboard-teacher" style="font-size: 11px;"></i>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+                                            <span>{{ t.teacher.get_full_name }}</span>
+                                        </div>
+                                    </td>
                                     <td>{{ t.role }}</td>
                                     <td>{{ t.teacher.email|default:"-" }}</td>
                                 </tr>

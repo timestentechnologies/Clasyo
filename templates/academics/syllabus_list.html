@@ -7,75 +7,44 @@
 {% block page_subtitle %}Manage syllabus outlines, learning objectives, and curriculum attachments across academic sessions{% endblock %}
 
 {% block content %}
-<!-- Top Action Bar -->
-<div class="row align-items-center mb-4">
-    <div class="col-md-6 mb-2 mb-md-0">
+<!-- Unified In-Line Table Toolbar: Buttons on left, Search & Filters on right -->
+<div class="table-toolbar" data-page-actions>
+    <div class="toolbar-actions">
         {% if user.role in 'admin,teacher,superadmin' %}
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#syllabusModal" onclick="openAddSyllabusModal()">
-            <i class="fas fa-plus-circle me-1"></i> Add Syllabus
+            <i class="fas fa-plus me-1"></i> Add Syllabus
         </button>
         {% endif %}
         {% if active_year %}
-        <span class="badge bg-light text-dark border px-3 py-2 ms-2">
-            <i class="fas fa-calendar-alt text-primary me-1"></i> Active Session: <strong>{{ active_year.name }}</strong>
+        <span class="badge bg-light text-dark border px-3 d-inline-flex align-items-center" style="height: 38px;">
+            <i class="fas fa-calendar-alt text-primary me-1"></i> Active Session: <strong class="ms-1">{{ active_year.name }}</strong>
         </span>
         {% endif %}
     </div>
-    <div class="col-md-6 text-md-end">
-        <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#filterPanel" aria-expanded="false" aria-controls="filterPanel">
-            <i class="fas fa-filter me-1"></i> Filters & Search
-        </button>
-    </div>
-</div>
 
-<!-- Filter Panel -->
-<div class="collapse {% if selected_class_id or selected_subject_id or selected_academic_year_id or search_query %}show{% endif %} mb-4" id="filterPanel">
-    <div class="card border-0 shadow-sm">
-        <div class="card-body">
-            <form method="GET" class="row g-3 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label small fw-semibold">Academic Year</label>
-                    <select name="academic_year_id" class="form-select form-select-sm">
-                        <option value="">All Academic Years</option>
-                        {% for ay in academic_years %}
-                        <option value="{{ ay.id }}" {% if selected_academic_year_id == ay.id|stringformat:"s" or not selected_academic_year_id and ay == active_year %}selected{% endif %}>
-                            {{ ay.name }}{% if ay.is_active %} (Current){% endif %}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small fw-semibold">Class</label>
-                    <select name="class_id" class="form-select form-select-sm">
-                        <option value="">All Classes</option>
-                        {% for c in classes %}
-                        <option value="{{ c.id }}" {% if selected_class_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small fw-semibold">Subject</label>
-                    <select name="subject_id" class="form-select form-select-sm">
-                        <option value="">All Subjects</option>
-                        {% for s in subjects %}
-                        <option value="{{ s.id }}" {% if selected_subject_id == s.id|stringformat:"s" %}selected{% endif %}>{{ s.name }} ({{ s.code }})</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small fw-semibold">Keyword Search</label>
-                    <div class="input-group input-group-sm">
-                        <input type="text" name="search" class="form-control" placeholder="Title, topic, code..." value="{{ search_query }}">
-                        <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i></button>
-                        {% if selected_class_id or selected_subject_id or selected_academic_year_id or search_query %}
-                        <a href="{% url 'academics:syllabus_list' school_slug=school_slug %}" class="btn btn-outline-secondary" title="Clear Filters">
-                            <i class="fas fa-times"></i>
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
-            </form>
-        </div>
+    <div class="toolbar-filters">
+        <form method="GET" class="d-flex align-items-center gap-2 m-0 p-0" id="syllabusFilterForm">
+            <div class="toolbar-search">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" name="search" class="form-control" placeholder="Search syllabus, topic..." value="{{ search_query }}">
+            </div>
+            <div class="toolbar-filter">
+                <select name="class_id" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Classes</option>
+                    {% for c in classes %}
+                    <option value="{{ c.id }}" {% if selected_class_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="toolbar-filter">
+                <select name="subject_id" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Subjects</option>
+                    {% for s in subjects %}
+                    <option value="{{ s.id }}" {% if selected_subject_id == s.id|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
     </div>
 </div>
 

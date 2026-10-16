@@ -7,117 +7,108 @@
 {% block page_subtitle %}Audit trail of all student progressions and grade level advancements{% endblock %}
 
 {% block page_actions %}
-<a href="{% url 'students:promote' school_slug=school_slug %}" class="btn btn-primary">
-    <i class="fas fa-level-up-alt me-1"></i> New Promotion
-</a>
-<a href="{% url 'students:list' school_slug=school_slug %}" class="btn btn-secondary">
-    <i class="fas fa-arrow-left me-1"></i> Back to Students
-</a>
 {% endblock %}
 
 {% block content %}
-<div class="row g-4">
-    <!-- Filter bar -->
-    <div class="col-12">
-        <div class="modern-card">
-            <div class="card-body">
-                <form method="get" class="row g-3 align-items-end">
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold">Search Student</label>
-                        <input type="text" name="q" class="form-control" placeholder="Search by name or admission..." value="{{ search_query }}">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Target Academic Year</label>
-                        <select name="academic_year" class="form-select">
-                            <option value="">All Academic Years</option>
-                            {% for ay in academic_years %}
-                                <option value="{{ ay.id }}" {% if selected_year == ay.id|stringformat:"s" %}selected{% endif %}>
-                                    {{ ay.name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Promoted To Class</label>
-                        <select name="class_id" class="form-select">
-                            <option value="">All Classes</option>
-                            {% for c in classes %}
-                                <option value="{{ c.id }}" {% if selected_class == c.id|stringformat:"s" %}selected{% endif %}>
-                                    {{ c.name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-2 d-flex gap-2">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-filter me-1"></i> Filter
-                        </button>
-                        {% if search_query or selected_year or selected_class %}
-                            <a href="{% url 'students:promotion_history' school_slug=school_slug %}" class="btn btn-light" title="Clear Filters">
-                                <i class="fas fa-undo"></i>
-                            </a>
-                        {% endif %}
-                    </div>
-                </form>
+<div id="promotionHistoryCard">
+    <!-- Unified In-Line Table Toolbar: Buttons on left, Search & Filters on right -->
+    <div class="table-toolbar" data-page-actions>
+        <div class="toolbar-actions">
+            <a href="{% url 'students:promote' school_slug=school_slug %}" class="btn btn-primary">
+                <i class="fas fa-level-up-alt me-1"></i> New Promotion
+            </a>
+            <a href="{% url 'students:list' school_slug=school_slug %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Students
+            </a>
+        </div>
+
+        <div class="toolbar-filters">
+            <div class="toolbar-search">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="searchInput" class="form-control" placeholder="Search by name, admission..." value="{{ search_query }}">
+            </div>
+
+            <div class="toolbar-filter">
+                <select name="academic_year" id="academicYearFilter" class="form-select" placeholder="Filter by Year" data-placeholder="Filter by Year">
+                    <option value="">All Academic Years</option>
+                    {% for ay in academic_years %}
+                        <option value="{{ ay.id }}" {% if selected_year == ay.id|stringformat:"s" %}selected{% endif %}>
+                            {{ ay.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="toolbar-filter">
+                <select name="class_id" id="classFilter" class="form-select" placeholder="Filter by Class" data-placeholder="Filter by Class">
+                    <option value="">All Classes</option>
+                    {% for c in classes %}
+                        <option value="{{ c.id }}" {% if selected_class == c.id|stringformat:"s" %}selected{% endif %}>
+                            {{ c.name }}
+                        </option>
+                    {% endfor %}
+                </select>
             </div>
         </div>
     </div>
 
     <!-- History Table -->
-    <div class="col-12">
-        <div class="modern-card">
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Date</th>
-                                <th>Admission No</th>
-                                <th>Student Name</th>
-                                <th>From Cohort</th>
-                                <th>Promoted Cohort</th>
-                                <th>Session Span</th>
-                                <th>Processed By</th>
-                                <th>Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for p in promotions %}
-                            <tr>
-                                <td>{{ p.promotion_date|date:"Y-m-d" }}</td>
-                                <td><strong>{{ p.student.admission_number }}</strong></td>
-                                <td>
-                                    <a href="{% url 'students:detail' school_slug=school_slug pk=p.student.pk %}" class="text-decoration-none fw-semibold">
-                                        {{ p.student.get_full_name }}
-                                    </a>
-                                </td>
-                                <td>
-                                    <span class="badge bg-secondary-subtle text-secondary border">
-                                        {{ p.from_class.name }}{% if p.from_section %} ({{ p.from_section.name }}){% endif %}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
-                                        {{ p.to_class.name }}{% if p.to_section %} ({{ p.to_section.name }}){% endif %}
-                                    </span>
-                                </td>
-                                <td>
-                                    <small class="text-muted">{{ p.from_academic_year.name }} &rarr; {{ p.to_academic_year.name }}</small>
-                                </td>
-                                <td>{{ p.created_by.get_full_name|default:"Administrator" }}</td>
-                                <td><small class="text-muted">{{ p.remarks|default:"-" }}</small></td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="8" class="text-center py-5 text-muted">
-                                    <i class="fas fa-history fa-3x mb-3 text-secondary d-block"></i>
-                                    No student promotions logged yet.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+    <div class="modern-card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="promotionsTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Admission No</th>
+                            <th>Student Name</th>
+                            <th>From Cohort</th>
+                            <th>Promoted Cohort</th>
+                            <th>Session Span</th>
+                            <th>Processed By</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in promotions %}
+                        <tr data-name="{{ p.student.get_full_name|lower }}"
+                            data-admission="{{ p.student.admission_number|lower }}"
+                            data-year="{{ p.to_academic_year.id|default:'' }}"
+                            data-class="{{ p.to_class.id|default:'' }}">
+                            <td>{{ p.promotion_date|date:"Y-m-d" }}</td>
+                            <td><strong>{{ p.student.admission_number }}</strong></td>
+                            <td>
+                                <a href="{% url 'students:list' school_slug=school_slug %}?edit={{ p.student.pk }}" class="text-decoration-none fw-semibold">
+                                    {{ p.student.get_full_name }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary-subtle text-secondary border">
+                                    {{ p.from_class.name }}{% if p.from_section %} ({{ p.from_section.name }}){% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                    {{ p.to_class.name }}{% if p.to_section %} ({{ p.to_section.name }}){% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ p.from_academic_year.name }} &rarr; {{ p.to_academic_year.name }}</small>
+                            </td>
+                            <td>{{ p.created_by.get_full_name|default:"Administrator" }}</td>
+                            <td><small class="text-muted">{{ p.remarks|default:"-" }}</small></td>
+                        </tr>
+                        {% empty %}
+                        <tr id="noPromotionsRow">
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="fas fa-history fa-3x mb-3 text-secondary d-block"></i>
+                                No student promotions logged yet.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
 
                 <!-- Pagination -->
                 {% if is_paginated %}
@@ -152,4 +143,44 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const academicYearFilter = document.getElementById('academicYearFilter');
+    const classFilter = document.getElementById('classFilter');
+    const rows = document.querySelectorAll('#promotionsTable tbody tr:not(#noPromotionsRow)');
+    const emptyRow = document.getElementById('noPromotionsRow');
+
+    function filterTable() {
+        const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        const selectedYear = academicYearFilter ? academicYearFilter.value : '';
+        const selectedClass = classFilter ? classFilter.value : '';
+
+        let visibleCount = 0;
+        rows.forEach(function(row) {
+            const name = (row.getAttribute('data-name') || '').toLowerCase();
+            const admission = (row.getAttribute('data-admission') || '').toLowerCase();
+            const year = row.getAttribute('data-year') || '';
+            const cls = row.getAttribute('data-class') || '';
+
+            const matchesSearch = !query || name.includes(query) || admission.includes(query) || row.textContent.toLowerCase().includes(query);
+            const matchesYear = !selectedYear || year === selectedYear;
+            const matchesClass = !selectedClass || cls === selectedClass;
+
+            const visible = matchesSearch && matchesYear && matchesClass;
+            row.style.display = visible ? '' : 'none';
+            if (visible) visibleCount++;
+        });
+
+        if (emptyRow) {
+            emptyRow.style.display = visibleCount === 0 ? '' : 'none';
+        }
+    }
+
+    if (searchInput) searchInput.addEventListener('input', filterTable);
+    if (academicYearFilter) academicYearFilter.addEventListener('change', filterTable);
+    if (classFilter) classFilter.addEventListener('change', filterTable);
+});
+</script>
 {% endblock %}

@@ -33,47 +33,33 @@
     </div>
 </div>
 
-<!-- Actions -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <button class="btn btn-primary" id="filterBtn">
-            <i class="fas fa-filter"></i> Filter by Class
-        </button>
-        <button class="btn btn-success ms-2" id="exportBtn">
+<!-- Table Toolbar -->
+<div class="table-toolbar mb-4">
+    <div class="toolbar-actions">
+        <a class="btn btn-primary" href="{% url 'academics:routine_create' school_slug=school_slug %}">
+            <i class="fas fa-plus"></i> Add Routine Entry
+        </a>
+        <button class="btn btn-outline-secondary" id="exportBtn">
             <i class="fas fa-download"></i> Export Timetable
         </button>
     </div>
-    <a class="btn btn-primary" href="{% url 'academics:routine_create' school_slug=school_slug %}"> <i class="fas fa-plus-circle"></i> Add Routine Entry</a>
-</div>
-
-<!-- Filter Section -->
-<div class="card border-0 shadow-sm mb-4" id="filterSection" style="display: none;">
-    <div class="card-body">
-        <form method="get" class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label">Class</label>
-                <select name="class" class="form-select">
-                    <option value="">All Classes</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Section</label>
-                <select name="section" class="form-select">
-                    <option value="">All Sections</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Day</label>
-                <select name="day" class="form-select">
-                    <option value="">All Days</option>
-                    <option value="0">Monday</option>
-                    <option value="1">Tuesday</option>
-                    <option value="2">Wednesday</option>
-                    <option value="3">Thursday</option>
-                    <option value="4">Friday</option>
-                </select>
-            </div>
-        </form>
+    <div class="toolbar-filters">
+        <div class="toolbar-search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" class="form-control" placeholder="Search routine..." autocomplete="off">
+        </div>
+        <select id="dayFilter" class="form-select" placeholder="Filter by Day" data-placeholder="Filter by Day">
+            <option value="">All Days</option>
+            {% for day in days %}
+            <option value="{{ day.1 }}">{{ day.1 }}</option>
+            {% endfor %}
+        </select>
+        <select id="classFilter" class="form-select" placeholder="Filter by Class" data-placeholder="Filter by Class">
+            <option value="">All Classes</option>
+            {% for cls in classes %}
+            <option value="{{ cls.name }}">{{ cls.name }}</option>
+            {% endfor %}
+        </select>
     </div>
 </div>
 
@@ -82,7 +68,7 @@
     <div class="card-body p-0">
         {% if routines %}
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover" id="routineTable">
                 <thead class="table-light">
                     <tr>
                         <th>Class</th>
@@ -95,7 +81,7 @@
                 </thead>
                 <tbody>
                 {% for routine in routines %}
-                <tr class="clickable-row" data-id="{{ routine.pk }}" onclick="editRoutine({{ routine.pk }})">
+                <tr class="clickable-row" data-id="{{ routine.pk }}" data-class="{{ routine.class_name }}" data-day="{{ routine.get_day_of_week_display }}" onclick="editRoutine({{ routine.pk }})">
                     <td><strong>{{ routine.class_name }} - {{ routine.section }}</strong></td>
                     <td>{{ routine.get_day_of_week_display }}</td>
                     <td>{{ routine.class_time }}</td>
@@ -299,11 +285,40 @@
 </div>
 
 <script>
-// Toggle filter
-document.getElementById('filterBtn').addEventListener('click', function() {
-    const filterSection = document.getElementById('filterSection');
-    filterSection.style.display = filterSection.style.display === 'none' ? 'block' : 'none';
-});
+// Dynamic instant filtering for Routine Table
+const searchInput = document.getElementById('searchInput');
+const dayFilter = document.getElementById('dayFilter');
+const classFilter = document.getElementById('classFilter');
+const routineTable = document.getElementById('routineTable');
+
+function filterRoutineTable() {
+    if (!routineTable) return;
+    const query = (searchInput?.value || '').toLowerCase().trim();
+    const selectedDay = (dayFilter?.value || '').toLowerCase().trim();
+    const selectedClass = (classFilter?.value || '').toLowerCase().trim();
+    
+    const rows = routineTable.querySelectorAll('tbody tr:not(.no-filter-match)');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const rowClass = (row.getAttribute('data-class') || '').toLowerCase();
+        const rowDay = (row.getAttribute('data-day') || '').toLowerCase();
+        
+        const matchesQuery = !query || text.includes(query);
+        const matchesDay = !selectedDay || rowDay === selectedDay || rowDay.includes(selectedDay);
+        const matchesClass = !selectedClass || rowClass === selectedClass || rowClass.includes(selectedClass);
+        
+        if (matchesQuery && matchesDay && matchesClass) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+if (searchInput) searchInput.addEventListener('input', filterRoutineTable);
+if (dayFilter) dayFilter.addEventListener('change', filterRoutineTable);
+if (classFilter) classFilter.addEventListener('change', filterRoutineTable);
 
 // Export modal handlers
 document.getElementById('exportBtn').addEventListener('click', function() {

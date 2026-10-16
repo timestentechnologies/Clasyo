@@ -94,10 +94,17 @@
                             <td>
                                 <div class="d-flex align-items-center">
                                     {% if child.photo %}
-                                    <img src="{{ child.photo.url }}" alt="{{ child.get_full_name }}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                    <img src="{{ child.photo.url }}" alt="{{ child.get_full_name }}" class="rounded-circle me-2 shadow-sm" style="width: 40px; height: 40px; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <div class="rounded-circle text-white align-items-center justify-content-center me-2 shadow-sm fw-bold" style="width: 40px; height: 40px; font-size: 14px; background: linear-gradient(135deg, #1E3A5F 0%, #0284c7 100%); display: none;">
+                                        {{ child.first_name.0|upper }}{{ child.last_name.0|default:''|upper }}
+                                    </div>
                                     {% else %}
-                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
-                                        {{ child.first_name|first }}{{ child.last_name|first }}
+                                    <div class="rounded-circle text-white d-flex align-items-center justify-content-center me-2 shadow-sm fw-bold" style="width: 40px; height: 40px; font-size: 14px; background: linear-gradient(135deg, #1E3A5F 0%, #0284c7 100%);">
+                                        {% if child.first_name %}
+                                            {{ child.first_name.0|upper }}{{ child.last_name.0|default:''|upper }}
+                                        {% else %}
+                                            <i class="fas fa-user-graduate" style="font-size: 12px;"></i>
+                                        {% endif %}
                                     </div>
                                     {% endif %}
                                     <strong>{{ child.get_full_name }}</strong>

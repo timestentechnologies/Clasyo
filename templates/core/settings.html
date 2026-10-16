@@ -1,12 +1,26 @@
 {% extends 'core/admin_dashboard.html' %}
 {% load static %}
 
+{% block title %}System Settings - {{ school.name|default:"School Management" }}{% endblock %}
+{% block page_icon %}cogs{% endblock %}
 {% block page_title %}System Settings{% endblock %}
+{% block page_info %}
+<button type="button" 
+        class="more-info-btn ms-2" 
+        data-bs-toggle="popover" 
+        data-bs-placement="bottom" 
+        data-bs-html="true" 
+        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-cogs text-primary'></i><strong>System Settings</strong></div>" 
+        data-bs-content="Manage your school system settings and configurations." 
+        aria-label="System Settings Info" 
+        title="System Settings">
+    <i class="fas fa-info-circle text-primary"></i>
+</button>
+{% endblock %}
+{% block page_subtitle_section %}{% endblock %}
+{% block page_subtitle %}{% endblock %}
 
 {% block content %}
-<div class="mb-4">
-    <p class="text-muted">Manage your school system settings and configurations</p>
-</div>
 
 <!-- Global Standard Page Tabs -->
 <div class="page-tabs-bar mb-4">
@@ -47,8 +61,8 @@
             <button class="page-tab-link" id="tab-system-link" data-bs-toggle="tab"
                 data-bs-target="#tab-system-pane" type="button" role="tab" aria-controls="tab-system-pane"
                 aria-selected="false">
-                <i class="fas fa-server"></i>
-                <span>System & Maintenance</span>
+                <i class="fas fa-tools"></i>
+                <span>Maintenance</span>
             </button>
         </li>
     </ul>
@@ -122,6 +136,70 @@
                             </small>
                         </div>
                         {% endif %}
+
+                        <div class="col-md-6">
+                            <label for="school_currency" class="form-label fw-semibold">
+                                <i class="fas fa-coins text-warning me-1"></i> Currency
+                            </label>
+                            <select id="school_currency" name="currency" class="form-select" onchange="onCurrencySelectionChange(this.value)">
+                                {% for code, label in currency_choices %}
+                                <option value="{{ code }}" {% if school.clean_currency == code or school.currency|cut:' ' == code %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% empty %}
+                                <option value="KES" {% if school.currency|cut:' ' == 'KES' %}selected{% endif %}>Kenyan Shilling (KES - KSh)</option>
+                                <option value="USD" {% if school.currency|cut:' ' == 'USD' or not school.currency %}selected{% endif %}>US Dollar (USD - $)</option>
+                                <option value="EUR" {% if school.currency|cut:' ' == 'EUR' %}selected{% endif %}>Euro (EUR - €)</option>
+                                <option value="GBP" {% if school.currency|cut:' ' == 'GBP' %}selected{% endif %}>British Pound (GBP - £)</option>
+                                <option value="TZS" {% if school.currency|cut:' ' == 'TZS' %}selected{% endif %}>Tanzanian Shilling (TZS - TSh)</option>
+                                <option value="UGX" {% if school.currency|cut:' ' == 'UGX' %}selected{% endif %}>Ugandan Shilling (UGX - USh)</option>
+                                <option value="RWF" {% if school.currency|cut:' ' == 'RWF' %}selected{% endif %}>Rwandan Franc (RWF - FRw)</option>
+                                <option value="ZAR" {% if school.currency|cut:' ' == 'ZAR' %}selected{% endif %}>South African Rand (ZAR - R)</option>
+                                <option value="NGN" {% if school.currency|cut:' ' == 'NGN' %}selected{% endif %}>Nigerian Naira (NGN - ₦)</option>
+                                <option value="GHS" {% if school.currency|cut:' ' == 'GHS' %}selected{% endif %}>Ghanaian Cedi (GHS - GH₵)</option>
+                                <option value="INR" {% if school.currency|cut:' ' == 'INR' %}selected{% endif %}>Indian Rupee (INR - ₹)</option>
+                                <option value="CAD" {% if school.currency|cut:' ' == 'CAD' %}selected{% endif %}>Canadian Dollar (CAD - CA$)</option>
+                                <option value="AUD" {% if school.currency|cut:' ' == 'AUD' %}selected{% endif %}>Australian Dollar (AUD - A$)</option>
+                                <option value="AED" {% if school.currency|cut:' ' == 'AED' %}selected{% endif %}>UAE Dirham (AED)</option>
+                                <option value="SAR" {% if school.currency|cut:' ' == 'SAR' %}selected{% endif %}>Saudi Riyal (SAR)</option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle me-1"></i> Currency used dynamically across fee collection, billing, invoicing, and reports.
+                            </small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="school_currency_symbol" class="form-label fw-semibold">
+                                <i class="fas fa-tag text-info me-1"></i> Currency Symbol
+                            </label>
+                            <input type="text" class="form-control" id="school_currency_symbol" name="currency_symbol" value="{{ school.clean_currency_symbol|default:school.currency_symbol|default:'$'|cut:' ' }}" placeholder="e.g. KSh, $, €" maxlength="10">
+                            <small class="form-text text-muted">
+                                Prefix shown on numbers &amp; receipts.
+                            </small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="school_language" class="form-label fw-semibold">
+                                <i class="fas fa-globe text-primary me-1"></i> Language
+                            </label>
+                            <select id="school_language" name="language" class="form-select">
+                                {% for code, label in language_choices %}
+                                <option value="{{ code }}" {% if school.clean_language == code or school.language == code %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% empty %}
+                                <option value="en" {% if school.language == 'en' or not school.language %}selected{% endif %}>English</option>
+                                <option value="sw" {% if school.language == 'sw' %}selected{% endif %}>Swahili (Kiswahili)</option>
+                                <option value="fr" {% if school.language == 'fr' %}selected{% endif %}>French (Français)</option>
+                                <option value="ar" {% if school.language == 'ar' %}selected{% endif %}>Arabic (العربية)</option>
+                                <option value="es" {% if school.language == 'es' %}selected{% endif %}>Spanish (Español)</option>
+                                <option value="pt" {% if school.language == 'pt' %}selected{% endif %}>Portuguese (Português)</option>
+                                <option value="de" {% if school.language == 'de' %}selected{% endif %}>German (Deutsch)</option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">
+                                System language for this school.
+                            </small>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -334,57 +412,23 @@
     </div>
 
     <!-- ================================================================= -->
-    <!-- TAB PANE 5: System & Maintenance                                  -->
+    <!-- TAB PANE 5: School Maintenance Mode                               -->
     <!-- ================================================================= -->
     <div class="tab-pane fade" id="tab-system-pane" role="tabpanel" aria-labelledby="tab-system-link">
         <div class="row g-4">
-            <div class="col-lg-6">
-                <div class="form-panel-view mb-4" id="systemInfoPanel">
-                    <div class="form-header-bar">
-                        <div class="form-header-title-group">
-                            <h5 class="mb-0 fw-bold form-title-text">
-                                <i class="fas fa-info-circle text-primary me-2"></i> System Information
-                            </h5>
-                        </div>
-                    </div>
-                    <div class="form-card-body">
-                        <table class="table table-sm mb-0">
-                            <tr>
-                                <th class="text-muted" style="width: 40%;">Version:</th>
-                                <td class="fw-semibold">{{ system_info.version }}</td>
-                            </tr>
-                            <tr>
-                                <th class="text-muted">Database Engine:</th>
-                                <td class="fw-semibold">{{ system_info.db_engine|default:'N/A' }}</td>
-                            </tr>
-                            <tr>
-                                <th class="text-muted">Django Version:</th>
-                                <td class="fw-semibold">{{ system_info.django_version }}</td>
-                            </tr>
-                            <tr>
-                                <th class="text-muted">Active Users:</th>
-                                <td class="fw-semibold">{{ system_info.user_count|default:0 }}</td>
-                            </tr>
-                            <tr>
-                                <th class="text-muted">Enrolled Students:</th>
-                                <td class="fw-semibold">{{ system_info.student_count|default:0 }}</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-
+            <div class="col-12">
                 <div class="form-panel-view mb-4" id="maintenanceModePanel">
                     <div class="form-header-bar">
                         <div class="form-header-title-group">
                             <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
-                                <i class="fas fa-tools text-primary me-2"></i> Maintenance Mode
+                                <i class="fas fa-tools text-primary me-2"></i> School Maintenance Mode
                                 <button type="button" 
                                         class="more-info-btn ms-2" 
                                         data-bs-toggle="popover" 
                                         data-bs-placement="bottom" 
                                         data-bs-html="true" 
-                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-tools text-primary'></i><strong>Maintenance Info</strong></div>" 
-                                        data-bs-content="<ul class='small ps-3 mb-0'><li>When enabled, students and parents are presented with a friendly maintenance screen.</li><li>School administrators retain uninterrupted system access.</li></ul>" 
+                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-tools text-primary'></i><strong>School Maintenance Info</strong></div>" 
+                                        data-bs-content="<ul class='small ps-3 mb-0'><li>When enabled, students, parents, and teachers accessing this school portal are presented with your maintenance message and schedule.</li><li>School administrators retain full, uninterrupted access to manage the school portal.</li><li>This affects <strong>only your school</strong> and does not impact any other school.</li></ul>" 
                                         aria-label="Maintenance Info" 
                                         title="Maintenance Info">
                                     <i class="fas fa-info-circle text-primary"></i>
@@ -392,74 +436,49 @@
                             </h5>
                         </div>
                         <div class="form-header-actions">
-                            {% if settings.maintenance_mode %}
-                                <span class="badge bg-danger">Maintenance Active</span>
-                            {% else %}
-                                <span class="badge bg-success">System Online</span>
-                            {% endif %}
+                            <span id="maintenance-badge" class="badge {% if school.is_in_maintenance %}bg-danger{% elif school.maintenance_mode %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                {% if school.is_in_maintenance %}Maintenance Active{% elif school.maintenance_mode %}Maintenance Scheduled{% else %}School Online{% endif %}
+                            </span>
                         </div>
                     </div>
                     <div class="form-card-body">
-                        <div class="mb-3 form-check form-switch">
-                            <input type="checkbox" class="form-check-input" id="maintenance_mode" {% if settings.maintenance_mode %}checked{% endif %}>
+                        <div class="form-check form-switch mb-4">
+                            <input type="checkbox" class="form-check-input" id="maintenance_mode" {% if school.maintenance_mode %}checked{% endif %}>
                             <label class="form-check-label fw-bold" for="maintenance_mode">
-                                Enable Maintenance Mode
+                                Enable School Maintenance Mode
                             </label>
                         </div>
-                        <div id="maintenance-schedule-fields" class="{% if not settings.maintenance_mode %}d-none{% endif %}">
-                            <div class="mb-3">
-                                <label for="maintenance_start" class="form-label fw-medium">Start Time</label>
-                                <input type="datetime-local" class="form-control" id="maintenance_start" value="{{ settings.maintenance_start|date:'Y-m-d\TH:i' }}">
-                            </div>
-                            <div class="mb-3">
-                                <label for="maintenance_end" class="form-label fw-medium">End Time (Expected)</label>
-                                <input type="datetime-local" class="form-control" id="maintenance_end" value="{{ settings.maintenance_end|date:'Y-m-d\TH:i' }}">
-                            </div>
-                            <div class="mb-3">
-                                <button id="btn-update-schedule" class="btn btn-primary btn-sm w-100">
-                                    <i class="fas fa-save me-1"></i> Update Schedule
-                                </button>
-                            </div>
-                        </div>
-                        <p class="text-muted small mb-0 mt-2">When enabled, only administrators can access the system.</p>
-                    </div>
-                </div>
-            </div>
 
-            <div class="col-lg-6">
-                <div class="form-panel-view mb-4" id="databaseActionsPanel">
-                    <div class="form-header-bar">
-                        <div class="form-header-title-group">
-                            <h5 class="mb-0 fw-bold form-title-text d-inline-flex align-items-center">
-                                <i class="fas fa-database text-primary me-2"></i> Database Actions
-                                <button type="button" 
-                                        class="more-info-btn ms-2" 
-                                        data-bs-toggle="popover" 
-                                        data-bs-placement="bottom" 
-                                        data-bs-html="true" 
-                                        data-bs-title="<div class='d-flex align-items-center gap-2'><i class='fas fa-database text-primary'></i><strong>Database Maintenance</strong></div>" 
-                                        data-bs-content="<ul class='small ps-3 mb-0'><li>Quick backups export SQL dumps directly to encrypted cloud storage.</li><li>Full backup management allows point-in-time restoration and archive downloads.</li></ul>" 
-                                        aria-label="Database Maintenance Info" 
-                                        title="Database Maintenance">
-                                    <i class="fas fa-info-circle text-primary"></i>
-                                </button>
-                            </h5>
+                        <div id="maintenance-schedule-fields" class="{% if not school.maintenance_mode %}d-none{% endif %}">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="maintenance_start" class="form-label fw-semibold">
+                                        <i class="far fa-calendar-alt text-primary me-1"></i> Start Date & Time <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="datetime-local" class="form-control" id="maintenance_start" value="{{ school.maintenance_start|date:'Y-m-d\TH:i' }}">
+                                    <div class="form-text">When maintenance is scheduled to begin.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="maintenance_end" class="form-label fw-semibold">
+                                        <i class="far fa-clock text-primary me-1"></i> Expected End Date & Time <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="datetime-local" class="form-control" id="maintenance_end" value="{{ school.maintenance_end|date:'Y-m-d\TH:i' }}">
+                                    <div class="form-text">Expected completion time displayed to visitors on the maintenance screen.</div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="maintenance_message" class="form-label fw-semibold">
+                                    <i class="fas fa-comment-alt text-primary me-1"></i> Maintenance Notice Message <span class="text-danger">*</span>
+                                </label>
+                                <textarea class="form-control" id="maintenance_message" rows="3" placeholder="Enter custom message to display to visitors during maintenance...">{{ school.maintenance_message|default:"We are currently performing scheduled maintenance on our school portal. Please check back shortly." }}</textarea>
+                                <div class="form-text">This message will be shown prominently to students, parents, and teachers visiting during maintenance.</div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="form-card-body">
-                        <p class="text-muted small mb-3">Perform maintenance and administrative operations on your school database.</p>
-                        <div class="d-flex flex-column gap-2">
-                            <a href="{% if school_slug %}{% url 'core:school_backups' school_slug=school_slug %}{% else %}#{% endif %}" class="btn btn-primary w-100">
-                                <i class="fas fa-archive me-2"></i> Manage Database Backups
-                            </a>
-                            <button id="btn-backup-db" class="btn btn-warning w-100">
-                                <i class="fas fa-download me-2"></i> Quick Backup
-                            </button>
-                            <button id="btn-clear-cache" class="btn btn-danger w-100">
-                                <i class="fas fa-trash me-2"></i> Clear Cache
-                            </button>
-                            <button id="btn-sync-data" class="btn btn-info w-100">
-                                <i class="fas fa-sync me-2"></i> Sync Data
+
+                        <div class="d-flex justify-content-end gap-2 pt-3 border-top mt-3">
+                            <button type="button" id="btn-save-maintenance" class="btn btn-primary px-4">
+                                <i class="fas fa-save me-1"></i> Save Maintenance Settings
                             </button>
                         </div>
                     </div>
@@ -509,6 +528,32 @@ function submitForm(formId, url, successMsg) {
     });
 }
 
+// Default currency symbols map
+const defaultCurrencySymbols = {
+    'KES': 'KSh',
+    'USD': '$',
+    'EUR': '€',
+    'GBP': '£',
+    'TZS': 'TSh',
+    'UGX': 'USh',
+    'RWF': 'FRw',
+    'ZAR': 'R',
+    'NGN': '₦',
+    'GHS': 'GH₵',
+    'INR': '₹',
+    'CAD': 'CA$',
+    'AUD': 'A$',
+    'AED': 'AED',
+    'SAR': 'SAR'
+};
+
+function onCurrencySelectionChange(code) {
+    const symbolInput = document.getElementById('school_currency_symbol');
+    if (symbolInput && defaultCurrencySymbols[code]) {
+        symbolInput.value = defaultCurrencySymbols[code];
+    }
+}
+
 // Initialize forms
 submitForm('schoolSettingsForm', "{% url 'core:settings_update' school_slug=school_slug %}", 'School information updated.');
 submitForm('academicSettingsForm', "{% url 'core:settings_update' school_slug=school_slug %}", 'Academic settings updated.');
@@ -526,64 +571,110 @@ document.getElementById('institution_type')?.addEventListener('change', function
       });
 });
 
-// Maintenance mode toggle & schedule
+// Maintenance mode toggle, schedule & custom message
 const maintenanceCheckbox = document.getElementById('maintenance_mode');
 const scheduleFields = document.getElementById('maintenance-schedule-fields');
 const maintenanceStartInput = document.getElementById('maintenance_start');
 const maintenanceEndInput = document.getElementById('maintenance_end');
-const btnUpdateSchedule = document.getElementById('btn-update-schedule');
+const maintenanceMessageInput = document.getElementById('maintenance_message');
+const btnSaveMaintenance = document.getElementById('btn-save-maintenance');
+const maintenanceBadge = document.getElementById('maintenance-badge');
 
-function updateMaintenanceSettings(showNotification = true) {
-    const enabled = maintenanceCheckbox.checked ? 'on' : 'off';
-    const startTime = maintenanceStartInput.value;
-    const endTime = maintenanceEndInput.value;
+// Toggling the checkbox only shows or hides the fields - DOES NOT AUTO-SAVE
+maintenanceCheckbox?.addEventListener('change', function() {
+    if (this.checked) {
+        scheduleFields?.classList.remove('d-none');
+        if (maintenanceStartInput && !maintenanceStartInput.value) {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            maintenanceStartInput.value = now.toISOString().slice(0, 16);
+        }
+    } else {
+        scheduleFields?.classList.add('d-none');
+    }
+});
+
+// Explicit save on button click only
+btnSaveMaintenance?.addEventListener('click', function() {
+    const isEnabled = maintenanceCheckbox.checked;
+    const startTime = maintenanceStartInput?.value?.trim() || '';
+    const endTime = maintenanceEndInput?.value?.trim() || '';
+    const message = maintenanceMessageInput?.value?.trim() || '';
+
+    if (isEnabled) {
+        if (!startTime) {
+            if (window.showError) window.showError('Please set the maintenance start date and time.');
+            else alert('Please set the maintenance start date and time.');
+            maintenanceStartInput?.focus();
+            return;
+        }
+        if (!endTime) {
+            if (window.showError) window.showError('Please set the expected maintenance end date and time.');
+            else alert('Please set the expected maintenance end date and time.');
+            maintenanceEndInput?.focus();
+            return;
+        }
+        if (new Date(endTime) <= new Date(startTime)) {
+            if (window.showError) window.showError('Expected end date and time must be after the start date and time.');
+            else alert('Expected end date and time must be after the start date and time.');
+            maintenanceEndInput?.focus();
+            return;
+        }
+        if (!message) {
+            if (window.showError) window.showError('Please enter a maintenance message to display to visitors.');
+            else alert('Please enter a maintenance message to display to visitors.');
+            maintenanceMessageInput?.focus();
+            return;
+        }
+    }
+
+    btnSaveMaintenance.disabled = true;
+    const originalText = btnSaveMaintenance.innerHTML;
+    btnSaveMaintenance.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
 
     fetch("{% url 'core:settings_update' school_slug=school_slug %}", {
         method: 'POST',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
         body: new URLSearchParams({
-            'maintenance_mode': enabled,
+            'maintenance_mode': isEnabled ? 'on' : 'off',
             'maintenance_start': startTime,
-            'maintenance_end': endTime
+            'maintenance_end': endTime,
+            'maintenance_message': message
         })
     }).then(response => response.json())
       .then(data => {
-          if (data.success && showNotification) {
-              const status = data.maintenance_mode ? 'ACTIVATED' : 'DEACTIVATED';
-              if (window.showSuccess) window.showSuccess(`Maintenance mode has been <strong>${status}</strong>.`);
-          }
-      });
-}
+          btnSaveMaintenance.disabled = false;
+          btnSaveMaintenance.innerHTML = originalText;
 
-maintenanceCheckbox?.addEventListener('change', function() {
-    if (this.checked) scheduleFields.classList.remove('d-none');
-    else scheduleFields.classList.add('d-none');
-    updateMaintenanceSettings();
-});
-
-btnUpdateSchedule?.addEventListener('click', function() {
-    updateMaintenanceSettings();
-});
-
-// Database actions
-function callDatabaseAction(action) {
-    fetch("{% url 'core:database_actions' school_slug=school_slug %}", {
-        method: 'POST',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        body: new URLSearchParams({ 'action': action })
-    }).then(response => response.json())
-      .then(data => {
-          if (data.success && window.showMessage) {
-              window.showMessage(action.toUpperCase(), data.message, true);
+          if (data.success) {
+              if (maintenanceBadge) {
+                  if (data.is_in_maintenance) {
+                      maintenanceBadge.className = 'badge bg-danger';
+                      maintenanceBadge.textContent = 'Maintenance Active';
+                  } else if (data.maintenance_mode) {
+                      maintenanceBadge.className = 'badge bg-warning text-dark';
+                      maintenanceBadge.textContent = 'Maintenance Scheduled';
+                  } else {
+                      maintenanceBadge.className = 'badge bg-success';
+                      maintenanceBadge.textContent = 'School Online';
+                  }
+              }
+              if (window.showSuccess) {
+                  const status = data.maintenance_mode ? 'ACTIVATED' : 'DEACTIVATED';
+                  window.showSuccess(`School maintenance mode has been <strong>${status}</strong>.`);
+              }
           } else if (window.showError) {
-              window.showError(data.error);
+              window.showError(data.error || 'Failed to update maintenance settings.');
+          } else {
+              alert(data.error || 'Failed to update maintenance settings.');
           }
+      }).catch(err => {
+          btnSaveMaintenance.disabled = false;
+          btnSaveMaintenance.innerHTML = originalText;
+          if (window.showError) window.showError('Failed to communicate with server. Please try again.');
+          else alert('Failed to communicate with server. Please try again.');
       });
-}
-
-document.getElementById('btn-backup-db')?.addEventListener('click', () => callDatabaseAction('backup'));
-document.getElementById('btn-clear-cache')?.addEventListener('click', () => callDatabaseAction('clear_cache'));
-document.getElementById('btn-sync-data')?.addEventListener('click', () => callDatabaseAction('sync'));
+});
 
 // Navigation Layout interactive selection & styling
 function selectNavigationLayout(layout) {

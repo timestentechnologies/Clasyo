@@ -8,11 +8,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <button class="btn btn-primary" onclick="toggleInPageFormView('staffListCard', 'staffFormPanel', 'create')">
-            <i class="fas fa-user-plus me-1"></i> Add Staff
-        </button>
-    </div>
+
 
     <!-- Shared In-Page Single Form Panel -->
     <div class="form-panel-view d-none" id="staffFormPanel">
@@ -133,30 +129,37 @@
 
     <!-- Staff List View -->
     <div id="staffListCard">
-        <!-- Dynamic Search and Filters -->
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <div class="row g-2">
-                    <div class="col-md-4">
-                        <input type="text" id="searchInput" class="form-control" placeholder="Search staff by name, email...">
-                    </div>
-                    <div class="col-md-4">
-                        <select name="role_filter" id="roleFilter" class="form-select" placeholder="Filter by Role" data-placeholder="Filter by Role">
-                            <option value="">All Roles</option>
-                            <option value="staff">Staff</option>
-                            <option value="accountant">Accountant</option>
-                            <option value="librarian">Librarian</option>
-                            <option value="driver">Driver</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <select name="department_filter" id="departmentFilter" class="form-select" placeholder="Filter by Department" data-placeholder="Filter by Department">
-                            <option value="">All Departments</option>
-                            {% for dept in departments %}
-                            <option value="{{ dept.id }}">{{ dept.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+        <!-- Unified In-Line Table Toolbar: Buttons on left, Search & Filters on right -->
+        <div class="table-toolbar" data-page-actions>
+            <div class="toolbar-actions">
+                <button class="btn btn-primary" onclick="toggleInPageFormView('staffListCard', 'staffFormPanel', 'create')">
+                    <i class="fas fa-user-plus me-1"></i> Add Staff
+                </button>
+            </div>
+
+            <div class="toolbar-filters">
+                <div class="toolbar-search">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search staff by name, email...">
+                </div>
+
+                <div class="toolbar-filter">
+                    <select name="role_filter" id="roleFilter" class="form-select" placeholder="Filter by Role" data-placeholder="Filter by Role">
+                        <option value="">All Roles</option>
+                        <option value="staff">Staff</option>
+                        <option value="accountant">Accountant</option>
+                        <option value="librarian">Librarian</option>
+                        <option value="driver">Driver</option>
+                    </select>
+                </div>
+
+                <div class="toolbar-filter">
+                    <select name="department_filter" id="departmentFilter" class="form-select" placeholder="Filter by Department" data-placeholder="Filter by Department">
+                        <option value="">All Departments</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
         </div>
@@ -177,7 +180,20 @@
                     <tbody>
                     {% for member in staff %}
                     <tr class="clickable-row" onclick="viewStaff(this, '{{ member.pk }}')" data-id="{{ member.pk }}" data-name="{{ member.get_full_name|default:member.email|lower }}" data-email="{{ member.email|lower }}" data-role="{{ member.role|lower }}" data-department="{{ member.department.name|default:'N/A'|lower }}" data-status="{% if member.is_active %}active{% else %}inactive{% endif %}" {% if request.user.role in 'admin,school_admin,super_admin' or request.original_user and request.original_user.role == 'admin' %}data-login-as-url="{% url 'core:login_as' school_slug=school_slug user_id=member.pk %}"{% endif %}>
-                        <td><strong>{{ member.get_full_name|default:member.email }}</strong></td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-wrapper d-inline-flex align-items-center justify-content-center me-2 flex-shrink-0">
+                                    {% if member.avatar %}
+                                        <img src="{{ member.avatar.url }}" alt="{{ member.get_full_name }}" class="rounded-circle shadow-sm" style="width: 36px; height: 36px; object-fit: cover;" onerror="this.onerror=null; this.src='{% static 'images/default_avatar.svg' %}';">
+                                    {% else %}
+                                        <img src="{% static 'images/default_avatar.svg' %}" alt="{{ member.get_full_name }}" class="rounded-circle shadow-sm" style="width: 36px; height: 36px; object-fit: cover;">
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <strong>{{ member.get_full_name|default:member.email }}</strong>
+                                </div>
+                            </div>
+                        </td>
                         <td>{{ member.email }}</td>
                         <td>{{ member.phone|default:"Not set" }}</td>
                         <td>{{ member.role|title }}</td>

@@ -8,9 +8,16 @@ from core.models import SystemSetting
 class MaintenanceModeMiddleware(MiddlewareMixin):
     """Restrict access when maintenance mode is enabled.
 
-    When SystemSetting.maintenance_mode is True, only superadmins and
-    school admins are allowed to access the tenant apps. Other users
-    are redirected to the offline page.
+    Supports two distinct maintenance levels:
+    1. Entire System / Platform Maintenance (configured by Superadmin via SystemSetting):
+       Affects all schools across the platform.
+       - If superadmin_only_mode: ONLY superadmins can log in / access.
+       - Else: Superadmins and School Admins can access.
+    2. Per-School Tenant Maintenance (configured by School Admin via School.maintenance_mode):
+       Affects ONLY that specific school's portal.
+       - School Admins (and Superadmins / impersonators) can access.
+       - Regular users (students, parents, teachers, and public) are redirected to the maintenance page
+         showing that school's custom maintenance message and schedule.
     """
 
     def process_view(self, request, view_func, view_args, view_kwargs):
@@ -27,41 +34,56 @@ class MaintenanceModeMiddleware(MiddlewareMixin):
             return None
 
         # Allow public marketing site access during maintenance (allows "X" to go home)
-        # This only allows the marketing pages, helping the logout process feel complete
         if request.resolver_match and getattr(request.resolver_match, 'namespace', '') == 'frontend':
             return None
 
+        user = getattr(request, 'user', None)
+        user_role = getattr(user, 'role', '') if user and user.is_authenticated else ''
+        is_impersonating = getattr(request, 'is_impersonating', False)
+
+        # -------------------------------------------------------------
+        # LEVEL 1: Global Platform Maintenance (Controlled by Superadmin)
+        # -------------------------------------------------------------
         try:
             settings_obj = SystemSetting.get_settings()
         except Exception:
-            # If settings cannot be loaded, fail open
-            return None
+            settings_obj = None
 
-        if not getattr(settings_obj, 'maintenance_mode', False):
-            return None
-
-        user = getattr(request, 'user', None)
-        
-        # If not authenticated, redirect to maintenance (landing page)
-        # Auth pages are already bypassed above
-        if user is None or not user.is_authenticated:
+        if settings_obj and getattr(settings_obj, 'maintenance_mode', False):
+            superadmin_only = getattr(settings_obj, 'superadmin_only_mode', False)
+            if user and user.is_authenticated:
+                if superadmin_only:
+                    if user.is_superuser or user_role == 'superadmin':
+                        return None
+                else:
+                    if user.is_superuser or user_role in ('superadmin', 'admin') or is_impersonating:
+                        return None
             return self._get_maintenance_redirect(request, view_kwargs)
 
-        # Allow system administrators through based on settings
-        user_role = getattr(user, 'role', '') or ''
-        is_impersonating = getattr(request, 'is_impersonating', False)
-        superadmin_only = getattr(settings_obj, 'superadmin_only_mode', False)
-        
-        if superadmin_only:
-            # ONLY superuser or superadmin role allowed
-            if user.is_superuser or user_role == 'superadmin':
-                return None
-        else:
-            # Standard maintenance: superadmins and school admins allowed
-            if user.is_superuser or user_role in ('superadmin', 'admin') or is_impersonating:
-                return None
+        # -------------------------------------------------------------
+        # LEVEL 2: Per-School Tenant Maintenance (Controlled by School Admin)
+        # -------------------------------------------------------------
+        school_slug = view_kwargs.get('school_slug') or getattr(request, 'school_slug', None)
+        if school_slug:
+            try:
+                from tenants.models import School
+                school = School.objects.get(slug=school_slug, is_active=True)
+                if school.is_in_maintenance:
+                    # Allow superadmins, impersonators, and this school's admin
+                    if user and user.is_authenticated:
+                        if user.is_superuser or user_role == 'superadmin' or is_impersonating:
+                            return None
+                        # Check if user is an admin of this school
+                        user_school = getattr(user, 'school', None)
+                        if user_role in ('admin', 'school_admin') and user_school and user_school.slug == school.slug:
+                            return None
 
-        return self._get_maintenance_redirect(request, view_kwargs)
+                    # Otherwise redirect students, parents, teachers, and anonymous visitors
+                    return self._get_maintenance_redirect(request, view_kwargs)
+            except Exception:
+                pass
+
+        return None
 
     def _get_maintenance_redirect(self, request, view_kwargs):
         """Helper to generate maintenance page redirect"""

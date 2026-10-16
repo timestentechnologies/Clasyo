@@ -49,6 +49,8 @@ urlpatterns = [
     # To-Do List
     path('todos/', views.ToDoListView.as_view(), name='todos'),
     path('todos/add/', views.ToDoCreateView.as_view(), name='todo_create'),
+    path('todos/<int:pk>/edit/', views.ToDoUpdateView.as_view(), name='todo_update'),
+    path('todos/bulk-complete/', views.ToDoBulkCompleteView.as_view(), name='todo_bulk_complete'),
     path('todos/<int:pk>/toggle/', views.ToDoToggleView.as_view(), name='todo_toggle'),
     path('todos/<int:pk>/delete/', views.ToDoDeleteView.as_view(), name='todo_delete'),
     

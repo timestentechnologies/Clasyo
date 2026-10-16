@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" data-theme="light" class="theme-light light-theme">
+<html lang="{{ school_language|default:'en' }}" data-theme="light" class="theme-light light-theme">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -28,9 +28,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=48.0">
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}?v=52.0">
     <link rel="stylesheet" href="{% static 'css/modern-dashboard.css' %}?v=53.0">
     <link rel="stylesheet" href="{% static 'css/dark-mode-forms.css' %}?v=33.0">
+    <script>
+        window.APP_CURRENCY = "{{ currency_code|default:'USD'|escapejs }}";
+        window.APP_CURRENCY_SYMBOL = "{{ currency_symbol|default:'$'|escapejs }}";
+        window.APP_LANGUAGE = "{{ school_language|default:'en'|escapejs }}";
+        function formatMoney(amount, decimals) {
+            const num = parseFloat(amount) || 0;
+            const dec = (decimals !== undefined) ? decimals : (num % 1 === 0 ? 0 : 2);
+            return (window.APP_CURRENCY_SYMBOL || '$') + ' ' + num.toLocaleString('en-US', {
+                minimumFractionDigits: dec,
+                maximumFractionDigits: dec
+            });
+        }
+    </script>
     <style id="custom-theme-variables">
         /* Universal Outline & Focus-Glow Suppression Across All Inputs, Groups & Controls */
         *:focus,
@@ -993,11 +1006,14 @@
             <div class="page-header mb-4">
                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
                     <div>
-                        <h1 class="page-title">
+                        <h1 class="page-title d-inline-flex align-items-center">
                             <i class="fas fa-{% block page_icon %}tachometer-alt{% endblock %} me-2"></i>
-                            {% block page_title %}Dashboard{% endblock %}
+                            <span>{% block page_title %}Dashboard{% endblock %}</span>
+                            {% block page_info %}{% endblock %}
                         </h1>
+                        {% block page_subtitle_section %}
                         <p class="page-subtitle">{% block page_subtitle %}Welcome back!{% endblock %}</p>
+                        {% endblock %}
                     </div>
                     <div class="page-header-actions page-actions d-flex flex-wrap gap-2 w-100 w-md-auto justify-content-start justify-content-md-end" data-page-actions="true">
                         {% block page_actions %}{% endblock %}
@@ -1150,7 +1166,7 @@
             const elements = new Set();
             // 1. All standard page action containers
             document.querySelectorAll(
-                '.page-header-actions, .page-actions-container, .page-actions, [data-page-actions]'
+                '.page-header-actions, .page-actions-container, .page-actions, .table-toolbar, [data-page-actions]'
             ).forEach(el => elements.add(el));
 
             // 2. Buttons/links inside .page-header that trigger add/create
@@ -1284,6 +1300,18 @@
     <!-- TomSelect Library & Global Auto Initializer -->
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
     <script>
+    // Order-independent signature of a <select>'s options (TomSelect reorders the selected
+    // <option> on every update, so order must be ignored to avoid false "changed" detections).
+    function selectOptionsSignature(sel) {
+        try {
+            return Array.prototype.map.call(sel.options, function(o) {
+                return o.value + '\u0001' + o.text;
+            }).filter(function(s) { return s !== '\u0001'; }).sort().join('\u0002');
+        } catch(e) {
+            return '';
+        }
+    }
+
     window.syncTomSelect = function(el) {
         if (!el || !el.tomselect) return;
         try {
@@ -1291,6 +1319,7 @@
             if (el.value) {
                 el.tomselect.setValue(el.value, true);
             }
+            el._ts_sig = selectOptionsSignature(el);
         } catch(e) {
             console.warn('TomSelect sync error:', e);
         }
@@ -1333,6 +1362,7 @@
                     copyClassesToDropdown: false,
                     plugins: el.multiple ? ['remove_button'] : []
                 });
+                el._ts_sig = selectOptionsSignature(el);
             } catch(e) {
                 console.warn('TomSelect init skipped:', e);
             }
@@ -1402,27 +1432,41 @@
 
             if (pendingSyncSelects.size > 0 || hasNewSelects) {
                 if (tsMutationTimer) clearTimeout(tsMutationTimer);
-                tsMutationTimer = setTimeout(function() {
+                tsMutationTimer = setTimeout(function runTsSync() {
+                    const deferred = [];
                     pendingSyncSelects.forEach(function(sel) {
-                        if (sel && sel.tomselect && !isSelectManaged(sel) && !sel._ts_syncing) {
-                            sel._ts_syncing = true;
-                            try {
-                                const currentVal = sel.value || (sel.tomselect ? sel.tomselect.getValue() : '');
-                                sel.tomselect.sync(false);
-                                if (currentVal) {
-                                    sel.tomselect.setValue(currentVal, true);
-                                }
-                            } catch(err) {
-                                console.warn('TomSelect auto-sync error:', err);
-                            } finally {
-                                setTimeout(function() { sel._ts_syncing = false; }, 0);
+                        if (!(sel && sel.tomselect) || isSelectManaged(sel) || sel._ts_syncing) return;
+                        // Only re-sync when the option list truly changed. TomSelect itself
+                        // rewrites <option> nodes on init/selection/open; reacting to those
+                        // would loop forever and keep closing the dropdown.
+                        if (sel._ts_sig === selectOptionsSignature(sel)) return;
+                        // Never re-sync while the user has the dropdown open; retry afterwards.
+                        if (sel.tomselect.isOpen) {
+                            deferred.push(sel);
+                            return;
+                        }
+                        sel._ts_syncing = true;
+                        try {
+                            const currentVal = sel.value || (sel.tomselect ? sel.tomselect.getValue() : '');
+                            sel.tomselect.sync(false);
+                            if (currentVal) {
+                                sel.tomselect.setValue(currentVal, true);
                             }
+                            sel._ts_sig = selectOptionsSignature(sel);
+                        } catch(err) {
+                            console.warn('TomSelect auto-sync error:', err);
+                        } finally {
+                            setTimeout(function() { sel._ts_syncing = false; }, 0);
                         }
                     });
                     pendingSyncSelects.clear();
 
                     if (hasNewSelects) {
                         window.initAllTomSelects();
+                    }
+                    if (deferred.length > 0) {
+                        deferred.forEach(function(s) { pendingSyncSelects.add(s); });
+                        tsMutationTimer = setTimeout(runTsSync, 300);
                     }
                 }, 30);
             }
@@ -1436,6 +1480,65 @@
             });
         }
     }
+    </script>
+
+    <!-- Icon-only Save / Cancel / Delete actions in form panel headers (system-wide) -->
+    <script>
+    (function() {
+        function labelOf(el) {
+            return (el.textContent || '').replace(/\s+/g, ' ').trim();
+        }
+
+        window.initFormActionIcons = function(root) {
+            (root || document).querySelectorAll('.form-header-actions').forEach(function(group) {
+                Array.prototype.forEach.call(group.children, function(btn) {
+                    if (btn.dataset.iconified) return;
+                    if (btn.tagName !== 'BUTTON' && !(btn.tagName === 'A' && btn.classList.contains('btn'))) return;
+
+                    const text = labelOf(btn);
+                    let kind = null;
+                    if (/^cancel$/i.test(text)) {
+                        kind = 'cancel';
+                    } else if (btn.querySelector('.fa-trash, .fa-trash-alt, .fa-trash-can') || /^delete\b/i.test(text)) {
+                        kind = 'delete';
+                    } else if (btn.classList.contains('form-submit-btn') ||
+                               btn.querySelector('.fa-save, .fa-floppy-disk') ||
+                               (btn.type === 'submit' && /^(save|update|create|add|submit)\b/i.test(text))) {
+                        kind = 'save';
+                    }
+                    if (!kind) return;
+
+                    btn.dataset.iconified = kind;
+                    btn.classList.add('form-action-icon', 'form-action-' + kind);
+                    if (!btn.getAttribute('title') && text) btn.setAttribute('title', text);
+                    if (!btn.getAttribute('aria-label')) btn.setAttribute('aria-label', text || kind);
+
+                    if (kind === 'cancel') {
+                        btn.innerHTML = '<i class="fas fa-times"></i>';
+                    } else if (kind === 'delete') {
+                        btn.innerHTML = '<i class="fas fa-trash"></i>';
+                    } else if (!btn.querySelector('i')) {
+                        // Keep original content (other scripts rewrite its label); the text is hidden by CSS
+                        btn.insertAdjacentHTML('afterbegin', '<i class="fas fa-cloud-arrow-up"></i>');
+                    }
+                });
+            });
+        };
+
+        document.addEventListener('DOMContentLoaded', function() { window.initFormActionIcons(); });
+        document.addEventListener('shown.bs.modal', function(e) { window.initFormActionIcons(e.target); });
+        document.addEventListener('shown.bs.tab', function() { window.initFormActionIcons(); });
+
+        // Also catch forms toggled/injected after load
+        const _toggle = window.toggleInPageFormView;
+        if (typeof _toggle === 'function') {
+            window.toggleInPageFormView = function() {
+                const result = _toggle.apply(this, arguments);
+                window.initFormActionIcons();
+                return result;
+            };
+        }
+    })();
     </script>
 
     <!-- =========================================================================
@@ -1460,10 +1563,12 @@
                     if (btn.classList.contains('page-link') || btn.classList.contains('nav-link') || btn.dataset.bsToggle || btn.closest('.pagination')) return;
 
                     const txt = (btn.textContent || btn.value || '').trim().toLowerCase();
+                    const hasIcon = btn.querySelector('.fa-filter, .fa-search, .fa-undo, .fa-times, .fa-eraser, .fa-sync') !== null;
                     const isFilterOrApply = txt.includes('filter') || txt.includes('apply') || txt.includes('search');
-                    const isResetOrClear = txt.includes('clear') || txt.includes('reset');
+                    const isResetOrClear = txt.includes('clear') || txt.includes('reset') || txt.includes('undo');
+                    const isSubmit = btn.type === 'submit';
 
-                    if (isFilterOrApply || isResetOrClear || hasIcon) {
+                    if (isFilterOrApply || isResetOrClear || hasIcon || isSubmit) {
                         const parentCol = btn.closest('.col-md-3, .col-md-2, .col-md-4, .col-md-1, .col-md-12, .col-12, .col-auto, .col-sm-6');
                         if (parentCol && parentCol.querySelectorAll('input:not([type="hidden"]), select, textarea').length === 0) {
                             parentCol.style.display = 'none';
@@ -1986,6 +2091,28 @@
             var countBadge = document.getElementById('bulkCountBadge');
             var countText = document.getElementById('bulkCountText');
 
+            // Opt-in "Mark as Done" action: only when every selected table declares data-bulk-complete-url
+            var doneBtn = document.getElementById('bulkMarkDoneBtn');
+            if (doneBtn) {
+                var supportsDone = count > 0 && selected.every(function(it) {
+                    return it.table && it.table.getAttribute('data-bulk-complete-url');
+                });
+                doneBtn.classList.toggle('d-none', !supportsDone);
+                if (supportsDone && selected[0] && selected[0].table) {
+                    var customLabel = selected[0].table.getAttribute('data-bulk-complete-label') || 'Mark as Done';
+                    doneBtn.innerHTML = '<i class="fas fa-check-circle me-1"></i> ' + customLabel;
+                }
+            }
+
+            // Only show Bulk Delete if at least one selected table supports bulk delete
+            var deleteBtn = document.getElementById('bulkDeleteBtn');
+            if (deleteBtn) {
+                var supportsDelete = count > 0 && selected.some(function(it) {
+                    return it.table && (it.table.getAttribute('data-bulk-delete-url') || it.table.dataset.bulkDeleteUrl);
+                });
+                deleteBtn.classList.toggle('d-none', !supportsDelete);
+            }
+
             if (count > 0) {
                 if (countBadge) countBadge.textContent = count;
                 if (countText) countText.textContent = count === 1 ? 'item selected' : 'items selected';
@@ -2011,23 +2138,41 @@
         function initBulkSystem() {
             getCandidateTables().forEach(setupTableSelection);
 
-            var clearBtn = document.getElementById('bulkClearBtn');
-            if (clearBtn && !clearBtn.dataset.wired) {
-                clearBtn.dataset.wired = 'true';
-                clearBtn.addEventListener('click', clearAllSelections);
-            }
-
-            var selectAllFloatingBtn = document.getElementById('bulkSelectAllBtn');
-            if (selectAllFloatingBtn && !selectAllFloatingBtn.dataset.wired) {
-                selectAllFloatingBtn.dataset.wired = 'true';
-                selectAllFloatingBtn.addEventListener('click', function() {
-                    getCandidateTables().forEach(function(t) {
-                        var selectAll = t.querySelector('.select-all-checkbox');
-                        if (selectAll) {
-                            selectAll.checked = true;
-                            selectAll.dispatchEvent(new Event('change'));
-                        }
+            var markDoneBtn = document.getElementById('bulkMarkDoneBtn');
+            if (markDoneBtn && !markDoneBtn.dataset.wired) {
+                markDoneBtn.dataset.wired = 'true';
+                markDoneBtn.addEventListener('click', async function() {
+                    var selected = getSelectedRows();
+                    if (selected.length === 0) return;
+                    var csrfToken = getCsrfToken();
+                    var tablesMap = new Map();
+                    selected.forEach(function(item) {
+                        if (!tablesMap.has(item.table)) tablesMap.set(item.table, []);
+                        tablesMap.get(item.table).push(item);
                     });
+
+                    markDoneBtn.disabled = true;
+                    markDoneBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Updating...';
+
+                    for (var entry of tablesMap.entries()) {
+                        var url = entry[0].getAttribute('data-bulk-complete-url');
+                        if (!url) continue;
+                        var formData = new FormData();
+                        formData.append('csrfmiddlewaretoken', csrfToken);
+                        entry[1].forEach(function(it) {
+                            if (it.checkbox.value) formData.append('selected_ids', it.checkbox.value);
+                        });
+                        try {
+                            await fetch(url, {
+                                method: 'POST',
+                                headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
+                                body: formData
+                            });
+                        } catch (err) {
+                            console.error('Bulk mark-as-done error:', err);
+                        }
+                    }
+                    window.location.reload();
                 });
             }
 
@@ -2174,6 +2319,86 @@
             obs.observe(document.body, { childList: true, subtree: true });
         }
 
+        window.executeUniversalBulkExport = function(format) {
+            var selected = getSelectedRows();
+            if (!selected || selected.length === 0) return;
+
+            var table = selected[0].table;
+            var serverExportUrl = table ? (table.getAttribute('data-export-url') || table.dataset.exportUrl) : null;
+            var selectedIds = selected.map(function(it) {
+                return it.checkbox.value || (it.row && it.row.dataset.id) || '';
+            }).filter(Boolean);
+
+            if (serverExportUrl) {
+                var separator = serverExportUrl.includes('?') ? '&' : '?';
+                var fullUrl = serverExportUrl + separator + 'format=' + encodeURIComponent(format);
+                if (selectedIds.length > 0) {
+                    fullUrl += '&ids=' + encodeURIComponent(selectedIds.join(','));
+                }
+                window.location.href = fullUrl;
+                return;
+            }
+
+            // Universal client-side export fallback for all pages
+            var headers = [];
+            if (table) {
+                var ths = table.querySelectorAll('thead th');
+                ths.forEach(function(th) {
+                    if (th.classList.contains('col-checkbox') || th.querySelector('.select-all-checkbox')) return;
+                    var txt = (th.textContent || '').trim().replace(/\s+/g, ' ');
+                    if (txt && !txt.toLowerCase().includes('action')) {
+                        headers.push(txt);
+                    }
+                });
+            }
+
+            var rows = [];
+            selected.forEach(function(it) {
+                var rowCells = [];
+                var tds = it.row.querySelectorAll('td');
+                tds.forEach(function(td) {
+                    if (td.classList.contains('col-checkbox') || td.querySelector('.row-select-checkbox')) return;
+                    if (td.querySelector('.btn-group, .btn-action, a[href*="delete"], a[href*="edit"]')) return;
+                    var txt = (td.textContent || '').trim().replace(/\s+/g, ' ');
+                    rowCells.push(txt);
+                });
+                if (rowCells.length > 0) rows.push(rowCells);
+            });
+
+            var pageTitle = document.title ? document.title.split('-')[0].trim() : 'export';
+            var safeTitle = pageTitle.toLowerCase().replace(/[^a-z0-9]+/g, '_') || 'export';
+            var dateStr = new Date().toISOString().slice(0, 10);
+            var filename = safeTitle + '_' + dateStr;
+
+            if (format === 'excel' || format === 'xlsx') {
+                var xml = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">' +
+                    '<head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>' +
+                    '<x:Name>' + safeTitle + '</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>' +
+                    '<body><table border="1"><thead><tr>' + headers.map(function(h) { return '<th style="background:#f1f5f9;font-weight:bold;">' + h + '</th>'; }).join('') + '</tr></thead>' +
+                    '<tbody>' + rows.map(function(r) { return '<tr>' + r.map(function(c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></body></html>';
+                var blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+                var link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename + '.xls';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                var csvRows = [];
+                csvRows.push(headers.map(function(h) { return '"' + h.replace(/"/g, '""') + '"'; }).join(','));
+                rows.forEach(function(r) {
+                    csvRows.push(r.map(function(c) { return '"' + c.replace(/"/g, '""') + '"'; }).join(','));
+                });
+                var blob = new Blob(['\ufeff' + csvRows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+                var link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename + '.csv';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        };
+
         window.initUniversalTableSelectionSystem = initBulkSystem;
     })();
     </script>
@@ -2186,11 +2411,17 @@
                 <span class="bulk-count-text" id="bulkCountText">items selected</span>
             </div>
             <div class="bulk-bar-actions">
-                <button type="button" class="btn btn-outline-light btn-sm" id="bulkSelectAllBtn">
-                    <i class="fas fa-check-double me-1"></i> Select All
-                </button>
-                <button type="button" class="btn btn-outline-light btn-sm" id="bulkClearBtn">
-                    <i class="fas fa-times me-1"></i> Clear
+                <div class="btn-group dropup" id="bulkExportGroup">
+                    <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" id="bulkExportBtn">
+                        <i class="fas fa-file-export me-1"></i> Export Selected
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="executeUniversalBulkExport('csv')"><i class="fas fa-file-csv me-2 text-primary"></i>Export as CSV</a></li>
+                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="executeUniversalBulkExport('excel')"><i class="fas fa-file-excel me-2 text-success"></i>Export as Excel (.xlsx)</a></li>
+                    </ul>
+                </div>
+                <button type="button" class="btn btn-success btn-sm d-none" id="bulkMarkDoneBtn">
+                    <i class="fas fa-check-circle me-1"></i> Mark as Done
                 </button>
                 <button type="button" class="btn btn-danger btn-sm" id="bulkDeleteBtn">
                     <i class="fas fa-trash-alt me-1"></i> Delete Selected

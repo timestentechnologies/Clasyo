@@ -3866,6 +3866,169 @@ body.dark-theme .school-avatar-icon {
     margin: 0 !important;
 }
 
+/* ==========================================================================
+   SYSTEM STANDARD: Unified In-Line Table Toolbar
+   Buttons on one side, Search & Filters on the other side.
+   Strict 38px matching height across all buttons, search inputs, and selects.
+   ========================================================================== */
+.table-toolbar {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.75rem !important;
+    margin-bottom: 1rem !important;
+    width: 100% !important;
+}
+
+/* Toolbar Buttons Group (One side) */
+.table-toolbar .toolbar-actions,
+.table-toolbar .toolbar-actions-left {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    flex-wrap: wrap !important;
+    flex-shrink: 0 !important;
+}
+
+/* Toolbar Filters & Search Group (The other side) */
+.table-toolbar .toolbar-filters,
+.table-toolbar .toolbar-actions-right {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    flex-wrap: wrap !important;
+    margin-left: auto !important;
+    flex-shrink: 0 !important;
+}
+
+/* Search Box Container */
+.table-toolbar .toolbar-search {
+    position: relative !important;
+    min-width: 220px !important;
+    max-width: 320px !important;
+}
+
+.table-toolbar .toolbar-search .search-icon {
+    position: absolute !important;
+    left: 0.85rem !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    color: #94a3b8 !important;
+    font-size: 0.875rem !important;
+    pointer-events: none !important;
+    z-index: 2 !important;
+}
+
+/* Filter Dropdown Container */
+.table-toolbar .toolbar-filter {
+    min-width: 140px !important;
+    max-width: 190px !important;
+}
+
+/* EXACT UNIFIED HEIGHT & VERTICAL ALIGNMENT FOR BUTTONS, SEARCH, AND FILTERS */
+.table-toolbar .btn,
+.table-toolbar button,
+.table-toolbar a.btn,
+.table-toolbar input.form-control,
+.table-toolbar select.form-select,
+.table-toolbar .toolbar-search .form-control,
+.table-toolbar .toolbar-filter .form-select,
+.table-toolbar .ts-wrapper,
+.table-toolbar .ts-control,
+.table-toolbar .ts-wrapper.single .ts-control,
+.table-toolbar .toolbar-filter .ts-wrapper,
+.table-toolbar .toolbar-filter .ts-control,
+.table-toolbar .toolbar-filter .ts-wrapper.single .ts-control {
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    font-size: 0.875rem !important;
+    border-radius: var(--radius-md, 8px) !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+}
+
+/* Specific button styling in toolbar */
+.table-toolbar .btn,
+.table-toolbar button,
+.table-toolbar a.btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 0.95rem !important;
+    line-height: 1 !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+    border: 1px solid transparent !important;
+}
+
+/* Specific input styling in toolbar */
+.table-toolbar input.form-control,
+.table-toolbar .toolbar-search .form-control {
+    padding-left: 2.25rem !important;
+    padding-right: 0.75rem !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    line-height: 36px !important;
+    background-color: #ffffff !important;
+    border: 1px solid var(--border-color, #e2e8f0) !important;
+    transition: all 0.2s ease !important;
+}
+
+.table-toolbar input.form-control:focus,
+.table-toolbar .toolbar-search .form-control:focus {
+    border-color: var(--brand-primary, #0284c7) !important;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
+}
+
+/* Specific select styling in toolbar */
+.table-toolbar select.form-select,
+.table-toolbar .toolbar-filter .form-select {
+    padding-left: 0.75rem !important;
+    padding-right: 2.25rem !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    line-height: 36px !important;
+    background-color: #ffffff !important;
+    border: 1px solid var(--border-color, #e2e8f0) !important;
+}
+
+.table-toolbar .ts-control,
+.table-toolbar .ts-wrapper.single .ts-control {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    line-height: 36px !important;
+    min-height: 38px !important;
+    height: 38px !important;
+    display: flex !important;
+    align-items: center !important;
+}
+.table-toolbar .ts-wrapper.single .ts-control .item,
+.table-toolbar .ts-wrapper .ts-control input {
+    line-height: 36px !important;
+    height: 36px !important;
+}
+
+/* Dark mode support */
+[data-theme="dark"] .table-toolbar input.form-control,
+[data-theme="dark"] .table-toolbar select.form-select,
+[data-theme="dark"] .table-toolbar .toolbar-search .form-control,
+[data-theme="dark"] .table-toolbar .toolbar-filter .form-select,
+body.dark-theme .table-toolbar input.form-control,
+body.dark-theme .table-toolbar select.form-select,
+body.dark-theme .table-toolbar .toolbar-search .form-control,
+body.dark-theme .table-toolbar .toolbar-filter .form-select {
+    background-color: var(--dark-card-bg, #1e293b) !important;
+    border-color: var(--dark-border-color, #334155) !important;
+    color: var(--dark-text-primary, #f1f5f9) !important;
+}
+
+[data-theme="dark"] .table-toolbar .toolbar-search .search-icon,
+body.dark-theme .table-toolbar .toolbar-search .search-icon {
+    color: var(--dark-text-muted, #94a3b8) !important;
+}
+
 /* Secondary Smart Button */
 .smart-btn-secondary {
     display: inline-flex !important;
@@ -9277,7 +9440,106 @@ html.dark-theme .cms-nav-tab.active i {
 .form-header-actions {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+/* Icon-only Save / Cancel / Delete actions (applied by initFormActionIcons in dashboards/base.html)
+   Bare icons only: no box, no border, no background. Order: Save, Delete, Cancel.
+   Selectors repeat the class to out-rank `.btn.btn-primary` etc. in modern-dashboard.css. */
+.form-header-actions .form-action-icon.form-action-icon:not(.d-none):not([style*="display: none"]):not([style*="display:none"]) {
+    display: inline-flex !important;
+}
+
+.form-header-actions .form-action-icon.form-action-icon {
+    width: auto;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    padding: 4px !important;
+    margin: 0 !important;
+    align-items: center;
+    justify-content: center;
+    font-size: 0 !important;
+    line-height: 1;
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    opacity: 1 !important;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+.form-header-actions .form-action-icon.form-action-icon:hover,
+.form-header-actions .form-action-icon.form-action-icon:focus,
+.form-header-actions .form-action-icon.form-action-icon:active {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    transform: scale(1.12);
+}
+
+.form-header-actions .form-action-icon.form-action-icon i {
+    font-size: 16px !important;
+    font-weight: 900 !important;
+    margin: 0 !important;
+    line-height: 1;
+}
+
+/* Order: Save, Delete, Cancel (other buttons such as "Login as" stay first) */
+.form-header-actions .form-action-save { order: 1; }
+.form-header-actions .form-action-delete { order: 2; }
+.form-header-actions .form-action-cancel { order: 3; }
+
+/* Save = cloud upload glyph, regardless of the icon class the markup/scripts use */
+.form-header-actions .form-action-save.form-action-save i::before {
+    content: "\f0ee" !important;
+}
+
+/* Icon colours (set on the <i> itself so global icon-colour rules don't override them) */
+.form-header-actions .form-action-save.form-action-save i,
+.form-header-actions .form-action-save.form-action-save:hover i {
+    color: var(--brand-primary, #0284C7) !important;
+}
+
+.form-header-actions .form-action-delete.form-action-delete i,
+.form-header-actions .form-action-delete.form-action-delete:hover i {
+    color: #EF4444 !important;
+}
+
+.form-header-actions .form-action-cancel.form-action-cancel i {
+    color: #64748B !important;
+}
+
+.form-header-actions .form-action-cancel.form-action-cancel:hover i {
+    color: #0F172A !important;
+}
+
+[data-theme="dark"] .form-header-actions .form-action-save.form-action-save i,
+[data-bs-theme="dark"] .form-header-actions .form-action-save.form-action-save i,
+body.dark-theme .form-header-actions .form-action-save.form-action-save i,
+.theme-dark .form-header-actions .form-action-save.form-action-save i {
+    color: #38BDF8 !important;
+}
+
+[data-theme="dark"] .form-header-actions .form-action-cancel.form-action-cancel i,
+[data-bs-theme="dark"] .form-header-actions .form-action-cancel.form-action-cancel i,
+body.dark-theme .form-header-actions .form-action-cancel.form-action-cancel i,
+.theme-dark .form-header-actions .form-action-cancel.form-action-cancel i {
+    color: #CBD5E1 !important;
+}
+
+[data-theme="dark"] .form-header-actions .form-action-cancel.form-action-cancel:hover i,
+[data-bs-theme="dark"] .form-header-actions .form-action-cancel.form-action-cancel:hover i,
+body.dark-theme .form-header-actions .form-action-cancel.form-action-cancel:hover i,
+.theme-dark .form-header-actions .form-action-cancel.form-action-cancel:hover i {
+    color: #FFFFFF !important;
 }
 
 .form-card-body {

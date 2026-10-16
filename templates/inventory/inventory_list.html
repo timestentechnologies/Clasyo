@@ -76,7 +76,7 @@
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Unit Price (Ksh) *</label>
+                    <label class="form-label fw-semibold">Unit Price ({{ currency_symbol|default:'$' }}) *</label>
                     <input type="number" name="unit_price" id="inventory_unit_price" class="form-control" step="0.01" placeholder="0.00" required>
                 </div>
 
@@ -150,10 +150,10 @@
                         </td>
                         <td>{{ item.category.name|default:"-" }}</td>
                         <td>{{ item.unit }}</td>
-                        <td>Ksh {{ item.unit_price|floatformat:0|intcomma }}</td>
+                        <td>{{ currency_symbol|default:'$' }} {{ item.unit_price|floatformat:0|intcomma }}</td>
                         <td>{{ item.quantity_in_stock }}</td>
                         <td>{{ item.reorder_level }}</td>
-                        <td>Ksh {{ item.stock_value|floatformat:0|intcomma }}</td>
+                        <td>{{ currency_symbol|default:'$' }} {{ item.stock_value|floatformat:0|intcomma }}</td>
                     </tr>
                     {% empty %}
                     <tr>

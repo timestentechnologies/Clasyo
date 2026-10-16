@@ -24,6 +24,10 @@ urlpatterns = [
     path('<int:pk>/subjects/', views.StudentSubjectsView.as_view(), name='subjects'),
     path('<int:pk>/edit/', views.StudentUpdateView.as_view(), name='edit'),
     path('<int:pk>/delete/', views.StudentDeleteView.as_view(), name='delete'),
+    path('<int:pk>/exit/', views.StudentExitView.as_view(), name='exit'),
+    path('<int:pk>/status/', views.StudentStatusUpdateView.as_view(), name='update_status'),
+    path('bulk-enroll/', views.StudentBulkConfirmEnrollmentView.as_view(), name='bulk_enroll'),
+    path('api/platform-schools/', views.PlatformSchoolsApiView.as_view(), name='platform_schools_api'),
     
     # Autocomplete endpoints
     path('autocomplete/', StudentAutocompleteView.as_view(), name='student_autocomplete'),

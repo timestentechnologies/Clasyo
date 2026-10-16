@@ -304,7 +304,8 @@ window.addEventListener('load', function() {
 
     function formatCurrency(n) {
         const num = Number(n) || 0;
-        return 'Ksh ' + num.toLocaleString();
+        const sym = window.APP_CURRENCY_SYMBOL || "{{ currency_symbol|default:'$' }}";
+        return sym + ' ' + num.toLocaleString();
     }
 
     function updateBalanceUI() {
@@ -523,9 +524,10 @@ window.addEventListener('load', function() {
             const collectedCard = document.getElementById('totalCollectedCard');
             const remainingCard = document.getElementById('totalRemainingCard');
             
-            if (expectedCard) expectedCard.textContent = `Ksh ${totalExpected.toLocaleString()}`;
-            if (collectedCard) collectedCard.textContent = `Ksh ${totalCollected.toLocaleString()}`;
-            if (remainingCard) remainingCard.textContent = `Ksh ${totalRemaining.toLocaleString()}`;
+            const sym = window.APP_CURRENCY_SYMBOL || "{{ currency_symbol|default:'$' }}";
+            if (expectedCard) expectedCard.textContent = `${sym} ${totalExpected.toLocaleString()}`;
+            if (collectedCard) collectedCard.textContent = `${sym} ${totalCollected.toLocaleString()}`;
+            if (remainingCard) remainingCard.textContent = `${sym} ${totalRemaining.toLocaleString()}`;
             
             console.log('Updated cards from complete data:', {totalExpected, totalCollected, totalRemaining});
         }

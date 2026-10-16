@@ -361,12 +361,12 @@ body.theme-dark .menu-section-title {
    Combined Horizontal Header & Navigation (Single-Bar Standard)
    ========================================================================== */
 .layout-horizontal .top-navbar {
-    padding: 10px 28px !important;
-    min-height: 64px !important;
+    padding: 8px 18px !important;
+    min-height: 60px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: flex-start !important;
-    gap: 12px !important;
+    gap: 8px !important;
     position: sticky !important;
     top: 0 !important;
     z-index: 1040 !important;
@@ -387,16 +387,34 @@ body.theme-dark .layout-horizontal .top-navbar {
     display: flex;
     align-items: center;
     flex-shrink: 0;
-    margin-right: 8px;
+    margin-right: 6px;
+    max-width: 175px;
     text-decoration: none !important;
 }
 
 .horizontal-brand-title {
-    font-size: 1.05rem;
+    font-size: 0.98rem;
     font-weight: 700;
     color: var(--text-primary, #0F172A);
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 130px;
+    display: inline-block;
+    vertical-align: middle;
     letter-spacing: -0.2px;
+}
+
+@media (max-width: 1440px) {
+    .horizontal-brand-title {
+        max-width: 105px;
+    }
+}
+
+@media (max-width: 1280px) {
+    .horizontal-brand-title {
+        max-width: 80px;
+    }
 }
 
 [data-theme="dark"] .horizontal-brand-title,
@@ -410,7 +428,7 @@ body.dark-theme .horizontal-brand-title {
     align-items: center;
     flex: 1 1 auto;
     min-width: 0;
-    margin: 0 8px;
+    margin: 0 4px;
     overflow: visible !important;
 }
 
@@ -420,7 +438,7 @@ body.dark-theme .horizontal-brand-title {
     list-style: none;
     margin: 0;
     padding: 0;
-    gap: 3px;
+    gap: 2px;
     white-space: nowrap;
     overflow: visible !important;
 }
@@ -432,26 +450,34 @@ body.dark-theme .horizontal-brand-title {
 .horizontal-nav-combined .nav-tab-link {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 7px 11px;
-    font-size: 13px;
+    gap: 5px;
+    padding: 6px 9px;
+    font-size: 12.5px;
     font-weight: 500;
     color: var(--text-secondary, #475569) !important;
     text-decoration: none !important;
-    border-radius: 8px;
+    border-radius: 6px;
     transition: all 0.18s ease;
     cursor: pointer;
     white-space: nowrap;
 }
 
+@media (max-width: 1440px) {
+    .horizontal-nav-combined .nav-tab-link {
+        padding: 5px 7px;
+        font-size: 12px;
+        gap: 4px;
+    }
+}
+
 .horizontal-nav-combined .nav-tab-link i:first-child {
-    font-size: 13px;
+    font-size: 12.5px;
     color: var(--system-icon-color, var(--text-muted, #64748B));
     transition: color 0.18s ease;
 }
 
 .horizontal-nav-combined .nav-tab-link .dropdown-arrow {
-    font-size: 9px;
+    font-size: 8.5px;
     opacity: 0.7;
     transition: transform 0.18s ease;
 }
@@ -511,16 +537,17 @@ body.dark-theme .horizontal-nav-combined .nav-tab-item.active .nav-tab-link i:fi
 
 /* 3. Right: Search Bar & Actions in Combined Horizontal Mode */
 .layout-horizontal .search-bar.search-bar-combined {
-    flex: 0 1 240px !important;
-    max-width: 260px !important;
-    min-width: 170px !important;
-    margin: 0 12px 0 auto !important;
+    flex: 0 1 180px !important;
+    max-width: 200px !important;
+    min-width: 120px !important;
+    margin: 0 8px 0 auto !important;
 }
 
-@media (max-width: 1300px) {
+@media (max-width: 1440px) {
     .layout-horizontal .search-bar.search-bar-combined {
-        flex: 0 1 180px !important;
-        max-width: 200px !important;
+        flex: 0 1 150px !important;
+        max-width: 170px !important;
+        min-width: 100px !important;
     }
 }
 
@@ -528,7 +555,7 @@ body.dark-theme .horizontal-nav-combined .nav-tab-item.active .nav-tab-link i:fi
     flex-shrink: 0 !important;
     display: flex !important;
     align-items: center !important;
-    gap: 12px !important;
+    gap: 8px !important;
 }
 
 /* ==========================================================================
@@ -1398,6 +1425,16 @@ body.theme-dark .table tbody tr:hover {
     font-size: 1.25rem;
 }
 
+.page-title .more-info-btn i {
+    color: var(--primary, #4361ee) !important;
+    font-size: 1.15rem !important;
+}
+
+.page-title .more-info-btn:hover i,
+.page-title .more-info-btn:focus i {
+    color: #2563eb !important;
+}
+
 .page-subtitle {
     color: var(--text-muted);
     font-size: 0.875rem;
@@ -2142,6 +2179,30 @@ body.dark-theme .modal .modal-footer {
     box-shadow: none !important;
 }
 
+select.form-select.no-tomselect {
+    padding: 10px 38px 10px 14px !important;
+    background-color: var(--input-bg, #FFFFFF) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%2364748B' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 14px center !important;
+    background-size: 14px 14px !important;
+    border: 1px solid var(--input-border, #CBD5E1) !important;
+    border-radius: 10px !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    cursor: pointer !important;
+}
+
+[data-theme="dark"] select.form-select.no-tomselect,
+.theme-dark select.form-select.no-tomselect,
+body.dark-theme select.form-select.no-tomselect {
+    background-color: var(--input-bg, #1E293B) !important;
+    border-color: var(--border-light, #334155) !important;
+    color: var(--input-text, #F8FAFC) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%2394A3B8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
 .form-label-modern,
 .form-label,
 label {
@@ -2671,7 +2732,15 @@ textarea.form-control-modern {
 .table thead th.no-sort::after,
 .table thead th.no-sort::before,
 th.table-select-col::after,
-th.table-select-col::before {
+th.table-select-col::before,
+.table.no-sort thead th::after,
+.table.no-sort thead th::before,
+table.no-sort thead th::after,
+table.no-sort thead th::before,
+.table.no-bulk-select thead th::after,
+.table.no-bulk-select thead th::before,
+table.no-bulk-select thead th::after,
+table.no-bulk-select thead th::before {
     display: none !important;
     content: none !important;
     opacity: 0 !important;
@@ -3963,4 +4032,104 @@ body.theme-dark .input-group:has(.form-control:disabled),
 body.theme-dark .input-group:has(input:disabled) {
     background-color: rgba(15, 23, 42, 0.7) !important;
     border-color: #334155 !important;
+}
+
+/* ==========================================================================
+   SYSTEM STANDARD: Table Toolbar Equal 38px Height & Side-Separation
+   ========================================================================== */
+.table-toolbar {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.75rem !important;
+    margin-bottom: 1rem !important;
+    width: 100% !important;
+}
+
+.table-toolbar .toolbar-actions,
+.table-toolbar .toolbar-actions-left {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    flex-wrap: wrap !important;
+    flex-shrink: 0 !important;
+}
+
+.table-toolbar .toolbar-filters,
+.table-toolbar .toolbar-actions-right {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    flex-wrap: wrap !important;
+    margin-left: auto !important;
+    flex-shrink: 0 !important;
+}
+
+.table-toolbar .btn,
+.table-toolbar button,
+.table-toolbar a.btn,
+.table-toolbar input.form-control,
+.table-toolbar select.form-select,
+.table-toolbar .toolbar-search .form-control,
+.table-toolbar .toolbar-filter .form-select,
+.table-toolbar .ts-wrapper,
+.table-toolbar .ts-control,
+.table-toolbar .ts-wrapper.single .ts-control,
+.table-toolbar .toolbar-filter .ts-wrapper,
+.table-toolbar .toolbar-filter .ts-control,
+.table-toolbar .toolbar-filter .ts-wrapper.single .ts-control {
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    font-size: 0.875rem !important;
+    border-radius: var(--radius-md, 8px) !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+}
+
+.table-toolbar .btn,
+.table-toolbar button,
+.table-toolbar a.btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 0.95rem !important;
+    line-height: 1 !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+}
+
+.table-toolbar input.form-control,
+.table-toolbar .toolbar-search .form-control {
+    padding-left: 2.25rem !important;
+    padding-right: 0.75rem !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    line-height: 36px !important;
+}
+
+.table-toolbar select.form-select,
+.table-toolbar .toolbar-filter .form-select {
+    padding-left: 0.75rem !important;
+    padding-right: 2.25rem !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    line-height: 36px !important;
+}
+
+.table-toolbar .ts-control,
+.table-toolbar .ts-wrapper.single .ts-control {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    line-height: 36px !important;
+    min-height: 38px !important;
+    height: 38px !important;
+    display: flex !important;
+    align-items: center !important;
+}
+.table-toolbar .ts-wrapper.single .ts-control .item,
+.table-toolbar .ts-wrapper .ts-control input {
+    line-height: 36px !important;
+    height: 36px !important;
 }

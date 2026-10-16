@@ -36,79 +36,93 @@
 
 <!-- Unified Dashboard Overview Grid (Hero + Aligned Side Cards + Visual Chart) -->
 <div class="dashboard-overview-grid fade-in-up mt-3">
-    <!-- 1. Hero Card (Bigger Card - At a Glance Overview) -->
+    <!-- 1. Hero Card (Bigger Section - Financial Overview & Fee Collections) -->
     <div class="hero-stat-card">
         <div>
-            <div class="hero-stat-header">
+            <div class="hero-stat-header d-flex justify-content-between align-items-start">
                 <div>
-                    <h3 class="hero-stat-title">Academic Operations</h3>
-                    <p class="hero-stat-subtitle">Students, teaching staff & daily workload</p>
+                    <h3 class="hero-stat-title">Financial Overview</h3>
+                    <p class="hero-stat-subtitle">Fee revenue, collections &amp; outstanding balances</p>
                 </div>
+                <a href="/school/{{ school_slug }}/fees/" class="btn btn-sm btn-outline-primary" style="font-size: 0.8rem; padding: 0.25rem 0.65rem;">
+                    <i class="fas fa-receipt me-1"></i> Fee Details
+                </a>
             </div>
             <div class="hero-stat-main">
-                <div class="hero-stat-primary-value">{{ total_students|default:0 }}</div>
-                <div class="hero-stat-main-label">Total Enrolled Students</div>
-                <div class="hero-stat-main-sub">Active learner population</div>
+                <div class="hero-stat-primary-value text-success">
+                    <span style="font-size: 0.62em; font-weight: 600; opacity: 0.85; margin-right: 4px;">{{ currency_symbol }}</span>{{ total_fees_collected|floatformat:2|default:"0.00" }}
+                </div>
+                <div class="hero-stat-main-label">Total Revenue Collected</div>
+                <div class="hero-stat-main-sub">
+                    {% if has_financial_data %}
+                        <i class="fas fa-check-circle text-success me-1"></i>{{ fee_collection_rate }}% collection rate achieved
+                    {% else %}
+                        Paid student tuition &amp; institutional collections
+                    {% endif %}
+                </div>
             </div>
         </div>
 
         <div class="hero-stat-footer">
             <div class="hero-sub-metric">
-                <span class="hero-sub-val text-success">{{ total_teachers|default:0 }}</span>
-                <span class="hero-sub-lbl">Teachers</span>
+                <span class="hero-sub-val text-primary">{{ currency_symbol }} {{ total_fees_billed|floatformat:2|default:"0.00" }}</span>
+                <span class="hero-sub-lbl">Total Invoiced</span>
             </div>
             <div class="hero-sub-metric">
-                <span class="hero-sub-val text-warning">{{ total_classes|default:0 }}</span>
-                <span class="hero-sub-lbl">Classes</span>
+                <span class="hero-sub-val {% if total_fees_pending > 0 %}text-danger{% else %}text-muted{% endif %}">
+                    {{ currency_symbol }} {{ total_fees_pending|floatformat:2|default:"0.00" }}
+                </span>
+                <span class="hero-sub-lbl">Pending Balance</span>
             </div>
             <div class="hero-sub-metric">
-                <span class="hero-sub-val text-danger">{{ pending_tasks|default:0 }}</span>
-                <span class="hero-sub-lbl">Pending Tasks</span>
+                <span class="hero-sub-val text-success">{{ fee_collection_rate|default:"0.0" }}%</span>
+                <span class="hero-sub-lbl">Collection Rate</span>
             </div>
         </div>
     </div>
 
-    <!-- 2. Side Stack Cards (Bottoms Aligned with Hero Card) -->
+    <!-- 2. Side Stack Cards (Academic & Institutional Vitals) -->
     <div class="side-stats-stack">
-        <div class="side-stat-card success">
+        <a href="/school/{{ school_slug }}/students/" class="side-stat-card primary text-decoration-none">
+            <div class="side-stat-info">
+                <span class="side-stat-val text-primary">{{ total_students|default:0 }}</span>
+                <span class="side-stat-lbl">Total Students</span>
+                <span class="side-stat-sub">Active learner population</span>
+            </div>
+            <div class="side-stat-icon">
+                <i class="fas fa-user-graduate"></i>
+            </div>
+        </a>
+
+        <a href="/school/{{ school_slug }}/hr/teachers/" class="side-stat-card success text-decoration-none">
             <div class="side-stat-info">
                 <span class="side-stat-val text-success">{{ total_teachers|default:0 }}</span>
                 <span class="side-stat-lbl">Active Teachers</span>
-                <span class="side-stat-sub">Faculty members</span>
+                <span class="side-stat-sub">Faculty &amp; instructors</span>
             </div>
             <div class="side-stat-icon">
                 <i class="fas fa-chalkboard-teacher"></i>
             </div>
-        </div>
+        </a>
 
-        <div class="side-stat-card warning">
+        <a href="/school/{{ school_slug }}/academics/classes/" class="side-stat-card warning text-decoration-none">
             <div class="side-stat-info">
                 <span class="side-stat-val text-warning">{{ total_classes|default:0 }}</span>
                 <span class="side-stat-lbl">Active Classes</span>
-                <span class="side-stat-sub">Streams & grades</span>
+                <span class="side-stat-sub">Streams &amp; cohorts</span>
             </div>
             <div class="side-stat-icon">
                 <i class="fas fa-layer-group"></i>
             </div>
-        </div>
-
-        <div class="side-stat-card danger">
-            <div class="side-stat-info">
-                <span class="side-stat-val text-danger">{{ pending_tasks|default:0 }}</span>
-                <span class="side-stat-lbl">Pending Tasks</span>
-                <span class="side-stat-sub">Needs attention</span>
-            </div>
-            <div class="side-stat-icon">
-                <i class="fas fa-tasks"></i>
-            </div>
-        </div>
+        </a>
     </div>
 
-    <!-- 3. Quick Stats Chart Card (Visual Analytics on the Far Right) -->
+    <!-- 3. Quick Stats Chart Card (Insightful Analytics) -->
     <div class="quick-stats-chart-card">
         <div class="quick-stats-chart-header">
             <h4 class="quick-stats-chart-title">
-                <i class="fas fa-chart-pie text-primary"></i> Quick Stats
+                <i class="fas fa-chart-pie text-primary"></i>
+                {% if has_financial_data %}Collection Breakdown{% else %}Enrollment Breakdown{% endif %}
             </h4>
         </div>
 
@@ -117,27 +131,51 @@
         </div>
 
         <div class="quick-stats-legend">
-            <div class="quick-stats-legend-item">
-                <div class="quick-stats-legend-label">
-                    <span class="quick-stats-legend-dot" style="background-color: #0284C7;"></span>
-                    <span>Students</span>
-                </div>
-                <span class="quick-stats-legend-val">{{ total_students|default:0 }}</span>
-            </div>
+            {% if has_financial_data %}
             <div class="quick-stats-legend-item">
                 <div class="quick-stats-legend-label">
                     <span class="quick-stats-legend-dot" style="background-color: #10B981;"></span>
-                    <span>Teachers</span>
+                    <span>Paid Fees</span>
                 </div>
-                <span class="quick-stats-legend-val">{{ total_teachers|default:0 }}</span>
+                <span class="quick-stats-legend-val">{{ currency_symbol }} {{ total_fees_collected|floatformat:0 }}</span>
             </div>
             <div class="quick-stats-legend-item">
                 <div class="quick-stats-legend-label">
                     <span class="quick-stats-legend-dot" style="background-color: #F59E0B;"></span>
-                    <span>Classes</span>
+                    <span>Pending</span>
                 </div>
-                <span class="quick-stats-legend-val">{{ total_classes|default:0 }}</span>
+                <span class="quick-stats-legend-val">{{ currency_symbol }} {{ total_fees_pending|floatformat:0 }}</span>
             </div>
+            <div class="quick-stats-legend-item">
+                <div class="quick-stats-legend-label">
+                    <span class="quick-stats-legend-dot" style="background-color: #EF4444;"></span>
+                    <span>Overdue</span>
+                </div>
+                <span class="quick-stats-legend-val">{{ currency_symbol }} {{ total_fees_overdue|floatformat:0 }}</span>
+            </div>
+            {% else %}
+            <div class="quick-stats-legend-item">
+                <div class="quick-stats-legend-label">
+                    <span class="quick-stats-legend-dot" style="background-color: #10B981;"></span>
+                    <span>Enrolled</span>
+                </div>
+                <span class="quick-stats-legend-val">{{ admissions_enrolled|default:total_students|default:0 }}</span>
+            </div>
+            <div class="quick-stats-legend-item">
+                <div class="quick-stats-legend-label">
+                    <span class="quick-stats-legend-dot" style="background-color: #F59E0B;"></span>
+                    <span>Pending</span>
+                </div>
+                <span class="quick-stats-legend-val">{{ admissions_pending|default:0 }}</span>
+            </div>
+            <div class="quick-stats-legend-item">
+                <div class="quick-stats-legend-label">
+                    <span class="quick-stats-legend-dot" style="background-color: #94A3B8;"></span>
+                    <span>Transferred</span>
+                </div>
+                <span class="quick-stats-legend-val">{{ admissions_transferred|default:0 }}</span>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -147,20 +185,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const canvas = document.getElementById('adminQuickStatsChart');
     if (!canvas || typeof Chart === 'undefined') return;
 
-    const students = {{ total_students|default:0 }};
-    const teachers = {{ total_teachers|default:0 }};
-    const classes = {{ total_classes|default:0 }};
-    const total = students + teachers + classes;
+    {% if has_financial_data %}
+    const paid = parseFloat("{{ total_fees_collected|default:0 }}") || 0;
+    const pending = parseFloat("{{ total_fees_pending|default:0 }}") || 0;
+    const overdue = parseFloat("{{ total_fees_overdue|default:0 }}") || 0;
+    const total = paid + pending + overdue;
 
-    const chartData = total > 0 ? [students, teachers, classes] : [1, 0, 0];
+    const chartData = total > 0 ? [paid, pending, overdue] : [1, 0, 0];
     const chartColors = total > 0 
-        ? ['#0284C7', '#10B981', '#F59E0B'] 
-        : ['#CBD5E1', 'transparent', 'transparent'];
+        ? ['#10B981', '#F59E0B', '#EF4444'] 
+        : ['#10B981', 'transparent', 'transparent'];
+    const chartLabels = ['Paid Fees', 'Pending Balance', 'Overdue'];
+    const prefix = "{{ currency_symbol|default:'$' }} ";
+    {% else %}
+    const enrolled = parseInt("{{ admissions_enrolled|default:total_students|default:0 }}", 10) || 0;
+    const pendingAdm = parseInt("{{ admissions_pending|default:0 }}", 10) || 0;
+    const exited = parseInt("{{ admissions_transferred|default:0 }}", 10) || 0;
+    const total = enrolled + pendingAdm + exited;
+
+    const chartData = total > 0 ? [enrolled, pendingAdm, exited] : [1, 0, 0];
+    const chartColors = total > 0 
+        ? ['#10B981', '#F59E0B', '#94A3B8'] 
+        : ['#10B981', 'transparent', 'transparent'];
+    const chartLabels = ['Enrolled', 'Pending Verification', 'Transferred / Exited'];
+    const prefix = "";
+    {% endif %}
 
     new Chart(canvas.getContext('2d'), {
         type: 'doughnut',
         data: {
-            labels: ['Students', 'Teachers', 'Classes'],
+            labels: chartLabels,
             datasets: [{
                 data: chartData,
                 backgroundColor: chartColors,
@@ -178,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     enabled: total > 0,
                     callbacks: {
                         label: function(context) {
-                            return ' ' + context.label + ': ' + context.raw;
+                            return ' ' + context.label + ': ' + prefix + context.raw.toLocaleString();
                         }
                     }
                 }

@@ -42,10 +42,13 @@
                     </div>
                     <div class="position-relative">
                         {% if user.avatar %}
-                            <img id="avatarPreviewImg" src="{{ user.avatar.url }}" alt="{{ user.get_full_name }}" class="rounded-circle shadow-sm" style="width: 58px; height: 58px; object-fit: cover; border: 2px solid var(--border-color, #334155);">
+                            <img id="avatarPreviewImg" src="{{ user.avatar.url }}" alt="{{ user.get_full_name }}" class="rounded-circle shadow-sm" style="width: 58px; height: 58px; object-fit: cover; border: 2px solid var(--border-color, #334155);" onerror="this.style.display='none'; document.getElementById('avatarPreviewInitials').style.display='flex';">
+                            <div id="avatarPreviewInitials" class="user-avatar shadow-sm" style="display: none; width: 58px; height: 58px; font-size: 1.4rem; align-items: center; justify-content: center; border-radius: 50%; font-weight: bold; background: linear-gradient(135deg, #1E3A5F 0%, #0284c7 100%); color: white;">
+                                {{ user.first_name.0|default:"U"|upper }}{{ user.last_name.0|default:""|upper }}
+                            </div>
                         {% else %}
-                            <div id="avatarPreviewInitials" class="user-avatar shadow-sm" style="width: 58px; height: 58px; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
-                                {{ user.first_name.0|default:"U" }}{{ user.last_name.0|default:"" }}
+                            <div id="avatarPreviewInitials" class="user-avatar shadow-sm" style="width: 58px; height: 58px; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: bold; background: linear-gradient(135deg, #1E3A5F 0%, #0284c7 100%); color: white;">
+                                {{ user.first_name.0|default:"U"|upper }}{{ user.last_name.0|default:""|upper }}
                             </div>
                             <img id="avatarPreviewImg" src="#" alt="Preview" class="rounded-circle shadow-sm d-none" style="width: 58px; height: 58px; object-fit: cover; border: 2px solid var(--border-color, #334155);">
                         {% endif %}

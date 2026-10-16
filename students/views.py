@@ -17,11 +17,104 @@ from core.utils import get_current_school
 from django.db import transaction
 import io
 import csv
+import json
 import pandas as pd
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.comments import Comment
 from datetime import datetime
+
+
+def get_student_subjects_metadata(school, active_year=None):
+    from academics.models import Class, Subject, AssignedSubject
+    from core.models import AcademicYear
+
+    if active_year is None:
+        ay_qs = AcademicYear.objects.filter(is_active=True)
+        if school:
+            ay_qs = ay_qs.filter(school=school)
+        active_year = ay_qs.first()
+
+    classes_qs = Class.objects.filter(is_active=True)
+    subjects_qs = Subject.objects.filter(is_active=True).order_by('name')
+    if school:
+        classes_qs = classes_qs.filter(school=school)
+        subjects_qs = subjects_qs.filter(school=school)
+    classes_qs = classes_qs.prefetch_related('sections')
+
+    assigned_qs = AssignedSubject.objects.filter(is_active=True)
+    if school:
+        assigned_qs = assigned_qs.filter(class_name__school=school, subject__school=school)
+    if active_year:
+        assigned_qs = assigned_qs.filter(academic_year=active_year)
+    assigned_qs = assigned_qs.select_related('subject')
+
+    class_subjects_dict = {}
+    for asub in assigned_qs:
+        cid = asub.class_name_id
+        sub_map = class_subjects_dict.setdefault(cid, {})
+        sub_info = sub_map.setdefault(asub.subject_id, {
+            'id': asub.subject_id,
+            'name': asub.subject.name,
+            'code': asub.subject.code or '',
+            'type': asub.subject.get_subject_type_display() if hasattr(asub.subject, 'get_subject_type_display') else str(asub.subject.subject_type),
+            'is_compulsory': asub.is_compulsory,
+            'all_sections': False,
+            'section_ids': []
+        })
+        if asub.section_id:
+            if asub.section_id not in sub_info['section_ids']:
+                sub_info['section_ids'].append(asub.section_id)
+        else:
+            sub_info['all_sections'] = True
+
+    # Fallback if no assigned subjects found in active_year
+    if not class_subjects_dict:
+        fallback_qs = AssignedSubject.objects.filter(is_active=True)
+        if school:
+            fallback_qs = fallback_qs.filter(class_name__school=school, subject__school=school)
+        fallback_qs = fallback_qs.select_related('subject')
+        for asub in fallback_qs:
+            cid = asub.class_name_id
+            sub_map = class_subjects_dict.setdefault(cid, {})
+            sub_info = sub_map.setdefault(asub.subject_id, {
+                'id': asub.subject_id,
+                'name': asub.subject.name,
+                'code': asub.subject.code or '',
+                'type': asub.subject.get_subject_type_display() if hasattr(asub.subject, 'get_subject_type_display') else str(asub.subject.subject_type),
+                'is_compulsory': asub.is_compulsory,
+                'all_sections': False,
+                'section_ids': []
+            })
+            if asub.section_id:
+                if asub.section_id not in sub_info['section_ids']:
+                    sub_info['section_ids'].append(asub.section_id)
+            else:
+                sub_info['all_sections'] = True
+
+    classes_meta = []
+    for c in classes_qs:
+        c_sections = [{'id': s.id, 'name': s.name} for s in c.sections.filter(is_active=True)]
+        assigned_subs = list(class_subjects_dict.get(c.id, {}).values())
+        classes_meta.append({
+            'id': c.id,
+            'name': c.name,
+            'sections': c_sections,
+            'subjects': assigned_subs
+        })
+
+    all_subjects_meta = [
+        {
+            'id': s.id, 
+            'name': s.name, 
+            'code': s.code or '',
+            'type': s.get_subject_type_display() if hasattr(s, 'get_subject_type_display') else str(s.subject_type),
+            'is_compulsory': False
+        } 
+        for s in subjects_qs
+    ]
+
+    return classes_meta, all_subjects_meta
 
 
 class StudentListView(LoginRequiredMixin, ListView):
@@ -33,19 +126,47 @@ class StudentListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         queryset = super().get_queryset()
         school = get_current_school(self.request)
-        # Optional status filter: 'active' or 'inactive'. Default: show all statuses
         status = self.request.GET.get('status', '').strip().lower()
+        cohort = self.request.GET.get('cohort', '').strip()
+        class_id = self.request.GET.get('class_id', '').strip() or self.request.GET.get('class_filter', '').strip()
+        search_query = self.request.GET.get('search', '').strip() or self.request.GET.get('q', '').strip()
+
         if school:
             base = queryset.filter(
                 Q(school=school) | Q(current_class__school=school) | Q(user__school=school) | Q(parent_user__school=school) | Q(created_by__school=school)
             ).distinct()
         else:
             base = queryset
-        if status == 'active':
+
+        # Enrollment & Active status filtering
+        if status in ('enrolled', 'pending', 'transferred', 'withdrawn', 'graduated'):
+            base = base.filter(enrollment_status=status)
+        elif status == 'active':
             base = base.filter(is_active=True)
         elif status == 'inactive':
             base = base.filter(is_active=False)
-        return base.order_by('-created_at')
+
+        # Intake cohort filtering
+        if cohort:
+            base = base.filter(Q(intake_cohort__iexact=cohort) | Q(academic_year__name__iexact=cohort))
+
+        # Class filtering
+        if class_id and class_id.isdigit():
+            base = base.filter(current_class_id=int(class_id))
+
+        # Instant search filtering
+        if search_query:
+            base = base.filter(
+                Q(first_name__icontains=search_query) |
+                Q(last_name__icontains=search_query) |
+                Q(admission_number__icontains=search_query) |
+                Q(email__icontains=search_query) |
+                Q(intake_cohort__icontains=search_query)
+            )
+
+        return base.select_related(
+            'current_class', 'section', 'academic_year', 'dormitory', 'room', 'user'
+        ).order_by('-created_at')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -62,14 +183,19 @@ class StudentListView(LoginRequiredMixin, ListView):
         
         # Add classes and sections for the form (scoped to this school)
         from academics.models import Class, Section, Subject
+        subj_qs = Subject.objects.filter(is_active=True)
         if context.get('school'):
             context['classes'] = Class.objects.filter(is_active=True, school=context['school'])
             context['sections'] = Section.objects.filter(is_active=True, class_name__school=context['school'])
-            context['subjects'] = Subject.objects.filter(is_active=True, school=context['school']).order_by('name')
+            school_subjs = subj_qs.filter(Q(school=context['school']) | Q(school__isnull=True))
+            if school_subjs.exists():
+                subj_qs = school_subjs
         else:
             context['classes'] = Class.objects.filter(is_active=True)
             context['sections'] = Section.objects.filter(is_active=True)
-            context['subjects'] = Subject.objects.filter(is_active=True).order_by('name')
+        if not subj_qs.exists():
+            subj_qs = Subject.objects.all()
+        context['subjects'] = subj_qs.order_by('name')
         
         # Add dormitories and rooms for the form
         try:
@@ -94,206 +220,148 @@ class StudentListView(LoginRequiredMixin, ListView):
         if context.get('school'):
             ay_qs = ay_qs.filter(school=context['school'])
         context['academic_years'] = ay_qs
-        context['active_academic_year'] = ay_qs.filter(is_active=True).first()
-        
-        return context
+        active_academic_year = ay_qs.filter(is_active=True).first()
+        context['active_academic_year'] = active_academic_year
 
+        # Admissions & Enrollment workflow metrics & cohorts
+        count_qs = Student.objects.all()
+        if context.get('school'):
+            count_qs = count_qs.filter(
+                Q(school=context['school']) | Q(current_class__school=context['school']) | Q(user__school=context['school']) | Q(created_by__school=context['school'])
+            ).distinct()
 
-class StudentSubjectsView(LoginRequiredMixin, DetailView):
-    model = Student
-    template_name = 'students/subjects.html'
-    context_object_name = 'student'
+        context['status_counts'] = {
+            'all': count_qs.count(),
+            'enrolled': count_qs.filter(enrollment_status='enrolled').count(),
+            'pending': count_qs.filter(enrollment_status='pending').count(),
+            'transferred': count_qs.filter(enrollment_status='transferred').count(),
+            'withdrawn': count_qs.filter(enrollment_status='withdrawn').count(),
+        }
 
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return super().dispatch(request, *args, **kwargs)
-        if request.user.role not in ('admin', 'teacher', 'superadmin'):
-            messages.error(request, "Access denied.")
-            return redirect('students:detail', school_slug=kwargs.get('school_slug'), pk=kwargs.get('pk'))
-        return super().dispatch(request, *args, **kwargs)
+        cohort_set = set(count_qs.exclude(intake_cohort='').values_list('intake_cohort', flat=True).distinct())
+        for ay in ay_qs:
+            if ay.name:
+                cohort_set.add(ay.name)
+        context['intake_cohorts'] = sorted(list(cohort_set), reverse=True)
+        context['selected_status'] = self.request.GET.get('status', '').strip().lower()
+        context['selected_cohort'] = self.request.GET.get('cohort', '').strip()
+        context['selected_class'] = self.request.GET.get('class_id', '').strip() or self.request.GET.get('class_filter', '').strip()
+        context['search_query'] = self.request.GET.get('search', '').strip() or self.request.GET.get('q', '').strip()
 
-    def _get_active_year(self, school):
-        from core.models import AcademicYear
+        # Precompute classes and subjects metadata for instant client-side rendering
+        classes_meta, all_subjects_meta = get_student_subjects_metadata(context.get('school'), active_academic_year)
+        context['classes_meta_json'] = json.dumps(classes_meta)
+        context['all_subjects_meta_json'] = json.dumps(all_subjects_meta)
 
-        qs = AcademicYear.objects.filter(is_active=True)
-        if school:
-            qs = qs.filter(school=school)
-        return qs.first()
+        # Embed everything the in-page edit panel needs so it opens instantly (no AJAX round trip)
+        def _iso(value):
+            return value.isoformat() if hasattr(value, 'isoformat') else (value or '')
 
-    def _get_available_subjects(self, student, school, active_year):
-        from academics.models import Subject, AssignedSubject
+        page_students = list(context.get('students') or [])
+        club_map = {}
+        try:
+            from clubs.models import ClubMembership
+            user_ids = [s.user_id for s in page_students if getattr(s, 'user_id', None)]
+            if user_ids:
+                memberships = ClubMembership.objects.filter(student_id__in=user_ids, status='active')
+                if context.get('school'):
+                    memberships = memberships.filter(club__school=context['school'])
+                for student_id, club_id in memberships.values_list('student_id', 'club_id'):
+                    club_map.setdefault(student_id, []).append(club_id)
+        except Exception:
+            club_map = {}
 
-        base = Subject.objects.filter(is_active=True)
-        if school:
-            base = base.filter(school=school)
+        # Precompute student subject enrollments
+        student_subjects_map = {}
+        enr_qs = StudentSubject.objects.filter(student__in=page_students, is_active=True)
+        if active_academic_year:
+            year_enr = enr_qs.filter(Q(academic_year=active_academic_year) | Q(academic_year__isnull=True))
+            if year_enr.exists():
+                enr_qs = year_enr
+        for st_id, sub_id in enr_qs.values_list('student_id', 'subject_id'):
+            student_subjects_map.setdefault(st_id, []).append(sub_id)
 
-        if student.current_class_id and active_year:
-            assigned_subject_ids = AssignedSubject.objects.filter(
-                is_active=True,
-                class_name_id=student.current_class_id,
-                academic_year=active_year,
-            )
-            if student.section_id:
-                assigned_subject_ids = assigned_subject_ids.filter(Q(section_id=student.section_id) | Q(section__isnull=True))
-            assigned_subject_ids = assigned_subject_ids.values_list('subject_id', flat=True)
-            subject_qs = base.filter(id__in=assigned_subject_ids)
-            if subject_qs.exists():
-                return subject_qs.order_by('name')
+        students_data = {}
+        for s in page_students:
+            students_data[str(s.pk)] = {
+                'student_id': s.pk,
+                'first_name': s.first_name or '',
+                'last_name': s.last_name or '',
+                'email': s.email or '',
+                'admission_number': s.admission_number or '',
+                'date_of_birth': _iso(s.date_of_birth),
+                'gender': s.gender or '',
+                'blood_group': s.blood_group or '',
+                'current_class': s.current_class_id or '',
+                'section': s.section_id or '',
+                'academic_year': s.academic_year_id or '',
+                'intake_cohort': s.intake_cohort or (s.academic_year.name if s.academic_year else ''),
+                'enrollment_status': s.enrollment_status or 'enrolled',
+                'admission_date': _iso(s.admission_date),
+                'current_address': s.current_address or '',
+                'city': s.city or '',
+                'state': s.state or '',
+                'postal_code': s.postal_code or '',
+                'father_name': s.father_name or '',
+                'father_phone': s.father_phone or '',
+                'father_email': s.father_email or '',
+                'father_occupation': s.father_occupation or '',
+                'mother_name': s.mother_name or '',
+                'mother_phone': s.mother_phone or '',
+                'mother_email': s.mother_email or '',
+                'mother_occupation': s.mother_occupation or '',
+                'guardian_name': s.guardian_name or '',
+                'guardian_phone': s.guardian_phone or '',
+                'guardian_email': s.guardian_email or '',
+                'guardian_relation': s.guardian_relation or '',
+                'is_transport_required': 'True' if s.is_transport_required else 'False',
+                'is_hostel_required': 'True' if s.is_hostel_required else 'False',
+                'dormitory': s.dormitory_id or '',
+                'room': s.room_id or '',
+                'club_ids': club_map.get(s.user_id, []),
+                'subject_ids': student_subjects_map.get(s.pk, []),
+            }
+            students_data[str(s.pk)] = {
+                key: (val if isinstance(val, (str, int, list)) else str(val))
+                for key, val in students_data[str(s.pk)].items()
+            }
+        context['students_data'] = students_data
 
-        return base.order_by('name')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['school_slug'] = self.kwargs.get('school_slug', '')
-
-        school = get_current_school(self.request)
-        active_year = self._get_active_year(school)
-        context['academic_year'] = active_year
-
-        student = self.get_object()
-        context['available_subjects'] = self._get_available_subjects(student, school, active_year)
-
-        if active_year:
-            enrollments = StudentSubject.objects.filter(
-                student=student,
-                academic_year=active_year,
-                is_active=True,
-            ).select_related('subject').order_by('subject__name')
-        else:
-            enrollments = StudentSubject.objects.none()
-
-        context['enrollments'] = enrollments
-        context['selected_subject_ids'] = set(enrollments.values_list('subject_id', flat=True))
-        return context
-
-    def post(self, request, *args, **kwargs):
-        student = self.get_object()
-        school = get_current_school(self.request)
-        active_year = self._get_active_year(school)
-        if not active_year:
-            messages.error(request, "No active academic year found.")
-            return redirect('students:subjects', school_slug=kwargs.get('school_slug'), pk=student.pk)
-
-        raw_ids = request.POST.getlist('subjects')
-        subject_ids = []
-        for sid in raw_ids:
-            try:
-                subject_ids.append(int(sid))
-            except (TypeError, ValueError):
-                continue
-
-        from academics.models import Subject, OptionalSubject, AssignedSubject
-
-        # Validate against subjects available for this student's class, section, and active academic year
-        available_subjects = self._get_available_subjects(student, school, active_year)
-        available_subject_ids = set(available_subjects.values_list('id', flat=True))
-
-        invalid_ids = set(subject_ids) - available_subject_ids
-        if invalid_ids:
-            messages.error(request, "One or more selected subjects are not offered to this student's class or section.")
-            return redirect('students:subjects', school_slug=kwargs.get('school_slug'), pk=student.pk)
-
-        # Enforce compulsory subjects: check AssignedSubject.is_compulsory AND OptionalSubject
-        compulsory_ids = set()
-        if student.current_class:
-            compulsory_assigned = AssignedSubject.objects.filter(
-                class_name=student.current_class,
-                academic_year=active_year,
-                is_compulsory=True,
-                is_active=True
-            )
-            if student.section_id:
-                compulsory_assigned = compulsory_assigned.filter(Q(section_id=student.section_id) | Q(section__isnull=True))
-            compulsory_ids.update(compulsory_assigned.values_list('subject_id', flat=True))
-
-            optional_qs = OptionalSubject.objects.filter(class_name=student.current_class)
-            if optional_qs.exists():
-                optional_ids = set(optional_qs.values_list('subject_id', flat=True))
-                compulsory_ids.update(available_subject_ids - optional_ids)
-
-            if compulsory_ids:
-                subject_ids = list(set(subject_ids) | (compulsory_ids & available_subject_ids))
-
-        subjects = list(available_subjects.filter(id__in=subject_ids))
-
-        with transaction.atomic():
-            StudentSubject.objects.filter(
-                student=student,
-                academic_year=active_year,
-            ).update(is_active=False)
-
-            for subj in subjects:
-                assigned_sub = None
-                if student.current_class:
-                    assigned_qs = AssignedSubject.objects.filter(
-                        class_name=student.current_class,
-                        subject=subj,
-                        academic_year=active_year,
-                        is_active=True
-                    )
-                    if student.section_id:
-                        assigned_sub = assigned_qs.filter(section_id=student.section_id).first()
-                    if not assigned_sub:
-                        assigned_sub = assigned_qs.filter(section__isnull=True).first()
-
-                obj, created = StudentSubject.objects.get_or_create(
-                    student=student,
-                    subject=subj,
-                    academic_year=active_year,
-                    defaults={
-                        'school': school or student.school,
-                        'assigned_subject': assigned_sub,
-                        'created_by': request.user,
-                        'is_active': True,
-                    }
-                )
-                if not created:
-                    update_fields = []
-                    if not obj.is_active:
-                        obj.is_active = True
-                        update_fields.append('is_active')
-                    if assigned_sub and obj.assigned_subject_id != assigned_sub.id:
-                        obj.assigned_subject = assigned_sub
-                        update_fields.append('assigned_subject')
-                    if not obj.school_id:
-                        obj.school = school or student.school
-                        update_fields.append('school')
-                    if not obj.created_by_id:
-                        obj.created_by = request.user
-                        update_fields.append('created_by')
-                    if update_fields:
-                        obj.save(update_fields=update_fields)
-
-        messages.success(request, "Student subjects updated successfully.")
-        return redirect('students:subjects', school_slug=kwargs.get('school_slug'), pk=student.pk)
-
-
-class StudentDetailView(LoginRequiredMixin, DetailView):
-    model = Student
-    context_object_name = 'student'
-    
-    def get_template_names(self):
-        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'HTTP_X_REQUESTED_WITH' in self.request.META:
-            return ['students/detail_modal.html']
-        return ['students/detail.html']
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['school_slug'] = self.kwargs.get('school_slug', '')
-        
-        # Add classes and sections for edit form (scoped to this school)
-        from academics.models import Class, Section
+        # Platform schools for electronic transfer
         from tenants.models import School
-        school_slug = self.kwargs.get('school_slug', '')
-        school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
-        if school:
-            context['classes'] = Class.objects.filter(is_active=True, school=school)
-            context['sections'] = Section.objects.filter(is_active=True, class_name__school=school)
-        else:
-            context['classes'] = Class.objects.filter(is_active=True)
-            context['sections'] = Section.objects.filter(is_active=True)
-        
+        current_school = context.get('school') or get_current_school(self.request)
+        other_schools_qs = School.objects.filter(is_active=True)
+        if current_school:
+            other_schools_qs = other_schools_qs.exclude(pk=current_school.pk)
+        context['platform_schools'] = list(other_schools_qs.order_by('name').values('id', 'name', 'slug'))
+
         return context
+
+
+class StudentSubjectsView(LoginRequiredMixin, View):
+    """
+    Subjects are now managed directly inline on the student add/edit panel.
+    Redirect any direct navigation back to the student list.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        school_slug = kwargs.get('school_slug', '')
+        return redirect(f"/school/{school_slug}/students/")
+
+
+class StudentDetailView(LoginRequiredMixin, View):
+    """
+    Dedicated student profile page has been eliminated.
+    All student viewing, editing, and workflows are served via the in-page edit panel.
+    Redirect direct navigation back to the student list page.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        school_slug = kwargs.get('school_slug', '')
+        pk = kwargs.get('pk', '')
+        if school_slug and pk:
+            return redirect(f"/school/{school_slug}/students/?edit={pk}")
+        if school_slug:
+            return redirect(f"/school/{school_slug}/students/")
+        return redirect('students:list')
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -369,16 +437,18 @@ class StudentCreateView(CreateView):
             if not admission_date:
                 admission_date = date.today()
             
-            # Create parent user account if father email provided or can be generated
+            # Create parent user account if parent/guardian email provided or can be generated
             parent_user = None
             father_email = request.POST.get('father_email', '').strip()
             mother_email = request.POST.get('mother_email', '').strip()
+            guardian_email = request.POST.get('guardian_email', '').strip()
             father_name = request.POST.get('father_name', '').strip()
             mother_name = request.POST.get('mother_name', '').strip()
+            guardian_name = request.POST.get('guardian_name', '').strip()
             
-            # Determine parent email and name
-            parent_email = father_email if father_email else mother_email
-            parent_full_name = father_name if father_name else mother_name
+            # Determine parent email and name (supports father only, mother only, or guardian only)
+            parent_email = father_email or mother_email or guardian_email
+            parent_full_name = father_name or mother_name or guardian_name
             parent_first_name = parent_full_name.split()[0] if parent_full_name else ''
             parent_last_name = parent_full_name.split()[-1] if parent_full_name and ' ' in parent_full_name else last_name
             
@@ -386,6 +456,12 @@ class StudentCreateView(CreateView):
             if not parent_email and parent_full_name:
                 school_slug = get_school_slug_from_request(request)
                 parent_email = generate_email(parent_first_name, parent_last_name, school_slug, 'parent')
+                if father_name and not father_email:
+                    father_email = parent_email
+                elif mother_name and not mother_email:
+                    mother_email = parent_email
+                elif guardian_name and not guardian_email:
+                    guardian_email = parent_email
             
             if parent_email:
                 # Check if parent account already exists
@@ -399,7 +475,7 @@ class StudentCreateView(CreateView):
                             first_name=parent_first_name or 'Parent',
                             last_name=parent_last_name,  # Already set to student's last name if not provided
                             role='parent',
-                            phone=request.POST.get('father_phone', '') or request.POST.get('mother_phone', ''),
+                            phone=request.POST.get('father_phone', '').strip() or request.POST.get('mother_phone', '').strip() or request.POST.get('guardian_phone', '').strip(),
                             is_active=True
                         )
                         parent_user.set_password('parent123')  # Default password
@@ -440,7 +516,16 @@ class StudentCreateView(CreateView):
             if not academic_year and school:
                 academic_year = AcademicYear.objects.filter(school=school).order_by('-start_date').first()
 
-            # Create student with all fields including parent details and academic year
+            # Admissions & Enrollment workflow fields
+            enrollment_status = request.POST.get('enrollment_status', 'enrolled').strip().lower()
+            if enrollment_status not in ('enrolled', 'pending', 'transferred', 'withdrawn', 'graduated'):
+                enrollment_status = 'enrolled'
+            
+            intake_cohort = request.POST.get('intake_cohort', '').strip()
+            if not intake_cohort and academic_year:
+                intake_cohort = academic_year.name
+
+            # Create student with all fields including parent details, academic year, and enrollment status
             student = Student.objects.create(
                 user=user,
                 first_name=first_name,
@@ -448,6 +533,8 @@ class StudentCreateView(CreateView):
                 email=email,
                 admission_number=admission_number,
                 admission_date=admission_date,
+                enrollment_status=enrollment_status,
+                intake_cohort=intake_cohort,
                 date_of_birth=request.POST.get('date_of_birth') or None,
                 gender=request.POST.get('gender', ''),
                 blood_group=request.POST.get('blood_group', ''),
@@ -458,18 +545,18 @@ class StudentCreateView(CreateView):
                 country=request.POST.get('country', 'US'),
                 postal_code=request.POST.get('postal_code', ''),
                 # Parent Details
-                father_name=request.POST.get('father_name', ''),
-                father_phone=request.POST.get('father_phone', ''),
+                father_name=father_name,
+                father_phone=request.POST.get('father_phone', '').strip() or None,
                 father_email=father_email,
-                father_occupation=request.POST.get('father_occupation', ''),
-                mother_name=request.POST.get('mother_name', ''),
-                mother_phone=request.POST.get('mother_phone', ''),
+                father_occupation=request.POST.get('father_occupation', '').strip(),
+                mother_name=mother_name,
+                mother_phone=request.POST.get('mother_phone', '').strip() or None,
                 mother_email=mother_email,
-                mother_occupation=request.POST.get('mother_occupation', ''),
-                guardian_name=request.POST.get('guardian_name', ''),
-                guardian_phone=request.POST.get('guardian_phone', ''),
-                guardian_email=request.POST.get('guardian_email', ''),
-                guardian_relation=request.POST.get('guardian_relation', ''),
+                mother_occupation=request.POST.get('mother_occupation', '').strip(),
+                guardian_name=guardian_name,
+                guardian_phone=request.POST.get('guardian_phone', '').strip() or None,
+                guardian_email=guardian_email,
+                guardian_relation=request.POST.get('guardian_relation', '').strip(),
                 parent_user=parent_user,  # Link to parent user account
                 current_class=current_class,
                 section=section,
@@ -478,7 +565,27 @@ class StudentCreateView(CreateView):
                 created_by=request.user
             )
 
-            if current_class and academic_year:
+            # Transport and dormitory
+            student.is_transport_required = request.POST.get('is_transport_required') == 'True'
+            student.is_hostel_required = request.POST.get('is_hostel_required') == 'True'
+            if student.is_hostel_required:
+                dormitory_id = request.POST.get('dormitory')
+                room_id = request.POST.get('room')
+                if dormitory_id:
+                    try:
+                        from dormitory.models import Dormitory
+                        student.dormitory = Dormitory.objects.get(id=dormitory_id)
+                    except Exception:
+                        pass
+                if room_id:
+                    try:
+                        from dormitory.models import Room
+                        student.room = Room.objects.get(id=room_id)
+                    except Exception:
+                        pass
+            student.save()
+
+            if current_class and academic_year and enrollment_status == 'enrolled':
                 try:
                     from .models import StudentClassEnrollment
                     StudentClassEnrollment.objects.create(
@@ -498,11 +605,17 @@ class StudentCreateView(CreateView):
             # Record admission timeline entry
             try:
                 from .models import StudentTimeline
+                timeline_title = 'Student Admitted & Enrolled' if enrollment_status == 'enrolled' else 'Admission Application Registered (Pending)'
+                timeline_desc = (
+                    f"Admitted to {current_class.name if current_class else 'Class'}" + (f" ({section.name})" if section else '') + (f" for cohort {intake_cohort or academic_year.name}" if (intake_cohort or academic_year) else '')
+                    if enrollment_status == 'enrolled'
+                    else f"Application registered for {current_class.name if current_class else 'Class'} (Cohort: {intake_cohort or 'Pending'}). Pending confirmation."
+                )
                 StudentTimeline.objects.create(
                     student=student,
                     timeline_type='admission',
-                    title='Student Admitted',
-                    description=f"Admitted to {current_class.name if current_class else 'Class'}" + (f" ({section.name})" if section else '') + (f" for {academic_year.name}" if academic_year else ''),
+                    title=timeline_title,
+                    description=timeline_desc,
                     date=admission_date,
                     created_by=request.user
                 )
@@ -536,6 +649,44 @@ class StudentCreateView(CreateView):
                             membership.save(update_fields=['status', 'join_date', 'application_reason'])
                 except Exception:
                     pass
+
+            # Save student subject enrollments
+            subject_ids = request.POST.getlist('subject_ids') or request.POST.getlist('subjects')
+            if subject_ids:
+                from academics.models import Subject, AssignedSubject
+                from .models import StudentSubject
+                for sid in subject_ids:
+                    try:
+                        sub = Subject.objects.filter(id=int(sid)).first()
+                        if not sub:
+                            continue
+                        assigned_sub = None
+                        if current_class:
+                            assigned_qs = AssignedSubject.objects.filter(
+                                class_name=current_class,
+                                subject=sub,
+                                is_active=True
+                            )
+                            if academic_year:
+                                assigned_qs = assigned_qs.filter(academic_year=academic_year)
+                            if section:
+                                assigned_sub = assigned_qs.filter(section=section).first()
+                            if not assigned_sub:
+                                assigned_sub = assigned_qs.filter(section__isnull=True).first()
+
+                        StudentSubject.objects.get_or_create(
+                            student=student,
+                            subject=sub,
+                            academic_year=academic_year,
+                            defaults={
+                                'school': school,
+                                'assigned_subject': assigned_sub,
+                                'created_by': request.user,
+                                'is_active': True,
+                            }
+                        )
+                    except Exception as e:
+                        print(f"[WARNING] Could not enroll student in subject {sid}: {e}")
             
             return JsonResponse({
                 'success': True, 
@@ -561,16 +712,20 @@ class StudentUpdateView(UpdateView):
         context = super().get_context_data(**kwargs)
         context['school_slug'] = self.kwargs.get('school_slug', '')
         context['student'] = self.get_object()
-        from academics.models import Class, Section
-        from tenants.models import School
-        school_slug = self.kwargs.get('school_slug', '')
-        school = School.objects.filter(slug=school_slug, is_active=True).first() if school_slug else None
+        from academics.models import Class, Section, Subject
+        subj_qs = Subject.objects.filter(is_active=True)
         if school:
             context['classes'] = Class.objects.filter(is_active=True, school=school)
             context['sections'] = Section.objects.filter(is_active=True, class_name__school=school)
+            school_subjs = subj_qs.filter(Q(school=school) | Q(school__isnull=True))
+            if school_subjs.exists():
+                subj_qs = school_subjs
         else:
             context['classes'] = Class.objects.filter(is_active=True)
             context['sections'] = Section.objects.filter(is_active=True)
+        if not subj_qs.exists():
+            subj_qs = Subject.objects.all()
+        context['subjects'] = subj_qs.order_by('name')
         
         # Add dormitories and rooms for the form
         try:
@@ -598,6 +753,18 @@ class StudentUpdateView(UpdateView):
             context['clubs'] = []
             context['selected_club_ids'] = set()
         
+        # Precompute classes and subjects metadata for inline editing
+        classes_meta, all_subjects_meta = get_student_subjects_metadata(school, None)
+        context['classes_meta_json'] = json.dumps(classes_meta)
+        context['all_subjects_meta_json'] = json.dumps(all_subjects_meta)
+        student = context.get('student')
+        if student:
+            context['enrolled_subject_ids'] = list(
+                StudentSubject.objects.filter(student=student, is_active=True).values_list('subject_id', flat=True)
+            )
+        else:
+            context['enrolled_subject_ids'] = []
+
         return context
     
     def post(self, request, *args, **kwargs):
@@ -619,6 +786,21 @@ class StudentUpdateView(UpdateView):
             student.state = request.POST.get('state', student.state)
             student.postal_code = request.POST.get('postal_code', student.postal_code)
             student.admission_date = request.POST.get('admission_date', student.admission_date)
+            
+            # Admissions & Enrollment workflow fields
+            if 'enrollment_status' in request.POST:
+                new_status = request.POST.get('enrollment_status', '').strip().lower()
+                if new_status in ('enrolled', 'pending', 'transferred', 'withdrawn', 'graduated'):
+                    student.enrollment_status = new_status
+            if 'intake_cohort' in request.POST:
+                student.intake_cohort = request.POST.get('intake_cohort', '').strip()
+            if 'academic_year' in request.POST:
+                ay_id = request.POST.get('academic_year', '').strip()
+                if ay_id and ay_id.isdigit():
+                    from core.models import AcademicYear
+                    ay = AcademicYear.objects.filter(id=int(ay_id)).first()
+                    if ay:
+                        student.academic_year = ay
             
             # Update transport and dormitory details
             student.is_transport_required = request.POST.get('is_transport_required') == 'True'
@@ -684,27 +866,41 @@ class StudentUpdateView(UpdateView):
                 except Exception:
                     pass
             
-            # Update parent details
-            student.father_name = request.POST.get('father_name', student.father_name)
-            student.father_phone = request.POST.get('father_phone', student.father_phone)
+            # Update parent details (supports father only, mother only, or guardian only)
+            if 'father_name' in request.POST:
+                student.father_name = request.POST.get('father_name', '').strip()
+            if 'father_phone' in request.POST:
+                student.father_phone = request.POST.get('father_phone', '').strip() or None
             father_email = request.POST.get('father_email', '').strip()
             student.father_email = father_email
-            student.father_occupation = request.POST.get('father_occupation', student.father_occupation)
-            student.mother_name = request.POST.get('mother_name', student.mother_name)
-            student.mother_phone = request.POST.get('mother_phone', student.mother_phone)
+            if 'father_occupation' in request.POST:
+                student.father_occupation = request.POST.get('father_occupation', '').strip()
+
+            if 'mother_name' in request.POST:
+                student.mother_name = request.POST.get('mother_name', '').strip()
+            if 'mother_phone' in request.POST:
+                student.mother_phone = request.POST.get('mother_phone', '').strip() or None
             mother_email = request.POST.get('mother_email', '').strip()
             student.mother_email = mother_email
-            student.mother_occupation = request.POST.get('mother_occupation', student.mother_occupation)
-            student.guardian_name = request.POST.get('guardian_name', student.guardian_name)
-            student.guardian_phone = request.POST.get('guardian_phone', student.guardian_phone)
-            student.guardian_email = request.POST.get('guardian_email', student.guardian_email)
-            student.guardian_relation = request.POST.get('guardian_relation', student.guardian_relation)
+            if 'mother_occupation' in request.POST:
+                student.mother_occupation = request.POST.get('mother_occupation', '').strip()
+
+            if 'guardian_name' in request.POST:
+                student.guardian_name = request.POST.get('guardian_name', '').strip()
+            if 'guardian_phone' in request.POST:
+                student.guardian_phone = request.POST.get('guardian_phone', '').strip() or None
+            guardian_email = request.POST.get('guardian_email', '').strip()
+            student.guardian_email = guardian_email
+            if 'guardian_relation' in request.POST:
+                student.guardian_relation = request.POST.get('guardian_relation', '').strip()
             
             # Create or link parent user account if email provided or can be generated
-            parent_email = father_email if father_email else mother_email
-            father_name = request.POST.get('father_name', '').strip()
-            mother_name = request.POST.get('mother_name', '').strip()
-            parent_full_name = father_name if father_name else mother_name
+            father_name = student.father_name
+            mother_name = student.mother_name
+            guardian_name = student.guardian_name
+            
+            parent_email = father_email or mother_email or guardian_email
+            parent_full_name = father_name or mother_name or guardian_name
             parent_first_name = parent_full_name.split()[0] if parent_full_name else ''
             parent_last_name = parent_full_name.split()[-1] if parent_full_name and ' ' in parent_full_name else student.last_name
             
@@ -715,8 +911,10 @@ class StudentUpdateView(UpdateView):
                 # Update the student's email fields with the auto-generated email
                 if father_name:
                     student.father_email = parent_email
-                else:
+                elif mother_name:
                     student.mother_email = parent_email
+                else:
+                    student.guardian_email = parent_email
             
             if parent_email and not student.parent_user:
                 # Check if parent account already exists
@@ -731,10 +929,12 @@ class StudentUpdateView(UpdateView):
                             first_name=parent_first_name or 'Parent',
                             last_name=parent_last_name or student.last_name,
                             role='parent',
-                            phone=request.POST.get('father_phone', '') or request.POST.get('mother_phone', ''),
+                            phone=request.POST.get('father_phone', '').strip() or request.POST.get('mother_phone', '').strip() or request.POST.get('guardian_phone', '').strip(),
                             is_active=True
                         )
                         parent_user.set_password('parent123')  # Default password
+                        if school and not getattr(parent_user, 'school', None):
+                            parent_user.school = school
                         parent_user.save()
                         student.parent_user = parent_user
                     except Exception as e:
@@ -747,7 +947,7 @@ class StudentUpdateView(UpdateView):
                 try:
                     from .models import StudentClassEnrollment
                     enr = StudentClassEnrollment.objects.filter(student=student, academic_year=student.academic_year).first()
-                    status = 'active' if student.is_active else ('completed' if student.is_alumni else 'withdrawn')
+                    status = 'active' if (student.is_active and student.enrollment_status == 'enrolled') else ('completed' if (student.is_alumni or student.enrollment_status == 'graduated') else ('transferred' if student.enrollment_status == 'transferred' else 'withdrawn'))
                     if enr:
                         enr.class_name = student.current_class
                         enr.section = student.section
@@ -805,6 +1005,74 @@ class StudentUpdateView(UpdateView):
                             membership.save(update_fields=['status', 'join_date', 'application_reason'])
                 except Exception:
                     pass
+
+            # Process subject enrollments
+            if 'subject_ids' in request.POST or 'subjects' in request.POST or request.POST.get('has_subjects_section'):
+                raw_sids = request.POST.getlist('subject_ids') or request.POST.getlist('subjects')
+                new_subject_ids = set()
+                for sid in raw_sids:
+                    try:
+                        new_subject_ids.add(int(sid))
+                    except (ValueError, TypeError):
+                        pass
+
+                from core.models import AcademicYear
+                from academics.models import Subject, AssignedSubject
+                from .models import StudentSubject
+
+                target_year = student.academic_year
+                if not target_year:
+                    ay_qs = AcademicYear.objects.filter(is_active=True)
+                    if student.school:
+                        ay_qs = ay_qs.filter(school=student.school)
+                    target_year = ay_qs.first()
+
+                with transaction.atomic():
+                    # Deactivate subjects no longer selected
+                    deact_filter = {'student': student, 'is_active': True}
+                    if target_year:
+                        deact_filter['academic_year'] = target_year
+                    StudentSubject.objects.filter(**deact_filter).exclude(subject_id__in=new_subject_ids).update(is_active=False)
+
+                    # Add or activate selected subjects
+                    for sid in new_subject_ids:
+                        sub = Subject.objects.filter(id=sid).first()
+                        if not sub:
+                            continue
+                        assigned_sub = None
+                        if student.current_class:
+                            assigned_qs = AssignedSubject.objects.filter(
+                                class_name=student.current_class,
+                                subject=sub,
+                                is_active=True
+                            )
+                            if target_year:
+                                assigned_qs = assigned_qs.filter(academic_year=target_year)
+                            if student.section:
+                                assigned_sub = assigned_qs.filter(section=student.section).first()
+                            if not assigned_sub:
+                                assigned_sub = assigned_qs.filter(section__isnull=True).first()
+
+                        lookup = {
+                            'student': student,
+                            'subject': sub,
+                        }
+                        if target_year:
+                            lookup['academic_year'] = target_year
+
+                        obj, created = StudentSubject.objects.get_or_create(
+                            **lookup,
+                            defaults={
+                                'school': student.school,
+                                'assigned_subject': assigned_sub,
+                                'created_by': request.user,
+                                'is_active': True,
+                            }
+                        )
+                        if not created and not obj.is_active:
+                            obj.is_active = True
+                            obj.assigned_subject = assigned_sub
+                            obj.save(update_fields=['is_active', 'assigned_subject'])
             
             # Update user email if changed
             if student.user.email != student.email:
@@ -948,6 +1216,13 @@ class StudentExportView(LoginRequiredMixin, View):
             students = students.filter(Q(current_class__school=school) | Q(user__school=school) | Q(parent_user__school=school) | Q(created_by__school=school)).distinct()
         else:
             students = students.all()
+
+        ids_param = request.GET.get('ids', '').strip()
+        if ids_param:
+            id_list = [i.strip() for i in ids_param.split(',') if i.strip().isdigit()]
+            if id_list:
+                students = students.filter(id__in=id_list)
+
         headers = [
             'admission_number', 'first_name', 'last_name', 'gender', 'date_of_birth', 'admission_date',
             'current_class', 'section', 'email', 'current_address', 'city', 'state', 'postal_code',
@@ -1880,3 +2155,367 @@ class StudentPromotionHistoryView(LoginRequiredMixin, ListView):
         context['selected_class'] = self.request.GET.get('class_id', '')
         context['search_query'] = self.request.GET.get('q', '')
         return context
+
+
+class PlatformSchoolsApiView(LoginRequiredMixin, View):
+    """Return list of other active tenant schools for electronic transfer"""
+    def get(self, request, *args, **kwargs):
+        current_school = get_current_school(request)
+        schools_qs = School.objects.filter(is_active=True)
+        if current_school:
+            schools_qs = schools_qs.exclude(pk=current_school.pk)
+        
+        data = [
+            {'id': s.id, 'name': s.name, 'slug': s.slug}
+            for s in schools_qs.order_by('name')
+        ]
+        return JsonResponse({'success': True, 'schools': data})
+
+
+class StudentExitView(LoginRequiredMixin, View):
+    """
+    Handle student transfer, withdrawal, and exit workflows.
+    Supports:
+    - External school transfer
+    - Electronic push to another school on the Clasyo platform
+    - Family relocation, graduation/alumni, expulsion, health, or other exit reasons
+    - Optional automated Transfer Certificate (TC) generation
+    - Preserves all historical financial & academic records
+    """
+    def post(self, request, pk, *args, **kwargs):
+        try:
+            school = get_current_school(request)
+            qs = Student.objects.all()
+            if school:
+                qs = qs.filter(school=school)
+            
+            student = get_object_or_404(qs, pk=pk)
+            
+            if getattr(student, 'is_sample_data', False):
+                return JsonResponse({'success': False, 'error': 'Sample/Demo data cannot be modified.'})
+
+            exit_type = request.POST.get('exit_type', 'other').strip()
+            leaving_date_str = request.POST.get('leaving_date', '').strip()
+            destination_school = request.POST.get('destination_school', '').strip()
+            target_school_id = request.POST.get('target_school_id', '').strip()
+            exit_remarks = request.POST.get('exit_remarks', '').strip()
+            generate_tc = request.POST.get('generate_tc') in ('1', 'true', 'on', 'yes')
+
+            from django.utils.dateparse import parse_date
+            leaving_date = parse_date(leaving_date_str) if leaving_date_str else timezone.now().date()
+            if not leaving_date:
+                leaving_date = timezone.now().date()
+
+            target_school = None
+            if exit_type == 'transfer_platform' and target_school_id and str(target_school_id).isdigit():
+                try:
+                    target_school = School.objects.get(pk=int(target_school_id), is_active=True)
+                    destination_school = target_school.name
+                except School.DoesNotExist:
+                    return JsonResponse({'success': False, 'error': 'Selected destination school was not found.'})
+
+            # Exit type human label
+            exit_labels = {
+                'transfer_external': 'Transferred to External School',
+                'transfer_platform': f'Transferred to {destination_school}',
+                'relocation': 'Family Relocation',
+                'graduation': 'Graduated / Completed Studies',
+                'financial': 'Financial Reasons',
+                'expulsion': 'Disciplinary / Expulsion',
+                'medical': 'Medical / Health Reasons',
+                'other': 'Left School'
+            }
+            exit_label = exit_labels.get(exit_type, 'Left School')
+            full_leaving_reason = f"{exit_label}. Destination: {destination_school}." if destination_school else exit_label
+            if exit_remarks:
+                full_leaving_reason += f" Remarks: {exit_remarks}"
+
+            # 1. Update Student in current school (soft deactivation for audit integrity)
+            student.is_active = False
+            student.leaving_date = leaving_date
+            student.leaving_reason = full_leaving_reason
+            student.exit_type = exit_type
+            student.destination_school = destination_school
+            student.exit_remarks = exit_remarks
+            if target_school:
+                student.transfer_target_school = target_school
+            if exit_type == 'graduation':
+                student.is_alumni = True
+                student.enrollment_status = 'graduated'
+            elif 'transfer' in exit_type:
+                student.enrollment_status = 'transferred'
+            else:
+                student.enrollment_status = 'withdrawn'
+
+            student.save(update_fields=[
+                'is_active', 'leaving_date', 'leaving_reason', 'exit_type',
+                'destination_school', 'exit_remarks', 'transfer_target_school', 'is_alumni', 'enrollment_status'
+            ])
+
+            # Deactivate login
+            if student.user:
+                student.user.is_active = False
+                student.user.save(update_fields=['is_active'])
+
+            # Deactivate dormitory/room allocation
+            if hasattr(student, 'room_allocation'):
+                try:
+                    ra = student.room_allocation
+                    ra.is_active = False
+                    ra.save()
+                except Exception:
+                    pass
+
+            # Update active Class Enrollment
+            enrollment_status = 'transferred' if 'transfer' in exit_type else ('completed' if exit_type == 'graduation' else 'withdrawn')
+            StudentClassEnrollment.objects.filter(
+                student=student,
+                status='active'
+            ).update(status=enrollment_status)
+
+            # Log to StudentTimeline
+            try:
+                StudentTimeline.objects.create(
+                    student=student,
+                    timeline_type='transfer' if 'transfer' in exit_type else 'status_change',
+                    title=exit_label,
+                    description=full_leaving_reason,
+                    date=leaving_date,
+                    created_by=request.user
+                )
+            except Exception:
+                pass
+
+            # Optional: Generate Transfer Certificate
+            tc_data = None
+            if generate_tc or exit_type == 'transfer_platform':
+                try:
+                    from certificates.models import CertificateType, Certificate
+                    cert_type, _ = CertificateType.objects.get_or_create(
+                        code='TC',
+                        defaults={
+                            'name': 'Transfer Certificate',
+                            'category': 'completion',
+                            'description': 'Official School Transfer Certificate',
+                            'school': school,
+                        }
+                    )
+                    tc_cert = Certificate.objects.create(
+                        certificate_type=cert_type,
+                        student=student,
+                        title=f"Transfer Certificate - {student.get_full_name()}",
+                        issue_date=leaving_date,
+                        academic_year=student.academic_year,
+                        class_name=student.current_class,
+                        description=f"This is to certify that {student.get_full_name()} was enrolled in {student.current_class.name if student.current_class else 'our school'}. Reason for leaving: {full_leaving_reason}.",
+                        remarks=exit_remarks,
+                        created_by=request.user
+                    )
+                    student.transfer_certificate_number = tc_cert.certificate_number
+                    student.save(update_fields=['transfer_certificate_number'])
+                    tc_data = {
+                        'id': tc_cert.id,
+                        'certificate_number': tc_cert.certificate_number,
+                        'view_url': reverse('certificates:view', kwargs={'school_slug': school.slug if school else 'default', 'pk': tc_cert.id}),
+                        'download_url': reverse('certificates:download', kwargs={'school_slug': school.slug if school else 'default', 'pk': tc_cert.id})
+                    }
+                except Exception as ce:
+                    print("Could not auto-generate TC:", ce)
+
+            # 2. Automated Multi-School Electronic Push (Platform Transfer)
+            target_created = False
+            target_adm_no = ''
+            new_student_id = None
+            if exit_type == 'transfer_platform' and target_school:
+                try:
+                    # Check if student already exists in destination school
+                    exists_in_target = Student.objects.filter(
+                        school=target_school,
+                        first_name__iexact=student.first_name,
+                        last_name__iexact=student.last_name,
+                        date_of_birth=student.date_of_birth
+                    ).first()
+
+                    if not exists_in_target:
+                        # Find latest active year in target school
+                        from core.models import AcademicYear, Notification
+                        target_ay = AcademicYear.objects.filter(school=target_school, is_active=True).first()
+                        if not target_ay:
+                            target_ay = AcademicYear.objects.filter(school=target_school).order_by('-start_date').first()
+
+                        # Generate admission number for target school
+                        target_prefix = (target_school.slug[:3] if target_school.slug else 'STU').upper()
+                        target_adm_no = Student.generate_admission_number(prefix=target_prefix)
+
+                        new_student = Student.objects.create(
+                            school=target_school,
+                            admission_number=target_adm_no,
+                            first_name=student.first_name,
+                            last_name=student.last_name,
+                            date_of_birth=student.date_of_birth,
+                            gender=student.gender,
+                            blood_group=student.blood_group,
+                            religion=student.religion,
+                            nationality=student.nationality,
+                            address=student.address,
+                            city=student.city,
+                            state=student.state,
+                            country=student.country,
+                            postal_code=student.postal_code,
+                            admission_date=leaving_date,
+                            academic_year=target_ay,
+                            previous_school=school.name if school else "Previous School",
+                            previous_class=student.current_class.name if student.current_class else "",
+                            transfer_certificate_number=student.transfer_certificate_number or "",
+                            father_name=student.father_name,
+                            father_phone=student.father_phone,
+                            father_email=student.father_email,
+                            father_occupation=student.father_occupation,
+                            mother_name=student.mother_name,
+                            mother_phone=student.mother_phone,
+                            mother_email=student.mother_email,
+                            mother_occupation=student.mother_occupation,
+                            guardian_name=student.guardian_name,
+                            guardian_phone=student.guardian_phone,
+                            guardian_email=student.guardian_email,
+                            guardian_relation=student.guardian_relation,
+                            guardian_occupation=student.guardian_occupation,
+                            guardian_address=student.guardian_address,
+                            medical_history=student.medical_history,
+                            allergies=student.allergies,
+                            disabilities=student.disabilities,
+                            current_medications=student.current_medications,
+                            is_active=True,
+                            created_by=request.user
+                        )
+                        if student.photo:
+                            new_student.photo = student.photo
+                            new_student.save(update_fields=['photo'])
+
+                        # Target timeline entry
+                        StudentTimeline.objects.create(
+                            student=new_student,
+                            timeline_type='transfer',
+                            title=f"Electronic Transfer from {school.name if school else 'Partner School'}",
+                            description=f"Student profile transferred electronically. Prior class: {student.current_class.name if student.current_class else 'N/A'}. TC No: {student.transfer_certificate_number or 'N/A'}. Pending class assignment.",
+                            date=leaving_date,
+                            created_by=request.user
+                        )
+
+                        # Notify target school admins
+                        target_admins = User.objects.filter(school=target_school, role__in=['admin', 'school_admin'])
+                        for admin in target_admins:
+                            Notification.objects.create(
+                                user=admin,
+                                title="Incoming Student Transfer",
+                                message=f"Student {new_student.get_full_name()} has transferred from {school.name if school else 'another school'}. Please assign class and section.",
+                                notification_type="info",
+                                link=f"/school/{target_school.slug}/students/{new_student.pk}/"
+                            )
+
+                        target_created = True
+                        new_student_id = new_student.id
+                except Exception as pe:
+                    import traceback
+                    traceback.print_exc()
+
+            response_msg = f"Student {student.get_full_name()} has been successfully marked as exited ({exit_label})."
+            if target_created:
+                response_msg += f" Profile electronically created in {target_school.name} (Admission #{target_adm_no})."
+
+            return JsonResponse({
+                'success': True,
+                'message': response_msg,
+                'tc': tc_data,
+                'target_created': target_created,
+                'new_student_id': new_student_id
+            })
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+class StudentStatusUpdateView(LoginRequiredMixin, View):
+    """Update or transition a student's enrollment status (e.g. Pending -> Enrolled)."""
+    def post(self, request, pk, *args, **kwargs):
+        try:
+            school = get_current_school(request)
+            qs = Student.objects.all()
+            if school:
+                qs = qs.filter(school=school)
+            student = get_object_or_404(qs, pk=pk)
+
+            new_status = request.POST.get('status', '').strip().lower()
+            if new_status not in ('enrolled', 'pending', 'transferred', 'withdrawn', 'graduated'):
+                return JsonResponse({'success': False, 'error': f'Invalid status: {new_status}'})
+
+            if new_status == 'enrolled':
+                student.confirm_enrollment(enrolled_by=request.user)
+            else:
+                student.enrollment_status = new_status
+                if new_status == 'pending':
+                    student.is_active = True
+                    student.is_alumni = False
+                elif new_status in ('transferred', 'withdrawn', 'graduated'):
+                    student.is_active = False
+                    if new_status == 'graduated':
+                        student.is_alumni = True
+                student.save()
+
+            is_ajax = (
+                request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+                'application/json' in request.headers.get('accept', '') or
+                request.content_type == 'application/json'
+            )
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'student_id': student.pk,
+                    'enrollment_status': student.enrollment_status,
+                    'status_display': student.get_enrollment_status_display(),
+                    'message': f"Student status successfully updated to {student.get_enrollment_status_display()}."
+                })
+            messages.success(request, f"Student status successfully updated to {student.get_enrollment_status_display()}.")
+            return redirect('students:list', school_slug=school.slug if school else kwargs.get('school_slug'))
+        except Exception as e:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'error': str(e)}, status=500)
+            messages.error(request, f"Error updating student status: {e}")
+            return redirect('students:list', school_slug=kwargs.get('school_slug'))
+
+
+class StudentBulkConfirmEnrollmentView(LoginRequiredMixin, View):
+    """Bulk confirm enrollment for multiple pending students."""
+    def post(self, request, *args, **kwargs):
+        try:
+            school = get_current_school(request)
+            ids = request.POST.getlist('ids[]') or request.POST.getlist('ids') or request.POST.getlist('selected_ids')
+            if not ids:
+                try:
+                    data = json.loads(request.body.decode('utf-8'))
+                    ids = data.get('ids', [])
+                except Exception:
+                    ids = []
+
+            if not ids:
+                return JsonResponse({'success': False, 'error': 'No students selected for enrollment confirmation.'})
+
+            qs = Student.objects.filter(id__in=ids)
+            if school:
+                qs = qs.filter(school=school)
+
+            confirmed_count = 0
+            for student in qs:
+                student.confirm_enrollment(enrolled_by=request.user)
+                confirmed_count += 1
+
+            return JsonResponse({
+                'success': True,
+                'confirmed_count': confirmed_count,
+                'message': f"Successfully confirmed enrollment for {confirmed_count} student(s)."
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+

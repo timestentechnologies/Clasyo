@@ -9,35 +9,34 @@
 {% block extra_css %}{% endblock %}
 
 {% block page_actions %}
-<button class="btn btn-success">
-    <i class="fas fa-download"></i> Export
-</button>
 {% endblock %}
 
 {% block content %}
-<div class="row mb-3">
-    <div class="col-md-12">
-        <div class="row g-2">
-            <div class="col-md-4">
-                <input type="text" id="searchInput" class="form-control" placeholder="Search students...">
-            </div>
-            <div class="col-md-4">
-                <select name="class_id" id="classFilter" class="form-select" placeholder="Filter by Class" data-placeholder="Filter by Class">
-                    <option value="">All Classes</option>
-                    {% for class_obj in classes %}
-                    <option value="{{ class_obj.id }}" {% if class_obj.id|stringformat:"s" == selected_class_id %}selected{% endif %}>
-                        {{ class_obj.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-4">
-                <select name="balance_status" id="balanceFilter" class="form-select" placeholder="Filter by Balance Status" data-placeholder="Filter by Balance Status">
-                    <option value="">All Students</option>
-                    <option value="with_balance" {% if selected_balance_status == 'with_balance' %}selected{% endif %}>Students with Balances</option>
-                    <option value="fully_paid" {% if selected_balance_status == 'fully_paid' %}selected{% endif %}>Fully Paid Students</option>
-                </select>
-            </div>
+<div class="table-toolbar" data-page-actions>
+    <div class="toolbar-actions">
+    </div>
+
+    <div class="toolbar-filters">
+        <div class="toolbar-search">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="searchInput" class="form-control" placeholder="Search transactions, students...">
+        </div>
+        <div class="toolbar-filter">
+            <select name="class_id" id="classFilter" class="form-select" placeholder="Filter by Class" data-placeholder="Filter by Class">
+                <option value="">All Classes</option>
+                {% for class_obj in classes %}
+                <option value="{{ class_obj.id }}" {% if class_obj.id|stringformat:"s" == selected_class_id %}selected{% endif %}>
+                    {{ class_obj.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="toolbar-filter">
+            <select name="balance_status" id="balanceFilter" class="form-select" placeholder="Filter by Balance Status" data-placeholder="Filter by Balance Status">
+                <option value="">All Students</option>
+                <option value="with_balance" {% if selected_balance_status == 'with_balance' %}selected{% endif %}>Students with Balances</option>
+                <option value="fully_paid" {% if selected_balance_status == 'fully_paid' %}selected{% endif %}>Fully Paid Students</option>
+            </select>
         </div>
     </div>
 </div>
@@ -52,7 +51,7 @@
                     <th>Student</th>
                     <th>Class</th>
                     <th>Fee Type</th>
-                    <th>Amount (Ksh)</th>
+                    <th>Amount ({{ currency_symbol|default:'$' }})</th>
                     <th>Method</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -66,7 +65,7 @@
                 <td>{{ transaction.student.get_full_name }}</td>
                 <td>{{ transaction.student.current_class.name|default:"-" }}</td>
                 <td>{{ transaction.fee_structure.name }}</td>
-                <td>Ksh {{ transaction.paid_amount|floatformat:0|intcomma }}</td>
+                <td>{{ currency_symbol|default:'$' }} {{ transaction.paid_amount|floatformat:0|intcomma }}</td>
                 <td><span class="badge bg-info">{{ transaction.payment_method }}</span></td>
                 <td><span class="badge bg-success">Completed</span></td>
                 <td>

@@ -4,8 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#4DD0E1">
-    <title>Maintenance - {{ system_settings.school_name|default:"Clasyo" }}</title>
+    <title>{{ maintenance_title|default:"Maintenance" }} - {% if school %}{{ school.name }}{% else %}{{ system_settings.school_name|default:"Clasyo ERP" }}{% endif %}</title>
     
     <!-- Dynamic & Static Favicons -->
     {% if system_settings.school_favicon %}
@@ -192,55 +191,30 @@
                 <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
             </svg>
         </div>
-        <h1>System Maintenance</h1>
-        <p>We're currently updating our system to serve you better. We'll be back shortly!</p>
+        <h1>{{ maintenance_title|default:"System Maintenance" }}</h1>
+        <p>{{ maintenance_message|default:"We're currently updating our system to serve you better. We'll be back shortly!" }}</p>
         
-        {% if system_settings.superadmin_only_mode %}
-            {% if system_settings.superadmin_maintenance_start or system_settings.superadmin_maintenance_end %}
-            <div class="schedule-box">
-                {% if system_settings.superadmin_maintenance_start %}
-                <div class="schedule-item">
-                    <span class="schedule-label">Started at:</span>
-                    <span class="schedule-value">{{ system_settings.superadmin_maintenance_start|date:"M d, Y H:i" }}</span>
-                </div>
-                {% endif %}
-                {% if system_settings.superadmin_maintenance_end %}
-                <div class="schedule-item">
-                    <span class="schedule-label">Expected back:</span>
-                    <span class="schedule-value">{{ system_settings.superadmin_maintenance_end|date:"M d, Y H:i" }}</span>
-                </div>
-                {% endif %}
-                {% if duration %}
-                <div class="schedule-item">
-                    <span class="schedule-label">Estimated duration:</span>
-                    <span class="schedule-value"><i class="fas fa-hourglass-half me-1"></i>~ {{ duration }}</span>
-                </div>
-                {% endif %}
+        {% if start_dt or end_dt or duration %}
+        <div class="schedule-box">
+            {% if start_dt %}
+            <div class="schedule-item">
+                <span class="schedule-label">Started at:</span>
+                <span class="schedule-value">{{ start_dt|date:"M d, Y H:i" }}</span>
             </div>
             {% endif %}
-        {% else %}
-            {% if system_settings.maintenance_start or system_settings.maintenance_end %}
-            <div class="schedule-box">
-                {% if system_settings.maintenance_start %}
-                <div class="schedule-item">
-                    <span class="schedule-label">Started at:</span>
-                    <span class="schedule-value">{{ system_settings.maintenance_start|date:"M d, Y H:i" }}</span>
-                </div>
-                {% endif %}
-                {% if system_settings.maintenance_end %}
-                <div class="schedule-item">
-                    <span class="schedule-label">Expected back:</span>
-                    <span class="schedule-value">{{ system_settings.maintenance_end|date:"M d, Y H:i" }}</span>
-                </div>
-                {% endif %}
-                {% if duration %}
-                <div class="schedule-item">
-                    <span class="schedule-label">Estimated duration:</span>
-                    <span class="schedule-value"><i class="fas fa-hourglass-half me-1"></i>~ {{ duration }}</span>
-                </div>
-                {% endif %}
+            {% if end_dt %}
+            <div class="schedule-item">
+                <span class="schedule-label">Expected back:</span>
+                <span class="schedule-value">{{ end_dt|date:"M d, Y H:i" }}</span>
             </div>
             {% endif %}
+            {% if duration %}
+            <div class="schedule-item">
+                <span class="schedule-label">Estimated duration:</span>
+                <span class="schedule-value"><i class="fas fa-hourglass-half me-1"></i>~ {{ duration }}</span>
+            </div>
+            {% endif %}
+        </div>
         {% endif %}
 
         <button class="btn" onclick="window.location.reload()">Check Status</button>

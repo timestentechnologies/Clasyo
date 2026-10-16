@@ -69,8 +69,18 @@ class Teacher(models.Model):
     email = models.EmailField(_('Email'), blank=True)
     address = models.TextField(_('Address'), blank=True)
     
-    # Status
+    # Status & Exit
     is_active = models.BooleanField(_('Is Active'), default=True)
+    date_of_leaving = models.DateField(_('Date of Leaving'), null=True, blank=True)
+    exit_reason = models.CharField(_('Exit Reason'), max_length=50, blank=True, choices=[
+        ('resigned', 'Resigned'),
+        ('terminated', 'Terminated'),
+        ('retired', 'Retired'),
+        ('transferred', 'Transferred'),
+        ('contract_expired', 'Contract Expired'),
+        ('other', 'Other'),
+    ])
+    exit_remarks = models.TextField(_('Exit Remarks'), blank=True)
     is_sample_data = models.BooleanField(_('Is Sample Data'), default=False)
     created_at = models.DateTimeField(_('Created At'), auto_now_add=True)
     updated_at = models.DateTimeField(_('Updated At'), auto_now=True)
@@ -95,6 +105,14 @@ class Teacher(models.Model):
     @property
     def gross_salary(self):
         return self.basic_salary + self.allowances
+
+    @property
+    def avatar_url(self):
+        """Return avatar URL from associated user or global default avatar"""
+        if self.user and hasattr(self.user, 'avatar_url'):
+            return self.user.avatar_url
+        from django.templatetags.static import static
+        return static('images/default_avatar.svg')
 
 
 class Staff(models.Model):
@@ -122,8 +140,18 @@ class Staff(models.Model):
     email = models.EmailField(_('Email'), blank=True)
     address = models.TextField(_('Address'), blank=True)
     
-    # Status
+    # Status & Exit
     is_active = models.BooleanField(_('Is Active'), default=True)
+    date_of_leaving = models.DateField(_('Date of Leaving'), null=True, blank=True)
+    exit_reason = models.CharField(_('Exit Reason'), max_length=50, blank=True, choices=[
+        ('resigned', 'Resigned'),
+        ('terminated', 'Terminated'),
+        ('retired', 'Retired'),
+        ('transferred', 'Transferred'),
+        ('contract_expired', 'Contract Expired'),
+        ('other', 'Other'),
+    ])
+    exit_remarks = models.TextField(_('Exit Remarks'), blank=True)
     is_sample_data = models.BooleanField(_('Is Sample Data'), default=False)
     created_at = models.DateTimeField(_('Created At'), auto_now_add=True)
     updated_at = models.DateTimeField(_('Updated At'), auto_now=True)
@@ -148,3 +176,11 @@ class Staff(models.Model):
     @property
     def gross_salary(self):
         return self.basic_salary + self.allowances
+
+    @property
+    def avatar_url(self):
+        """Return avatar URL from associated user or global default avatar"""
+        if self.user and hasattr(self.user, 'avatar_url'):
+            return self.user.avatar_url
+        from django.templatetags.static import static
+        return static('images/default_avatar.svg')

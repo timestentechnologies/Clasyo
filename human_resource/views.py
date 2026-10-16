@@ -1,10 +1,11 @@
 import json
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.utils import timezone
 from decimal import Decimal
 from datetime import datetime
 from accounts.models import User
@@ -85,17 +86,6 @@ def _save_teacher_inline_assignments(teacher, school, request):
                         is_active=True
                     )
 
-        if 'section_ids' in request.POST or request.POST.get('assignments_submitted') == '1':
-            from academics.models import assign_class_teacher
-            submitted_sec_ids = [int(s) for s in request.POST.getlist('section_ids') if str(s).isdigit()]
-            sec_qs = Section.objects.filter(is_active=True)
-            if school:
-                sec_qs = sec_qs.filter(class_name__school=school)
-            for sec in sec_qs:
-                if sec.id in submitted_sec_ids:
-                    assign_class_teacher(sec, teacher, active_year)
-                elif sec.class_teacher_id == teacher.id:
-                    assign_class_teacher(sec, None, active_year)
 
 
 class TeacherListView(LoginRequiredMixin, ListView):
@@ -112,9 +102,9 @@ class TeacherListView(LoginRequiredMixin, ListView):
         if not school:
             if not self.request.user.is_superuser and getattr(self.request.user, 'role', '') != 'superadmin':
                 return User.objects.none()
-            return User.objects.filter(role='teacher', is_active=True).prefetch_related('assigned_subjects', 'class_sections')
+            return User.objects.filter(role='teacher').select_related('department', 'designation').prefetch_related('assigned_subjects', 'class_sections')
             
-        return User.objects.filter(role='teacher', is_active=True, school=school).prefetch_related('assigned_subjects', 'class_sections')
+        return User.objects.filter(role='teacher', school=school).select_related('department', 'designation').prefetch_related('assigned_subjects', 'class_sections')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -143,11 +133,9 @@ class TeacherListView(LoginRequiredMixin, ListView):
 
         classes_qs = Class.objects.filter(is_active=True)
         subjects_qs = Subject.objects.filter(is_active=True)
-        sections_qs = Section.objects.filter(is_active=True)
         if school:
             classes_qs = classes_qs.filter(school=school)
             subjects_qs = subjects_qs.filter(school=school)
-            sections_qs = sections_qs.filter(class_name__school=school)
 
         classes_qs = classes_qs.prefetch_related('sections').order_by('order', 'name')
         subjects_qs = subjects_qs.order_by('name')
@@ -231,19 +219,10 @@ class TeacherListView(LoginRequiredMixin, ListView):
                     'subject_id': asub.subject_id
                 })
 
-        # Precompute teacher class teacher assignments (sections where teacher is class teacher)
-        class_teacher_map = {}
-        for s in sections_qs:
-            if s.class_teacher_id:
-                class_teacher_map.setdefault(s.class_teacher_id, []).append(s.id)
-
         teachers_list = context.get('teachers')
         if teachers_list:
             for t in teachers_list:
                 t.teaching_assignments_json = json.dumps(teacher_teaching_map.get(t.id, []))
-                t.class_teacher_sections_json = json.dumps(class_teacher_map.get(t.id, []))
-
-        context['sections'] = sections_qs.select_related('class_name', 'class_teacher')
 
         return context
 
@@ -314,7 +293,7 @@ class TeacherCreateView(LoginRequiredMixin, CreateView):
             )
 
             # Save inline teacher assignments
-            if request.POST.get('assignments_submitted') == '1' or 'teaching_subject[]' in request.POST or 'teaching_class[]' in request.POST or 'section_ids' in request.POST:
+            if request.POST.get('assignments_submitted') == '1' or 'teaching_subject[]' in request.POST or 'teaching_class[]' in request.POST:
                 _save_teacher_inline_assignments(teacher, school, request)
 
             return JsonResponse({'success': True, 'teacher_id': teacher.id})
@@ -368,12 +347,6 @@ class TeacherDetailView(LoginRequiredMixin, DetailView):
                         'subject_id': a.subject_id
                     })
 
-            class_teacher_sections = []
-            sec_qs = Section.objects.filter(is_active=True, class_teacher=teacher)
-            if school:
-                sec_qs = sec_qs.filter(class_name__school=school)
-            class_teacher_sections = list(sec_qs.values_list('id', flat=True))
-
             return JsonResponse({
                 'success': True,
                 'teacher': {
@@ -391,10 +364,12 @@ class TeacherDetailView(LoginRequiredMixin, DetailView):
                     'basic_salary': str(getattr(profile, 'basic_salary', '0')),
                     'allowances': str(getattr(profile, 'allowances', '0')),
                     'date_of_joining': getattr(profile, 'date_of_joining', None).isoformat() if getattr(profile, 'date_of_joining', None) else '',
+                    'date_of_leaving': getattr(profile, 'date_of_leaving', None).isoformat() if getattr(profile, 'date_of_leaving', None) else '',
+                    'exit_reason': getattr(profile, 'exit_reason', ''),
+                    'exit_remarks': getattr(profile, 'exit_remarks', ''),
                     'employment_type': getattr(profile, 'employment_type', ''),
                     'address': getattr(profile, 'address', ''),
                     'teaching_assignments': teaching_assignments,
-                    'class_teacher_sections': class_teacher_sections,
                 }
             })
         
@@ -493,7 +468,7 @@ class TeacherUpdateView(LoginRequiredMixin, UpdateView):
             profile.save()
 
             # Save inline teacher assignments if submitted with form
-            if request.POST.get('assignments_submitted') == '1' or 'teaching_subject[]' in request.POST or 'teaching_class[]' in request.POST or 'section_ids' in request.POST:
+            if request.POST.get('assignments_submitted') == '1' or 'teaching_subject[]' in request.POST or 'teaching_class[]' in request.POST:
                 _save_teacher_inline_assignments(teacher, school, request)
 
             return JsonResponse({'success': True, 'message': 'Teacher updated successfully'})
@@ -539,6 +514,73 @@ class TeacherDeleteView(LoginRequiredMixin, DeleteView):
         if school:
             qs = qs.filter(school=school)
         return qs
+
+
+class TeacherExitView(LoginRequiredMixin, View):
+    """
+    Handle teacher relieving / exit / resignation workflow.
+    - Records date_of_leaving, exit_reason, exit_remarks
+    - Sets is_active = False on both Teacher HR profile and User account
+    - Automatically unassigns active class teacher duties, assigned subjects, and department head roles
+    """
+    def post(self, request, pk, *args, **kwargs):
+        try:
+            school = get_current_school(request)
+            qs = User.objects.filter(role='teacher')
+            if school:
+                qs = qs.filter(school=school)
+            
+            teacher_user = get_object_or_404(qs, pk=pk)
+            
+            if getattr(teacher_user, 'is_sample_data', False):
+                return JsonResponse({'success': False, 'error': 'Sample/Demo data cannot be modified.'})
+
+            date_of_leaving_str = request.POST.get('date_of_leaving', '').strip()
+            exit_reason = request.POST.get('exit_reason', 'resigned').strip()
+            exit_remarks = request.POST.get('exit_remarks', '').strip()
+
+            from django.utils.dateparse import parse_date
+            date_of_leaving = parse_date(date_of_leaving_str) if date_of_leaving_str else timezone.now().date()
+            if not date_of_leaving:
+                date_of_leaving = timezone.now().date()
+
+            # 1. Update or create Teacher HR Profile
+            profile, _ = Teacher.objects.get_or_create(
+                user=teacher_user,
+                defaults={
+                    'first_name': teacher_user.first_name,
+                    'last_name': teacher_user.last_name,
+                    'employee_id': getattr(teacher_user, 'employee_id', f"TCHR-{teacher_user.id}"),
+                    'date_of_joining': timezone.now().date(),
+                }
+            )
+            profile.is_active = False
+            profile.date_of_leaving = date_of_leaving
+            profile.exit_reason = exit_reason
+            profile.exit_remarks = exit_remarks
+            profile.save(update_fields=['is_active', 'date_of_leaving', 'exit_reason', 'exit_remarks', 'updated_at'])
+
+            # 2. Soft deactivate User login
+            teacher_user.is_active = False
+            teacher_user.save(update_fields=['is_active'])
+
+            # 3. Cleanly unassign active class teaching, subjects, and head of department
+            from academics.models import ClassTeacherAssignment, Section, AssignedSubject
+            ClassTeacherAssignment.objects.filter(teacher=teacher_user, is_active=True).update(is_active=False)
+            Section.objects.filter(class_teacher=teacher_user).update(class_teacher=None)
+            AssignedSubject.objects.filter(teacher=teacher_user, is_active=True).update(is_active=False)
+            Department.objects.filter(head=teacher_user).update(head=None)
+
+            reason_display = dict(Teacher._meta.get_field('exit_reason').choices).get(exit_reason, exit_reason.title())
+
+            return JsonResponse({
+                'success': True,
+                'message': f"Teacher {teacher_user.get_full_name()} has been successfully relieved ({reason_display}) as of {date_of_leaving}."
+            })
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 # Staff Views

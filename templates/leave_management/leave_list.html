@@ -7,39 +7,40 @@
 {% block page_subtitle %}Manage leave applications and approvals{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <button class="btn btn-primary" onclick="toggleInPageFormView('leaveListCard', 'leaveFormPanel', 'create')">
-        <i class="fas fa-plus me-1"></i> Apply Leave
-    </button>
-</div>
-
 <!-- Leave List View Container -->
 <div id="leaveListCard">
-    <!-- Dynamic Search and Filters -->
-    <div class="row mb-3">
-        <div class="col-md-12">
-            <div class="row g-2">
-                <div class="col-md-4">
-                    <input type="text" id="searchInput" class="form-control" placeholder="Search by employee name, reason...">
-                </div>
-                <div class="col-md-4">
-                    <select name="leave_type_filter" id="leaveTypeFilter" class="form-select" placeholder="Filter by Leave Type" data-placeholder="Filter by Leave Type">
-                        <option value="">All Leave Types</option>
-                        <option value="sick">Sick Leave</option>
-                        <option value="casual">Casual Leave</option>
-                        <option value="annual">Annual Leave</option>
-                        <option value="emergency">Emergency Leave</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <select name="status_filter" id="statusFilter" class="form-select" placeholder="Filter by Status" data-placeholder="Filter by Status">
-                        <option value="">All Statuses</option>
-                        <option value="pending">Pending</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
-                </div>
+    <!-- Unified In-Line Table Toolbar: Buttons on left, Search & Filters on right -->
+    <div class="table-toolbar" data-page-actions>
+        <div class="toolbar-actions">
+            <button class="btn btn-primary" onclick="toggleInPageFormView('leaveListCard', 'leaveFormPanel', 'create')">
+                <i class="fas fa-plus me-1"></i> Apply Leave
+            </button>
+        </div>
+
+        <div class="toolbar-filters">
+            <div class="toolbar-search">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="searchInput" class="form-control" placeholder="Search by employee name, reason...">
+            </div>
+
+            <div class="toolbar-filter">
+                <select name="leave_type_filter" id="leaveTypeFilter" class="form-select" placeholder="Filter by Leave Type" data-placeholder="Filter by Leave Type">
+                    <option value="">All Leave Types</option>
+                    <option value="sick">Sick Leave</option>
+                    <option value="casual">Casual Leave</option>
+                    <option value="annual">Annual Leave</option>
+                    <option value="emergency">Emergency Leave</option>
+                </select>
+            </div>
+
+            <div class="toolbar-filter">
+                <select name="status_filter" id="statusFilter" class="form-select" placeholder="Filter by Status" data-placeholder="Filter by Status">
+                    <option value="">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
             </div>
         </div>
     </div>

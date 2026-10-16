@@ -8,11 +8,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <button class="btn btn-primary" onclick="openTeacherAddForm()">
-            <i class="fas fa-user-plus me-1"></i> Add Teacher
-        </button>
-    </div>
+
 
     <!-- Shared In-Page Single Form Panel -->
     <div class="form-panel-view d-none" id="teacherFormPanel">
@@ -28,6 +24,9 @@
                 <a id="btnTeacherLoginAs" class="btn btn-sm btn-warning d-none" target="_blank" title="Login as teacher">
                     <i class="fas fa-sign-in-alt me-1"></i> Login as Teacher
                 </a>
+                <button type="button" id="btnRelieveTeacher" class="btn btn-sm btn-outline-danger d-none" onclick="openRelieveTeacherModalFromForm()" title="Relieve / Exit Teacher">
+                    <i class="fas fa-user-minus me-1"></i> Relieve / Exit
+                </button>
                 <button type="button" class="btn btn-sm btn-light" onclick="toggleInPageFormView('teacherListCard', 'teacherFormPanel', 'list')">Cancel</button>
                 <button type="button" class="btn btn-sm btn-primary form-submit-btn" onclick="submitTeacherForm()">
                     <i class="fas fa-save me-1"></i> Save Teacher
@@ -89,11 +88,11 @@
 
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Basic Salary (Ksh)</label>
+                        <label class="form-label fw-semibold">Basic Salary ({{ currency_symbol|default:'$' }})</label>
                         <input type="number" step="0.01" name="basic_salary" id="basic_salary" class="form-control" value="0" placeholder="0.00">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Allowances (Ksh)</label>
+                        <label class="form-label fw-semibold">Allowances ({{ currency_symbol|default:'$' }})</label>
                         <input type="number" step="0.01" name="allowances" id="allowances" class="form-control" value="0" placeholder="0.00">
                     </div>
                     <div class="col-md-4">
@@ -119,6 +118,18 @@
                     </div>
                 </div>
 
+                <!-- Exit / Relieving Status Display for Inactive Teachers -->
+                <div id="teacherExitDetailsBox" class="alert alert-warning d-none mb-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <strong class="text-danger"><i class="fas fa-user-clock me-1"></i> Relieved / Inactive Employee</strong>
+                        <span id="exitReasonBadge" class="badge bg-danger">Exited</span>
+                    </div>
+                    <div class="small">
+                        <div class="mb-1"><strong>Date of Leaving:</strong> <span id="exitDateDisplay" class="text-dark fw-semibold">-</span></div>
+                        <div><strong>Exit Clearance Remarks:</strong> <span id="exitRemarksDisplay" class="text-dark">-</span></div>
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Residential Address</label>
                     <textarea name="address" id="address" class="form-control" rows="2" placeholder="Full address details..."></textarea>
@@ -126,34 +137,6 @@
 
                 <input type="hidden" name="assignments_submitted" value="1">
 
-                <!-- Class Teacher (Sections) Assignment -->
-                <div class="mt-4 pt-3 border-top mb-4">
-                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                        <div>
-                            <h6 class="text-primary fw-bold mb-0">
-                                <i class="fas fa-chalkboard-teacher me-2"></i>Class Teacher Role (Sections)
-                            </h6>
-                            <small class="text-muted">Select sections where this teacher serves as the designated Class Teacher</small>
-                        </div>
-                    </div>
-                    <div class="row g-2 mt-1" id="classTeacherSectionsContainer">
-                        {% for s in sections %}
-                        <div class="col-md-4 col-sm-6">
-                            <label class="form-check p-2 border rounded d-flex align-items-center gap-2 mb-0 bg-light-subtle cursor-pointer" style="font-size: 0.88rem;">
-                                <input class="form-check-input ms-0 mt-0 section-teacher-checkbox" type="checkbox" name="section_ids" value="{{ s.id }}">
-                                <span class="flex-grow-1 text-truncate"><strong>{{ s.class_name.name }}</strong> - {{ s.name }}</span>
-                                {% if s.class_teacher %}
-                                <span class="badge bg-secondary-subtle text-secondary small" title="Assigned to {{ s.class_teacher.get_full_name|default:s.class_teacher.username }}">
-                                    {{ s.class_teacher.first_name|default:s.class_teacher.username }}
-                                </span>
-                                {% endif %}
-                            </label>
-                        </div>
-                        {% empty %}
-                        <div class="col-12 text-muted small py-1">No active sections found.</div>
-                        {% endfor %}
-                    </div>
-                </div>
 
                 <!-- Subject Assignments Section (Line-by-Line) -->
                 <div class="mt-4 pt-3 border-top mb-4">
@@ -194,28 +177,35 @@
 
     <!-- Teacher List View -->
     <div id="teacherListCard">
-        <!-- Dynamic Search and Filters -->
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <div class="row g-2">
-                    <div class="col-md-4">
-                        <input type="text" id="searchInput" class="form-control" placeholder="Search teachers by name, email...">
-                    </div>
-                    <div class="col-md-4">
-                        <select name="department_filter" id="departmentFilter" class="form-select" placeholder="Filter by Department" data-placeholder="Filter by Department">
-                            <option value="">All Departments</option>
-                            {% for dept in departments %}
-                            <option value="{{ dept.id }}">{{ dept.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <select name="status_filter" id="statusFilter" class="form-select" placeholder="Filter by Status" data-placeholder="Filter by Status">
-                            <option value="">All Statuses</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                    </div>
+        <!-- Unified In-Line Table Toolbar: Buttons on left, Search & Filters on right -->
+        <div class="table-toolbar" data-page-actions>
+            <div class="toolbar-actions">
+                <button class="btn btn-primary" onclick="openTeacherAddForm()">
+                    <i class="fas fa-user-plus me-1"></i> Add Teacher
+                </button>
+            </div>
+
+            <div class="toolbar-filters">
+                <div class="toolbar-search">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search teachers by name, email...">
+                </div>
+
+                <div class="toolbar-filter">
+                    <select name="department_filter" id="departmentFilter" class="form-select" placeholder="Filter by Department" data-placeholder="Filter by Department">
+                        <option value="">All Departments</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="toolbar-filter">
+                    <select name="status_filter" id="statusFilter" class="form-select" placeholder="Filter by Status" data-placeholder="Filter by Status">
+                        <option value="">All Statuses</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -246,10 +236,13 @@
                         data-allowances="{{ teacher.allowances|default:0 }}"
                         data-employment-type="{{ teacher.employment_type|default:'permanent' }}"
                         data-date-of-joining="{{ teacher.date_of_joining|date:'Y-m-d'|default:'' }}"
+                        data-date-of-leaving="{{ teacher.teacher_profile.date_of_leaving|date:'Y-m-d'|default:'' }}"
+                        data-exit-reason="{{ teacher.teacher_profile.exit_reason|default:'' }}"
+                        data-exit-reason-display="{{ teacher.teacher_profile.get_exit_reason_display|default:'' }}"
+                        data-exit-remarks="{{ teacher.teacher_profile.exit_remarks|default:''|escape }}"
                         data-address="{{ teacher.address|default:''|escape }}"
                         data-is-active="{% if teacher.is_active %}1{% else %}0{% endif %}"
                         data-teaching-assignments="{{ teacher.teaching_assignments_json|escape }}"
-                        data-class-teacher-sections="{{ teacher.class_teacher_sections_json|default:'[]'|escape }}"
                         {% if request.user.role == 'admin' or request.user.role == 'school_admin' or request.user.role == 'super_admin' %}
                         data-login-as-url="{% url 'core:login_as' school_slug=school_slug user_id=teacher.pk %}"
                         {% endif %}
@@ -258,10 +251,19 @@
                         data-status="{% if teacher.is_active %}active{% else %}inactive{% endif %}">
                         <td>
                             <div class="d-flex align-items-center">
-                                <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px; font-size: 14px;">
-                                    {{ teacher.first_name.0 }}{{ teacher.last_name.0 }}
+                                <div class="avatar-wrapper d-inline-flex align-items-center justify-content-center me-2 flex-shrink-0">
+                                    {% if teacher.avatar %}
+                                        <img src="{{ teacher.avatar.url }}" alt="{{ teacher.get_full_name }}" class="rounded-circle shadow-sm" style="width: 36px; height: 36px; object-fit: cover;" onerror="this.onerror=null; this.src='{% static 'images/default_avatar.svg' %}';">
+                                    {% else %}
+                                        <img src="{% static 'images/default_avatar.svg' %}" alt="{{ teacher.get_full_name }}" class="rounded-circle shadow-sm" style="width: 36px; height: 36px; object-fit: cover;">
+                                    {% endif %}
                                 </div>
-                                <strong>{{ teacher.first_name }} {{ teacher.last_name }}</strong>
+                                <div>
+                                    <strong>{{ teacher.first_name }} {{ teacher.last_name }}</strong>
+                                    {% if not teacher.is_active and teacher.teacher_profile.exit_reason %}
+                                    <div class="small text-muted">Left: {{ teacher.teacher_profile.date_of_leaving|date:"M d, Y"|default:"Recorded" }}</div>
+                                    {% endif %}
+                                </div>
                             </div>
                         </td>
                         <td>{{ teacher.email }}</td>
@@ -269,7 +271,7 @@
                         <td>{{ teacher.department|default:"-" }}</td>
                         <td>
                             <span class="badge {% if teacher.is_active %}bg-success{% else %}bg-secondary{% endif %}">
-                                {% if teacher.is_active %}Active{% else %}Inactive{% endif %}
+                                {% if teacher.is_active %}Active{% else %}Inactive{% if teacher.teacher_profile.exit_reason %} ({{ teacher.teacher_profile.get_exit_reason_display }}){% endif %}{% endif %}
                             </span>
                         </td>
                     </tr>
@@ -623,8 +625,11 @@ function openTeacherAddForm() {
     document.getElementById('teacher_id').value = '';
     const loginBtn = document.getElementById('btnTeacherLoginAs');
     if (loginBtn) loginBtn.classList.add('d-none');
+    const relieveBtn = document.getElementById('btnRelieveTeacher');
+    if (relieveBtn) relieveBtn.classList.add('d-none');
+    const exitBox = document.getElementById('teacherExitDetailsBox');
+    if (exitBox) exitBox.classList.add('d-none');
 
-    document.querySelectorAll('.section-teacher-checkbox').forEach(cb => cb.checked = false);
     clearTeachingRows();
 
     toggleInPageFormView('teacherListCard', 'teacherFormPanel', 'create');
@@ -634,6 +639,8 @@ function editTeacher(rowEl, id) {
     if (typeof rowEl === 'number' || typeof rowEl === 'string') {
         id = rowEl;
         rowEl = document.querySelector(`tr[data-id="${id}"]`);
+    } else if (rowEl instanceof HTMLElement && rowEl.tagName !== 'TR') {
+        rowEl = rowEl.closest('tr');
     }
     
     toggleInPageFormView('teacherListCard', 'teacherFormPanel', 'edit');
@@ -646,14 +653,43 @@ function editTeacher(rowEl, id) {
         document.getElementById('last_name').value = row.dataset.lastName || '';
         document.getElementById('email').value = row.dataset.email || '';
         document.getElementById('phone_number').value = row.dataset.phone || '';
-        document.getElementById('department').value = row.dataset.departmentId || '';
-        document.getElementById('designation').value = row.dataset.designationId || '';
+        
+        const deptEl = document.getElementById('department');
+        if (deptEl) {
+            deptEl.value = row.dataset.departmentId || '';
+            if (deptEl.tomselect) deptEl.tomselect.setValue(row.dataset.departmentId || '', true);
+        }
+        const desigEl = document.getElementById('designation');
+        if (desigEl) {
+            desigEl.value = row.dataset.designationId || '';
+            if (desigEl.tomselect) desigEl.tomselect.setValue(row.dataset.designationId || '', true);
+        }
+        const empTypeEl = document.getElementById('employment_type');
+        if (empTypeEl) {
+            empTypeEl.value = row.dataset.employmentType || 'permanent';
+            if (empTypeEl.tomselect) empTypeEl.tomselect.setValue(row.dataset.employmentType || 'permanent', true);
+        }
+
         document.getElementById('basic_salary').value = row.dataset.basicSalary || '0';
         document.getElementById('allowances').value = row.dataset.allowances || '0';
-        document.getElementById('employment_type').value = row.dataset.employmentType || 'permanent';
         document.getElementById('date_of_joining').value = row.dataset.dateOfJoining || '';
         document.getElementById('address').value = row.dataset.address || '';
         document.getElementById('is_active').checked = (row.dataset.isActive === '1');
+
+        const relieveBtn = document.getElementById('btnRelieveTeacher');
+        const exitBox = document.getElementById('teacherExitDetailsBox');
+        if (row.dataset.isActive === '1') {
+            if (relieveBtn) relieveBtn.classList.remove('d-none');
+            if (exitBox) exitBox.classList.add('d-none');
+        } else {
+            if (relieveBtn) relieveBtn.classList.add('d-none');
+            if (exitBox) {
+                exitBox.classList.remove('d-none');
+                document.getElementById('exitReasonBadge').textContent = row.dataset.exitReasonDisplay || row.dataset.exitReason || 'Relieved / Inactive';
+                document.getElementById('exitDateDisplay').textContent = row.dataset.dateOfLeaving || 'Not recorded';
+                document.getElementById('exitRemarksDisplay').textContent = row.dataset.exitRemarks || 'None';
+            }
+        }
 
         const loginBtn = document.getElementById('btnTeacherLoginAs');
         if (loginBtn) {
@@ -681,21 +717,6 @@ function editTeacher(rowEl, id) {
             console.warn('Error parsing teachingAssignments from row:', e);
         }
 
-        // Populate class teacher sections from dataset
-        document.querySelectorAll('.section-teacher-checkbox').forEach(cb => cb.checked = false);
-        try {
-            if (row.dataset.classTeacherSections) {
-                const secList = JSON.parse(row.dataset.classTeacherSections);
-                if (Array.isArray(secList)) {
-                    secList.forEach(secId => {
-                        const cb = document.querySelector(`.section-teacher-checkbox[value="${secId}"]`);
-                        if (cb) cb.checked = true;
-                    });
-                }
-            }
-        } catch (e) {
-            console.warn('Error parsing classTeacherSections from row:', e);
-        }
     }
 
     // Silent background fetch to ensure full sync without delaying the UI
@@ -727,13 +748,6 @@ function editTeacher(rowEl, id) {
                 });
             }
 
-            if (Array.isArray(t.class_teacher_sections)) {
-                document.querySelectorAll('.section-teacher-checkbox').forEach(cb => cb.checked = false);
-                t.class_teacher_sections.forEach(secId => {
-                    const cb = document.querySelector(`.section-teacher-checkbox[value="${secId}"]`);
-                    if (cb) cb.checked = true;
-                });
-            }
         }
     })
     .catch(err => console.warn('Background teacher sync:', err));
@@ -863,7 +877,142 @@ function deleteTeacher(id, name) {
         .catch(error => alert('Error: ' + error.message));
     };
 }
+
+function openRelieveTeacherModalFromForm() {
+    const teacherId = document.getElementById('teacher_id').value;
+    const firstName = document.getElementById('first_name').value;
+    const lastName = document.getElementById('last_name').value;
+    const name = `${firstName} ${lastName}`.trim();
+    openRelieveTeacherModalDirect(teacherId, name);
+}
+
+function openRelieveTeacherModalDirect(id, name) {
+    if (!id) return;
+    document.getElementById('relieve_teacher_id').value = id;
+    document.getElementById('relieve_teacher_name').value = name || 'Selected Teacher';
+    
+    // Set default date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('relieve_date_of_leaving').value = today;
+    const reasonSelect = document.getElementById('relieve_exit_reason');
+    if (reasonSelect) {
+        if (reasonSelect.tomselect) {
+            try { reasonSelect.tomselect.destroy(); } catch(e) {}
+        }
+        reasonSelect.value = 'resigned';
+    }
+    document.getElementById('relieve_exit_remarks').value = '';
+
+    const modalEl = document.getElementById('relieveTeacherModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+}
+
+function submitRelieveTeacher() {
+    const teacherId = document.getElementById('relieve_teacher_id').value;
+    const dateOfLeaving = document.getElementById('relieve_date_of_leaving').value;
+    const exitReason = document.getElementById('relieve_exit_reason').value;
+    const exitRemarks = document.getElementById('relieve_exit_remarks').value;
+
+    if (!dateOfLeaving) {
+        alert('Please choose date of leaving / relieving date.');
+        return;
+    }
+
+    const btn = document.getElementById('btnConfirmRelieve');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Relieving...';
+
+    const formData = new FormData();
+    formData.append('date_of_leaving', dateOfLeaving);
+    formData.append('exit_reason', exitReason);
+    formData.append('exit_remarks', exitRemarks);
+
+    const basePath = window.location.pathname.replace(/\/+$/, '');
+    const url = `${basePath}/${teacherId}/exit/`;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || 'Teacher relieved successfully.');
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to relieve teacher'));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    })
+    .catch(err => {
+        alert('Request failed: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
 </script>
+
+<!-- Relieve / Exit Teacher Modal -->
+<div class="modal fade" id="relieveTeacherModal" tabindex="-1" aria-labelledby="relieveTeacherModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold" id="relieveTeacherModalLabel">
+                    <i class="fas fa-user-minus me-2"></i>Relieve / Exit Teacher
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="relieveTeacherForm" onsubmit="event.preventDefault(); submitRelieveTeacher();">
+                <input type="hidden" id="relieve_teacher_id" name="relieve_teacher_id">
+                <div class="modal-body p-4">
+                    <div class="alert alert-warning py-2 small mb-3">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        Relieving a teacher sets their status to <strong>Inactive</strong>, revokes login access, and automatically unassigns active subjects, sections, and department head roles. Historical payroll and records remain fully preserved.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Teacher Name</label>
+                        <input type="text" id="relieve_teacher_name" class="form-control bg-light" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Date of Leaving / Relieving Date *</label>
+                        <input type="date" id="relieve_date_of_leaving" name="date_of_leaving" class="form-control" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Reason for Leaving *</label>
+                        <select id="relieve_exit_reason" name="exit_reason" class="form-select no-tomselect" data-no-tomselect="true" required>
+                            <option value="resigned">Resigned</option>
+                            <option value="terminated">Terminated</option>
+                            <option value="retired">Retired</option>
+                            <option value="transferred">Transferred to another school</option>
+                            <option value="contract_expired">Contract Expired / End of Contract</option>
+                            <option value="other">Other / Personal Reasons</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Exit Clearance Remarks / Handover Notes</label>
+                        <textarea id="relieve_exit_remarks" name="exit_remarks" class="form-control" rows="3" placeholder="Provide notes regarding handovers, clearance status, pending dues, or forwarding address..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger" id="btnConfirmRelieve">
+                        <i class="fas fa-user-minus me-1"></i> Confirm & Relieve Teacher
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <style>
 .ts-wrapper.single.has-items:not(.dropdown-active) .ts-control > input {
@@ -884,6 +1033,57 @@ function deleteTeacher(id, name) {
 }
 .ts-dropdown {
     z-index: 1080 !important;
+}
+
+/* Ensure no-tomselect and relieve_exit_reason render as clear, modern input fields */
+select.form-select.no-tomselect,
+#relieve_exit_reason {
+    display: block !important;
+    width: 100% !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    padding: 10px 38px 10px 14px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    line-height: 1.5 !important;
+    color: var(--input-text, #0F172A) !important;
+    background-color: var(--input-bg, #FFFFFF) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%2364748B' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 14px center !important;
+    background-size: 14px 14px !important;
+    border: 1.5px solid var(--input-border, #CBD5E1) !important;
+    border-radius: 10px !important;
+    outline: none !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+select.form-select.no-tomselect:hover,
+#relieve_exit_reason:hover {
+    border-color: var(--brand-primary, #0284C7) !important;
+}
+
+select.form-select.no-tomselect:focus,
+#relieve_exit_reason:focus {
+    border-color: var(--brand-primary, #0284C7) !important;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
+}
+
+[data-theme="dark"] select.form-select.no-tomselect,
+[data-theme="dark"] #relieve_exit_reason,
+.theme-dark select.form-select.no-tomselect,
+.theme-dark #relieve_exit_reason,
+body.dark-theme select.form-select.no-tomselect,
+body.dark-theme #relieve_exit_reason {
+    background-color: var(--input-bg, #1E293B) !important;
+    border-color: var(--border-light, #334155) !important;
+    color: var(--input-text, #F8FAFC) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%2394A3B8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E") !important;
 }
 </style>
 {% endblock %}

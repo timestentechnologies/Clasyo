@@ -7,35 +7,36 @@
 {% block page_subtitle %}Manage parent accounts and information{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <button class="btn btn-primary" onclick="openCreateParentForm()">
-        <i class="fas fa-user-plus"></i> Add Parent
-    </button>
-</div>
-
 <!-- Parent List View Container -->
 <div id="parentListCard">
-    <!-- Dynamic Search and Filters -->
-    <div class="row mb-3">
-        <div class="col-md-12">
-            <div class="row g-2">
-                <div class="col-md-4">
-                    <input type="text" id="searchInput" class="form-control" placeholder="Search parents by name, email, phone...">
-                </div>
-                <div class="col-md-4">
-                    <select name="children_filter" id="childrenFilter" class="form-select" placeholder="Filter by Children" data-placeholder="Filter by Children">
-                        <option value="">All Parents</option>
-                        <option value="has_children">Has Children</option>
-                        <option value="no_children">No Children</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <select name="status_filter" id="statusFilter" class="form-select" placeholder="Filter by Status" data-placeholder="Filter by Status">
-                        <option value="">All Statuses</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                </div>
+    <!-- Unified In-Line Table Toolbar: Buttons on left, Search & Filters on right -->
+    <div class="table-toolbar" data-page-actions>
+        <div class="toolbar-actions">
+            <button class="btn btn-primary" onclick="openCreateParentForm()">
+                <i class="fas fa-user-plus me-1"></i> Add Parent
+            </button>
+        </div>
+
+        <div class="toolbar-filters">
+            <div class="toolbar-search">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="searchInput" class="form-control" placeholder="Search parents by name, email, phone...">
+            </div>
+
+            <div class="toolbar-filter">
+                <select name="children_filter" id="childrenFilter" class="form-select" placeholder="Filter by Children" data-placeholder="Filter by Children">
+                    <option value="">All Parents</option>
+                    <option value="has_children">Has Children</option>
+                    <option value="no_children">No Children</option>
+                </select>
+            </div>
+
+            <div class="toolbar-filter">
+                <select name="status_filter" id="statusFilter" class="form-select" placeholder="Filter by Status" data-placeholder="Filter by Status">
+                    <option value="">All Statuses</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
             </div>
         </div>
     </div>

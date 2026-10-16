@@ -48,4 +48,40 @@ def school_context(request):
     except Exception:
         context['google_auth_enabled'] = False
 
+    # Resolve school from middleware or user if not yet found
+    school = context.get('school')
+    if not school:
+        school = getattr(request, 'school', None) or getattr(request, 'tenant', None)
+        if not school and user and user.is_authenticated and hasattr(user, 'school') and user.school:
+            school = user.school
+        if school:
+            context['school'] = school
+            if 'school_slug' not in context:
+                context['school_slug'] = school.slug
+
+    # Dynamic Currency and Language Resolution
+    sys_settings = context.get('system_settings')
+    curr_code = 'USD'
+    curr_sym = '$'
+    lang_code = 'en'
+
+    if school:
+        curr_code = getattr(school, 'clean_currency', None) or (getattr(school, 'currency', 'USD') or 'USD').strip().upper()
+        curr_sym = getattr(school, 'clean_currency_symbol', None) or (getattr(school, 'currency_symbol', '$') or '$').strip()
+        if not curr_sym:
+            curr_sym = getattr(School, 'DEFAULT_CURRENCY_SYMBOLS', {}).get(curr_code, '$')
+        lang_code = getattr(school, 'clean_language', None) or getattr(school, 'language', 'en') or 'en'
+    elif sys_settings:
+        curr_code = (getattr(sys_settings, 'currency_code', 'USD') or 'USD').strip().upper()
+        curr_sym = (getattr(sys_settings, 'currency_symbol', '$') or '$').strip()
+        lang_code = (getattr(sys_settings, 'default_language', 'en') or 'en').strip().lower()
+
+    context['currency'] = curr_code
+    context['currency_code'] = curr_code
+    context['currency_symbol'] = curr_sym
+    context['school_currency'] = curr_code
+    context['school_currency_symbol'] = curr_sym
+    context['school_language'] = lang_code
+    context['language'] = lang_code
+
     return context

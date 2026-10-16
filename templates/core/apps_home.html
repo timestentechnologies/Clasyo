@@ -84,7 +84,7 @@
         <div class="header-content">
             <div class="school-info">
                 <div class="school-logo" style="background: transparent !important; overflow: hidden;">
-                    {% if school and school.logo %}<img src="{{ school.logo.url }}" alt="Logo"
+                    {% if school and school.has_valid_logo %}<img src="{{ school.logo.url }}" alt="Logo"
                         style="background: transparent !important;" onerror="this.onerror=null; this.src='{% static 'images/erpupdated.png' %}';">
                     {% else %}<img src="{% static 'images/erpupdated.png' %}" alt="School Logo"
                         style="max-width: 40px; height: auto; background: transparent !important;">{% endif %}
@@ -261,6 +261,11 @@
                 data-category="academic">
                 <div class="app-icon"><i class="fas fa-level-up-alt"></i></div>
                 <p class="app-name">Student Promotion</p>
+            </a>
+            <a href="/school/{{ school_slug }}/students/" class="app-card" data-name="admissions enrollment students student-enrollment"
+                data-category="academic">
+                <div class="app-icon"><i class="fas fa-user-check"></i></div>
+                <p class="app-name">Admissions &amp; Enrollment</p>
             </a>
             <a href="/school/{{ school_slug }}/students/parents/" class="app-card" data-name="parents"
                 data-category="academic">

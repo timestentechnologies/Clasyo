@@ -13,61 +13,51 @@
 {% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-end mb-3">
-    <a href="{% url 'library:issue_create' school_slug=school_slug %}" class="btn btn-primary">
-        <i class="fas fa-plus me-1"></i> New Issue
-    </a>
-</div>
+    <!-- Unified In-Line Table Toolbar: Buttons on left, Search & Filters on right -->
+    <div class="table-toolbar" data-page-actions>
+        <div class="toolbar-actions">
+            <a href="{% url 'library:issue_create' school_slug=school_slug %}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> New Issue
+            </a>
+        </div>
+
+        <div class="toolbar-filters">
+            <form method="get" class="d-flex align-items-center gap-2 m-0 p-0" id="filterForm">
+                <div class="toolbar-filter">
+                    <select name="status" id="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Status</option>
+                        {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if current_filters.status == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="toolbar-filter">
+                    <select class="form-select select2" id="book" name="book" data-theme="bootstrap-5" onchange="this.form.submit()">
+                        <option value="">All Books</option>
+                        {% for book in books %}
+                        <option value="{{ book.id }}" {% if request.GET.book == book.id|stringformat:'s' %}selected{% endif %}>
+                            {{ book.title }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="toolbar-filter">
+                    <select class="form-select select2" id="student" name="student" data-theme="bootstrap-5" onchange="this.form.submit()">
+                        <option value="">All Students</option>
+                        {% for student in students %}
+                        <option value="{{ student.id }}" {% if request.GET.student == student.id|stringformat:'s' %}selected{% endif %}>
+                            {{ student.get_full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
 
 <div class="modern-card">
-    <!-- Filter Form -->
-    <div class="filter-section mb-4">
-        <form method="get" class="row g-3" id="filterForm">
-            <div class="col-md-3">
-                <label for="status" class="form-label">Status</label>
-                <select name="status" id="status" class="form-select">
-                    <option value="">All Status</option>
-                                    {% for value, label in status_choices %}
-                                        <option value="{{ value }}" {% if current_filters.status == value %}selected{% endif %}>
-                                            {{ label }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label for="book" class="form-label">Book</label>
-                                <select class="form-select select2" id="book" name="book" data-theme="bootstrap-5">
-                                    <option value="">All Books</option>
-                                    {% for book in books %}
-                                    <option value="{{ book.id }}" {% if request.GET.book == book.id|stringformat:'s' %}selected{% endif %}>
-                                        {{ book.title }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label for="student" class="form-label">Student</label>
-                                <select class="form-select select2" id="student" name="student" data-theme="bootstrap-5">
-                                    <option value="">All Students</option>
-                                    {% for student in students %}
-                                    <option value="{{ student.id }}" {% if request.GET.student == student.id|stringformat:'s' %}selected{% endif %}>
-                                        {{ student.get_full_name }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-3 d-flex align-items-end">
-                                <div class="btn-group w-100">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-filter me-1"></i> Filter
-                                    </button>
-                                    <a href="{% url 'library:issue_list' school_slug=school_slug %}" class="btn btn-outline-secondary">
-                                        <i class="fas fa-undo me-1"></i> Reset
-                                    </a>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
 
                     <!-- Sorting -->
         <div class="d-flex justify-content-between align-items-center mb-3">

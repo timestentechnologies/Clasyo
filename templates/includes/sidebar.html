@@ -11,7 +11,7 @@
             {% if user.role == 'superadmin' and not school_slug %}
                 <img src="{% static 'images/erpupdated.png' %}" alt="Logo" class="school-logo" style="background: transparent !important; width: 100%; height: 100%; object-fit: contain;" onerror="this.onerror=null; this.style.display='none';">
             {% else %}
-                {% if school and school.logo %}
+                {% if school and school.has_valid_logo %}
                     <img src="{{ school.logo.url }}" alt="Logo" class="school-logo" style="background: transparent !important; width: 100%; height: 100%; object-fit: contain;" onerror="this.onerror=null; this.src='{% static 'images/erpupdated.png' %}';">
                 {% else %}
                     <img src="{% static 'images/erpupdated.png' %}" alt="Logo" class="school-logo" style="background: transparent !important; width: 100%; height: 100%; object-fit: contain;" onerror="this.onerror=null; this.style.display='none';">
@@ -193,7 +193,7 @@
         {% endif %}
         <li class="{% if '/students/' in request.path and '/parents/' not in request.path and '/promote/' not in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/students/">
             <i class="fas fa-user-graduate"></i>
-            <span>Students</span>
+            <span>Admissions &amp; Students</span>
         </a></li>
 
         {% if user.role == 'admin' or user.role == 'superadmin' or user.is_school_admin %}
@@ -377,6 +377,13 @@
         <li class="{% if '/dormitory/' in request.path %}active{% endif %}"><a href="/school/{{ school_slug }}/dormitory/">
             <i class="fas fa-bed"></i>
             <span>Dormitory</span>
+        </a></li>
+
+        <div class="menu-section-title">Reports</div>
+        
+        <li class="{% if '/reports/' in request.path %}active{% endif %}"><a href="{% if school_slug %}{% url 'reports:student_enrollment' school_slug=school_slug %}{% else %}#{% endif %}">
+            <i class="fas fa-chart-pie"></i>
+            <span>Enrollment Report</span>
         </a></li>
 
         <div class="menu-section-title">Settings</div>

@@ -81,6 +81,33 @@ class SuperAdminRequiredMixin(UserPassesTestMixin):
         return redirect('frontend:home')
 
 
+def _get_school_student_count(school) -> int:
+    """Accurately count students for a school across its tenant DB and fallback master DB"""
+    from students.models import Student
+    from tenants.services import register_tenant_connection
+    from tenants.drivers import get_tenant_database_driver
+
+    if not school:
+        return 0
+
+    driver = get_tenant_database_driver()
+    if school.slug and driver.database_exists(school.slug):
+        try:
+            register_tenant_connection(school.slug)
+            t_count = Student.objects.using(school.slug).count()
+            if t_count > 0:
+                return t_count
+        except Exception:
+            pass
+
+    try:
+        return Student.objects.using('default').filter(
+            Q(school=school) | Q(current_class__school=school) | Q(user__school=school) | Q(created_by__school=school)
+        ).distinct().count()
+    except Exception:
+        return 0
+
+
 class DashboardView(SuperAdminRequiredMixin, TemplateView):
     """Super Admin Dashboard"""
     template_name = 'superadmin/dashboard.html'
@@ -91,14 +118,15 @@ class DashboardView(SuperAdminRequiredMixin, TemplateView):
         # Get comprehensive statistics
         from students.models import Student
         
-        # Use total rows to avoid misreporting when is_active isn't set consistently
-        total_students = Student.objects.count()
+        # Use accurate multi-tenant count across dedicated tenant DBs and master
+        active_schools_list = list(School.objects.filter(is_active=True))
+        total_students = sum(_get_school_student_count(s) for s in active_schools_list)
         total_teachers = User.objects.filter(role='teacher', is_active=True).count()
         total_admins = User.objects.filter(role='admin', is_active=True).count()
         
         context['stats'] = {
             'total_schools': School.objects.count(),
-            'active_schools': School.objects.filter(is_active=True).count(),
+            'active_schools': len(active_schools_list),
             'inactive_schools': School.objects.filter(is_active=False).count(),
             'trial_schools': School.objects.filter(is_trial=True, is_active=True).count(),
             'total_students': total_students,
@@ -110,14 +138,11 @@ class DashboardView(SuperAdminRequiredMixin, TemplateView):
             'pending_payments': Payment.objects.filter(status='pending').count(),
         }
         
-        # Get recent schools with accurate student counts (union of class.school, user.school, and created_by.school)
+        # Get recent schools with accurate student counts
         recent = list(School.objects.order_by('-created_on')[:5])
         try:
             for s in recent:
-                context_count = Student.objects.filter(
-                    Q(current_class__school=s) | Q(user__school=s) | Q(created_by__school=s)
-                ).distinct().count()
-                setattr(s, 'student_count', context_count)
+                setattr(s, 'student_count', _get_school_student_count(s))
         except Exception:
             for s in recent:
                 setattr(s, 'student_count', 0)
@@ -178,12 +203,9 @@ class SchoolListView(SuperAdminRequiredMixin, ListView):
         context['selected_institution_type'] = self.request.GET.get('institution_type', '')
         # Attach accurate student counts per school for current page
         try:
-            from students.models import Student
             schools = list(context.get('schools') or [])
             for s in schools:
-                s.student_count = Student.objects.filter(
-                    Q(current_class__school=s) | Q(user__school=s) | Q(created_by__school=s)
-                ).distinct().count()
+                s.student_count = _get_school_student_count(s)
             # Replace the queryset in context so template uses enriched objects
             context['schools'] = schools
         except Exception:
@@ -225,6 +247,12 @@ class SchoolDetailView(SuperAdminRequiredMixin, DetailView):
     model = School
     template_name = 'superadmin/school_detail.html'
     context_object_name = 'school'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        school = self.get_object()
+        context['student_count'] = _get_school_student_count(school)
+        return context
 
 
 class SubscriptionListView(SuperAdminRequiredMixin, ListView):

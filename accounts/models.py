@@ -1,3 +1,4 @@
+import os
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils.translation import gettext_lazy as _
@@ -176,6 +177,17 @@ class User(AbstractUser):
     @property
     def is_staff_member(self):
         return self.role in ['admin', 'teacher', 'accountant', 'librarian', 'receptionist']
+
+    @property
+    def avatar_url(self):
+        """Return user avatar URL or global default avatar URL"""
+        if self.avatar and hasattr(self.avatar, 'url'):
+            try:
+                return self.avatar.url
+            except Exception:
+                pass
+        from django.templatetags.static import static
+        return static('images/default_avatar.svg')
 
     def get_navigation_layout(self):
         """Return effective navigation layout ('sidebar' or 'horizontal')"""

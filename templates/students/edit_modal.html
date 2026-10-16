@@ -1,53 +1,120 @@
+<style>
+.student-form-tabs {
+    border-bottom: 2px solid #e2e8f0;
+    gap: 4px;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+.student-form-tabs .nav-link {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #64748b;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    padding: 0.65rem 1.15rem;
+    background-color: #f8fafc;
+    transition: all 0.15s ease-in-out;
+}
+.student-form-tabs .nav-link:hover {
+    color: #0f172a;
+    background-color: #f1f5f9;
+}
+.student-form-tabs .nav-link.active {
+    color: #0284c7;
+    background-color: #ffffff;
+    border-color: #e2e8f0 #e2e8f0 #ffffff;
+    border-top: 3px solid #0284c7;
+    margin-bottom: -2px;
+}
+.student-form-tab-content {
+    background: transparent;
+    border: none;
+    padding: 0.75rem 0.25rem;
+    min-height: 180px;
+}
+.subjects-vertical-grid {
+    display: grid;
+    grid-template-rows: repeat(5, auto);
+    grid-auto-flow: column;
+    column-gap: 3.5rem;
+    row-gap: 0.85rem;
+    justify-content: start;
+    padding: 0.5rem 0;
+}
+@media (max-width: 768px) {
+    .subjects-vertical-grid {
+        grid-template-rows: none;
+        grid-auto-flow: row;
+        gap: 0.85rem;
+    }
+}
+.subject-check-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    cursor: pointer;
+    margin-bottom: 0;
+    min-width: 180px;
+}
+.subject-check-item input[type="checkbox"] {
+    width: 1.15rem;
+    height: 1.15rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin: 0;
+}
+.subject-check-item label {
+    cursor: pointer;
+    margin-bottom: 0;
+    font-weight: 500;
+    color: #1e293b;
+    user-select: none;
+    font-size: 0.92rem;
+}
+</style>
+
 <form method="post" id="studentEditForm" enctype="multipart/form-data">
     {% csrf_token %}
     <input type="hidden" name="student_id" value="{{ student.id }}">
-
-    <div class="d-flex justify-content-end mb-2">
-        <a href="{% url 'students:subjects' school_slug=school_slug pk=student.pk %}" class="btn btn-info btn-sm">
-            <i class="fas fa-book"></i> Manage Subjects
-        </a>
-    </div>
+    <input type="hidden" name="has_subjects_section" value="1">
     
-    <!-- Student Basic Information -->
-    <h6 class="mb-3 text-primary"><i class="fas fa-user"></i> Basic Information</h6>
-    <div class="row">
-        <div class="col-md-4 mb-3">
-            <label class="form-label">First Name *</label>
+    <!-- Student Basic Information & Academic Details -->
+    <h6 class="mb-3 text-primary fw-bold"><i class="fas fa-id-card me-2"></i>Basic Information &amp; Academic Enrollment</h6>
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
             <input type="text" name="first_name" class="form-control" value="{{ student.first_name }}" required>
         </div>
-        <div class="col-md-4 mb-3">
-            <label class="form-label">Last Name *</label>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
             <input type="text" name="last_name" class="form-control" value="{{ student.last_name }}" required>
         </div>
-        <div class="col-md-4 mb-3">
-            <label class="form-label">Email *</label>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Admission Number <span class="text-danger">*</span></label>
+            <input type="text" name="admission_number" class="form-control" value="{{ student.admission_number }}" required readonly style="background-color: #f8f9fa;">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
             <input type="email" name="email" class="form-control" value="{{ student.email }}" required>
         </div>
-        <div class="col-md-4 mb-3">
-            <label class="form-label">Password</label>
-            <input type="text" name="password" class="form-control" value="student123">
-            <small class="text-muted">Default: student123 - You can edit to change</small>
-        </div>
-        <div class="col-md-4 mb-3">
-            <label class="form-label">Admission Number *</label>
-            <input type="text" name="admission_number" class="form-control" value="{{ student.admission_number }}" required readonly>
-        </div>
-        <div class="col-md-4 mb-3">
-            <label class="form-label">Date of Birth *</label>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Date of Birth <span class="text-danger">*</span></label>
             <input type="date" name="date_of_birth" class="form-control" value="{{ student.date_of_birth|date:'Y-m-d' }}" required>
         </div>
-        <div class="col-md-4 mb-3">
-            <label class="form-label">Gender *</label>
-            <select name="gender" class="form-control" required>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Gender <span class="text-danger">*</span></label>
+            <select name="gender" class="form-select" required>
                 <option value="">Select Gender</option>
                 <option value="male" {% if student.gender == 'male' %}selected{% endif %}>Male</option>
                 <option value="female" {% if student.gender == 'female' %}selected{% endif %}>Female</option>
                 <option value="other" {% if student.gender == 'other' %}selected{% endif %}>Other</option>
             </select>
         </div>
-        <div class="col-md-4 mb-3">
-            <label class="form-label">Blood Group</label>
-            <select name="blood_group" class="form-control">
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Blood Group</label>
+            <select name="blood_group" class="form-select">
                 <option value="">Select Blood Group</option>
                 <option value="A+" {% if student.blood_group == 'A+' %}selected{% endif %}>A+</option>
                 <option value="A-" {% if student.blood_group == 'A-' %}selected{% endif %}>A-</option>
@@ -59,172 +126,269 @@
                 <option value="AB-" {% if student.blood_group == 'AB-' %}selected{% endif %}>AB-</option>
             </select>
         </div>
-    </div>
-    
-    <!-- Academic Information -->
-    <h6 class="mb-3 mt-3 text-primary"><i class="fas fa-graduation-cap"></i> Academic Details</h6>
-    <div class="row">
-        <div class="col-md-4 mb-3">
-            <label class="form-label">Class <span class="text-danger">*</span></label>
-            <select name="current_class" class="form-control" required>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Password</label>
+            <input type="text" name="password" class="form-control" value="student123">
+            <small class="text-muted" style="font-size: 0.75rem;">Default: student123</small>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Class <span class="text-danger">*</span></label>
+            <select name="current_class" class="form-select" required>
                 <option value="">Select Class</option>
                 {% for class in classes %}
                 <option value="{{ class.id }}" {% if student.current_class and student.current_class.id == class.id %}selected{% endif %}>{{ class.name }}</option>
                 {% endfor %}
             </select>
         </div>
-        <div class="col-md-4 mb-3">
-            <label class="form-label">Section</label>
-            <select name="section" class="form-control">
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Section</label>
+            <select name="section" class="form-select">
                 <option value="">Select Section (Optional)</option>
                 {% for section in sections %}
                 <option value="{{ section.id }}" {% if student.section and student.section.id == section.id %}selected{% endif %}>{{ section.name }}</option>
                 {% endfor %}
             </select>
         </div>
-        <div class="col-md-4 mb-3">
-            <label class="form-label">Admission Date *</label>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Registration Date <span class="text-danger">*</span></label>
             <input type="date" name="admission_date" class="form-control" value="{{ student.admission_date|date:'Y-m-d' }}" required>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Intake Cohort</label>
+            <input type="text" name="intake_cohort" class="form-control" list="cohortOptionsList" placeholder="e.g. 2024-2025" value="{{ student.intake_cohort|default:'' }}">
+            <datalist id="cohortOptionsList">
+                {% for c in intake_cohorts %}
+                <option value="{{ c }}">
+                {% endfor %}
+            </datalist>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Enrollment Status <span class="text-danger">*</span></label>
+            <select name="enrollment_status" class="form-select" required>
+                <option value="enrolled">Enrolled</option>
+                <option value="pending">Pending Verification</option>
+                <option value="transferred">Transferred</option>
+                <option value="withdrawn">Withdrawn</option>
+                <option value="graduated">Graduated</option>
+            </select>
         </div>
     </div>
 
-    <!-- Clubs & Societies -->
-    <h6 class="mb-3 mt-3 text-primary"><i class="fas fa-users"></i> Clubs & Societies</h6>
-    <div class="row">
-        <div class="col-md-12 mb-3">
-            <label class="form-label">Clubs (Optional)</label>
-            <select name="club_ids" class="form-select" multiple size="6">
+    <!-- Tabbed Details Section -->
+    <ul class="nav nav-tabs student-form-tabs mt-4 pt-1" id="studentEditTabList" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="edit-tab-subjects-btn" data-bs-toggle="tab" data-bs-target="#edit-tab-subjects" type="button" role="tab">
+                <i class="fas fa-book-reader me-2 text-primary"></i>Subject Enrollments
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="edit-tab-parents-btn" data-bs-toggle="tab" data-bs-target="#edit-tab-parents" type="button" role="tab">
+                <i class="fas fa-user-friends me-2 text-primary"></i>Parents &amp; Guardian
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="edit-tab-address-btn" data-bs-toggle="tab" data-bs-target="#edit-tab-address" type="button" role="tab">
+                <i class="fas fa-map-marker-alt me-2 text-primary"></i>Address Details
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="edit-tab-transport-btn" data-bs-toggle="tab" data-bs-target="#edit-tab-transport" type="button" role="tab">
+                <i class="fas fa-bus me-2 text-primary"></i>Transport &amp; Hostel
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="edit-tab-clubs-btn" data-bs-toggle="tab" data-bs-target="#edit-tab-clubs" type="button" role="tab">
+                <i class="fas fa-users me-2 text-primary"></i>Clubs &amp; Societies
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content student-form-tab-content mb-3" id="studentEditTabContent">
+        <!-- Tab 1: Subject Enrollments -->
+        <div class="tab-pane fade show active" id="edit-tab-subjects" role="tabpanel">
+            <div class="mb-3 text-muted small">Tick the subjects the student is enrolled to:</div>
+
+            <div class="subjects-vertical-grid">
+                {% for s in subjects %}
+                <div class="subject-check-item">
+                    <input class="form-check-input student-subject-checkbox" type="checkbox" name="subject_ids" value="{{ s.id }}" id="edit_subj_{{ s.id }}" {% if s.id in enrolled_subject_ids %}checked{% endif %}>
+                    <label class="form-check-label" for="edit_subj_{{ s.id }}">
+                        {{ s.name }}
+                        {% if s.code %}<span class="text-muted small ms-1">({{ s.code }})</span>{% endif %}
+                    </label>
+                </div>
+                {% empty %}
+                <div class="text-muted small py-2">
+                    <i class="fas fa-info-circle me-1"></i> No subjects found. Please add subjects under Academics.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Tab 2: Parents & Guardian -->
+        <div class="tab-pane fade" id="edit-tab-parents" role="tabpanel">
+            <div class="alert alert-light border py-2 px-3 mb-3 d-flex align-items-center gap-2" style="font-size: 0.84rem; background-color: #f8fafc; border-color: #e2e8f0 !important;">
+                <i class="fas fa-info-circle text-primary"></i>
+                <span class="text-muted">A student can have a <strong>Father only</strong>, <strong>Mother only</strong>, or <strong>Guardian only</strong>. Please provide details for at least one.</span>
+            </div>
+
+            <!-- Father Details -->
+            <h6 class="mb-2 text-primary fw-bold"><i class="fas fa-male me-2"></i>Father's Details</h6>
+            <div class="row g-3 mb-4">
+                <div class="col-xl-3 col-md-3 col-sm-6">
+                    <label class="form-label fw-semibold">Father's Name</label>
+                    <input type="text" name="father_name" class="form-control parent-contact-check" value="{{ student.father_name }}" placeholder="Father's full name">
+                </div>
+                <div class="col-xl-3 col-md-3 col-sm-6">
+                    <label class="form-label fw-semibold">Father's Phone</label>
+                    <input type="tel" name="father_phone" class="form-control" value="{{ student.father_phone }}" placeholder="Phone number">
+                </div>
+                <div class="col-xl-3 col-md-3 col-sm-6">
+                    <label class="form-label fw-semibold">Father's Email</label>
+                    <input type="email" name="father_email" class="form-control" value="{{ student.father_email }}" placeholder="Email address">
+                </div>
+                <div class="col-xl-3 col-md-3 col-sm-6">
+                    <label class="form-label fw-semibold">Father's Occupation</label>
+                    <input type="text" name="father_occupation" class="form-control" value="{{ student.father_occupation }}" placeholder="Occupation">
+                </div>
+            </div>
+
+            <!-- Mother Details -->
+            <h6 class="mb-2 text-primary fw-bold"><i class="fas fa-female me-2"></i>Mother's Details</h6>
+            <div class="row g-3 mb-4">
+                <div class="col-xl-3 col-md-3 col-sm-6">
+                    <label class="form-label fw-semibold">Mother's Name</label>
+                    <input type="text" name="mother_name" class="form-control parent-contact-check" value="{{ student.mother_name }}" placeholder="Mother's full name">
+                </div>
+                <div class="col-xl-3 col-md-3 col-sm-6">
+                    <label class="form-label fw-semibold">Mother's Phone</label>
+                    <input type="tel" name="mother_phone" class="form-control" value="{{ student.mother_phone }}" placeholder="Phone number">
+                </div>
+                <div class="col-xl-3 col-md-3 col-sm-6">
+                    <label class="form-label fw-semibold">Mother's Email</label>
+                    <input type="email" name="mother_email" class="form-control" value="{{ student.mother_email }}" placeholder="Email address">
+                </div>
+                <div class="col-xl-3 col-md-3 col-sm-6">
+                    <label class="form-label fw-semibold">Mother's Occupation</label>
+                    <input type="text" name="mother_occupation" class="form-control" value="{{ student.mother_occupation }}" placeholder="Occupation">
+                </div>
+            </div>
+
+            <!-- Guardian Details (Optional) -->
+            <h6 class="mb-2 text-primary fw-bold"><i class="fas fa-user-shield me-2"></i>Guardian Details (Optional)</h6>
+            <div class="row g-3">
+                <div class="col-xl-3 col-md-3 col-sm-6">
+                    <label class="form-label fw-semibold">Guardian's Name</label>
+                    <input type="text" name="guardian_name" class="form-control parent-contact-check" value="{{ student.guardian_name }}" placeholder="Guardian's full name">
+                </div>
+                <div class="col-xl-3 col-md-3 col-sm-6">
+                    <label class="form-label fw-semibold">Guardian's Phone</label>
+                    <input type="tel" name="guardian_phone" class="form-control" value="{{ student.guardian_phone }}" placeholder="Phone number">
+                </div>
+                <div class="col-xl-3 col-md-3 col-sm-6">
+                    <label class="form-label fw-semibold">Guardian's Email</label>
+                    <input type="email" name="guardian_email" class="form-control" value="{{ student.guardian_email }}" placeholder="Email address">
+                </div>
+                <div class="col-xl-3 col-md-3 col-sm-6">
+                    <label class="form-label fw-semibold">Guardian's Relation</label>
+                    <input type="text" name="guardian_relation" class="form-control" value="{{ student.guardian_relation }}" placeholder="e.g., Uncle, Aunt">
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Address Details -->
+        <div class="tab-pane fade" id="edit-tab-address" role="tabpanel">
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold">Current Address <span class="text-danger">*</span></label>
+                    <textarea name="current_address" class="form-control" rows="2" required>{{ student.current_address }}</textarea>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">City <span class="text-danger">*</span></label>
+                    <input type="text" name="city" class="form-control" value="{{ student.city }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">State / Region <span class="text-danger">*</span></label>
+                    <input type="text" name="state" class="form-control" value="{{ student.state }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Postal Code</label>
+                    <input type="text" name="postal_code" class="form-control" value="{{ student.postal_code }}">
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Transport & Hostel -->
+        <div class="tab-pane fade" id="edit-tab-transport" role="tabpanel">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Transport Required</label>
+                    <select name="is_transport_required" class="form-select">
+                        <option value="False" {% if not student.is_transport_required %}selected{% endif %}>No</option>
+                        <option value="True" {% if student.is_transport_required %}selected{% endif %}>Yes</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Hostel Required</label>
+                    <select name="is_hostel_required" class="form-select" id="hostelRequired">
+                        <option value="False" {% if not student.is_hostel_required %}selected{% endif %}>No</option>
+                        <option value="True" {% if student.is_hostel_required %}selected{% endif %}>Yes</option>
+                    </select>
+                </div>
+                <div class="col-md-6" id="dormitoryField"{% if not student.is_hostel_required %} style="display:none;"{% endif %}>
+                    <label class="form-label fw-semibold">Dormitory</label>
+                    <select name="dormitory" class="form-select" id="dormitorySelect">
+                        <option value="">Select Dormitory</option>
+                        {% for dormitory in dormitories %}
+                        <option value="{{ dormitory.id }}" {% if student.dormitory and student.dormitory.id == dormitory.id %}selected{% endif %}>{{ dormitory.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6" id="roomField"{% if not student.is_hostel_required %} style="display:none;"{% endif %}>
+                    <label class="form-label fw-semibold">Room</label>
+                    <select name="room" class="form-select" id="roomSelect">
+                        <option value="">Select Room</option>
+                        {% for room in rooms %}
+                        <option value="{{ room.id }}" {% if student.room and student.room.id == room.id %}selected{% endif %}>{{ room.room_number }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: Clubs & Societies -->
+        <div class="tab-pane fade" id="edit-tab-clubs" role="tabpanel">
+            <div class="mb-3 text-muted small">Tick the clubs &amp; societies the student is a member of:</div>
+
+            <div class="subjects-vertical-grid">
                 {% for club in clubs %}
-                    <option value="{{ club.id }}" {% if club.id in selected_club_ids %}selected{% endif %}>{{ club.name }}</option>
+                <div class="subject-check-item">
+                    <input class="form-check-input student-club-checkbox" type="checkbox" name="club_ids" value="{{ club.id }}" id="edit_club_{{ club.id }}" {% if club.id in selected_club_ids %}checked{% endif %}>
+                    <label class="form-check-label" for="edit_club_{{ club.id }}">
+                        {{ club.name }}
+                    </label>
+                </div>
+                {% empty %}
+                <div class="text-muted small py-2">
+                    <i class="fas fa-info-circle me-1"></i> No clubs found. Please add clubs under Clubs &amp; Societies.
+                </div>
                 {% endfor %}
-            </select>
-            <small class="text-muted">Hold Ctrl/Shift to select multiple.</small>
-        </div>
-    </div>
-    
-    <!-- Address Information -->
-    <h6 class="mb-3 mt-3 text-primary"><i class="fas fa-map-marker-alt"></i> Address Details</h6>
-    <div class="row">
-        <div class="col-md-12 mb-3">
-            <label class="form-label">Current Address *</label>
-            <textarea name="current_address" class="form-control" rows="2" required>{{ student.current_address }}</textarea>
-        </div>
-        <div class="col-md-4 mb-3">
-            <label class="form-label">City *</label>
-            <input type="text" name="city" class="form-control" value="{{ student.city }}" required>
-        </div>
-        <div class="col-md-4 mb-3">
-            <label class="form-label">State *</label>
-            <input type="text" name="state" class="form-control" value="{{ student.state }}" required>
-        </div>
-        <div class="col-md-4 mb-3">
-            <label class="form-label">Postal Code</label>
-            <input type="text" name="postal_code" class="form-control" value="{{ student.postal_code }}">
-        </div>
-    </div>
-    
-    <!-- Father Details -->
-    <h6 class="mb-3 mt-3 text-primary"><i class="fas fa-male"></i> Father's Details</h6>
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Father's Name *</label>
-            <input type="text" name="father_name" class="form-control" value="{{ student.father_name }}" required>
-        </div>
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Father's Phone</label>
-            <input type="tel" name="father_phone" class="form-control" value="{{ student.father_phone }}">
-        </div>
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Father's Email</label>
-            <input type="email" name="father_email" class="form-control" value="{{ student.father_email }}">
-        </div>
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Father's Occupation</label>
-            <input type="text" name="father_occupation" class="form-control" value="{{ student.father_occupation }}">
-        </div>
-    </div>
-    
-    <!-- Mother Details -->
-    <h6 class="mb-3 mt-3 text-primary"><i class="fas fa-female"></i> Mother's Details</h6>
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Mother's Name *</label>
-            <input type="text" name="mother_name" class="form-control" value="{{ student.mother_name }}" required>
-        </div>
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Mother's Phone</label>
-            <input type="tel" name="mother_phone" class="form-control" value="{{ student.mother_phone }}">
-        </div>
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Mother's Email</label>
-            <input type="email" name="mother_email" class="form-control" value="{{ student.mother_email }}">
-        </div>
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Mother's Occupation</label>
-            <input type="text" name="mother_occupation" class="form-control" value="{{ student.mother_occupation }}">
-        </div>
-    </div>
-    
-    <!-- Transport & Dormitory Information -->
-    <h6 class="mb-3 mt-3 text-primary"><i class="fas fa-bus"></i> Transport & Dormitory</h6>
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Transport Required</label>
-            <select name="is_transport_required" class="form-control">
-                <option value="False" {% if not student.is_transport_required %}selected{% endif %}>No</option>
-                <option value="True" {% if student.is_transport_required %}selected{% endif %}>Yes</option>
-            </select>
-        </div>
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Hostel Required</label>
-            <select name="is_hostel_required" class="form-control" id="hostelRequired">
-                <option value="False" {% if not student.is_hostel_required %}selected{% endif %}>No</option>
-                <option value="True" {% if student.is_hostel_required %}selected{% endif %}>Yes</option>
-            </select>
-        </div>
-        <div class="col-md-6 mb-3" id="dormitoryField"{% if not student.is_hostel_required %} style="display:none;"{% endif %}>
-            <label class="form-label">Dormitory</label>
-            <select name="dormitory" class="form-control" id="dormitorySelect">
-                <option value="">Select Dormitory</option>
-                {% for dormitory in dormitories %}
-                <option value="{{ dormitory.id }}" {% if student.dormitory and student.dormitory.id == dormitory.id %}selected{% endif %}>{{ dormitory.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-6 mb-3" id="roomField"{% if not student.is_hostel_required %} style="display:none;"{% endif %}>
-            <label class="form-label">Room</label>
-            <select name="room" class="form-control" id="roomSelect">
-                <option value="">Select Room</option>
-                {% for room in rooms %}
-                <option value="{{ room.id }}" {% if student.room and student.room.id == room.id %}selected{% endif %}>{{ room.room_number }}</option>
-                {% endfor %}
-            </select>
-        </div>
-    </div>
-    
-    <!-- Guardian Details (Optional) -->
-    <h6 class="mb-3 mt-3 text-primary"><i class="fas fa-user-shield"></i> Guardian Details (Optional)</h6>
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Guardian's Name</label>
-            <input type="text" name="guardian_name" class="form-control" value="{{ student.guardian_name }}">
-        </div>
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Guardian's Phone</label>
-            <input type="tel" name="guardian_phone" class="form-control" value="{{ student.guardian_phone }}">
-        </div>
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Guardian's Email</label>
-            <input type="email" name="guardian_email" class="form-control" value="{{ student.guardian_email }}">
-        </div>
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Guardian's Relation</label>
-            <input type="text" name="guardian_relation" class="form-control" value="{{ student.guardian_relation }}" placeholder="e.g., Uncle, Aunt">
+            </div>
         </div>
     </div>
 </form>
 
 <script>
+if (!window.toggleAllSubjectCheckboxes) {
+    window.toggleAllSubjectCheckboxes = function(formId, checked) {
+        const form = document.getElementById(formId);
+        if (!form) return;
+        form.querySelectorAll('.student-subject-checkbox').forEach(function(cb) {
+            cb.checked = checked;
+        });
+    };
+}
+
 // This script will be available when form is loaded into modal
 document.addEventListener('DOMContentLoaded', function() {
     const hostelRequired = document.getElementById('hostelRequired');
@@ -246,6 +410,37 @@ document.addEventListener('DOMContentLoaded', function() {
 
 window.submitEditStudent = function(studentId) {
     const form = document.getElementById('studentEditForm');
+    if (!form) return;
+
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const fatherName = (form.querySelector('input[name="father_name"]')?.value || '').trim();
+    const motherName = (form.querySelector('input[name="mother_name"]')?.value || '').trim();
+    const guardianName = (form.querySelector('input[name="guardian_name"]')?.value || '').trim();
+
+    if (!fatherName && !motherName && !guardianName) {
+        const fatherInput = form.querySelector('input[name="father_name"]');
+        const motherInput = form.querySelector('input[name="mother_name"]');
+        const guardianInput = form.querySelector('input[name="guardian_name"]');
+        [fatherInput, motherInput, guardianInput].forEach(inp => { if (inp) inp.classList.add('is-invalid'); });
+
+        const tabTrigger = form.querySelector('[data-bs-target="#edit-tab-parents"]') || document.querySelector('[data-bs-target="#edit-tab-parents"]');
+        if (tabTrigger && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+            bootstrap.Tab.getOrCreateInstance(tabTrigger).show();
+        }
+        if (fatherInput) setTimeout(() => fatherInput.focus(), 150);
+
+        if (window.showMessage) {
+            window.showMessage('Missing Information', 'Please provide at least one parent or guardian contact (Father, Mother, or Guardian).', false);
+        } else {
+            alert('Please provide at least one parent or guardian contact (Father, Mother, or Guardian).');
+        }
+        return;
+    }
+
     const formData = new FormData(form);
     
     fetch(window.location.pathname + studentId + '/edit/', {

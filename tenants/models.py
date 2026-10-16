@@ -56,12 +56,59 @@ class School(models.Model):
     max_teachers = models.IntegerField(_("Maximum Teachers"), default=20)
     max_staff = models.IntegerField(_("Maximum Staff"), default=10)
     
+    CURRENCY_CHOICES = [
+        ('KES', 'Kenyan Shilling (KES - KSh)'),
+        ('USD', 'US Dollar (USD - $)'),
+        ('EUR', 'Euro (EUR - €)'),
+        ('GBP', 'British Pound (GBP - £)'),
+        ('TZS', 'Tanzanian Shilling (TZS - TSh)'),
+        ('UGX', 'Ugandan Shilling (UGX - USh)'),
+        ('RWF', 'Rwandan Franc (RWF - FRw)'),
+        ('ZAR', 'South African Rand (ZAR - R)'),
+        ('NGN', 'Nigerian Naira (NGN - ₦)'),
+        ('GHS', 'Ghanaian Cedi (GHS - GH₵)'),
+        ('INR', 'Indian Rupee (INR - ₹)'),
+        ('CAD', 'Canadian Dollar (CAD - CA$)'),
+        ('AUD', 'Australian Dollar (AUD - A$)'),
+        ('AED', 'UAE Dirham (AED)'),
+        ('SAR', 'Saudi Riyal (SAR)'),
+    ]
+
+    LANGUAGE_CHOICES = [
+        ('en', 'English'),
+        ('sw', 'Swahili (Kiswahili)'),
+        ('fr', 'French (Français)'),
+        ('ar', 'Arabic (العربية)'),
+        ('es', 'Spanish (Español)'),
+        ('pt', 'Portuguese (Português)'),
+        ('de', 'German (Deutsch)'),
+    ]
+
+    DEFAULT_CURRENCY_SYMBOLS = {
+        'KES': 'KSh',
+        'USD': '$',
+        'EUR': '€',
+        'GBP': '£',
+        'TZS': 'TSh',
+        'UGX': 'USh',
+        'RWF': 'FRw',
+        'ZAR': 'R',
+        'NGN': '₦',
+        'GHS': 'GH₵',
+        'INR': '₹',
+        'CAD': 'CA$',
+        'AUD': 'A$',
+        'AED': 'AED',
+        'SAR': 'SAR',
+    }
+
     # Settings
     academic_year_start_month = models.IntegerField(_("Academic Year Start Month"), default=4)  # April
     date_format = models.CharField(_("Date Format"), max_length=20, default='DD-MM-YYYY')
     time_format = models.CharField(_("Time Format"), max_length=20, default='12')  # 12 or 24
     currency = models.CharField(_("Currency"), max_length=10, default='USD')
-    currency_symbol = models.CharField(_("Currency Symbol"), max_length=5, default='$')
+    currency_symbol = models.CharField(_("Currency Symbol"), max_length=10, default='$')
+    language = models.CharField(_("Language"), max_length=10, choices=LANGUAGE_CHOICES, default='en')
     timezone = models.CharField(_("Timezone"), max_length=50, default='UTC')
     
     # Features Enabled
@@ -96,6 +143,21 @@ class School(models.Model):
         help_text=_("Allow this school to use the platform's central WhatsApp gateway as default")
     )
 
+    # School-Specific Maintenance Mode (Controlled by School Admin)
+    maintenance_mode = models.BooleanField(
+        _("Maintenance Mode"), 
+        default=False,
+        help_text=_("When enabled, only administrators of this school can access the portal.")
+    )
+    maintenance_start = models.DateTimeField(_("Maintenance Start"), null=True, blank=True)
+    maintenance_end = models.DateTimeField(_("Maintenance End"), null=True, blank=True)
+    maintenance_message = models.TextField(
+        _("Maintenance Message"),
+        blank=True,
+        default="We are currently performing scheduled maintenance on our school portal. Please check back shortly.",
+        help_text=_("Custom message shown to students, parents, and teachers during maintenance.")
+    )
+
     objects = models.Manager()
 
     class Meta:
@@ -104,6 +166,46 @@ class School(models.Model):
 
     def __str__(self) -> str:
         return str(self.name)
+
+    @property
+    def clean_currency(self):
+        return (self.currency or 'USD').strip().upper()
+
+    @property
+    def clean_currency_symbol(self):
+        sym = (self.currency_symbol or '').strip()
+        if not sym:
+            return self.DEFAULT_CURRENCY_SYMBOLS.get(self.clean_currency, '$')
+        return sym
+
+    @property
+    def clean_language(self):
+        return (self.language or 'en').strip().lower()
+
+    def save(self, *args, **kwargs):
+        if self.currency:
+            self.currency = self.currency.strip().upper()
+        if self.currency_symbol:
+            self.currency_symbol = self.currency_symbol.strip()
+        if hasattr(self, 'language') and self.language:
+            self.language = self.language.strip().lower()
+        super().save(*args, **kwargs)
+    
+    @property
+    def has_valid_logo(self):
+        """Check if school has a non-empty, valid logo configured"""
+        return bool(self.logo and self.logo.name and self.logo.name.strip())
+
+    @property
+    def logo_url(self):
+        """Safe logo URL fallback"""
+        if self.has_valid_logo:
+            try:
+                return self.logo.url
+            except Exception:
+                pass
+        return None
+
     
     @property
     def is_subscription_active(self):
@@ -120,6 +222,20 @@ class School(models.Model):
         if self.subscription_end_date:
             return timezone.now().date() <= self.subscription_end_date
         return False
+
+    @property
+    def is_in_maintenance(self):
+        """Check if this school is currently in maintenance mode, considering scheduled timeframe if specified."""
+        if not self.maintenance_mode:
+            return False
+        from django.utils import timezone
+        now = timezone.now()
+        if self.maintenance_start and now < self.maintenance_start:
+            return False
+        if self.maintenance_end and now > self.maintenance_end:
+            return False
+        return True
+
 
 
 class Domain(models.Model):

@@ -101,13 +101,13 @@ class Student(models.Model):
     transfer_certificate_number = models.CharField(_("TC Number"), max_length=100, blank=True)
     
     # Parent/Guardian Information
-    father_name = models.CharField(_("Father's Name"), max_length=200)
+    father_name = models.CharField(_("Father's Name"), max_length=200, blank=True)
     father_phone = PhoneNumberField(_("Father's Phone"), blank=True, null=True)
     father_email = models.EmailField(_("Father's Email"), blank=True)
     father_occupation = models.CharField(_("Father's Occupation"), max_length=200, blank=True)
     father_photo = models.ImageField(_("Father's Photo"), upload_to='students/parents/', blank=True, null=True)
     
-    mother_name = models.CharField(_("Mother's Name"), max_length=200)
+    mother_name = models.CharField(_("Mother's Name"), max_length=200, blank=True)
     mother_phone = PhoneNumberField(_("Mother's Phone"), blank=True, null=True)
     mother_email = models.EmailField(_("Mother's Email"), blank=True)
     mother_occupation = models.CharField(_("Mother's Occupation"), max_length=200, blank=True)
@@ -156,11 +156,44 @@ class Student(models.Model):
     # Sibling Information
     siblings = models.ManyToManyField('self', blank=True, symmetrical=True)
     
-    # Status
+    # Status & Exit/Transfer
+    ENROLLMENT_STATUS_CHOICES = [
+        ('enrolled', _('Enrolled')),
+        ('pending', _('Pending')),
+        ('transferred', _('Transferred')),
+        ('withdrawn', _('Withdrawn')),
+        ('graduated', _('Graduated')),
+    ]
+    enrollment_status = models.CharField(
+        _("Enrollment Status"),
+        max_length=20,
+        choices=ENROLLMENT_STATUS_CHOICES,
+        default='enrolled',
+        db_index=True,
+    )
+    intake_cohort = models.CharField(
+        _("Intake Cohort"),
+        max_length=100,
+        blank=True,
+        help_text=_("Academic intake cohort e.g. 2024-2025, Cohort 2024, or Class of 2028")
+    )
     is_active = models.BooleanField(_("Is Active"), default=True)
     is_alumni = models.BooleanField(_("Is Alumni"), default=False)
     leaving_date = models.DateField(_("Leaving Date"), null=True, blank=True)
     leaving_reason = models.TextField(_("Leaving Reason"), blank=True)
+    destination_school = models.CharField(_("Destination School"), max_length=255, blank=True)
+    transfer_target_school = models.ForeignKey('tenants.School', on_delete=models.SET_NULL, null=True, blank=True, related_name='incoming_transfers')
+    exit_type = models.CharField(_("Exit Type"), max_length=50, blank=True, choices=[
+        ('transfer_external', 'Transfer to External School'),
+        ('transfer_platform', 'Transfer to Platform School'),
+        ('relocation', 'Family Relocation'),
+        ('graduation', 'Graduation / Completed Studies'),
+        ('financial', 'Financial Reasons'),
+        ('expulsion', 'Disciplinary / Expulsion'),
+        ('medical', 'Medical / Health Reasons'),
+        ('other', 'Other'),
+    ])
+    exit_remarks = models.TextField(_("Exit Remarks"), blank=True)
     is_sample_data = models.BooleanField(_("Is Sample Data"), default=False)
     
     # Metadata
@@ -190,6 +223,102 @@ class Student(models.Model):
 
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
+
+    @property
+    def has_valid_photo(self):
+        """Check if the student has an actual valid photo file on storage."""
+        if not self.photo or not getattr(self.photo, 'name', None):
+            return False
+        name = str(self.photo.name).strip()
+        if not name:
+            return False
+        try:
+            return bool(self.photo.storage.exists(name))
+        except Exception:
+            return False
+
+    @property
+    def photo_url(self):
+        """Return the uploaded photo URL or the global default avatar fallback."""
+        if self.has_valid_photo:
+            try:
+                return self.photo.url
+            except Exception:
+                pass
+        from django.templatetags.static import static
+        return static('images/default_avatar.svg')
+
+    @property
+    def registration_date(self):
+        """Alias for admission_date to support admissions & enrollment workflows."""
+        return self.admission_date
+
+    def confirm_enrollment(self, enrolled_by=None):
+        """Transition a pending admission to fully enrolled status."""
+        from django.utils import timezone
+        self.enrollment_status = 'enrolled'
+        self.is_active = True
+        self.is_alumni = False
+        self.save(update_fields=['enrollment_status', 'is_active', 'is_alumni', 'updated_at'])
+        
+        # Ensure active class enrollment exists
+        if self.current_class and self.academic_year:
+            enr, created = StudentClassEnrollment.objects.get_or_create(
+                student=self,
+                academic_year=self.academic_year,
+                defaults={
+                    'class_name': self.current_class,
+                    'section': self.section,
+                    'school': self.school,
+                    'enrolled_date': self.admission_date or timezone.now().date(),
+                    'status': 'active',
+                    'created_by': enrolled_by,
+                }
+            )
+            if not created and enr.status != 'active':
+                enr.status = 'active'
+                enr.save(update_fields=['status', 'updated_at'])
+                
+        # Record timeline event
+        try:
+            StudentTimeline.objects.create(
+                student=self,
+                timeline_type='admission',
+                title='Enrollment Confirmed',
+                description=f'Student admission confirmed and enrolled into {self.current_class}.',
+                date=timezone.now().date(),
+                created_by=enrolled_by,
+            )
+        except Exception:
+            pass
+
+    def save(self, *args, **kwargs):
+        if self.first_name:
+            self.first_name = self.first_name.strip()
+        if self.last_name:
+            self.last_name = self.last_name.strip()
+        if self.admission_number:
+            self.admission_number = self.admission_number.strip()
+        if self.photo and getattr(self.photo, 'name', None) and not str(self.photo.name).strip():
+            self.photo = None
+        # Auto populate intake cohort from academic year if not explicitly provided
+        if not self.intake_cohort and self.academic_year:
+            self.intake_cohort = (self.academic_year.name or '').strip()
+        elif self.intake_cohort:
+            self.intake_cohort = self.intake_cohort.strip()
+        # Keep is_active and is_alumni in sync with enrollment_status
+        if self.enrollment_status == 'enrolled':
+            self.is_active = True
+            self.is_alumni = False
+        elif self.enrollment_status == 'pending':
+            self.is_active = True
+            self.is_alumni = False
+        elif self.enrollment_status in ('transferred', 'withdrawn'):
+            self.is_active = False
+        elif self.enrollment_status == 'graduated':
+            self.is_active = False
+            self.is_alumni = True
+        super().save(*args, **kwargs)
     
     @property
     def age(self):

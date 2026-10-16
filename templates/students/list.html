@@ -1,85 +1,203 @@
 {% extends 'core/admin_dashboard.html' %}
 {% load static %}
 
-{% block title %}Students - School Management{% endblock %}
+{% block title %}Admissions &amp; Enrollment - School Management{% endblock %}
 {% block page_icon %}user-graduate{% endblock %}
-{% block page_title %}Students{% endblock %}
-{% block page_subtitle %}Manage all students in your institution - {{ students|length }} students enrolled{% endblock %}
+{% block page_title %}Admissions &amp; Enrollment{% endblock %}
+{% block page_subtitle %}Track intake cohorts, admissions, registration dates, and student enrollment workflows{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-primary" onclick="toggleInPageFormView('studentListCard', 'studentFormPanel', 'create')">
-            <i class="fas fa-user-plus me-1"></i> Add New Student
-        </button>
-    </div>
-    <div class="d-flex align-items-center gap-2">
-        <a class="btn" href="{% url 'students:template' school_slug=school_slug %}"
-           style="background-color: #1E3A5F; color: #fff; border: none;">
-            <i class="fas fa-file-download"></i> Download Template
-        </a>
-        <div class="btn-group">
-            <button type="button" class="btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"
-                    style="background-color: #06B6D4; color: #fff; border: none;">
-                <i class="fas fa-file-export"></i> Export
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="{% url 'students:export' school_slug=school_slug %}?format=csv">CSV</a></li>
-                <li><a class="dropdown-item" href="{% url 'students:export' school_slug=school_slug %}?format=excel">Excel (.xlsx)</a></li>
-            </ul>
-        </div>
-        <button class="btn" data-bs-toggle="modal" data-bs-target="#importStudentsModal"
-                style="background-color: #1E3A5F; color: #fff; border: none;">
-            <i class="fas fa-file-import"></i> Import
-        </button>
-    </div>
-    
-</div>
-
+<style>
+.status-pill-btn {
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #475569;
+    border-radius: 9999px;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.84rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+}
+.status-pill-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+.status-pill-btn.active {
+    background: #0284c7;
+    border-color: #0284c7;
+    color: #ffffff;
+}
+.status-pill-btn.active .badge {
+    background: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+}
+.student-form-tabs {
+    border-bottom: 2px solid #e2e8f0;
+    gap: 4px;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+.student-form-tabs .nav-link {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #64748b;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    padding: 0.65rem 1.15rem;
+    background-color: #f8fafc;
+    transition: all 0.15s ease-in-out;
+}
+.student-form-tabs .nav-link:hover {
+    color: #0f172a;
+    background-color: #f1f5f9;
+}
+.student-form-tabs .nav-link.active {
+    color: #0284c7;
+    background-color: #ffffff;
+    border-color: #e2e8f0 #e2e8f0 #ffffff;
+    border-top: 3px solid #0284c7;
+    margin-bottom: -2px;
+}
+.student-form-tab-content {
+    background: transparent;
+    border: none;
+    padding: 0.75rem 0.25rem;
+    min-height: 180px;
+}
+.subjects-vertical-grid {
+    display: grid;
+    grid-template-rows: repeat(5, auto);
+    grid-auto-flow: column;
+    column-gap: 3.5rem;
+    row-gap: 0.85rem;
+    justify-content: start;
+    padding: 0.5rem 0;
+}
+@media (max-width: 768px) {
+    .subjects-vertical-grid {
+        grid-template-rows: none;
+        grid-auto-flow: row;
+        gap: 0.85rem;
+    }
+}
+.subject-check-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    cursor: pointer;
+    margin-bottom: 0;
+    min-width: 180px;
+}
+.subject-check-item input[type="checkbox"] {
+    width: 1.15rem;
+    height: 1.15rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin: 0;
+}
+.subject-check-item label {
+    cursor: pointer;
+    margin-bottom: 0;
+    font-weight: 500;
+    color: #1e293b;
+    user-select: none;
+    font-size: 0.92rem;
+}
+</style>
 <!-- Student List View Container -->
 <div id="studentListCard">
-    <!-- Dynamic Search and Filters -->
-    <div class="row mb-3">
-        <div class="col-md-12">
-            <div class="row g-2">
-                <div class="col-md-4">
-                    <input type="text" id="searchInput" class="form-control" placeholder="Search students by name, admission, email...">
-                </div>
-                <div class="col-md-4">
-                    <select name="class_filter" id="classFilter" class="form-select" placeholder="Filter by Class" data-placeholder="Filter by Class">
-                        <option value="">All Classes</option>
-                        {% for class in classes %}
-                        <option value="{{ class.id }}">{{ class.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <select name="status_filter" id="statusFilter" class="form-select" placeholder="Filter by Status" data-placeholder="Filter by Status">
-                        <option value="">All Statuses</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                </div>
+    <!-- Unified In-Line Table Toolbar: Buttons on left, Search & Filters on right -->
+    <div class="table-toolbar" data-page-actions>
+        <div class="toolbar-actions">
+            <button class="btn btn-primary" onclick="openAddStudent()">
+                <i class="fas fa-user-plus me-1"></i> New Admission
+            </button>
+            <a class="btn" href="{% url 'students:template' school_slug=school_slug %}"
+               style="background-color: #1E3A5F; color: #fff; border: none;">
+                <i class="fas fa-file-download me-1"></i> Download Template
+            </a>
+            <button class="btn" data-bs-toggle="modal" data-bs-target="#importStudentsModal"
+                    style="background-color: #1E3A5F; color: #fff; border: none;">
+                <i class="fas fa-file-import me-1"></i> Import
+            </button>
+        </div>
+
+        <div class="toolbar-filters">
+            <div class="toolbar-search">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="searchInput" class="form-control" placeholder="Search by name, admission no, cohort...">
+            </div>
+
+            <div class="toolbar-filter">
+                <select name="cohort_filter" id="cohortFilter" class="form-select" placeholder="All Cohorts" data-placeholder="All Cohorts">
+                    <option value="">All Cohorts</option>
+                    {% for c in intake_cohorts %}
+                    <option value="{{ c }}">{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="toolbar-filter">
+                <select name="class_filter" id="classFilter" class="form-select" placeholder="Filter by Class" data-placeholder="Filter by Class">
+                    <option value="">All Classes</option>
+                    {% for class in classes %}
+                    <option value="{{ class.id }}">{{ class.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="toolbar-filter">
+                <select name="status_filter" id="statusFilter" class="form-select" placeholder="Filter by Status" data-placeholder="Filter by Status">
+                    <option value="">All Statuses</option>
+                    <option value="enrolled">Enrolled</option>
+                    <option value="pending">Pending</option>
+                    <option value="transferred">Transferred</option>
+                    <option value="withdrawn">Withdrawn</option>
+                </select>
             </div>
         </div>
+    </div>
+
+    <!-- Enrollment Status Filter Pills -->
+    <div class="enrollment-status-pills mb-3 d-flex flex-wrap gap-2 align-items-center">
+        <button type="button" class="status-pill-btn active" data-status="">
+            All Students <span class="badge rounded-pill bg-light text-dark ms-1">{{ status_counts.all|default:0 }}</span>
+        </button>
+        <button type="button" class="status-pill-btn" data-status="enrolled">
+            <i class="fas fa-check-circle me-1 text-success"></i> Enrolled <span class="badge rounded-pill bg-success-subtle text-success ms-1">{{ status_counts.enrolled|default:0 }}</span>
+        </button>
+        <button type="button" class="status-pill-btn" data-status="pending">
+            <i class="fas fa-clock me-1 text-warning"></i> Pending Verification <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis ms-1">{{ status_counts.pending|default:0 }}</span>
+        </button>
+        <button type="button" class="status-pill-btn" data-status="transferred">
+            <i class="fas fa-exchange-alt me-1 text-primary"></i> Transferred <span class="badge rounded-pill bg-primary-subtle text-primary ms-1">{{ status_counts.transferred|default:0 }}</span>
+        </button>
+        <button type="button" class="status-pill-btn" data-status="withdrawn">
+            <i class="fas fa-user-minus me-1 text-danger"></i> Withdrawn <span class="badge rounded-pill bg-danger-subtle text-danger ms-1">{{ status_counts.withdrawn|default:0 }}</span>
+        </button>
     </div>
 
     <div class="modern-card">
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table" id="studentsTable">
+            <table class="table modern-table" id="studentsTable"
+                   data-export-url="{% url 'students:export' school_slug=school_slug %}"
+                   data-bulk-complete-url="{% url 'students:bulk_enroll' school_slug=school_slug %}"
+                   data-bulk-complete-label="Confirm Enrollment">
                 <thead>
                     <tr>
-                        <th>Photo</th>
+                        <th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox" class="form-check-input select-all-checkbox"></th>
+                        <th>Student</th>
                         <th>Admission No</th>
-                        <th>Name</th>
-                        <th>Class</th>
-                        {% if students.0.dormitory or students.0.room %}
-                        <th>Dormitory</th>
-                        <th>Room</th>
-                        {% endif %}
-                        <th>Email</th>
-                        <th>Phone</th>
+                        <th>Class &amp; Section</th>
+                        <th>Intake Cohort</th>
+                        <th>Registration Date</th>
                         <th>Status</th>
                     </tr>
                 </thead>
@@ -90,47 +208,86 @@
                         data-student-name="{{ student.get_full_name|escape }}"
                         data-admission="{{ student.admission_number|lower }}"
                         data-email="{{ student.email|lower }}"
-                        data-class="{{ student.current_class.id|lower }}"
-                        data-status="{% if student.is_active %}active{% else %}inactive{% endif %}"
-                        data-profile-url="{% url 'students:detail' school_slug=school_slug pk=student.pk %}"
+                        data-class="{{ student.current_class.id|lower|default:'' }}"
+                        data-cohort="{{ student.intake_cohort|default:student.academic_year.name|default:''|lower }}"
+                        data-status="{{ student.enrollment_status|default:'enrolled' }}"
+                        data-is-active="{% if student.is_active %}1{% else %}0{% endif %}"
+                        data-exit-type="{{ student.exit_type|default:'' }}"
+                        data-destination-school="{{ student.destination_school|default:'' }}"
                         {% if student.user and request.user.role in 'admin,school_admin,super_admin' %}
                         data-login-as-url="{% url 'core:login_as' school_slug=school_slug user_id=student.user.pk %}"
                         {% elif student.user and request.original_user and request.original_user.role == 'admin' %}
                         data-login-as-url="{% url 'core:login_as' school_slug=school_slug user_id=student.user.pk %}"
                         {% endif %}>
+                        <td onclick="event.stopPropagation();">
+                            <input type="checkbox" class="form-check-input row-select-checkbox" value="{{ student.pk }}" data-status="{{ student.enrollment_status }}">
+                        </td>
                         <td>
-                            {% if student.photo %}
-                                <img src="{{ student.photo.url }}" alt="{{ student.get_full_name }}" class="rounded-circle" style="width: 40px; height: 40px;">
-                            {% else %}
-                                <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                    {{ student.first_name.0 }}{{ student.last_name.0 }}
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-wrapper d-inline-flex align-items-center justify-content-center me-2 flex-shrink-0">
+                                    {% if student.has_valid_photo %}
+                                        <img src="{{ student.photo.url }}" alt="{{ student.get_full_name }}" class="rounded-circle shadow-sm" style="width: 36px; height: 36px; object-fit: cover;" onerror="this.onerror=null; this.src='{% static 'images/default_avatar.svg' %}';">
+                                    {% else %}
+                                        <img src="{% static 'images/default_avatar.svg' %}" alt="{{ student.get_full_name }}" class="rounded-circle shadow-sm" style="width: 36px; height: 36px; object-fit: cover;">
+                                    {% endif %}
                                 </div>
+                                <div>
+                                    <strong>{{ student.get_full_name }}</strong>
+                                    <div class="small text-muted">{{ student.email|default:"" }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><strong class="text-primary">{{ student.admission_number }}</strong></td>
+                        <td>
+                            {% if student.current_class %}
+                                <span class="fw-semibold text-dark">{{ student.current_class.name }}</span>
+                                {% if student.section %}<span class="text-muted"> ({{ student.section.name }})</span>{% endif %}
+                            {% else %}
+                                <span class="text-muted fst-italic">Unassigned</span>
                             {% endif %}
                         </td>
-                        <td><strong>{{ student.admission_number }}</strong></td>
-                        <td>{{ student.get_full_name }}</td>
-                        <td>{{ student.current_class|default:"-" }}</td>
-                        {% if students.0.dormitory or students.0.room %}
-                        <td>{{ student.dormitory.name|default:"-" }}</td>
-                        <td>{{ student.room.room_number|default:"-" }}</td>
-                        {% endif %}
-                        <td>{{ student.email|default:"-" }}</td>
-                        <td>{{ student.phone|default:"-" }}</td>
                         <td>
-                            {% if student.is_active %}
-                                <span class="badge-modern badge-success-modern">Active</span>
+                            <span class="badge bg-light text-dark border">
+                                <i class="fas fa-layer-group me-1 text-secondary"></i>
+                                {{ student.intake_cohort|default:student.academic_year.name|default:"-" }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="text-muted small">
+                                <i class="far fa-calendar-alt me-1"></i>{{ student.admission_date|date:"M d, Y"|default:"-" }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if student.enrollment_status == 'enrolled' or student.is_active and not student.enrollment_status or student.enrollment_status == 'active' %}
+                                <span class="badge-modern badge-success-modern">
+                                    <i class="fas fa-check-circle me-1"></i>Enrolled
+                                </span>
+                            {% elif student.enrollment_status == 'pending' %}
+                                <span class="badge-modern badge-warning-modern" style="background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a;">
+                                    <i class="fas fa-clock me-1"></i>Pending
+                                </span>
+                            {% elif student.enrollment_status == 'transferred' %}
+                                <span class="badge-modern badge-info-modern" style="background-color: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe;" title="{{ student.destination_school|default:'Transferred' }}">
+                                    <i class="fas fa-exchange-alt me-1"></i>Transferred{% if student.destination_school %} ({{ student.destination_school|truncatechars:15 }}){% endif %}
+                                </span>
+                            {% elif student.enrollment_status == 'graduated' or student.is_alumni %}
+                                <span class="badge-modern badge-secondary-modern">
+                                    <i class="fas fa-user-graduate me-1"></i>Graduated
+                                </span>
                             {% else %}
-                                <span class="badge-modern badge-danger-modern">Inactive</span>
+                                <span class="badge-modern badge-danger-modern" title="{{ student.leaving_reason|default:'Inactive / Withdrawn' }}">
+                                    <i class="fas fa-user-minus me-1"></i>Withdrawn
+                                </span>
                             {% endif %}
                         </td>
                     </tr>
                     {% empty %}
-                    <tr>
-                        <td colspan="{% if students.0.dormitory or students.0.room %}9{% else %}7{% endif %}" class="text-center py-4">
-                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                            <p class="text-muted">No students found. Add your first student!</p>
-                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">
-                                <i class="fas fa-user-plus"></i> Add Student
+                    <tr class="empty-table-row">
+                        <td colspan="7" class="text-center py-4">
+                            <i class="fas fa-user-graduate fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No students found matching your filters. Register your first admission!</p>
+                            <button class="btn btn-primary" onclick="openAddStudent()">
+                                <i class="fas fa-user-plus me-1"></i> New Admission
                             </button>
                         </td>
                     </tr>
@@ -163,33 +320,33 @@
         <form method="post" id="studentAddForm" enctype="multipart/form-data">
             {% csrf_token %}
             
-            <!-- Student Basic Information -->
-            <h6 class="mb-3 text-primary fw-bold"><i class="fas fa-user me-2"></i>Basic Information</h6>
-            <div class="row g-3 mb-3">
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">First Name *</label>
+            <!-- Student Basic Information & Academic Details -->
+            <h6 class="mb-3 text-primary fw-bold"><i class="fas fa-id-card me-2"></i>Basic Information &amp; Academic Enrollment</h6>
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
                     <input type="text" name="first_name" class="form-control" placeholder="First name" required>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Last Name *</label>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
                     <input type="text" name="last_name" class="form-control" placeholder="Last name" required>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Email (Auto-Generated)</label>
-                    <input type="email" name="email" id="studentEmail" class="form-control" readonly style="background-color: #f0f0f0;" placeholder="Auto-generated on save">
-                    <small class="text-muted">Generated from first and last name</small>
-                </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label fw-semibold">Admission Number</label>
                     <input type="text" name="admission_number" id="admissionNumber" class="form-control" placeholder="Auto-generated if empty">
-                    <small class="text-muted">Leave empty to auto-generate</small>
+                    <small class="text-muted" style="font-size: 0.75rem;">Leave empty to auto-generate</small>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Date of Birth *</label>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Email (Auto-Generated)</label>
+                    <input type="email" name="email" id="studentEmail" class="form-control" readonly style="background-color: #f8f9fa;" placeholder="Auto-generated on save">
+                    <small class="text-muted" style="font-size: 0.75rem;">Generated from names</small>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Date of Birth <span class="text-danger">*</span></label>
                     <input type="date" name="date_of_birth" class="form-control" required>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Gender *</label>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Gender <span class="text-danger">*</span></label>
                     <select name="gender" class="form-select" required>
                         <option value="">Select Gender</option>
                         <option value="male">Male</option>
@@ -197,7 +354,7 @@
                         <option value="other">Other</option>
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label fw-semibold">Blood Group</label>
                     <select name="blood_group" class="form-select">
                         <option value="">Select Blood Group</option>
@@ -211,11 +368,6 @@
                         <option value="AB-">AB-</option>
                     </select>
                 </div>
-            </div>
-            
-            <!-- Academic Information -->
-            <h6 class="mb-3 mt-4 text-primary fw-bold"><i class="fas fa-graduation-cap me-2"></i>Academic Details</h6>
-            <div class="row g-3 mb-3">
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Academic Year</label>
                     <select name="academic_year" class="form-select">
@@ -224,7 +376,6 @@
                         <option value="{{ ay.id }}" {% if ay == active_academic_year %}selected{% endif %}>{{ ay.name }}{% if ay.is_active %} (Active){% endif %}</option>
                         {% endfor %}
                     </select>
-                    <small class="text-muted" style="font-size: 0.75rem;">Defaults to active year</small>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Class <span class="text-danger">*</span></label>
@@ -245,121 +396,230 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">Admission Date <span class="text-danger">*</span></label>
-                    <input type="date" name="admission_date" class="form-control" required>
+                    <label class="form-label fw-semibold">Registration Date <span class="text-danger">*</span></label>
+                    <input type="date" name="admission_date" id="addAdmissionDate" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Intake Cohort</label>
+                    <input type="text" name="intake_cohort" class="form-control" list="cohortAddOptionsList" placeholder="e.g. 2024-2025" value="{{ active_academic_year.name|default:'' }}">
+                    <datalist id="cohortAddOptionsList">
+                        {% for c in intake_cohorts %}
+                        <option value="{{ c }}">
+                        {% endfor %}
+                    </datalist>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Enrollment Status <span class="text-danger">*</span></label>
+                    <select name="enrollment_status" class="form-select" required>
+                        <option value="enrolled" selected>Enrolled</option>
+                        <option value="pending">Pending Verification</option>
+                    </select>
                 </div>
             </div>
 
-            <!-- Clubs & Societies -->
-            <h6 class="mb-3 mt-4 text-primary fw-bold"><i class="fas fa-users me-2"></i>Clubs & Societies</h6>
-            <div class="row g-3 mb-3">
-                <div class="col-md-12">
-                    <label class="form-label fw-semibold">Clubs (Optional)</label>
-                    <select name="club_ids" class="form-select" multiple size="4">
-                        {% for club in clubs %}
-                            <option value="{{ club.id }}">{{ club.name }}</option>
+            <!-- Tabbed Details Section -->
+            <ul class="nav nav-tabs student-form-tabs mt-4 pt-1" id="studentAddTabList" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="add-tab-subjects-btn" data-bs-toggle="tab" data-bs-target="#add-tab-subjects" type="button" role="tab">
+                        <i class="fas fa-book-reader me-2 text-primary"></i>Subject Enrollments
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="add-tab-parents-btn" data-bs-toggle="tab" data-bs-target="#add-tab-parents" type="button" role="tab">
+                        <i class="fas fa-user-friends me-2 text-primary"></i>Parents &amp; Guardian
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="add-tab-address-btn" data-bs-toggle="tab" data-bs-target="#add-tab-address" type="button" role="tab">
+                        <i class="fas fa-map-marker-alt me-2 text-primary"></i>Address Details
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="add-tab-transport-btn" data-bs-toggle="tab" data-bs-target="#add-tab-transport" type="button" role="tab">
+                        <i class="fas fa-bus me-2 text-primary"></i>Transport &amp; Hostel
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="add-tab-clubs-btn" data-bs-toggle="tab" data-bs-target="#add-tab-clubs" type="button" role="tab">
+                        <i class="fas fa-users me-2 text-primary"></i>Clubs &amp; Societies
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content student-form-tab-content mb-3" id="studentAddTabContent">
+                <!-- Tab 1: Subject Enrollments -->
+                <div class="tab-pane fade show active" id="add-tab-subjects" role="tabpanel">
+                    <input type="hidden" name="has_subjects_section" value="1">
+                    <div class="mb-3 text-muted small">Tick the subjects the student is enrolled to:</div>
+
+                    <div class="subjects-vertical-grid">
+                        {% for s in subjects %}
+                        <div class="subject-check-item">
+                            <input class="form-check-input student-subject-checkbox" type="checkbox" name="subject_ids" value="{{ s.id }}" id="add_subj_{{ s.id }}">
+                            <label class="form-check-label" for="add_subj_{{ s.id }}">
+                                {{ s.name }}
+                                {% if s.code %}<span class="text-muted small ms-1">({{ s.code }})</span>{% endif %}
+                            </label>
+                        </div>
+                        {% empty %}
+                        <div class="text-muted small py-2">
+                            <i class="fas fa-info-circle me-1"></i> No subjects found. Please add subjects under Academics.
+                        </div>
                         {% endfor %}
-                    </select>
-                    <small class="text-muted">Hold Ctrl/Shift to select multiple.</small>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Parents & Guardian -->
+                <div class="tab-pane fade" id="add-tab-parents" role="tabpanel">
+                    <div class="alert alert-light border py-2 px-3 mb-3 d-flex align-items-center gap-2" style="font-size: 0.84rem; background-color: #f8fafc; border-color: #e2e8f0 !important;">
+                        <i class="fas fa-info-circle text-primary"></i>
+                        <span class="text-muted">A student can have a <strong>Father only</strong>, <strong>Mother only</strong>, or <strong>Guardian only</strong>. Please provide details for at least one.</span>
+                    </div>
+
+                    <!-- Father Details -->
+                    <h6 class="mb-2 text-primary fw-bold"><i class="fas fa-male me-2"></i>Father's Details</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-xl-3 col-md-3 col-sm-6">
+                            <label class="form-label fw-semibold">Father's Name</label>
+                            <input type="text" name="father_name" id="fatherNameInput" class="form-control" placeholder="Father's full name">
+                        </div>
+                        <div class="col-xl-3 col-md-3 col-sm-6">
+                            <label class="form-label fw-semibold">Father's Phone</label>
+                            <input type="tel" name="father_phone" class="form-control" placeholder="+254 700 000000">
+                        </div>
+                        <div class="col-xl-3 col-md-3 col-sm-6">
+                            <label class="form-label fw-semibold">Father's Email (Auto-Generated)</label>
+                            <input type="email" name="father_email" id="fatherEmail" class="form-control" readonly style="background-color: #f8f9fa;" placeholder="Auto-generated on save">
+                        </div>
+                        <div class="col-xl-3 col-md-3 col-sm-6">
+                            <label class="form-label fw-semibold">Father's Occupation</label>
+                            <input type="text" name="father_occupation" class="form-control" placeholder="Occupation">
+                        </div>
+                    </div>
+
+                    <!-- Mother Details -->
+                    <h6 class="mb-2 text-primary fw-bold"><i class="fas fa-female me-2"></i>Mother's Details</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-xl-3 col-md-3 col-sm-6">
+                            <label class="form-label fw-semibold">Mother's Name</label>
+                            <input type="text" name="mother_name" id="motherNameInput" class="form-control" placeholder="Mother's full name">
+                        </div>
+                        <div class="col-xl-3 col-md-3 col-sm-6">
+                            <label class="form-label fw-semibold">Mother's Phone</label>
+                            <input type="tel" name="mother_phone" class="form-control" placeholder="+254 700 000000">
+                        </div>
+                        <div class="col-xl-3 col-md-3 col-sm-6">
+                            <label class="form-label fw-semibold">Mother's Email (Auto-Generated)</label>
+                            <input type="email" name="mother_email" id="motherEmail" class="form-control" readonly style="background-color: #f8f9fa;" placeholder="Auto-generated on save">
+                        </div>
+                        <div class="col-xl-3 col-md-3 col-sm-6">
+                            <label class="form-label fw-semibold">Mother's Occupation</label>
+                            <input type="text" name="mother_occupation" class="form-control" placeholder="Occupation">
+                        </div>
+                    </div>
+
+                    <!-- Guardian Details (Optional) -->
+                    <h6 class="mb-2 text-primary fw-bold"><i class="fas fa-user-shield me-2"></i>Guardian Details (Optional)</h6>
+                    <div class="row g-3">
+                        <div class="col-xl-3 col-md-3 col-sm-6">
+                            <label class="form-label fw-semibold">Guardian's Name</label>
+                            <input type="text" name="guardian_name" id="guardianNameInput" class="form-control" placeholder="Full name">
+                        </div>
+                        <div class="col-xl-3 col-md-3 col-sm-6">
+                            <label class="form-label fw-semibold">Guardian's Phone</label>
+                            <input type="tel" name="guardian_phone" class="form-control" placeholder="+254 700 000000">
+                        </div>
+                        <div class="col-xl-3 col-md-3 col-sm-6">
+                            <label class="form-label fw-semibold">Guardian's Email</label>
+                            <input type="email" name="guardian_email" class="form-control" placeholder="email@domain.com">
+                        </div>
+                        <div class="col-xl-3 col-md-3 col-sm-6">
+                            <label class="form-label fw-semibold">Guardian's Relation</label>
+                            <input type="text" name="guardian_relation" class="form-control" placeholder="e.g., Uncle, Aunt">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Address Details -->
+                <div class="tab-pane fade" id="add-tab-address" role="tabpanel">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Current Address <span class="text-danger">*</span></label>
+                            <textarea name="current_address" class="form-control" rows="2" placeholder="Full residential address..." required></textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">City <span class="text-danger">*</span></label>
+                            <input type="text" name="city" class="form-control" placeholder="City" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">State / Region <span class="text-danger">*</span></label>
+                            <input type="text" name="state" class="form-control" placeholder="State/Region" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Postal Code</label>
+                            <input type="text" name="postal_code" class="form-control" placeholder="Postal Code">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Transport & Hostel -->
+                <div class="tab-pane fade" id="add-tab-transport" role="tabpanel">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Transport Required</label>
+                            <select name="is_transport_required" class="form-select">
+                                <option value="False">No</option>
+                                <option value="True">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Hostel Required</label>
+                            <select name="is_hostel_required" class="form-select" id="addHostelRequired">
+                                <option value="False">No</option>
+                                <option value="True">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6" id="addDormitoryField" style="display:none;">
+                            <label class="form-label fw-semibold">Dormitory</label>
+                            <select name="dormitory" class="form-select" id="addDormitorySelect">
+                                <option value="">Select Dormitory</option>
+                                {% for dormitory in dormitories %}
+                                <option value="{{ dormitory.id }}">{{ dormitory.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6" id="addRoomField" style="display:none;">
+                            <label class="form-label fw-semibold">Room</label>
+                            <select name="room" class="form-select" id="addRoomSelect">
+                                <option value="">Select Room</option>
+                                {% for room in rooms %}
+                                <option value="{{ room.id }}">{{ room.room_number }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 5: Clubs & Societies -->
+                <div class="tab-pane fade" id="add-tab-clubs" role="tabpanel">
+                    <div class="mb-3 text-muted small">Tick the clubs &amp; societies the student is a member of:</div>
+
+                    <div class="subjects-vertical-grid">
+                        {% for club in clubs %}
+                        <div class="subject-check-item">
+                            <input class="form-check-input student-club-checkbox" type="checkbox" name="club_ids" value="{{ club.id }}" id="add_club_{{ club.id }}">
+                            <label class="form-check-label" for="add_club_{{ club.id }}">
+                                {{ club.name }}
+                            </label>
+                        </div>
+                        {% empty %}
+                        <div class="text-muted small py-2">
+                            <i class="fas fa-info-circle me-1"></i> No clubs found. Please add clubs under Clubs &amp; Societies.
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
-            
-            <!-- Address Information -->
-            <h6 class="mb-3 mt-4 text-primary fw-bold"><i class="fas fa-map-marker-alt me-2"></i>Address Details</h6>
-            <div class="row g-3 mb-3">
-                <div class="col-md-12">
-                    <label class="form-label fw-semibold">Current Address *</label>
-                    <textarea name="current_address" class="form-control" rows="2" placeholder="Full residential address..." required></textarea>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">City *</label>
-                    <input type="text" name="city" class="form-control" placeholder="City" required>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">State / Region *</label>
-                    <input type="text" name="state" class="form-control" placeholder="State/Region" required>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Postal Code</label>
-                    <input type="text" name="postal_code" class="form-control" placeholder="Postal Code">
-                </div>
-            </div>
-            
-            <!-- Father Details -->
-            <h6 class="mb-3 mt-4 text-primary fw-bold"><i class="fas fa-male me-2"></i>Father's Details</h6>
-            <div class="row g-3 mb-3">
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Father's First Name *</label>
-                    <input type="text" name="father_first_name" id="fatherFirstName" class="form-control" placeholder="First name" required>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Father's Last Name *</label>
-                    <input type="text" name="father_last_name" id="fatherLastName" class="form-control" placeholder="Last name" required>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Father's Phone</label>
-                    <input type="tel" name="father_phone" class="form-control" placeholder="+254 700 000000">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-semibold">Father's Email (Auto-Generated)</label>
-                    <input type="email" name="father_email" id="fatherEmail" class="form-control" readonly style="background-color: #f0f0f0;" placeholder="Auto-generated on save">
-                    <small class="text-muted">Generated from father's name</small>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-semibold">Father's Occupation</label>
-                    <input type="text" name="father_occupation" class="form-control" placeholder="Occupation">
-                </div>
-            </div>
-            
-            <!-- Mother Details -->
-            <h6 class="mb-3 mt-4 text-primary fw-bold"><i class="fas fa-female me-2"></i>Mother's Details</h6>
-            <div class="row g-3 mb-3">
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Mother's First Name *</label>
-                    <input type="text" name="mother_first_name" id="motherFirstName" class="form-control" placeholder="First name" required>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Mother's Last Name *</label>
-                    <input type="text" name="mother_last_name" id="motherLastName" class="form-control" placeholder="Last name" required>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Mother's Phone</label>
-                    <input type="tel" name="mother_phone" class="form-control" placeholder="+254 700 000000">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-semibold">Mother's Email (Auto-Generated)</label>
-                    <input type="email" name="mother_email" id="motherEmail" class="form-control" readonly style="background-color: #f0f0f0;" placeholder="Auto-generated on save">
-                    <small class="text-muted">Generated from mother's name</small>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-semibold">Mother's Occupation</label>
-                    <input type="text" name="mother_occupation" class="form-control" placeholder="Occupation">
-                </div>
-            </div>
-            
-            <!-- Guardian Details (Optional) -->
-            <h6 class="mb-3 mt-4 text-primary fw-bold"><i class="fas fa-user-shield me-2"></i>Guardian Details (Optional)</h6>
-            <div class="row g-3 mb-3">
-                <div class="col-md-6">
-                    <label class="form-label fw-semibold">Guardian's Name</label>
-                    <input type="text" name="guardian_name" class="form-control" placeholder="Full name">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-semibold">Guardian's Phone</label>
-                    <input type="tel" name="guardian_phone" class="form-control" placeholder="+254 700 000000">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-semibold">Guardian's Email</label>
-                    <input type="email" name="guardian_email" class="form-control" placeholder="email@domain.com">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-semibold">Guardian's Relation</label>
-                    <input type="text" name="guardian_relation" class="form-control" placeholder="e.g., Uncle, Aunt">
-                </div>
-            </div>
-            
-            <input type="hidden" name="father_name" id="fatherNameHidden">
-            <input type="hidden" name="mother_name" id="motherNameHidden">
         </form>
     </div>
 </div>
@@ -416,9 +676,9 @@
             <a id="btnStudentLoginAs" class="btn btn-sm btn-warning d-none" target="_blank" title="Login as Student">
                 <i class="fas fa-sign-in-alt me-1"></i> Login as Student
             </a>
-            <a id="btnStudentViewProfile" class="btn btn-sm btn-info d-none" title="View Full Profile">
-                <i class="fas fa-id-card me-1"></i> View Profile
-            </a>
+            <button type="button" id="btnStudentTransferExit" class="btn btn-sm btn-outline-danger d-none" onclick="openStudentExitModalFromEdit()" title="Transfer Out / Exit Student">
+                <i class="fas fa-sign-out-alt me-1"></i> Transfer / Exit
+            </button>
             <button type="button" class="btn btn-sm btn-light" onclick="toggleInPageFormView('studentListCard', 'editStudentFormPanel', 'list')">Cancel</button>
             <button type="button" class="btn btn-sm btn-primary form-submit-btn" id="saveEditStudentBtn">
                 <i class="fas fa-save me-1"></i> Update Student
@@ -426,7 +686,110 @@
         </div>
     </div>
     <div class="form-card-body" id="editStudentContent">
-        <!-- Content loaded via AJAX -->
+        {# Form is rendered once (blank) and filled instantly from the embedded student data #}
+        {{ students_data|json_script:"studentsData" }}
+        <script id="preloadedClassesData" type="application/json">{{ classes_meta_json|default:'[]'|safe }}</script>
+        <script id="preloadedAllSubjectsData" type="application/json">{{ all_subjects_meta_json|default:'[]'|safe }}</script>
+        {% include 'students/edit_modal.html' with student=None %}
+    </div>
+</div>
+
+<!-- Dedicated Transfer Out / Student Exit Modal -->
+<div class="modal fade" id="studentExitModal" tabindex="-1" aria-labelledby="studentExitModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 fs-3"><i class="fas fa-sign-out-alt"></i></div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="studentExitModalLabel">Transfer Out / Student Exit</h5>
+                        <small class="opacity-75">Electronic multi-school push, transfer certificates &amp; formal exit records</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="studentExitForm" onsubmit="event.preventDefault(); submitStudentExit();">
+                <input type="hidden" id="exit_student_id" name="exit_student_id">
+                <div class="modal-body p-4">
+                    <!-- Student Header Details -->
+                    <div class="p-3 mb-4 rounded bg-light border d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small text-uppercase fw-semibold">Student Record</div>
+                            <h5 class="fw-bold text-dark mb-0" id="exit_student_name">-</h5>
+                            <small class="text-muted" id="exit_student_admission">-</small>
+                        </div>
+                        <span class="badge bg-primary px-3 py-2">Soft Deactivation &amp; Audit Safe</span>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Reason for Leaving / Transfer Type *</label>
+                            <select id="exit_type" name="exit_type" class="form-select no-tomselect" data-no-tomselect="true" onchange="onExitTypeChange()" required>
+                                <option value="transfer_platform" selected>Electronic Transfer to Partner School (On Platform)</option>
+                                <option value="transfer_external">Transfer to External School</option>
+                                <option value="relocation">Family Relocation / Moved Away</option>
+                                <option value="graduation">Graduated / Completed Studies (Mark Alumni)</option>
+                                <option value="expulsion">Disciplinary / Expulsion</option>
+                                <option value="medical">Medical / Health Reasons</option>
+                                <option value="financial">Financial Reasons</option>
+                                <option value="other">Other / Withdrawal</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Effective Date of Leaving *</label>
+                            <input type="date" id="exit_leaving_date" name="leaving_date" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <!-- Platform School Select (Electronic Push) -->
+                    <div id="platformSchoolGroup" class="mb-3">
+                        <label class="form-label fw-semibold" for="target_school_id">
+                            Destination School on Platform *
+                            <a href="javascript:void(0)" class="text-info ms-1" data-bs-toggle="popover" data-bs-trigger="hover focus click" data-bs-placement="top" data-bs-title="Automated Electronic Push" data-bs-content="The student's full profile (biodata, parent contacts, medical history) will be electronically registered in the destination school with a new admission number, and their administration will be notified immediately." aria-label="More information">
+                                <i class="fas fa-info-circle"></i>
+                            </a>
+                        </label>
+                        <select id="target_school_id" name="target_school_id" class="form-select no-tomselect" data-no-tomselect="true">
+                            <option value="">-- Select Destination School on Platform --</option>
+                            {% for ps in platform_schools %}
+                                <option value="{{ ps.id }}">{{ ps.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- External School / Relocation input -->
+                    <div id="externalSchoolGroup" class="mb-3 d-none">
+                        <label class="form-label fw-semibold" id="destination_school_label">Destination School Name *</label>
+                        <input type="text" id="destination_school_text" name="destination_school" class="form-control" placeholder="e.g. Alliance High School, Nairobi">
+                    </div>
+
+                    <!-- Clearance Remarks -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Exit Clearance Remarks &amp; Handover Notes</label>
+                        <textarea id="exit_remarks" name="exit_remarks" class="form-control" rows="3" placeholder="Library clearance, fee balance status, extracurricular handover notes, or departure reasons..."></textarea>
+                    </div>
+
+                    <!-- Transfer Certificate Auto-Generation -->
+                    <div class="p-3 rounded bg-light border mb-2" id="tcCheckboxContainer">
+                        <div class="form-check form-switch mb-0 d-flex align-items-center">
+                            <input class="form-check-input me-2" type="checkbox" id="generate_tc_check" checked>
+                            <label class="form-check-label fw-semibold mb-0" for="generate_tc_check">
+                                Automatically Issue Official Transfer Certificate (TC)
+                                <a href="javascript:void(0)" class="text-info ms-1" data-bs-toggle="popover" data-bs-trigger="hover focus click" data-bs-placement="top" data-bs-title="Transfer Certificate" data-bs-content="Generates an official verifiable Transfer Certificate document with unique certificate number and audit trail." aria-label="More information">
+                                    <i class="fas fa-info-circle"></i>
+                                </a>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger" id="btnConfirmStudentExit">
+                        <i class="fas fa-sign-out-alt me-1"></i> Confirm &amp; Process Exit
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -451,17 +814,38 @@
 </div>
 
 <script>
+window.toggleAllSubjectCheckboxes = function(formId, checked) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    form.querySelectorAll('.student-subject-checkbox').forEach(function(cb) {
+        cb.checked = checked;
+    });
+};
+
+window.openAddStudent = function() {
+    toggleInPageFormView('studentListCard', 'studentFormPanel', 'create');
+    const firstTabBtn = document.getElementById('add-tab-subjects-btn');
+    if (firstTabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+        bootstrap.Tab.getOrCreateInstance(firstTabBtn).show();
+    }
+    const addForm = document.getElementById('studentAddForm');
+    if (addForm) {
+        addForm.querySelectorAll('.student-club-checkbox').forEach(function(cb) { cb.checked = false; });
+        addForm.querySelectorAll('.student-subject-checkbox').forEach(function(cb) { cb.checked = false; });
+    }
+};
+
 function submitAddStudent() {
     const form = document.getElementById('studentAddForm');
+    if (!form) return;
     
     // Combine parent names before validation
     updateFatherEmail();
     updateMotherEmail();
     
-    // Basic validation
-    const requiredFields = ['first_name', 'last_name', 'date_of_birth', 'gender', 
-                           'current_address', 'city', 'state', 'father_first_name', 'father_last_name', 
-                           'mother_first_name', 'mother_last_name'];
+    // Basic validation for required student personal & academic details
+    const requiredFields = ['first_name', 'last_name', 'date_of_birth', 'gender', 'current_class', 'admission_date',
+                           'current_address', 'city', 'state'];
     
     let isValid = true;
     let firstError = null;
@@ -469,19 +853,47 @@ function submitAddStudent() {
     requiredFields.forEach(field => {
         const input = form.querySelector(`[name="${field}"]`);
         if (!input || !input.value.trim()) {
-            input.classList.add('is-invalid');
+            if (input) input.classList.add('is-invalid');
             isValid = false;
-            if (!firstError) firstError = input;
+            if (!firstError && input) firstError = input;
         } else {
             input.classList.remove('is-invalid');
         }
     });
 
+    // Parent/Guardian validation: Must provide at least one (Father, Mother, or Guardian)
+    const fatherName = (form.querySelector('[name="father_name"]')?.value || '').trim();
+    const motherName = (form.querySelector('[name="mother_name"]')?.value || '').trim();
+    const guardianName = (form.querySelector('[name="guardian_name"]')?.value || '').trim();
 
-    
+    if (!fatherName && !motherName && !guardianName) {
+        isValid = false;
+        const fatherInput = form.querySelector('[name="father_name"]');
+        const motherInput = form.querySelector('[name="mother_name"]');
+        const guardianInput = form.querySelector('[name="guardian_name"]');
+        [fatherInput, motherInput, guardianInput].forEach(inp => { if (inp) inp.classList.add('is-invalid'); });
+        if (!firstError && fatherInput) firstError = fatherInput;
+    } else {
+        const pInputs = [form.querySelector('[name="father_name"]'), form.querySelector('[name="mother_name"]'), form.querySelector('[name="guardian_name"]')];
+        pInputs.forEach(inp => { if (inp) inp.classList.remove('is-invalid'); });
+    }
+
     if (!isValid) {
-        if (firstError) firstError.focus();
-        showMessage('Validation Error', 'Please fill in all required fields (marked with *)', false);
+        if (firstError) {
+            const tabPane = firstError.closest('.tab-pane');
+            if (tabPane && tabPane.id) {
+                const tabTrigger = form.querySelector(`[data-bs-target="#${tabPane.id}"]`) || document.querySelector(`[data-bs-target="#${tabPane.id}"]`);
+                if (tabTrigger && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+                    bootstrap.Tab.getOrCreateInstance(tabTrigger).show();
+                }
+            }
+            setTimeout(() => firstError.focus(), 150);
+        }
+        if (!fatherName && !motherName && !guardianName && (!firstError || firstError.name === 'father_name')) {
+            showMessage('Missing Information', 'Please provide at least one parent or guardian contact (Father, Mother, or Guardian).', false);
+        } else {
+            showMessage('Validation Error', 'Please fill in all required fields (marked with *)', false);
+        }
         return;
     }
     
@@ -495,11 +907,7 @@ function submitAddStudent() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Close add modal
-            const addModal = bootstrap.Modal.getInstance(document.getElementById('addStudentModal'));
-            if (addModal) {
-                addModal.hide();
-            }
+            toggleInPageFormView('studentListCard', 'studentFormPanel', 'list');
             
             showMessage(
                 'Success!', 
@@ -507,7 +915,7 @@ function submitAddStudent() {
                 true
             );
             
-            setTimeout(() => location.reload(), 2000);
+            setTimeout(() => location.reload(), 1500);
         } else {
             showMessage('Error', data.error || 'Failed to add student', false);
         }
@@ -517,6 +925,129 @@ function submitAddStudent() {
         console.error(error);
     });
 }
+var currentEditStudentId = null;
+const studentsData = JSON.parse((document.getElementById('studentsData') || {}).textContent || '{}');
+
+function populateStudentEditForm(form, data) {
+    if (!form || !data) return;
+
+    // Reset tab to first tab (Subject Enrollments)
+    const firstTabBtn = document.getElementById('edit-tab-subjects-btn');
+    if (firstTabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+        bootstrap.Tab.getOrCreateInstance(firstTabBtn).show();
+    }
+
+    Array.from(form.elements).forEach(function(el) {
+        const name = el.name;
+        if (!name || name === 'csrfmiddlewaretoken' || name === 'password') return;
+        if (name === 'subject_ids' || name === 'club_ids') return; // Handled specifically below
+        if (!(name in data)) return;
+        const value = (data[name] === null || data[name] === undefined) ? '' : String(data[name]);
+        if (el.tagName === 'SELECT' && el.tomselect) {
+            el.tomselect.setValue(value, true);
+        } else {
+            el.value = value;
+        }
+    });
+    const showHostel = data.is_hostel_required === 'True';
+    ['dormitoryField', 'roomField'].forEach(function(id) {
+        const field = document.getElementById(id);
+        if (field) field.style.display = showHostel ? 'block' : 'none';
+    });
+    
+    // Tick the enrolled subject checkboxes for this student
+    const enrolledIds = (data.subject_ids || []).map(String);
+    form.querySelectorAll('.student-subject-checkbox').forEach(function(cb) {
+        cb.checked = enrolledIds.includes(String(cb.value));
+    });
+
+    // Tick the enrolled club checkboxes for this student
+    const enrolledClubIds = (data.club_ids || []).map(String);
+    form.querySelectorAll('.student-club-checkbox').forEach(function(cb) {
+        cb.checked = enrolledClubIds.includes(String(cb.value));
+    });
+}
+
+(function bindEditStudentSave() {
+    const saveBtn = document.getElementById('saveEditStudentBtn');
+    if (!saveBtn) return;
+    saveBtn.onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const form = document.getElementById('studentEditForm');
+        if (!form || !currentEditStudentId) return;
+
+        // Required field validation with auto-tab-switching
+        const requiredInputs = Array.from(form.querySelectorAll('[required]'));
+        let firstInvalid = null;
+        requiredInputs.forEach(input => {
+            if (!input.value || !input.value.trim()) {
+                input.classList.add('is-invalid');
+                if (!firstInvalid) firstInvalid = input;
+            } else {
+                input.classList.remove('is-invalid');
+            }
+        });
+
+        // Parent/Guardian validation: Must provide at least one (Father, Mother, or Guardian)
+        const fatherName = (form.querySelector('input[name="father_name"]')?.value || '').trim();
+        const motherName = (form.querySelector('input[name="mother_name"]')?.value || '').trim();
+        const guardianName = (form.querySelector('input[name="guardian_name"]')?.value || '').trim();
+
+        if (!fatherName && !motherName && !guardianName) {
+            const fatherInput = form.querySelector('input[name="father_name"]');
+            const motherInput = form.querySelector('input[name="mother_name"]');
+            const guardianInput = form.querySelector('input[name="guardian_name"]');
+            [fatherInput, motherInput, guardianInput].forEach(inp => { if (inp) inp.classList.add('is-invalid'); });
+            if (!firstInvalid && fatherInput) firstInvalid = fatherInput;
+        } else {
+            const pInputs = [form.querySelector('input[name="father_name"]'), form.querySelector('input[name="mother_name"]'), form.querySelector('input[name="guardian_name"]')];
+            pInputs.forEach(inp => { if (inp) inp.classList.remove('is-invalid'); });
+        }
+
+        if (firstInvalid) {
+            const tabPane = firstInvalid.closest('.tab-pane');
+            if (tabPane && tabPane.id) {
+                const tabTrigger = form.querySelector(`[data-bs-target="#${tabPane.id}"]`) || document.querySelector(`[data-bs-target="#${tabPane.id}"]`);
+                if (tabTrigger && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+                    bootstrap.Tab.getOrCreateInstance(tabTrigger).show();
+                }
+            }
+            setTimeout(() => firstInvalid.focus(), 150);
+            if (!fatherName && !motherName && !guardianName && (!firstInvalid || firstInvalid.name === 'father_name')) {
+                if (window.showMessage) {
+                    showMessage('Missing Information', 'Please provide at least one parent or guardian contact (Father, Mother, or Guardian).', false);
+                } else {
+                    alert('Please provide at least one parent or guardian contact (Father, Mother, or Guardian).');
+                }
+            } else {
+                if (window.showMessage) {
+                    showMessage('Validation Error', 'Please fill in all required fields (marked with *)', false);
+                } else {
+                    alert('Please fill in all required fields (marked with *).');
+                }
+            }
+            return;
+        }
+
+        fetch(window.location.pathname + currentEditStudentId + '/edit/', {
+            method: 'POST',
+            body: new FormData(form)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSuccessAndReload('Student updated successfully!');
+            } else {
+                alert('Error: ' + (data.error || 'Failed to update student'));
+            }
+        })
+        .catch(error => {
+            alert('Error updating student: ' + error.message);
+            console.error(error);
+        });
+    };
+})();
 
 function editStudent(rowEl, id) {
     let row = null;
@@ -532,15 +1063,18 @@ function editStudent(rowEl, id) {
     }
     currentEditStudentId = studentId;
 
-    // 1. Immediately toggle into Edit Mode (0ms UI lag)
+    // 1. Fill the (already rendered) form from embedded data - no network round trip
+    const form = document.getElementById('studentEditForm');
+    const data = studentsData[String(studentId)];
+    if (form && data) populateStudentEditForm(form, data);
+
+    // 2. Switch into edit mode immediately
     toggleInPageFormView('studentListCard', 'editStudentFormPanel', 'edit');
 
-    // 2. Wire up the header actions immediately from row dataset
+    // 3. Header actions from row dataset
     const btnLoginAs = document.getElementById('btnStudentLoginAs');
-    const btnProfile = document.getElementById('btnStudentViewProfile');
     if (row) {
         const loginAsUrl = row.getAttribute('data-login-as-url') || '';
-        const profileUrl = row.getAttribute('data-profile-url') || '';
         if (btnLoginAs) {
             if (loginAsUrl) {
                 btnLoginAs.href = loginAsUrl;
@@ -549,86 +1083,17 @@ function editStudent(rowEl, id) {
                 btnLoginAs.classList.add('d-none');
             }
         }
-        if (btnProfile) {
-            if (profileUrl) {
-                btnProfile.href = profileUrl;
-                btnProfile.classList.remove('d-none');
-            } else {
-                btnProfile.classList.add('d-none');
-            }
+        const btnTransfer = document.getElementById('btnStudentTransferExit');
+        if (btnTransfer) {
+            const isActive = row.getAttribute('data-status') === 'active';
+            btnTransfer.setAttribute('data-id', studentId);
+            btnTransfer.setAttribute('data-name', row.getAttribute('data-student-name') || '');
+            btnTransfer.setAttribute('data-admission', row.getAttribute('data-admission') || '');
+            btnTransfer.classList.toggle('d-none', !isActive);
         }
     }
-
-    // 3. Show instant smooth loading spinner in form panel body
-    const contentEl = document.getElementById('editStudentContent');
-    if (contentEl) {
-        contentEl.innerHTML = `
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <div class="text-muted mt-2 small">Loading student details...</div>
-            </div>
-        `;
-    }
-
-    // 4. Fetch the edit form asynchronously in background
-    fetch(window.location.pathname + studentId + '/edit/')
-    .then(response => {
-        if (!response.ok) throw new Error('HTTP ' + response.status);
-        return response.text();
-    })
-    .then(html => {
-        if (contentEl) {
-            contentEl.innerHTML = html;
-        }
-        
-        setTimeout(() => {
-            const saveBtn = document.getElementById('saveEditStudentBtn');
-            if (saveBtn) {
-                saveBtn.onclick = function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const form = document.getElementById('studentEditForm');
-                    if (!form) {
-                        alert('Form not found!');
-                        return;
-                    }
-                    
-                    const formData = new FormData(form);
-                    
-                    fetch(window.location.pathname + currentEditStudentId + '/edit/', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            showSuccessAndReload('Student updated successfully!');
-                        } else {
-                            alert('Error: ' + (data.error || 'Failed to update student'));
-                        }
-                    })
-                    .catch(error => {
-                        alert('Error updating student: ' + error.message);
-                        console.error(error);
-                    });
-                };
-            }
-        }, 50);
-    })
-    .catch(error => {
-        if (contentEl) {
-            contentEl.innerHTML = `
-                <div class="alert alert-danger my-4">
-                    <i class="fas fa-exclamation-triangle me-2"></i> Failed to load student data: ${error.message}
-                </div>
-            `;
-        }
-        console.error(error);
-    });
 }
+
 
 function deleteStudent(id, name) {
     document.getElementById('deleteStudentName').textContent = name;
@@ -688,82 +1153,131 @@ function updateStudentEmail() {
 }
 
 function updateFatherEmail() {
-    const firstName = document.getElementById('fatherFirstName').value.trim();
-    const lastName = document.getElementById('fatherLastName').value.trim();
+    const nameInput = document.getElementById('fatherNameInput');
     const emailField = document.getElementById('fatherEmail');
-    const hiddenField = document.getElementById('fatherNameHidden');
+    if (!nameInput || !emailField) return;
     
-    // Combine names for backend
-    hiddenField.value = `${firstName} ${lastName}`.trim();
-    
-    if (firstName && lastName) {
+    const fullName = nameInput.value.trim();
+    if (fullName) {
+        const parts = fullName.split(/\s+/);
+        const firstName = parts[0] || '';
+        const lastName = parts.length > 1 ? parts.slice(1).join('.') : 'parent';
         const slug = `${slugify(firstName)}.${slugify(lastName)}`;
         emailField.value = `${slug}@school.com`;
         emailField.style.backgroundColor = '#e8f5e9';
     } else {
         emailField.value = '';
-        emailField.style.backgroundColor = '#f0f0f0';
+        emailField.style.backgroundColor = '#f8f9fa';
     }
 }
 
 function updateMotherEmail() {
-    const firstName = document.getElementById('motherFirstName').value.trim();
-    const lastName = document.getElementById('motherLastName').value.trim();
+    const nameInput = document.getElementById('motherNameInput');
     const emailField = document.getElementById('motherEmail');
-    const hiddenField = document.getElementById('motherNameHidden');
+    if (!nameInput || !emailField) return;
     
-    // Combine names for backend
-    hiddenField.value = `${firstName} ${lastName}`.trim();
-    
-    if (firstName && lastName) {
+    const fullName = nameInput.value.trim();
+    if (fullName) {
+        const parts = fullName.split(/\s+/);
+        const firstName = parts[0] || '';
+        const lastName = parts.length > 1 ? parts.slice(1).join('.') : 'parent';
         const slug = `${slugify(firstName)}.${slugify(lastName)}`;
         emailField.value = `${slug}@school.com`;
         emailField.style.backgroundColor = '#e8f5e9';
     } else {
         emailField.value = '';
-        emailField.style.backgroundColor = '#f0f0f0';
+        emailField.style.backgroundColor = '#f8f9fa';
     }
 }
 
-// Attach event listeners when modal opens
-document.getElementById('addStudentModal').addEventListener('shown.bs.modal', function () {
+// Attach event listeners for auto-generation and hostel toggles
+document.addEventListener('DOMContentLoaded', function () {
     // Student email auto-generation
-    document.querySelector('input[name="first_name"]').addEventListener('input', updateStudentEmail);
-    document.querySelector('input[name="last_name"]').addEventListener('input', updateStudentEmail);
+    const fn = document.querySelector('#studentAddForm input[name="first_name"]');
+    const ln = document.querySelector('#studentAddForm input[name="last_name"]');
+    if (fn) fn.addEventListener('input', updateStudentEmail);
+    if (ln) ln.addEventListener('input', updateStudentEmail);
     
     // Father email auto-generation
-    document.getElementById('fatherFirstName').addEventListener('input', updateFatherEmail);
-    document.getElementById('fatherLastName').addEventListener('input', updateFatherEmail);
+    const fni = document.getElementById('fatherNameInput');
+    if (fni) fni.addEventListener('input', updateFatherEmail);
     
     // Mother email auto-generation
-    document.getElementById('motherFirstName').addEventListener('input', updateMotherEmail);
-    document.getElementById('motherLastName').addEventListener('input', updateMotherEmail);
+    const mni = document.getElementById('motherNameInput');
+    if (mni) mni.addEventListener('input', updateMotherEmail);
+
+    // Clear is-invalid on parent contact inputs when user types in Add Form
+    ['fatherNameInput', 'motherNameInput', 'guardianNameInput'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', function() {
+                ['fatherNameInput', 'motherNameInput', 'guardianNameInput'].forEach(i => {
+                    const inp = document.getElementById(i);
+                    if (inp) inp.classList.remove('is-invalid');
+                });
+            });
+        }
+    });
+
+    // Add Student Hostel required toggle
+    const addHostel = document.getElementById('addHostelRequired');
+    const addDorm = document.getElementById('addDormitoryField');
+    const addRoom = document.getElementById('addRoomField');
+    if (addHostel) {
+        addHostel.addEventListener('change', function() {
+            const isYes = this.value === 'True';
+            if (addDorm) addDorm.style.display = isYes ? 'block' : 'none';
+            if (addRoom) addRoom.style.display = isYes ? 'block' : 'none';
+        });
+    }
+
+    // Edit Student Hostel required toggle
+    const editHostel = document.getElementById('hostelRequired');
+    const editDorm = document.getElementById('dormitoryField');
+    const editRoom = document.getElementById('roomField');
+    if (editHostel) {
+        editHostel.addEventListener('change', function() {
+            const isYes = this.value === 'True';
+            if (editDorm) editDorm.style.display = isYes ? 'block' : 'none';
+            if (editRoom) editRoom.style.display = isYes ? 'block' : 'none';
+        });
+    }
 });
 
-// Dynamic filtering for students table
+// Dynamic filtering & status workflow for Admissions & Enrollment table
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
+    const cohortFilter = document.getElementById('cohortFilter');
     const classFilter = document.getElementById('classFilter');
     const statusFilter = document.getElementById('statusFilter');
     const table = document.getElementById('studentsTable');
+    if (!table) return;
     const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
 
     function filterTable() {
-        const searchTerm = searchInput.value.toLowerCase();
-        const selectedClass = classFilter.value.toLowerCase();
-        const selectedStatus = statusFilter.value.toLowerCase();
+        const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        const selectedCohort = cohortFilter ? cohortFilter.value.toLowerCase().trim() : '';
+        const selectedClass = classFilter ? classFilter.value.toLowerCase().trim() : '';
+        const selectedStatus = statusFilter ? statusFilter.value.toLowerCase().trim() : '';
 
         for (let row of rows) {
+            if (row.classList.contains('empty-table-row')) continue;
             const name = row.dataset.name || '';
             const admission = row.dataset.admission || '';
             const email = row.dataset.email || '';
             const studentClass = row.dataset.class || '';
+            const cohort = row.dataset.cohort || '';
             const status = row.dataset.status || '';
 
             let showRow = true;
 
             // Search filter
-            if (searchTerm && !name.includes(searchTerm) && !admission.includes(searchTerm) && !email.includes(searchTerm)) {
+            if (searchTerm && !name.includes(searchTerm) && !admission.includes(searchTerm) && !email.includes(searchTerm) && !cohort.includes(searchTerm)) {
+                showRow = false;
+            }
+
+            // Cohort filter
+            if (selectedCohort && cohort !== selectedCohort) {
                 showRow = false;
             }
 
@@ -773,19 +1287,103 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Status filter
-            if (selectedStatus && status !== selectedStatus) {
-                showRow = false;
+            if (selectedStatus) {
+                if (selectedStatus === 'active') {
+                    if (status !== 'enrolled' && status !== 'active') showRow = false;
+                } else if (selectedStatus === 'inactive') {
+                    if (status === 'enrolled' || status === 'active' || status === 'pending') showRow = false;
+                } else if (status !== selectedStatus) {
+                    showRow = false;
+                }
             }
 
             row.style.display = showRow ? '' : 'none';
         }
+
+        // Update active status pill
+        document.querySelectorAll('.status-pill-btn').forEach(btn => {
+            const pillStatus = (btn.getAttribute('data-status') || '').toLowerCase().trim();
+            btn.classList.toggle('active', pillStatus === selectedStatus);
+        });
     }
 
     // Add event listeners for real-time filtering
-    searchInput.addEventListener('input', filterTable);
-    classFilter.addEventListener('change', filterTable);
-    statusFilter.addEventListener('change', filterTable);
+    if (searchInput) searchInput.addEventListener('input', filterTable);
+    if (cohortFilter) cohortFilter.addEventListener('change', filterTable);
+    if (classFilter) classFilter.addEventListener('change', filterTable);
+    if (statusFilter) statusFilter.addEventListener('change', filterTable);
+
+    // Pill click handler
+    document.querySelectorAll('.status-pill-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const targetStatus = this.getAttribute('data-status') || '';
+            if (statusFilter) {
+                statusFilter.value = targetStatus;
+                if (statusFilter.tomselect) statusFilter.tomselect.setValue(targetStatus);
+            }
+            filterTable();
+        });
+    });
+
+    // Default today date for Add Student admission_date if empty
+    const addAdmDate = document.getElementById('addAdmissionDate');
+    if (addAdmDate && !addAdmDate.value) {
+        addAdmDate.value = new Date().toISOString().split('T')[0];
+    }
+
+    // Auto-open student edit panel if ?edit=<student_id> is provided in the URL
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const editId = urlParams.get('edit');
+        if (editId) {
+            const targetRow = document.querySelector(`tr.clickable-row[data-id="${editId}"]`);
+            if (targetRow && typeof window.editStudent === 'function') {
+                setTimeout(() => window.editStudent(targetRow, editId), 150);
+            }
+        }
+    } catch(e) {}
 });
+
+function confirmStudentEnrollment(studentId, studentName) {
+    if (!confirm('Confirm and enroll ' + (studentName || 'this student') + '? This will activate their enrollment and register them for their assigned class.')) {
+        return;
+    }
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    const basePath = window.location.pathname.endsWith('/') ? window.location.pathname : (window.location.pathname + '/');
+    fetch(basePath + studentId + '/status/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrfToken
+        },
+        body: 'status=enrolled'
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            if (window.showToast) {
+                showToast(data.message || 'Enrollment confirmed successfully!', 'success');
+            } else if (window.showMessage) {
+                showMessage('Success', data.message || 'Enrollment confirmed successfully!', true);
+            }
+            // Update table row in real-time
+            const row = document.querySelector(`tr.clickable-row[data-id="${studentId}"]`);
+            if (row) {
+                row.dataset.status = 'enrolled';
+                const statusCell = row.cells[6];
+                if (statusCell) {
+                    statusCell.innerHTML = '<span class="badge-modern badge-success-modern"><i class="fas fa-check-circle me-1"></i>Enrolled</span>';
+                }
+            }
+            setTimeout(() => window.location.reload(), 600);
+        } else {
+            alert('Error: ' + (data.error || 'Failed to confirm enrollment'));
+        }
+    })
+    .catch(err => {
+        alert('Network error: ' + err.message);
+    });
+}
 
 // Import: sheets discovery, preview mapping/validation, and submit
 document.addEventListener('DOMContentLoaded', function () {
@@ -1014,5 +1612,216 @@ document.addEventListener('DOMContentLoaded', function () {
         xhr.send(fd);
     });
 });
+
+let platformSchoolsLoaded = false;
+let platformSchoolsCache = [];
+
+function openStudentExitModalFromEdit() {
+    const btn = document.getElementById('btnStudentTransferExit');
+    const id = btn.getAttribute('data-id') || currentEditStudentId;
+    const name = btn.getAttribute('data-name') || 'Selected Student';
+    const admission = btn.getAttribute('data-admission') || '';
+    openStudentExitModalDirect(id, name, admission);
+}
+
+function openStudentExitModalDirect(studentId, studentName, admissionNo) {
+    if (!studentId) return;
+    document.getElementById('exit_student_id').value = studentId;
+    document.getElementById('exit_student_name').textContent = studentName || 'Student';
+    document.getElementById('exit_student_admission').textContent = admissionNo ? `Admission: ${admissionNo}` : '';
+
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('exit_leaving_date').value = today;
+    document.getElementById('exit_type').value = 'transfer_platform';
+    document.getElementById('exit_remarks').value = '';
+    document.getElementById('destination_school_text').value = '';
+    document.getElementById('generate_tc_check').checked = true;
+
+    // Ensure destination school select is reset and not trapped by tomselect
+    const targetSchoolSelect = document.getElementById('target_school_id');
+    if (targetSchoolSelect) {
+        if (targetSchoolSelect.tomselect) {
+            try { targetSchoolSelect.tomselect.destroy(); } catch(e) {}
+        }
+        targetSchoolSelect.value = '';
+    }
+
+    loadPlatformSchools();
+    onExitTypeChange();
+
+    const modalEl = document.getElementById('studentExitModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    if (typeof window.initSystemWidePopovers === 'function') {
+        window.initSystemWidePopovers(modalEl);
+    }
+}
+
+function onExitTypeChange() {
+    const exitType = document.getElementById('exit_type').value;
+    const platformGroup = document.getElementById('platformSchoolGroup');
+    const externalGroup = document.getElementById('externalSchoolGroup');
+
+    if (exitType === 'transfer_platform') {
+        platformGroup.classList.remove('d-none');
+        externalGroup.classList.add('d-none');
+        document.getElementById('target_school_id').required = true;
+        document.getElementById('destination_school_text').required = false;
+        document.getElementById('generate_tc_check').checked = true;
+    } else if (exitType === 'transfer_external') {
+        platformGroup.classList.add('d-none');
+        externalGroup.classList.remove('d-none');
+        document.getElementById('destination_school_label').textContent = 'Destination School Name *';
+        document.getElementById('destination_school_text').placeholder = "e.g. Alliance High School, Nairobi";
+        document.getElementById('target_school_id').required = false;
+        document.getElementById('destination_school_text').required = true;
+        document.getElementById('generate_tc_check').checked = true;
+    } else if (exitType === 'relocation') {
+        platformGroup.classList.add('d-none');
+        externalGroup.classList.remove('d-none');
+        document.getElementById('destination_school_label').textContent = 'Relocation Destination / City (Optional)';
+        document.getElementById('destination_school_text').placeholder = "e.g. Relocating to Mombasa / New residence";
+        document.getElementById('target_school_id').required = false;
+        document.getElementById('destination_school_text').required = false;
+    } else {
+        platformGroup.classList.add('d-none');
+        externalGroup.classList.add('d-none');
+        document.getElementById('target_school_id').required = false;
+        document.getElementById('destination_school_text').required = false;
+    }
+}
+
+function loadPlatformSchools() {
+    const select = document.getElementById('target_school_id');
+    if (!select) return;
+
+    if (select.tomselect) {
+        try { select.tomselect.destroy(); } catch(e) {}
+    }
+
+    if (platformSchoolsLoaded && platformSchoolsCache.length > 0) {
+        populatePlatformSchoolsDropdown(platformSchoolsCache);
+        return;
+    }
+
+    const schoolSlug = '{{ school_slug }}';
+    const url = `/school/${schoolSlug}/students/api/platform-schools/`;
+
+    fetch(url)
+    .then(r => r.json())
+    .then(data => {
+        if (data.success && data.schools) {
+            platformSchoolsCache = data.schools;
+            platformSchoolsLoaded = true;
+            populatePlatformSchoolsDropdown(data.schools);
+        } else if (select.options.length <= 1) {
+            select.innerHTML = '<option value="">No other platform schools registered</option>';
+        }
+    })
+    .catch(err => {
+        console.error('Failed to load platform schools:', err);
+        if (select.options.length <= 1) {
+            select.innerHTML = '<option value="">Error loading schools</option>';
+        }
+    });
+}
+
+function populatePlatformSchoolsDropdown(schools) {
+    const select = document.getElementById('target_school_id');
+    if (!select) return;
+    if (select.tomselect) {
+        try { select.tomselect.destroy(); } catch(e) {}
+    }
+    if (!schools || schools.length === 0) {
+        select.innerHTML = '<option value="">No other registered schools on platform</option>';
+        return;
+    }
+    const currentVal = select.value;
+    let html = '<option value="">-- Select Destination School on Platform --</option>';
+    schools.forEach(s => {
+        const isSel = String(s.id) === String(currentVal) ? ' selected' : '';
+        html += `<option value="${s.id}"${isSel}>${s.name}</option>`;
+    });
+    select.innerHTML = html;
+}
+
+function submitStudentExit() {
+    const studentId = document.getElementById('exit_student_id').value;
+    const exitType = document.getElementById('exit_type').value;
+    const leavingDate = document.getElementById('exit_leaving_date').value;
+    const targetSchoolId = document.getElementById('target_school_id').value;
+    const destSchool = document.getElementById('destination_school_text').value;
+    const exitRemarks = document.getElementById('exit_remarks').value;
+    const generateTc = document.getElementById('generate_tc_check').checked ? '1' : '0';
+
+    if (exitType === 'transfer_platform' && !targetSchoolId) {
+        alert('Please select the destination school on the platform.');
+        return;
+    }
+    if (exitType === 'transfer_external' && !destSchool.trim()) {
+        alert('Please specify the destination school name.');
+        return;
+    }
+
+    const btn = document.getElementById('btnConfirmStudentExit');
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing Transfer...';
+
+    const formData = new FormData();
+    formData.append('exit_type', exitType);
+    formData.append('leaving_date', leavingDate);
+    formData.append('target_school_id', targetSchoolId);
+    formData.append('destination_school', destSchool);
+    formData.append('exit_remarks', exitRemarks);
+    formData.append('generate_tc', generateTc);
+
+    const schoolSlug = '{{ school_slug }}';
+    const url = `/school/${schoolSlug}/students/${studentId}/exit/`;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            let msg = data.message;
+            if (data.tc && data.tc.certificate_number) {
+                msg += '\n\nTransfer Certificate #' + data.tc.certificate_number + ' generated.';
+            }
+            alert(msg);
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to complete student transfer / exit'));
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    })
+    .catch(err => {
+        alert('Request failed: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+    });
+}
+
+// --- Student Subject Checkboxes ---
+function toggleAllSubjectCheckboxes(target, checkState) {
+    let form = null;
+    if (typeof target === 'string') {
+        form = document.getElementById(target);
+    } else if (target && target.closest) {
+        form = target.closest('form');
+    }
+    if (!form) return;
+    form.querySelectorAll('.student-subject-checkbox').forEach(function(cb) {
+        cb.checked = !!checkState;
+    });
+}
+window.toggleAllSubjectCheckboxes = toggleAllSubjectCheckboxes;
 </script>
 {% endblock %}

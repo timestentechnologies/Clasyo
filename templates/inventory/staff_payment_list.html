@@ -8,17 +8,7 @@
 {% block page_subtitle %}Process and manage salary payments{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-end mb-3 button-stack-mobile">
-    <button class="btn btn-primary me-2" onclick="openCreatePaymentForm()">
-        <i class="fas fa-plus me-1"></i> Process Payment
-    </button>
-    <a href="{% url 'inventory:expense_list' school_slug %}" class="btn btn-info me-2">
-        <i class="fas fa-chart-line"></i> View Expenses
-    </a>
-    <a href="{% url 'inventory:inventory_list' school_slug %}" class="btn btn-secondary">
-        <i class="fas fa-boxes"></i> Back to Inventory
-    </a>
-</div>
+
 
 <!-- In-Page Staff Payment Form Panel -->
 <div id="paymentFormPanel" class="card modern-card mb-4 form-panel-view" style="display: none;">
@@ -141,28 +131,41 @@
 
 <!-- Payment List View Container -->
 <div id="paymentListCard">
-    <!-- Dynamic Search and Filters -->
-    <div class="row mb-3">
-        <div class="col-md-12">
-            <div class="row g-2">
-                <div class="col-md-4">
-                    <input type="text" id="searchInput" class="form-control" placeholder="Search staff/teacher...">
-                </div>
-                <div class="col-md-4">
-                    <select name="staff_type" id="staffTypeFilter" class="form-select" placeholder="Filter by Staff Type" data-placeholder="Filter by Staff Type">
-                        <option value="">All Staff Types</option>
-                        <option value="teacher">Teachers</option>
-                        <option value="staff">Staff</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <select name="status" id="statusFilter" class="form-select" placeholder="Filter by Status" data-placeholder="Filter by Status">
-                        <option value="">All Statuses</option>
-                        <option value="paid">Paid</option>
-                        <option value="pending">Pending</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
-                </div>
+    <!-- Unified In-Line Table Toolbar: Buttons on left, Search & Filters on right -->
+    <div class="table-toolbar" data-page-actions>
+        <div class="toolbar-actions">
+            <button class="btn btn-primary" onclick="openCreatePaymentForm()">
+                <i class="fas fa-plus me-1"></i> Process Payment
+            </button>
+            <a href="{% url 'inventory:expense_list' school_slug %}" class="btn btn-outline-info">
+                <i class="fas fa-chart-line me-1"></i> View Expenses
+            </a>
+            <a href="{% url 'inventory:inventory_list' school_slug %}" class="btn btn-outline-secondary">
+                <i class="fas fa-boxes me-1"></i> Back to Inventory
+            </a>
+        </div>
+
+        <div class="toolbar-filters">
+            <div class="toolbar-search">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="searchInput" class="form-control" placeholder="Search staff/teacher...">
+            </div>
+
+            <div class="toolbar-filter">
+                <select name="staff_type" id="staffTypeFilter" class="form-select" placeholder="Filter by Staff Type" data-placeholder="Filter by Staff Type">
+                    <option value="">All Staff Types</option>
+                    <option value="teacher">Teachers</option>
+                    <option value="staff">Staff</option>
+                </select>
+            </div>
+
+            <div class="toolbar-filter">
+                <select name="status" id="statusFilter" class="form-select" placeholder="Filter by Status" data-placeholder="Filter by Status">
+                    <option value="">All Statuses</option>
+                    <option value="paid">Paid</option>
+                    <option value="pending">Pending</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
             </div>
         </div>
     </div>

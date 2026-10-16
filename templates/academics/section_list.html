@@ -7,11 +7,7 @@
 {% block page_subtitle %}Manage all sections in your institution{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-end mb-3">
-    <button class="btn btn-primary" onclick="openSectionForm('create')">
-        <i class="fas fa-plus me-1"></i> Add Section
-    </button>
-</div>
+
 
 <!-- Shared In-Page Single Form Panel -->
 <div class="form-panel-view d-none" id="sectionFormPanel">
@@ -68,9 +64,25 @@
 </div>
 
 <div id="sectionListCard">
+    <!-- Unified In-Line Table Toolbar: Buttons on left, Search & Filters on right -->
+    <div class="table-toolbar" data-page-actions>
+        <div class="toolbar-actions">
+            <button class="btn btn-primary" onclick="openSectionForm('create')">
+                <i class="fas fa-plus me-1"></i> Add Section
+            </button>
+        </div>
+
+        <div class="toolbar-filters">
+            <div class="toolbar-search">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="searchInput" class="form-control" placeholder="Search sections...">
+            </div>
+        </div>
+    </div>
+
     <div class="modern-card">
         <div class="table-responsive">
-            <table class="table">
+            <table class="table" id="sectionsTable">
                 <thead>
                 <tr>
                     <th>Section Name</th>
@@ -115,6 +127,18 @@
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const q = this.value.toLowerCase();
+            document.querySelectorAll('#sectionsTable tbody tr.clickable-row').forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+            });
+        });
+    }
+});
+
 function openSectionForm(mode, data) {
     const form = document.getElementById('sectionForm');
     if (form) form.reset();

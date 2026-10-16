@@ -8,18 +8,7 @@
 {% block page_subtitle %}Track all school expenses and payments{% endblock %}
 
 {% block content %}
-<div class="d-flex mb-3 expense-actions">
-    <button class="btn btn-primary me-2"
-        onclick="toggleInPageFormView('expenseListCard', 'expenseFormPanel', 'create')">
-        <i class="fas fa-plus me-1"></i> Add Expense
-    </button>
-    <button class="btn btn-success me-2" onclick="window.print()">
-        <i class="fas fa-print me-1"></i> Print Report
-    </button>
-    <a href="{% url 'inventory:inventory_list' school_slug %}" class="btn btn-secondary">
-        <i class="fas fa-boxes me-1"></i> Back to Inventory
-    </a>
-</div>
+
 
 <!-- Shared In-Page Single Form Panel -->
 <div class="form-panel-view d-none" id="expenseFormPanel">
@@ -76,7 +65,7 @@
                         required>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Amount (Ksh) *</label>
+                    <label class="form-label fw-semibold">Amount ({{ currency_symbol|default:'$' }}) *</label>
                     <input type="number" name="amount" class="form-control" step="0.01" placeholder="0.00" required>
                 </div>
             </div>
@@ -109,35 +98,49 @@
 
 <!-- Expense List View Container -->
 <div id="expenseListCard">
-    <!-- Dynamic Search and Filters -->
-    <div class="row mb-3">
-        <div class="col-md-12">
-            <div class="row g-2">
-                <div class="col-md-4">
-                    <input type="text" id="searchInput" class="form-control" placeholder="Search expenses...">
-                </div>
-                <div class="col-md-4">
-                    <select name="expense_type" id="expenseTypeFilter" class="form-select"
-                        placeholder="Filter by Expense Type" data-placeholder="Filter by Expense Type">
-                        <option value="">All Expense Types</option>
-                        <option value="purchase">Purchase/Procurement</option>
-                        <option value="salary">Salary Payment</option>
-                        <option value="utility">Utility Bills</option>
-                        <option value="maintenance">Maintenance</option>
-                        <option value="transport">Transport</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <select name="payment_method" id="paymentMethodFilter" class="form-select"
-                        placeholder="Filter by Payment Method" data-placeholder="Filter by Payment Method">
-                        <option value="">All Payment Methods</option>
-                        <option value="cash">Cash</option>
-                        <option value="bank_transfer">Bank Transfer</option>
-                        <option value="cheque">Cheque</option>
-                        <option value="online">Online Payment</option>
-                    </select>
-                </div>
+    <!-- Unified In-Line Table Toolbar: Buttons on left, Search & Filters on right -->
+    <div class="table-toolbar" data-page-actions>
+        <div class="toolbar-actions">
+            <button class="btn btn-primary"
+                onclick="toggleInPageFormView('expenseListCard', 'expenseFormPanel', 'create')">
+                <i class="fas fa-plus me-1"></i> Add Expense
+            </button>
+            <button class="btn btn-outline-success" onclick="window.print()">
+                <i class="fas fa-print me-1"></i> Print Report
+            </button>
+            <a href="{% url 'inventory:inventory_list' school_slug %}" class="btn btn-outline-secondary">
+                <i class="fas fa-boxes me-1"></i> Back to Inventory
+            </a>
+        </div>
+
+        <div class="toolbar-filters">
+            <div class="toolbar-search">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="searchInput" class="form-control" placeholder="Search expenses...">
+            </div>
+
+            <div class="toolbar-filter">
+                <select name="expense_type" id="expenseTypeFilter" class="form-select"
+                    placeholder="Filter by Expense Type" data-placeholder="Filter by Expense Type">
+                    <option value="">All Expense Types</option>
+                    <option value="purchase">Purchase/Procurement</option>
+                    <option value="salary">Salary Payment</option>
+                    <option value="utility">Utility Bills</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="transport">Transport</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+
+            <div class="toolbar-filter">
+                <select name="payment_method" id="paymentMethodFilter" class="form-select"
+                    placeholder="Filter by Payment Method" data-placeholder="Filter by Payment Method">
+                    <option value="">All Payment Methods</option>
+                    <option value="cash">Cash</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="online">Online Payment</option>
+                </select>
             </div>
         </div>
     </div>
@@ -177,7 +180,7 @@
                                 {{ expense.get_payment_method_display }}
                             </span>
                         </td>
-                        <td><strong class="text-danger">Ksh{{ expense.amount|intcomma }}</strong></td>
+                        <td><strong class="text-danger">{{ currency_symbol|default:'$' }} {{ expense.amount|intcomma }}</strong></td>
                         <td><small class="text-muted">{{
                                 expense.recorded_by.get_full_name|default:expense.recorded_by.username }}</small></td>
                     </tr>
@@ -190,7 +193,7 @@
                 <tfoot>
                     <tr class="table-primary">
                         <th colspan="6" class="text-end">Total:</th>
-                        <th colspan="2">Ksh{{ total_expenses|intcomma }}</th>
+                        <th colspan="2">{{ currency_symbol|default:'$' }} {{ total_expenses|intcomma }}</th>
                     </tr>
                 </tfoot>
             </table>
@@ -263,8 +266,9 @@
         function updateSummaryCards(totalExpenses, expenseTypeTotals) {
             // Update total expenses card
             const totalExpensesCard = document.getElementById('totalExpensesCard');
+            const sym = window.APP_CURRENCY_SYMBOL || '{{ currency_symbol }}';
             if (totalExpensesCard) {
-                totalExpensesCard.textContent = 'Ksh' + totalExpenses.toLocaleString('en-US');
+                totalExpensesCard.textContent = sym + ' ' + totalExpenses.toLocaleString('en-US');
             }
 
             // Update expense type cards
@@ -272,7 +276,7 @@
                 const cardId = 'summary-' + expenseType + '-card';
                 const card = document.getElementById(cardId);
                 if (card) {
-                    card.textContent = 'Ksh' + total.toLocaleString('en-US');
+                    card.textContent = sym + ' ' + total.toLocaleString('en-US');
                 }
             }
         }

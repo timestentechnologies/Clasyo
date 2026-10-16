@@ -27,11 +27,19 @@
                         <div class="d-flex align-items-center">
                             {% if child_info.student.photo %}
                             <img src="{{ child_info.student.photo.url }}" alt="{{ child_info.student.get_full_name }}" 
-                                 class="rounded-circle me-3" style="width: 80px; height: 80px; object-fit: cover;">
+                                 class="rounded-circle me-3 shadow-sm" style="width: 80px; height: 80px; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="rounded-circle align-items-center justify-content-center me-3 shadow-sm" 
+                                 style="width: 80px; height: 80px; background: linear-gradient(135deg, #1E3A5F 0%, #0284c7 100%); color: white; font-size: 30px; font-weight: bold; display: none;">
+                                {{ child_info.student.first_name.0|upper }}{{ child_info.student.last_name.0|default:''|upper }}
+                            </div>
                             {% else %}
-                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" 
-                                 style="width: 80px; height: 80px; background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); color: white; font-size: 32px; font-weight: bold;">
-                                {{ child_info.student.first_name|first }}{{ child_info.student.last_name|first }}
+                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm" 
+                                 style="width: 80px; height: 80px; background: linear-gradient(135deg, #1E3A5F 0%, #0284c7 100%); color: white; font-size: 30px; font-weight: bold;">
+                                {% if child_info.student.first_name %}
+                                    {{ child_info.student.first_name.0|upper }}{{ child_info.student.last_name.0|default:''|upper }}
+                                {% else %}
+                                    <i class="fas fa-user-graduate" style="font-size: 26px;"></i>
+                                {% endif %}
                             </div>
                             {% endif %}
                             <div>

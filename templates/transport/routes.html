@@ -70,7 +70,7 @@
                         <input type="number" name="distance" class="form-control" step="0.1" placeholder="12.5" required>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Transport Fare (Ksh) *</label>
+                        <label class="form-label fw-semibold">Transport Fare ({{ currency_symbol|default:'$' }}) *</label>
                         <input type="number" name="fare" class="form-control" step="0.01" placeholder="3500.00" required>
                     </div>
                 </div>
@@ -101,7 +101,7 @@
                             <td>{{ route.start_place }}</td>
                             <td>{{ route.end_place }}</td>
                             <td>{{ route.distance }} km</td>
-                            <td>Ksh {{ route.fare }}</td>
+                            <td>{{ currency_symbol|default:'$' }} {{ route.fare }}</td>
                             <td>{{ route.vehicles.count }} vehicle(s)</td>
                         </tr>
                         {% endfor %}

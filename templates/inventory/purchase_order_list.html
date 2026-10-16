@@ -8,43 +8,44 @@
 {% block page_subtitle %}Manage procurement and purchase orders{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-end mb-3">
-    <button class="btn btn-primary me-2" onclick="toggleInPageFormView('poListCard', 'poFormPanel', 'create')">
-        <i class="fas fa-plus me-1"></i> Create Purchase Order
-    </button>
-    <a href="{% url 'inventory:inventory_list' school_slug %}" class="btn btn-secondary">
-        <i class="fas fa-boxes"></i> Back to Inventory
-    </a>
-</div>
-
 <!-- PO List View Container -->
 <div id="poListCard">
-    <!-- Dynamic Search and Filters -->
-    <div class="row mb-3">
-        <div class="col-md-12">
-            <div class="row g-2">
-                <div class="col-md-4">
-                    <input type="text" id="searchInput" class="form-control" placeholder="Search purchase orders...">
-                </div>
-                <div class="col-md-4">
-                    <select name="status" id="statusFilter" class="form-select" placeholder="Filter by Status" data-placeholder="Filter by Status">
-                        <option value="">All Statuses</option>
-                        <option value="draft">Draft</option>
-                        <option value="pending">Pending</option>
-                        <option value="approved">Approved</option>
-                        <option value="ordered">Ordered</option>
-                        <option value="received">Received</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <select name="supplier" id="supplierFilter" class="form-select" placeholder="Filter by Supplier" data-placeholder="Filter by Supplier">
-                        <option value="">All Suppliers</option>
-                        {% for supplier in suppliers %}
-                        <option value="{{ supplier.id }}">{{ supplier.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+    <!-- Unified In-Line Table Toolbar: Buttons on left, Search & Filters on right -->
+    <div class="table-toolbar" data-page-actions>
+        <div class="toolbar-actions">
+            <button class="btn btn-primary" onclick="toggleInPageFormView('poListCard', 'poFormPanel', 'create')">
+                <i class="fas fa-plus me-1"></i> Create Purchase Order
+            </button>
+            <a href="{% url 'inventory:inventory_list' school_slug %}" class="btn btn-outline-secondary">
+                <i class="fas fa-boxes me-1"></i> Back to Inventory
+            </a>
+        </div>
+
+        <div class="toolbar-filters">
+            <div class="toolbar-search">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="searchInput" class="form-control" placeholder="Search purchase orders...">
+            </div>
+
+            <div class="toolbar-filter">
+                <select name="status" id="statusFilter" class="form-select" placeholder="Filter by Status" data-placeholder="Filter by Status">
+                    <option value="">All Statuses</option>
+                    <option value="draft">Draft</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="ordered">Ordered</option>
+                    <option value="received">Received</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+
+            <div class="toolbar-filter">
+                <select name="supplier" id="supplierFilter" class="form-select" placeholder="Filter by Supplier" data-placeholder="Filter by Supplier">
+                    <option value="">All Suppliers</option>
+                    {% for supplier in suppliers %}
+                    <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
         </div>
     </div>

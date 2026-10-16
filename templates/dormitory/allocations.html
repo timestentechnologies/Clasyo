@@ -70,16 +70,9 @@ document.addEventListener('DOMContentLoaded', function() {
 {% block content %}
 <div class="container-fluid">
     <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="mb-1"><i class="fas fa-bed me-2"></i>Room Allocations</h4>
-            <p class="text-muted mb-0">Manage student room assignments and allocations</p>
-        </div>
-        <div>
-            <a href="{% url 'dormitory:allocate_room' school_slug=school_slug %}" class="btn" style="background-color: #1E3A5F; border-color: #1E3A5F; color: white;">
-                <i class="fas fa-plus"></i> Allocate Room
-            </a>
-        </div>
+    <div class="mb-4">
+        <h4 class="mb-1"><i class="fas fa-bed me-2"></i>Room Allocations</h4>
+        <p class="text-muted mb-0">Manage student room assignments and allocations</p>
     </div>
 
     <!-- Statistics Cards -->
@@ -152,33 +145,37 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 
-    <!-- Filters -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-4">
-                    <label for="searchInput" class="form-label">Search</label>
-                    <input type="text" class="form-control" id="searchInput" placeholder="Search by student name, room number...">
-                </div>
-                <div class="col-md-4">
-                    <label for="dormitoryFilter" class="form-label">Filter by Dormitory</label>
-                    <select class="form-select" id="dormitoryFilter">
-                        <option value="">All Dormitories</option>
-                        {% for allocation in allocations %}
-                            {% if allocation.room.dormitory %}
-                                <option value="{{ allocation.room.dormitory.name }}">{{ allocation.room.dormitory.name }}</option>
-                            {% endif %}
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label for="statusFilter" class="form-label">Filter by Status</label>
-                    <select class="form-select" id="statusFilter">
-                        <option value="">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                </div>
+    <!-- Unified In-Line Table Toolbar: Buttons on left, Search & Filters on right -->
+    <div class="table-toolbar" data-page-actions>
+        <div class="toolbar-actions">
+            <a href="{% url 'dormitory:allocate_room' school_slug=school_slug %}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Allocate Room
+            </a>
+        </div>
+
+        <div class="toolbar-filters">
+            <div class="toolbar-search">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="form-control" id="searchInput" placeholder="Search by student name, room...">
+            </div>
+
+            <div class="toolbar-filter">
+                <select class="form-select" id="dormitoryFilter">
+                    <option value="">All Dormitories</option>
+                    {% for allocation in allocations %}
+                        {% if allocation.room.dormitory %}
+                            <option value="{{ allocation.room.dormitory.name }}">{{ allocation.room.dormitory.name }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="toolbar-filter">
+                <select class="form-select" id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
             </div>
         </div>
     </div>

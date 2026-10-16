@@ -1,19 +1,14 @@
+{% load static %}
 <!-- Student Detail for Modal -->
 <div class="row">
     <div class="col-md-4 text-center mb-3">
-        {% if student.photo %}
-            <img src="{{ student.photo.url }}" alt="{{ student.first_name }} {{ student.last_name }}" class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;">
+        {% if student.has_valid_photo %}
+            <img src="{{ student.photo.url }}" alt="{{ student.first_name }} {{ student.last_name }}" class="rounded-circle mb-3 shadow-sm" style="width: 120px; height: 120px; object-fit: cover;" onerror="this.onerror=null; this.src='{% static 'images/default_avatar.svg' %}';">
         {% else %}
-            <div class="rounded-circle bg-primary text-white mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 120px; height: 120px; font-size: 36px;">
-                {{ student.first_name.0 }}{{ student.last_name.0 }}
-            </div>
+            <img src="{% static 'images/default_avatar.svg' %}" alt="{{ student.first_name }} {{ student.last_name }}" class="rounded-circle mb-3 shadow-sm" style="width: 120px; height: 120px; object-fit: cover;">
         {% endif %}
         <h5>{{ student.first_name }} {{ student.last_name }}</h5>
         <p class="text-muted">{{ student.admission_number }}</p>
-
-        <a href="{% url 'students:subjects' school_slug=school_slug pk=student.pk %}" class="btn btn-info btn-sm">
-            <i class="fas fa-book"></i> Manage Subjects
-        </a>
     </div>
     <div class="col-md-8">
         <table class="table table-sm">

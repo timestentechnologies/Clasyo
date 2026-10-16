@@ -43,7 +43,7 @@
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Amount (Ksh) *</label>
+                    <label class="form-label fw-semibold">Amount ({{ currency_symbol|default:'$' }}) *</label>
                     <input type="number" name="amount" id="fee_amount" class="form-control" placeholder="0.00" required>
                 </div>
                 <div class="col-md-6">
@@ -75,7 +75,7 @@
 <div class="modern-card" id="feeListCard">
     <div class="table-responsive">
         <table class="table">
-            <thead><tr><th>Class</th><th>Fee Structure</th><th>Total Amount (Ksh)</th></tr></thead>
+            <thead><tr><th>Class</th><th>Fee Structure</th><th>Total Amount ({{ currency_symbol|default:'$' }})</th></tr></thead>
     <tbody>
         {% regroup fee_structures by class_name as class_group %}
         {% for class_item in class_group %}
@@ -95,7 +95,7 @@
                             <small class="text-muted">{{ fee.fee_type }}</small>
                         </div>
                     </td>
-                    <td>Ksh {{ fee.amount|floatformat:0|intcomma }}</td>
+                    <td>{{ currency_symbol|default:'$' }} {{ fee.amount|floatformat:0|intcomma }}</td>
                 </tr>
             {% endfor %}
         {% empty %}
