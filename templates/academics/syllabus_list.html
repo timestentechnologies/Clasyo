@@ -58,20 +58,19 @@
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table modern-table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
                         <th class="ps-3" style="width: 5%;">#</th>
-                        <th style="width: 25%;">Title & Subject</th>
-                        <th style="width: 15%;">Class & Session</th>
-                        <th style="width: 30%;">Overview / Content</th>
+                        <th style="width: 30%;">Title & Subject</th>
+                        <th style="width: 20%;">Class & Session</th>
+                        <th style="width: 35%;">Overview / Content</th>
                         <th style="width: 10%;">Attachment</th>
-                        <th class="text-end pe-3" style="width: 15%;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in syllabi %}
-                    <tr>
+                    <tr class="clickable-row cursor-pointer" data-id="{{ item.id }}" onclick="editSyllabus({{ item.id }})">
                         <td class="ps-3 text-muted">{{ forloop.counter }}</td>
                         <td>
                             <div class="fw-bold text-dark">{{ item.title }}</div>
@@ -92,7 +91,7 @@
                             {% endif %}
                             <div class="small text-muted">{{ item.content|truncatechars:90 }}</div>
                         </td>
-                        <td>
+                        <td onclick="event.stopPropagation();">
                             {% if item.file %}
                             <a href="{{ item.file.url }}" target="_blank" class="btn btn-sm btn-outline-success" title="Download Document">
                                 <i class="fas fa-file-download me-1"></i> File
@@ -101,25 +100,10 @@
                             <span class="text-muted small">No file</span>
                             {% endif %}
                         </td>
-                        <td class="text-end pe-3">
-                            <div class="btn-group btn-group-sm">
-                                <button type="button" class="btn btn-outline-info" title="Preview Syllabus" onclick="previewSyllabus({{ item.id }})">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                {% if user.role in 'admin,teacher,superadmin' %}
-                                <button type="button" class="btn btn-outline-primary" title="Edit Syllabus" onclick="editSyllabus({{ item.id }})">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button type="button" class="btn btn-outline-danger" title="Delete Syllabus" onclick="deleteSyllabus({{ item.id }}, '{{ item.title|escapejs }}')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                                {% endif %}
-                            </div>
-                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center py-5">
+                        <td colspan="5" class="text-center py-5">
                             <div class="text-muted">
                                 <i class="fas fa-folder-open fa-3x mb-3 text-secondary opacity-50"></i>
                                 <h6>No syllabus records found</h6>

@@ -60,6 +60,7 @@ urlpatterns = [
     path('calendar/events/add/', views.CalendarEventCreateView.as_view(), name='calendar_event_create'),
     path('calendar/events/<int:pk>/', views.CalendarEventDetailView.as_view(), name='calendar_event_detail'),
     path('calendar/events/<int:pk>/delete/', views.CalendarEventDeleteView.as_view(), name='calendar_event_delete'),
+    path('calendar/events/bulk-delete/', views.CalendarEventBulkDeleteView.as_view(), name='calendar_event_bulk_delete'),
     
     # Events
     path('events/', views.EventsView.as_view(), name='events'),

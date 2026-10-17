@@ -149,6 +149,7 @@
      * Show error popup modal
      */
     function showError(message, callback = null, title = 'Error') {
+        if (typeof window.resetAllSavingButtons === 'function') window.resetAllSavingButtons();
         showMessage(title, message, false, callback, 'error');
     }
 
@@ -156,6 +157,7 @@
      * Show warning popup modal
      */
     function showWarning(message, callback = null, title = 'Warning') {
+        if (typeof window.resetAllSavingButtons === 'function') window.resetAllSavingButtons();
         showMessage(title, message, false, callback, 'warning');
     }
 

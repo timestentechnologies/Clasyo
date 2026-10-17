@@ -190,9 +190,7 @@ class User(AbstractUser):
         return static('images/default_avatar.svg')
 
     def get_navigation_layout(self):
-        """Return effective navigation layout ('sidebar' or 'horizontal')"""
-        if self.navigation_layout in ['sidebar', 'horizontal']:
-            return self.navigation_layout
+        """Return effective navigation layout ('sidebar' or 'horizontal') centrally controlled via System Settings"""
         try:
             from core.models import SystemSetting
             settings_obj = SystemSetting.get_settings()

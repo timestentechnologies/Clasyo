@@ -9497,9 +9497,48 @@ html.dark-theme .cms-nav-tab.active i {
 .form-header-actions .form-action-delete { order: 2; }
 .form-header-actions .form-action-cancel { order: 3; }
 
-/* Save = cloud upload glyph, regardless of the icon class the markup/scripts use */
+/* Save = cloud upload glyph in idle state */
 .form-header-actions .form-action-save.form-action-save i::before {
-    content: "\f0ee" !important;
+    content: "\f0ee";
+}
+
+/* Standardized Saving / Loading Spinner Across The Entire System */
+.form-header-actions .form-action-save.form-action-save.is-saving i::before,
+.form-header-actions .form-action-save.form-action-save.loading i::before,
+.form-header-actions .form-action-save.form-action-save.btn-loading i::before,
+.form-header-actions .form-action-save.form-action-save:disabled i::before,
+.form-header-actions .form-action-save.form-action-save[disabled] i::before,
+.form-header-actions .form-action-save.form-action-save i.fa-spinner::before,
+.form-header-actions .form-action-save.form-action-save i.fa-circle-notch::before,
+.form-header-actions .form-action-save.form-action-save i.fa-spin::before {
+    content: "\f1ce" !important; /* FontAwesome fa-circle-notch spinner glyph */
+    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome" !important;
+    font-weight: 900 !important;
+}
+
+/* Ensure smooth rotation on all saving / spinner icons */
+.form-header-actions .form-action-save.is-saving i,
+.form-header-actions .form-action-save.loading i,
+.form-header-actions .form-action-save.btn-loading i,
+.form-header-actions .form-action-save:disabled i,
+.form-header-actions .form-action-save[disabled] i,
+.form-header-actions .form-action-save i.fa-spin,
+.form-header-actions .form-action-save i.fa-spinner,
+.form-header-actions .form-action-save i.fa-circle-notch {
+    display: inline-block !important;
+    animation: fa-spin 0.85s infinite linear !important;
+    color: var(--brand-primary, #0284C7) !important;
+    opacity: 0.9 !important;
+}
+
+/* Disable pointer interactions and show wait cursor while saving */
+.form-header-actions .form-action-save:disabled,
+.form-header-actions .form-action-save[disabled],
+.form-header-actions .form-action-save.is-saving,
+.form-header-actions .form-action-save.btn-loading {
+    cursor: wait !important;
+    pointer-events: none !important;
+    opacity: 0.8 !important;
 }
 
 /* Icon colours (set on the <i> itself so global icon-colour rules don't override them) */
@@ -10980,6 +11019,269 @@ table td a[href*="/delete" i] {
     align-items: center !important;
     line-height: 1.2 !important;
     margin-bottom: 0 !important;
+}
+
+/* ==========================================================================
+   Standardized Segmented View Switcher & Universal Grid View
+   ========================================================================== */
+.view-switcher,
+.events-view-switcher {
+    display: inline-flex;
+    align-items: center;
+    background: var(--bg-hover, #f1f5f9);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.view-switch-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1.5px solid transparent;
+    background: transparent;
+    color: var(--text-muted, #64748b);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 0.95rem;
+    padding: 0;
+    line-height: 1;
+}
+
+.view-switch-btn:hover {
+    color: var(--text-primary, #0f172a);
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.view-switch-btn.active {
+    background: var(--bg-card, #ffffff);
+    color: var(--brand-accent, #0891b2);
+    border-color: var(--brand-accent, #0891b2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Universal Grid View Layout */
+.universal-grid-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+    width: 100%;
+}
+
+@media (min-width: 1400px) {
+    .universal-grid-view {
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    }
+}
+
+@media (max-width: 576px) {
+    .universal-grid-view {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Universal Grid Card */
+.universal-grid-card {
+    background: var(--bg-card, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: var(--radius-lg, 12px);
+    padding: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    min-height: 160px;
+    user-select: none;
+}
+
+.universal-grid-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.07);
+    border-color: var(--brand-accent, #0891b2);
+}
+
+.universal-grid-card.is-selected {
+    border-color: var(--brand-accent, #0891b2) !important;
+    background: rgba(8, 145, 178, 0.04) !important;
+    box-shadow: 0 0 0 2px rgba(8, 145, 178, 0.25) !important;
+}
+
+.universal-grid-card .grid-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.universal-grid-card .grid-card-select-wrap {
+    display: inline-flex;
+    align-items: center;
+}
+
+.universal-grid-card .grid-card-select-wrap .form-check-input {
+    margin: 0;
+    cursor: pointer;
+    width: 1.15rem;
+    height: 1.15rem;
+}
+
+.universal-grid-card .grid-card-badge-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.universal-grid-card .grid-card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+
+.universal-grid-card .grid-card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary, #0f172a);
+    line-height: 1.3;
+    margin: 0;
+    word-break: break-word;
+}
+
+.universal-grid-card .grid-card-subtitle {
+    font-size: 0.82rem;
+    color: var(--text-muted, #64748b);
+    margin-top: 0.15rem;
+}
+
+.universal-grid-card .grid-card-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-bottom: 0.85rem;
+}
+
+.universal-grid-card .grid-meta-item {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.84rem;
+}
+
+.universal-grid-card .grid-meta-label {
+    color: var(--text-muted, #64748b);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    flex-shrink: 0;
+}
+
+.universal-grid-card .grid-meta-value {
+    color: var(--text-secondary, #334155);
+    font-weight: 500;
+    text-align: right;
+    word-break: break-word;
+}
+
+.universal-grid-card .grid-card-footer {
+    padding-top: 0.65rem;
+    border-top: 1px solid var(--border-color, #e2e8f0);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.785rem;
+    color: var(--text-muted, #64748b);
+}
+
+.universal-grid-card .grid-card-footer i {
+    transition: transform 0.15s ease;
+}
+
+.universal-grid-card:hover .grid-card-footer i.fa-arrow-right,
+.universal-grid-card:hover .grid-card-footer i.fa-chevron-right {
+    transform: translateX(3px);
+    color: var(--brand-accent, #0891b2);
+}
+
+/* Dark Mode Overrides for View Switcher and Cards */
+[data-theme="dark"] .view-switcher,
+[data-theme="dark"] .events-view-switcher,
+[data-bs-theme="dark"] .view-switcher,
+[data-bs-theme="dark"] .events-view-switcher,
+.dark-theme .view-switcher,
+.dark-theme .events-view-switcher {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+[data-theme="dark"] .view-switch-btn:hover,
+[data-bs-theme="dark"] .view-switch-btn:hover,
+.dark-theme .view-switch-btn:hover {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .view-switch-btn.active,
+[data-bs-theme="dark"] .view-switch-btn.active,
+.dark-theme .view-switch-btn.active {
+    background: #0f172a;
+    color: #38bdf8;
+    border-color: #38bdf8;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .universal-grid-card,
+[data-bs-theme="dark"] .universal-grid-card,
+.dark-theme .universal-grid-card {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .universal-grid-card:hover,
+[data-bs-theme="dark"] .universal-grid-card:hover,
+.dark-theme .universal-grid-card:hover {
+    border-color: #38bdf8;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .universal-grid-card.is-selected,
+[data-bs-theme="dark"] .universal-grid-card.is-selected,
+.dark-theme .universal-grid-card.is-selected {
+    background: rgba(56, 189, 248, 0.08) !important;
+    border-color: #38bdf8 !important;
+}
+
+[data-theme="dark"] .universal-grid-card .grid-card-title,
+[data-bs-theme="dark"] .universal-grid-card .grid-card-title,
+.dark-theme .universal-grid-card .grid-card-title {
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .universal-grid-card .grid-meta-value,
+[data-bs-theme="dark"] .universal-grid-card .grid-meta-value,
+.dark-theme .universal-grid-card .grid-meta-value {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .universal-grid-card .grid-card-footer,
+[data-bs-theme="dark"] .universal-grid-card .grid-card-footer,
+.dark-theme .universal-grid-card .grid-card-footer {
+    border-color: #334155;
 }
 
 

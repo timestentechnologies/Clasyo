@@ -77,7 +77,7 @@
                 <div class="card-body">
                     {% if certificates %}
                     <div class="table-responsive">
-                        <table class="table table-striped custom-table mb-0 datatable">
+                        <table class="table modern-table table-hover align-middle mb-0 datatable">
                             <thead>
                                 <tr>
                                     <th>Certificate ID</th>
@@ -86,22 +86,26 @@
                                     <th>Class</th>
                                     <th>Issue Date</th>
                                     <th>Status</th>
-                                    <th class="text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for certificate in certificates %}
-                                <tr class="clickable-row" data-id="{{ certificate.id }}" data-edit-url="{% url 'certificates:edit' school_slug=school_slug pk=certificate.id %}" style="cursor: pointer;">
-                                    <td>{{ certificate.certificate_number }}</td>
+                                <tr class="clickable-row cursor-pointer" data-id="{{ certificate.id }}" data-edit-url="{% url 'certificates:edit' school_slug=school_slug pk=certificate.id %}" style="cursor: pointer;">
+                                    <td>
+                                        <strong>{{ certificate.certificate_number }}</strong>
+                                        <a href="{% url 'certificates:download' school_slug=school_slug pk=certificate.id %}" onclick="event.stopPropagation();" class="text-primary ms-1" title="Download Certificate">
+                                            <i class="fas fa-file-download"></i>
+                                        </a>
+                                    </td>
                                     <td>{{ certificate.certificate_type.name }}</td>
                                     <td>
-                                        <p class="table-avatar">
+                                        <p class="table-avatar mb-0">
                                             {% if certificate.student.user.profile_pic %}
                                             <a href="#" class="avatar"><img alt="" src="{{ certificate.student.user.profile_pic.url }}"></a>
                                             {% else %}
                                             <a href="#" class="avatar"><img alt="" src="{% static 'img/profiles/avatar-placeholder.jpg' %}"></a>
                                             {% endif %}
-                                            <a href="#">{{ certificate.student.get_full_name }} <span>{{ certificate.student.admission_number }}</span></a>
+                                            <span>{{ certificate.student.get_full_name }} <small class="text-muted">({{ certificate.student.admission_number }})</small></span>
                                         </p>
                                     </td>
                                     <td>{{ certificate.class_name.name }}</td>
@@ -112,21 +116,6 @@
                                         {% else %}
                                         <span class="badge bg-warning">Pending</span>
                                         {% endif %}
-                                    </td>
-                                    <td class="text-right" onclick="event.stopPropagation();">
-                                        <div class="action-buttons">
-                                            <a href="{% url 'certificates:view' school_slug=school_slug pk=certificate.id %}" class="btn btn-sm btn-info" title="View Certificate" data-toggle="tooltip">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <a href="{% url 'certificates:download' school_slug=school_slug pk=certificate.id %}" class="btn btn-sm btn-primary" title="Download" data-toggle="tooltip">
-                                                <i class="fas fa-download"></i>
-                                            </a>
-                                            {% if certificate.verification_uuid %}
-                                            <a href="{% url 'certificates:verify' school_slug=school_slug certificate_uuid=certificate.verification_uuid %}" class="btn btn-sm btn-success" title="Verify" data-toggle="tooltip">
-                                                <i class="fas fa-check-circle"></i>
-                                            </a>
-                                            {% endif %}
-                                        </div>
                                     </td>
                                 </tr>
                                 {% endfor %}

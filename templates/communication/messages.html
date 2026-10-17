@@ -47,8 +47,8 @@
             </div>
             <div class="mb-3" id="recipientSelectDiv" style="display: none;">
                 <label class="form-label fw-semibold">Select Recipient *</label>
-                <select name="receiver_id" id="recipientSelect" class="form-select">
-                    <option value="">Loading...</option>
+                <select name="receiver_id" id="recipientSelect" class="form-select" data-ts-managed="true" data-searchable="true">
+                    <option value="">Select recipient...</option>
                 </select>
             </div>
             <div class="mb-3" id="customEmailDiv" style="display: none;">
@@ -139,8 +139,34 @@
 </div>
 
 <script>
+let recipientTomSelect = null;
+
+function getOrCreateRecipientTomSelect() {
+    const el = document.getElementById('recipientSelect');
+    if (!el) return null;
+    if (el.tomselect) return el.tomselect;
+    if (typeof TomSelect === 'undefined') return null;
+    try {
+        recipientTomSelect = new TomSelect(el, {
+            create: false,
+            placeholder: 'Select recipient...',
+            allowEmptyOption: true,
+            controlInput: '<input>',
+            dropdownParent: 'body',
+            copyClassesToDropdown: false,
+            searchField: ['text', 'value'],
+            maxOptions: 200,
+        });
+        return recipientTomSelect;
+    } catch(err) {
+        console.warn('Failed to initialize recipient TomSelect:', err);
+        return null;
+    }
+}
+
 function loadRecipients() {
-    const recipientType = document.getElementById('recipientType').value;
+    const recipientTypeEl = document.getElementById('recipientType');
+    const recipientType = recipientTypeEl ? recipientTypeEl.value : '';
     const recipientSelectDiv = document.getElementById('recipientSelectDiv');
     const customEmailDiv = document.getElementById('customEmailDiv');
     const recipientSelect = document.getElementById('recipientSelect');
@@ -148,43 +174,146 @@ function loadRecipients() {
     if (recipientType === 'custom') {
         recipientSelectDiv.style.display = 'none';
         customEmailDiv.style.display = 'block';
+        if (recipientSelect.tomselect) {
+            recipientSelect.tomselect.clear(true);
+        }
+        recipientSelect.value = '';
     } else if (recipientType) {
         recipientSelectDiv.style.display = 'block';
         customEmailDiv.style.display = 'none';
         
+        // Show temporary loading indicator in select
+        recipientSelect.innerHTML = '<option value="">Loading recipients...</option>';
+        const ts = getOrCreateRecipientTomSelect();
+        if (ts) {
+            ts.clear(true);
+            ts.clearOptions();
+            ts.settings.placeholder = 'Loading recipients...';
+            ts.inputState();
+        }
+        
         // Load recipients based on type
-        fetch(`/school/{{ school_slug }}/communication/recipients/${recipientType}/`)
+        fetch(`/school/{{ school_slug }}/communication/recipients/${encodeURIComponent(recipientType)}/`)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            if (data.success && data.recipients && data.recipients.length > 0) {
                 recipientSelect.innerHTML = '<option value="">Select recipient...</option>' +
                     data.recipients.map(r => `<option value="${r.id}">${r.name} (${r.email})</option>`).join('');
+                
+                const tsInstance = getOrCreateRecipientTomSelect();
+                if (tsInstance) {
+                    tsInstance.clear(true);
+                    tsInstance.clearOptions();
+                    tsInstance.settings.placeholder = 'Select recipient...';
+                    data.recipients.forEach(r => {
+                        tsInstance.addOption({
+                            value: String(r.id),
+                            text: `${r.name} (${r.email})`
+                        });
+                    });
+                    tsInstance.inputState();
+                    tsInstance.refreshOptions(false);
+                }
             } else {
                 recipientSelect.innerHTML = '<option value="">No recipients found</option>';
+                const tsInstance = getOrCreateRecipientTomSelect();
+                if (tsInstance) {
+                    tsInstance.clear(true);
+                    tsInstance.clearOptions();
+                    tsInstance.settings.placeholder = 'No recipients found';
+                    tsInstance.inputState();
+                    tsInstance.refreshOptions(false);
+                }
             }
         })
         .catch(error => {
+            console.error('Error loading recipients:', error);
             recipientSelect.innerHTML = '<option value="">Error loading recipients</option>';
+            const tsInstance = getOrCreateRecipientTomSelect();
+            if (tsInstance) {
+                tsInstance.clear(true);
+                tsInstance.clearOptions();
+                tsInstance.settings.placeholder = 'Error loading recipients';
+                tsInstance.inputState();
+                tsInstance.refreshOptions(false);
+            }
         });
     } else {
         recipientSelectDiv.style.display = 'none';
         customEmailDiv.style.display = 'none';
+        recipientSelect.innerHTML = '<option value="">Select recipient...</option>';
+        const tsInstance = getOrCreateRecipientTomSelect();
+        if (tsInstance) {
+            tsInstance.clear(true);
+            tsInstance.clearOptions();
+            tsInstance.settings.placeholder = 'Select recipient...';
+            tsInstance.inputState();
+        }
     }
 }
 
+document.addEventListener('DOMContentLoaded', function() {
+    const recipientTypeEl = document.getElementById('recipientType');
+    if (recipientTypeEl) {
+        recipientTypeEl.addEventListener('change', loadRecipients);
+        if (recipientTypeEl.tomselect) {
+            recipientTypeEl.tomselect.on('change', loadRecipients);
+        }
+    }
+});
+
 function sendMessage() {
     const form = document.getElementById('messageForm');
-    const formData = new FormData(form);
+    const recipientTypeEl = document.getElementById('recipientType');
+    const recipientType = recipientTypeEl ? recipientTypeEl.value : '';
+    const receiverId = document.getElementById('recipientSelect').value;
+    const receiverEmail = document.getElementById('customEmail').value;
     
-    fetch(window.location.pathname + 'send/', {
+    if (!recipientType) {
+        showError('Please select a recipient type');
+        return;
+    }
+    if (recipientType === 'custom' && !receiverEmail) {
+        showError('Please enter an email address');
+        return;
+    }
+    if (recipientType !== 'custom' && !receiverId) {
+        showError('Please select a recipient');
+        return;
+    }
+    
+    const formData = new FormData(form);
+    const sendBtn = document.querySelector('.form-submit-btn');
+    const origBtnHtml = sendBtn ? sendBtn.innerHTML : '';
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Sending...';
+    }
+    
+    fetch("{% url 'communication:message_send' school_slug=school_slug %}", {
         method: 'POST',
         body: formData,
         headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
     })
     .then(response => response.json())
     .then(data => {
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = origBtnHtml;
+        }
         if (data.success) {
             form.reset();
+            const recipientSelect = document.getElementById('recipientSelect');
+            if (recipientSelect && recipientSelect.tomselect) {
+                recipientSelect.tomselect.clear(true);
+                recipientSelect.tomselect.clearOptions();
+            }
+            const recipientTypeSelect = document.getElementById('recipientType');
+            if (recipientTypeSelect && recipientTypeSelect.tomselect) {
+                recipientTypeSelect.tomselect.clear(true);
+            }
+            document.getElementById('recipientSelectDiv').style.display = 'none';
+            document.getElementById('customEmailDiv').style.display = 'none';
             toggleInPageFormView('messageListCard', 'messageFormPanel', 'list');
             showSuccessAndReload('Message sent successfully!');
         } else {
@@ -192,6 +321,10 @@ function sendMessage() {
         }
     })
     .catch(error => {
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = origBtnHtml;
+        }
         console.error('Error:', error);
         showError('Failed to send message: ' + error.message);
     });

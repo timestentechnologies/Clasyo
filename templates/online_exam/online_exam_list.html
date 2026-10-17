@@ -72,7 +72,7 @@
                 <div class="card-body">
                     {% if exams %}
                     <div class="table-responsive">
-                        <table class="table table-striped custom-table mb-0 datatable">
+                        <table class="table modern-table table-hover align-middle mb-0 datatable">
                             <thead>
                                 <tr>
                                     <th>Title</th>
@@ -82,14 +82,13 @@
                                     <th>End Date</th>
                                     <th>Duration</th>
                                     <th>Status</th>
-                                    <th class="text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for exam in exams %}
-                                <tr data-id="{{ exam.id }}" {% if exam.created_by == user or user.is_school_admin %}class="clickable-row" data-edit-url="{% url 'online_exam:update' school_slug=school_slug pk=exam.id %}"{% else %}class="clickable-row" data-view-url="{% url 'online_exam:detail' school_slug=school_slug pk=exam.id %}"{% endif %}>
+                                <tr data-id="{{ exam.id }}" {% if exam.created_by == user or user.is_school_admin %}class="clickable-row cursor-pointer" data-edit-url="{% url 'online_exam:update' school_slug=school_slug pk=exam.id %}"{% else %}class="clickable-row cursor-pointer" data-view-url="{% url 'online_exam:detail' school_slug=school_slug pk=exam.id %}"{% endif %}>
                                     <td>
-                                        <a href="{% url 'online_exam:detail' school_slug=school_slug pk=exam.id %}" class="badge bg-warning text-decoration-none px-3 py-2 rounded-pill">{{ exam.title }}</a>
+                                        <strong>{{ exam.title }}</strong>
                                     </td>
                                     <td>{{ exam.class_ref.name }}</td>
                                     <td>{{ exam.subject.name }}</td>
@@ -102,12 +101,9 @@
                                         {% else %}
                                             <span class="badge bg-secondary">Inactive</span>
                                         {% endif %}
-                                    </td>
-                                    <td class="text-right" onclick="event.stopPropagation();">
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            <a href="{% url 'online_exam:detail' school_slug=school_slug pk=exam.id %}" class="btn btn-outline-info" title="View"><i class="fas fa-eye"></i></a>
-                                            <a href="{% url 'online_exam:results' school_slug=school_slug exam_id=exam.id %}" class="btn btn-outline-success" title="Results"><i class="fas fa-chart-bar"></i></a>
-                                        </div>
+                                        <a href="{% url 'online_exam:results' school_slug=school_slug exam_id=exam.id %}" onclick="event.stopPropagation();" class="badge bg-light text-primary border ms-1" title="View Results">
+                                            <i class="fas fa-chart-bar"></i>
+                                        </a>
                                     </td>
                                 </tr>
                                 {% endfor %}

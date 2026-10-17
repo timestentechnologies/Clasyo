@@ -115,8 +115,6 @@ class VehicleListView(LoginRequiredMixin, ListView):
                     role__in=staff_roles
                 ).exclude(
                     driver_profile__isnull=False  # Exclude users who are already drivers
-                ).select_related('staff_profile').only(
-                    'id', 'first_name', 'last_name', 'phone', 'mobile', 'email', 'role'
                 ).order_by('first_name', 'last_name')
                 
                 # Debug output (will be shown in the template)

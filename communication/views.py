@@ -147,6 +147,37 @@ class NoticeDeleteView(LoginRequiredMixin, View):
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
+class NoticeBulkDeleteView(LoginRequiredMixin, View):
+    """Bulk delete notices"""
+    def post(self, request, *args, **kwargs):
+        if not MODELS_EXIST:
+            return JsonResponse({'success': False, 'error': 'Notice model not available'})
+        if getattr(request.user, 'role', None) not in ('superadmin', 'admin'):
+            return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+        try:
+            school = get_current_school(request)
+            selected_ids = request.POST.getlist('selected_ids')
+            if not selected_ids:
+                try:
+                    import json
+                    body = json.loads(request.body)
+                    selected_ids = body.get('selected_ids', [])
+                except Exception:
+                    pass
+            
+            notice_qs = Notice.objects.all()
+            if school:
+                notice_qs = notice_qs.filter(created_by__school=school)
+            
+            if selected_ids:
+                deleted_count, _ = notice_qs.filter(id__in=selected_ids).delete()
+                return JsonResponse({'success': True, 'message': f'{deleted_count} notice(s) deleted successfully.'})
+            return JsonResponse({'success': False, 'error': 'No notices selected'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
 class MessageListView(LoginRequiredMixin, ListView):
     template_name = 'communication/messages.html'
     context_object_name = 'messages_list'
@@ -277,16 +308,21 @@ class RecipientListView(LoginRequiredMixin, View):
             elif recipient_type == 'parent':
                 users = User.objects.filter(role='parent')
             elif recipient_type == 'staff':
-                users = User.objects.filter(role='staff')
+                users = User.objects.filter(
+                    models.Q(role__in=['admin', 'accountant', 'librarian', 'receptionist', 'staff']) |
+                    models.Q(is_staff=True)
+                )
             else:
                 return JsonResponse({'success': False, 'error': 'Invalid recipient type'})
             
             if school:
                 users = users.filter(school=school)
             
+            users = users.filter(is_active=True).order_by('first_name', 'last_name', 'email')
+            
             recipients = [{
                 'id': u.id,
-                'name': u.get_full_name() or u.email,
+                'name': (u.get_full_name().strip() if u.get_full_name() else '') or u.email,
                 'email': u.email
             } for u in users[:100]]  # Limit to 100
             

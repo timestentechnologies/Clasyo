@@ -10,32 +10,28 @@
 {% if certificates %}
     <div class="modern-card">
         <div class="table-responsive">
-            <table class="table table-hover align-middle">
+            <table class="table modern-table table-hover align-middle mb-0">
                 <thead>
                     <tr>
                         <th>Student</th>
                         <th>Certificate</th>
                         <th style="min-width: 160px;">Issue Date</th>
-                        <th style="min-width: 140px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for c in certificates %}
-                        <tr class="clickable-row" data-edit-url="{% url 'certificates:view' school_slug=school_slug pk=c.id %}" style="cursor: pointer;">
+                        <tr class="clickable-row cursor-pointer" data-edit-url="{% url 'certificates:view' school_slug=school_slug pk=c.id %}" style="cursor: pointer;">
                             <td>{{ c.student.get_full_name }}</td>
                             <td>
-                                <div class="fw-semibold">{{ c.title }}</div>
+                                <div class="fw-semibold">
+                                    {{ c.title }}
+                                    <a href="{% url 'certificates:download' school_slug=school_slug pk=c.id %}" onclick="event.stopPropagation();" class="text-success ms-1" title="Download Certificate">
+                                        <i class="fas fa-file-download"></i>
+                                    </a>
+                                </div>
                                 <div class="text-muted small">{{ c.certificate_type.name }}</div>
                             </td>
                             <td>{{ c.issue_date|date:"M d, Y" }}</td>
-                            <td onclick="event.stopPropagation();">
-                                <a href="{% url 'certificates:view' school_slug=school_slug pk=c.id %}" class="btn btn-sm btn-outline-primary" title="View Certificate">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="{% url 'certificates:download' school_slug=school_slug pk=c.id %}" class="btn btn-sm btn-outline-success" title="Download Certificate">
-                                    <i class="fas fa-download"></i>
-                                </a>
-                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>

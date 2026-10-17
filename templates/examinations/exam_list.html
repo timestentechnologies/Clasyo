@@ -29,7 +29,7 @@
 
 <div class="modern-card" id="examListCard">
     <div class="table-responsive">
-        <table class="table">
+        <table class="table modern-table table-hover align-middle mb-0">
             <thead>
                 <tr>
                     <th>Exam Name</th>
@@ -37,9 +37,6 @@
                     <th>Start Date</th>
                     <th>End Date</th>
                     <th>Status</th>
-                    {% if user.role == 'student' %}
-                    <th>Actions</th>
-                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -48,11 +45,14 @@
                 data-name="{{ exam.name|escape }}"
                 data-exam-type="{{ exam.exam_type }}"
                 data-is-online="{% if exam.is_online %}true{% else %}false{% endif %}"
-                {% if user.role in 'school_admin,teacher' %}class="clickable-row" onclick="editExam(this, '{{ exam.pk }}')"{% else %}class="clickable-row" onclick="window.location.href='{% url 'examinations:student_exam_view' school_slug=school_slug exam_id=exam.pk %}'"{% endif %}>
+                {% if user.role in 'school_admin,teacher' %}class="clickable-row cursor-pointer" onclick="editExam(this, '{{ exam.pk }}')"{% else %}class="clickable-row cursor-pointer" onclick="window.location.href='{% url 'examinations:student_exam_view' school_slug=school_slug exam_id=exam.pk %}'"{% endif %}>
                 <td>
                     <strong>{{ exam.name }}</strong>
                     {% if exam.is_online %}
                         <span class="badge bg-info ms-2"><i class="fas fa-laptop"></i> Online</span>
+                        {% if user.role == 'student' %}
+                        <a href="{% url 'examinations:student_take_exam' school_slug=school_slug exam_id=exam.pk %}" onclick="event.stopPropagation();" class="badge bg-success text-decoration-none ms-1"><i class="fas fa-pen me-1"></i>Take Exam</a>
+                        {% endif %}
                     {% endif %}
                 </td>
                 <td>{{ exam.get_exam_type_display }}</td>
@@ -63,22 +63,10 @@
                         {% if exam.is_published %}Published{% else %}Draft{% endif %}
                     </span>
                 </td>
-                {% if user.role == 'student' %}
-                <td onclick="event.stopPropagation();">
-                    {% if exam.is_online %}
-                    <a href="{% url 'examinations:student_take_exam' school_slug=school_slug exam_id=exam.pk %}" class="btn btn-sm btn-success" title="Take Exam">
-                        <i class="fas fa-pen"></i>
-                    </a>
-                    {% endif %}
-                    <a href="{% url 'examinations:student_exam_view' school_slug=school_slug exam_id=exam.pk %}" class="btn btn-sm btn-primary" title="View Exam">
-                        <i class="fas fa-eye"></i>
-                    </a>
-                </td>
-                {% endif %}
             </tr>
             {% empty %}
             <tr>
-                <td colspan="{% if user.role == 'student' %}6{% else %}5{% endif %}" class="text-center py-5">
+                <td colspan="5" class="text-center py-5">
                     <i class="fas fa-file-alt fa-3x text-muted mb-3 d-block"></i>
                     <p class="text-muted mb-0">No examinations found.</p>
                 </td>

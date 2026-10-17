@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="card-body">
             {% if allocations %}
                 <div class="table-responsive">
-                    <table class="table table-hover" id="allocationsTable">
+                    <table class="table modern-table table-hover align-middle mb-0" id="allocationsTable">
                         <thead class="table-light">
                             <tr>
                                 <th>Student</th>
@@ -200,12 +200,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <th>Start Date</th>
                                 <th>End Date</th>
                                 <th>Status</th>
-                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for allocation in allocations %}
-                                <tr>
+                                <tr data-id="{{ allocation.id }}" class="clickable-row cursor-pointer">
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center me-2">
@@ -250,13 +249,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                         {% else %}
                                             <span class="badge bg-secondary">Inactive</span>
                                         {% endif %}
-                                    </td>
-                                    <td onclick="event.stopPropagation();">
-                                        <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-danger" title="Deallocate Room">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </div>
                                     </td>
                                 </tr>
                             {% endfor %}

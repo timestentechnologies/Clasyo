@@ -190,20 +190,25 @@ def render_email_template(
 
 
 def send_notification_by_template(
-    code: str,
-    channel: str,
-    recipients: List[str],
-    context: Dict[str, Any],
+    code: Optional[str] = None,
+    channel: str = 'email',
+    recipients: List[str] = None,
+    context: Dict[str, Any] = None,
     school=None,
     request=None,
     from_email: Optional[str] = None,
     subject_prefix: Optional[str] = None,
     subject_override: Optional[str] = None,
-    fail_silently: bool = True
+    fail_silently: bool = True,
+    template_code: Optional[str] = None,
+    **kwargs
 ) -> Dict[str, Any]:
     """
     Send dynamic notification via template across Email, SMS, or WhatsApp.
     """
+    code = code or template_code
+    recipients = recipients or []
+    context = context or {}
     template = get_notification_template(code=code, channel=channel, school=school)
     
     if channel == 'email':

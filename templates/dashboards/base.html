@@ -1222,6 +1222,9 @@
             listEl.classList.remove('d-none');
             listEl.style.display = '';
             setPageActionButtonsVisibility(true);
+            if (typeof window.syncUniversalPageViewMode === 'function') {
+                window.syncUniversalPageViewMode();
+            }
             window.scrollTo({ top: Math.max(0, listEl.offsetTop - 80), behavior: 'auto' });
             return;
         }
@@ -1538,6 +1541,87 @@
                 return result;
             };
         }
+
+        // Global Standardized Saving State Manager (System-Wide)
+        window.setButtonSaving = function(btn, isSaving) {
+            if (!btn) return;
+            if (isSaving) {
+                if (!btn.dataset.originalTitle) {
+                    btn.dataset.originalTitle = btn.getAttribute('title') || 'Save';
+                }
+                btn.classList.add('is-saving', 'btn-loading');
+                btn.disabled = true;
+                btn.setAttribute('aria-busy', 'true');
+                btn.setAttribute('title', 'Saving...');
+                document.body.style.cursor = 'wait';
+            } else {
+                btn.classList.remove('is-saving', 'btn-loading');
+                btn.disabled = false;
+                btn.removeAttribute('aria-busy');
+                if (btn.dataset.originalTitle) {
+                    btn.setAttribute('title', btn.dataset.originalTitle);
+                }
+                document.body.style.cursor = '';
+            }
+        };
+
+        window.resetAllSavingButtons = function() {
+            document.querySelectorAll('.is-saving, .btn-loading, .form-action-save:disabled, .form-submit-btn:disabled').forEach(function(b) {
+                window.setButtonSaving(b, false);
+            });
+            document.body.style.cursor = '';
+        };
+
+        // Prevent repeated clicks while saving across the entire system
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.form-header-actions .form-action-save, .form-header-actions .form-submit-btn');
+            if (!btn) return;
+
+            // If already saving, block event immediately
+            if (btn.classList.contains('is-saving') || btn.disabled) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                return;
+            }
+
+            // Check form validity if available
+            const formPanel = btn.closest('.form-panel-view') || document.querySelector('.form-panel-view:not(.d-none)');
+            const form = formPanel ? formPanel.querySelector('form') : (btn.form || btn.closest('form'));
+            if (form && typeof form.checkValidity === 'function' && !form.checkValidity()) {
+                if (typeof form.reportValidity === 'function') {
+                    form.reportValidity();
+                }
+                return;
+            }
+
+            // Put button into saving state immediately
+            window.setButtonSaving(btn, true);
+
+            // Safety timeout: auto-release after 15s if no reload occurs
+            setTimeout(function() {
+                if (btn && btn.classList.contains('is-saving')) {
+                    window.setButtonSaving(btn, false);
+                }
+            }, 15000);
+        }, false);
+
+        // Also catch standard form POST submits
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            if (!form) return;
+            const btn = form.querySelector('button[type="submit"], input[type="submit"], .form-submit-btn') ||
+                        document.querySelector(`button[form="${form.id}"]`);
+            if (btn) {
+                window.setButtonSaving(btn, true);
+            }
+        }, true);
+
+        // Reset on error modals or dismissals
+        document.addEventListener('shown.bs.modal', function(e) {
+            if (e.target && (e.target.id === 'messageModal' || e.target.classList.contains('modal-danger'))) {
+                window.resetAllSavingButtons();
+            }
+        });
     })();
     </script>
 
@@ -1843,15 +1927,25 @@
 
         function getCandidateTables(root) {
             var container = root || document;
-            var tables = container.querySelectorAll ? container.querySelectorAll('table.table, .table-responsive > table, table.modern-table') : [];
+            var tables = container.querySelectorAll ? container.querySelectorAll('table.table, .table-responsive table, table.modern-table, table.table-hover, table') : [];
             return Array.from(tables).filter(function(t) {
-                if (t.classList.contains('no-bulk-select') || t.classList.contains('calendar-table') || t.classList.contains('cart-table') || t.closest('.cart-container') || t.closest('#cartBody') || t.querySelector('#cartBody') || t.closest('.modal')) return false;
+                if (t.classList.contains('no-bulk-select') || 
+                    t.classList.contains('calendar-table') || 
+                    t.closest('.events-calendar-container') ||
+                    t.closest('#events-calendar') ||
+                    t.classList.contains('cart-table') || 
+                    t.closest('.cart-container') || 
+                    t.closest('#cartBody') || 
+                    t.querySelector('#cartBody') || 
+                    t.closest('.modal') ||
+                    t.closest('.dropdown-menu')) return false;
                 var thead = t.querySelector('thead');
                 var tbody = t.querySelector('tbody');
                 if (!thead || !tbody) return false;
                 return true;
             });
         }
+        window.getCandidateTables = getCandidateTables;
 
         function setupTableSelection(table) {
             if (table.dataset.bulkSelectSetup === 'true') {
@@ -1953,6 +2047,12 @@
                         if (cb) {
                             cb.checked = isChecked;
                             tr.classList.toggle('row-selected', isChecked);
+                            if (tr._companionGridCard) {
+                                tr._companionGridCard.classList.toggle('is-selected', isChecked);
+                                if (tr._companionGridCard._cardCheckbox) {
+                                    tr._companionGridCard._cardCheckbox.checked = isChecked;
+                                }
+                            }
                         }
                     });
                     updateBulkActionBar();
@@ -2016,6 +2116,12 @@
                     cb.addEventListener('change', function(e) {
                         e.stopPropagation();
                         tr.classList.toggle('row-selected', this.checked);
+                        if (tr._companionGridCard) {
+                            tr._companionGridCard.classList.toggle('is-selected', this.checked);
+                            if (tr._companionGridCard._cardCheckbox) {
+                                tr._companionGridCard._cardCheckbox.checked = this.checked;
+                            }
+                        }
                         syncSelectAllState(table);
                         updateBulkActionBar();
                     });
@@ -2062,7 +2168,16 @@
                             var high = Math.max(start, end);
                             for (var i = low; i <= high; i++) {
                                 allCbs[i].checked = target.checked;
-                                allCbs[i].closest('tr')?.classList.toggle('row-selected', target.checked);
+                                var trTarget = allCbs[i].closest('tr');
+                                if (trTarget) {
+                                    trTarget.classList.toggle('row-selected', target.checked);
+                                    if (trTarget._companionGridCard) {
+                                        trTarget._companionGridCard.classList.toggle('is-selected', target.checked);
+                                        if (trTarget._companionGridCard._cardCheckbox) {
+                                            trTarget._companionGridCard._cardCheckbox.checked = target.checked;
+                                        }
+                                    }
+                                }
                             }
                             syncSelectAllState(table);
                             updateBulkActionBar();
@@ -2125,7 +2240,16 @@
         function clearAllSelections() {
             document.querySelectorAll('.row-select-checkbox:checked').forEach(function(cb) {
                 cb.checked = false;
-                cb.closest('tr')?.classList.remove('row-selected');
+                var tr = cb.closest('tr');
+                if (tr) {
+                    tr.classList.remove('row-selected');
+                    if (tr._companionGridCard) {
+                        tr._companionGridCard.classList.remove('is-selected');
+                        if (tr._companionGridCard._cardCheckbox) {
+                            tr._companionGridCard._cardCheckbox.checked = false;
+                        }
+                    }
+                }
             });
             document.querySelectorAll('.select-all-checkbox').forEach(function(cb) {
                 cb.checked = false;
@@ -2137,6 +2261,9 @@
         // Initialize and bind modal actions
         function initBulkSystem() {
             getCandidateTables().forEach(setupTableSelection);
+            if (typeof window.initUniversalListGridSystem === 'function') {
+                window.initUniversalListGridSystem();
+            }
 
             var markDoneBtn = document.getElementById('bulkMarkDoneBtn');
             if (markDoneBtn && !markDoneBtn.dataset.wired) {
@@ -2315,6 +2442,9 @@
         if (typeof MutationObserver !== 'undefined') {
             var obs = new MutationObserver(function() {
                 getCandidateTables().forEach(setupTableSelection);
+                if (typeof window.initUniversalListGridSystem === 'function') {
+                    window.initUniversalListGridSystem();
+                }
             });
             obs.observe(document.body, { childList: true, subtree: true });
         }
@@ -2400,6 +2530,390 @@
         };
 
         window.initUniversalTableSelectionSystem = initBulkSystem;
+    })();
+
+    // =========================================================================
+    // Universal List & Grid View Switcher System for all pages
+    // =========================================================================
+    (function() {
+        function getStorageKey() {
+            return 'universal_page_view_mode_' + window.location.pathname;
+        }
+
+        function getActiveMode() {
+            try {
+                return localStorage.getItem(getStorageKey()) || 'list';
+            } catch(e) {
+                return 'list';
+            }
+        }
+
+        function renderGridViewForTable(table, gridView) {
+            var thead = table.querySelector('thead');
+            var tbody = table.querySelector('tbody');
+            if (!thead || !tbody) return;
+
+            var headers = Array.from(thead.querySelectorAll('th')).map(function(th, idx) {
+                var text = (th.textContent || '').trim().replace(/\s+/g, ' ');
+                var isSelectCol = th.classList.contains('table-select-col') || th.querySelector('.select-all-checkbox') !== null;
+                var isActionCol = text.toLowerCase() === 'actions' || text.toLowerCase() === 'action' || th.style.display === 'none';
+                return {
+                    index: idx,
+                    text: text,
+                    isSelectCol: isSelectCol,
+                    isActionCol: isActionCol
+                };
+            });
+
+            var rows = Array.from(tbody.querySelectorAll('tr'));
+            gridView.innerHTML = '';
+            var dataCount = 0;
+
+            rows.forEach(function(tr, rIdx) {
+                // Ignore colspan/empty state rows
+                if (tr.querySelector('td[colspan]') || tr.classList.contains('empty-table-row') || tr.classList.contains('no-data')) {
+                    return;
+                }
+                dataCount++;
+
+                var card = document.createElement('div');
+                card.className = 'universal-grid-card';
+                if (tr.classList.contains('row-selected')) {
+                    card.classList.add('is-selected');
+                }
+                if (tr.style.display === 'none' || tr.classList.contains('d-none')) {
+                    card.style.display = 'none';
+                }
+
+                card.dataset.rowId = tr.dataset.id || tr.dataset.pk || String(rIdx);
+                tr._companionGridCard = card;
+                card._companionRow = tr;
+
+                var cells = Array.from(tr.querySelectorAll('td'));
+                var rowCb = tr.querySelector('.row-select-checkbox');
+
+                // Extract all badges in the row
+                var badges = [];
+                cells.forEach(function(td) {
+                    td.querySelectorAll('.badge, .badge-modern').forEach(function(badge) {
+                        badges.push(badge.cloneNode(true));
+                    });
+                });
+
+                // Find primary cell and meta cells
+                var primaryCell = null;
+                var primaryHeader = '';
+                var metaItems = [];
+
+                cells.forEach(function(td, cIdx) {
+                    var h = headers[cIdx];
+                    if (!h || h.isSelectCol || h.isActionCol || td.style.display === 'none') return;
+                    if (!primaryCell) {
+                        primaryCell = td;
+                        primaryHeader = h.text;
+                    } else {
+                        metaItems.push({ header: h.text, td: td });
+                    }
+                });
+
+                // 1. Header (Checkbox + Badges)
+                var headerEl = document.createElement('div');
+                headerEl.className = 'grid-card-header';
+
+                var selectWrap = document.createElement('div');
+                selectWrap.className = 'grid-card-select-wrap';
+                if (rowCb) {
+                    var cardCb = document.createElement('input');
+                    cardCb.type = 'checkbox';
+                    cardCb.className = 'form-check-input grid-card-checkbox';
+                    cardCb.checked = rowCb.checked;
+                    cardCb.disabled = rowCb.disabled;
+                    if (rowCb.title) cardCb.title = rowCb.title;
+                    cardCb.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                    });
+                    cardCb.addEventListener('change', function(e) {
+                        e.stopPropagation();
+                        rowCb.checked = this.checked;
+                        tr.classList.toggle('row-selected', this.checked);
+                        card.classList.toggle('is-selected', this.checked);
+                        if (typeof syncSelectAllState === 'function') syncSelectAllState(table);
+                        if (typeof updateBulkActionBar === 'function') updateBulkActionBar();
+                    });
+                    selectWrap.appendChild(cardCb);
+                    card._cardCheckbox = cardCb;
+                }
+                headerEl.appendChild(selectWrap);
+
+                var badgeWrap = document.createElement('div');
+                badgeWrap.className = 'grid-card-badge-wrap';
+                badges.slice(0, 2).forEach(function(b) {
+                    badgeWrap.appendChild(b);
+                });
+                headerEl.appendChild(badgeWrap);
+                card.appendChild(headerEl);
+
+                // 2. Title & Avatar
+                var titleRow = document.createElement('div');
+                titleRow.className = 'grid-card-title-row';
+
+                if (primaryCell) {
+                    var avatar = primaryCell.querySelector('.avatar-wrapper, img.rounded-circle, .avatar');
+                    if (avatar) {
+                        titleRow.appendChild(avatar.cloneNode(true));
+                    }
+
+                    var titleContent = document.createElement('div');
+                    titleContent.style.flex = '1';
+                    titleContent.style.minWidth = '0';
+
+                    var strongEl = primaryCell.querySelector('strong, h6, .fw-bold');
+                    var primaryTitleText = strongEl ? strongEl.textContent.trim() : (primaryCell.childNodes[0]?.textContent?.trim() || primaryCell.textContent.trim());
+
+                    var smallEl = primaryCell.querySelector('small, .small, .text-muted');
+                    var primarySubText = smallEl ? smallEl.textContent.trim() : '';
+
+                    var titleH = document.createElement('h6');
+                    titleH.className = 'grid-card-title';
+                    titleH.textContent = primaryTitleText || 'Item #' + (rIdx + 1);
+                    titleContent.appendChild(titleH);
+
+                    if (primarySubText && primarySubText !== primaryTitleText) {
+                        var subDiv = document.createElement('div');
+                        subDiv.className = 'grid-card-subtitle text-truncate';
+                        subDiv.textContent = primarySubText;
+                        titleContent.appendChild(subDiv);
+                    }
+                    titleRow.appendChild(titleContent);
+                }
+                card.appendChild(titleRow);
+
+                // 3. Body (Key-Value Metadata)
+                var bodyEl = document.createElement('div');
+                bodyEl.className = 'grid-card-body';
+
+                metaItems.forEach(function(item) {
+                    var textContent = (item.td.textContent || '').trim();
+                    if (!textContent || textContent === '-') return;
+
+                    var metaRow = document.createElement('div');
+                    metaRow.className = 'grid-meta-item';
+
+                    var labelSpan = document.createElement('span');
+                    labelSpan.className = 'grid-meta-label';
+                    labelSpan.textContent = item.header ? item.header + ':' : '';
+                    metaRow.appendChild(labelSpan);
+
+                    var valSpan = document.createElement('span');
+                    valSpan.className = 'grid-meta-value';
+                    if (item.td.children.length > 0) {
+                        Array.from(item.td.childNodes).forEach(function(node) {
+                            valSpan.appendChild(node.cloneNode(true));
+                        });
+                    } else {
+                        valSpan.textContent = textContent;
+                    }
+                    metaRow.appendChild(valSpan);
+                    bodyEl.appendChild(metaRow);
+                });
+                card.appendChild(bodyEl);
+
+                // 4. Footer
+                var footerEl = document.createElement('div');
+                footerEl.className = 'grid-card-footer';
+                footerEl.innerHTML = '<span><i class="fas fa-mouse-pointer me-1"></i> Click to open</span><i class="fas fa-arrow-right opacity-50"></i>';
+                card.appendChild(footerEl);
+
+                // 5. Card Click Handler
+                card.addEventListener('click', function(e) {
+                    if (e.target.closest('input, button, a')) return;
+                    if (typeof tr.onclick === 'function') {
+                        tr.onclick.call(tr, e);
+                    } else {
+                        tr.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                        var link = tr.querySelector('a:not(.btn-action-delete):not([data-hidden-delete])');
+                        if (link && link.href) {
+                            link.click();
+                        }
+                    }
+                });
+
+                gridView.appendChild(card);
+            });
+
+            if (dataCount === 0) {
+                var emptyDiv = document.createElement('div');
+                emptyDiv.className = 'text-center py-5 w-100 col-12 text-muted';
+                emptyDiv.innerHTML = '<i class="fas fa-inbox fa-3x mb-3 text-secondary opacity-50"></i><p class="mb-0">No records found.</p>';
+                gridView.appendChild(emptyDiv);
+            }
+        }
+
+        function syncUniversalPageViewMode() {
+            var mode = getActiveMode();
+            var tables = typeof getCandidateTables === 'function' ? getCandidateTables() : [];
+            if (tables.length === 0) return;
+
+            // If page has a custom events switcher, skip auto universal switch
+            if (document.querySelector('.events-view-switcher')) return;
+
+            // Update all view switcher buttons
+            document.querySelectorAll('.view-switcher .view-switch-btn').forEach(function(btn) {
+                var m = btn.getAttribute('data-view-mode');
+                btn.classList.toggle('active', m === mode);
+            });
+
+            tables.forEach(function(table) {
+                var tableWrap = table.closest('.table-responsive') || table;
+                var gridView = table._universalGridView;
+                if (!gridView) {
+                    gridView = document.createElement('div');
+                    gridView.className = 'universal-grid-view d-none';
+                    tableWrap.parentNode.insertBefore(gridView, tableWrap.nextSibling);
+                    table._universalGridView = gridView;
+                    gridView._companionTable = table;
+                }
+
+                if (mode === 'grid') {
+                    renderGridViewForTable(table, gridView);
+                    tableWrap.classList.add('d-none');
+                    tableWrap.style.display = 'none';
+                    gridView.classList.remove('d-none');
+                    gridView.style.display = 'grid';
+                } else {
+                    gridView.classList.add('d-none');
+                    gridView.style.display = 'none';
+                    tableWrap.classList.remove('d-none');
+                    tableWrap.style.display = '';
+                }
+            });
+
+            // MutationObserver to sync row display (search/filtering) to companion grid card
+            if (typeof MutationObserver !== 'undefined') {
+                var gridSyncObs = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(m) {
+                        if (m.type === 'attributes' && (m.attributeName === 'style' || m.attributeName === 'class')) {
+                            var tr = m.target;
+                            if (tr._companionGridCard) {
+                                var isHidden = tr.style.display === 'none' || tr.classList.contains('d-none');
+                                tr._companionGridCard.style.display = isHidden ? 'none' : '';
+                            }
+                        }
+                    });
+                });
+                tables.forEach(function(t) {
+                    var tb = t.querySelector('tbody');
+                    if (tb && !tb.dataset.gridSyncObserved) {
+                        tb.dataset.gridSyncObserved = 'true';
+                        gridSyncObs.observe(tb, { attributes: true, subtree: true, attributeFilter: ['style', 'class'] });
+                    }
+                });
+            }
+        }
+
+        window.setUniversalPageViewMode = function(mode) {
+            try {
+                localStorage.setItem(getStorageKey(), mode);
+            } catch(e) {}
+            syncUniversalPageViewMode();
+        };
+
+        window.syncUniversalPageViewMode = syncUniversalPageViewMode;
+
+        function createSwitcherElement(currentMode) {
+            var switcher = document.createElement('div');
+            switcher.className = 'view-switcher';
+            switcher.setAttribute('role', 'group');
+            switcher.setAttribute('aria-label', 'View Switcher');
+            switcher.innerHTML = 
+                '<button type="button" class="view-switch-btn ' + (currentMode === 'list' ? 'active' : '') + '" data-view-mode="list" onclick="setUniversalPageViewMode(\'list\')" title="List View">' +
+                    '<i class="fas fa-bars"></i>' +
+                '</button>' +
+                '<button type="button" class="view-switch-btn ' + (currentMode === 'grid' ? 'active' : '') + '" data-view-mode="grid" onclick="setUniversalPageViewMode(\'grid\')" title="Grid View">' +
+                    '<i class="fas fa-th-large"></i>' +
+                '</button>';
+            return switcher;
+        }
+
+        function injectUniversalViewSwitcher() {
+            // If page already has events switcher, skip
+            if (document.querySelector('.events-view-switcher')) return;
+
+            var tables = window.getCandidateTables ? window.getCandidateTables() : [];
+            if (!tables || tables.length === 0) return;
+
+            var currentMode = getActiveMode();
+
+            // 1. Inject into page header actions if present
+            var headerActions = document.querySelector('.page-header-actions') || 
+                                document.querySelector('[data-page-actions="true"]') ||
+                                document.querySelector('.page-actions');
+
+            if (headerActions && !headerActions.querySelector('.view-switcher')) {
+                var s1 = createSwitcherElement(currentMode);
+                s1.classList.add('me-2');
+                headerActions.insertBefore(s1, headerActions.firstChild);
+            }
+
+            // 2. Inject into in-page action bar or toolbar above tables
+            tables.forEach(function(table) {
+                var tableContainer = table.closest('#studentListCard, #noticeListCard, #vehicleListCard, #routeListCard, #bookListCard, [id$="ListCard"], .modern-card, .card') || table.closest('.table-responsive') || table;
+                
+                var toolbarTarget = null;
+                // Check inside container (e.g. students toolbar)
+                if (tableContainer) {
+                    toolbarTarget = tableContainer.querySelector('.toolbar-actions, .table-toolbar');
+                }
+                
+                // If not found inside, check preceding sibling (e.g. .d-flex.justify-content-end.mb-3)
+                if (!toolbarTarget && tableContainer && tableContainer.parentElement) {
+                    var prev = tableContainer.previousElementSibling;
+                    while (prev) {
+                        if (prev.classList && (prev.classList.contains('justify-content-end') || prev.classList.contains('justify-content-between') || prev.classList.contains('table-toolbar') || prev.querySelector('button, a.btn'))) {
+                            toolbarTarget = prev;
+                            break;
+                        }
+                        prev = prev.previousElementSibling;
+                    }
+                }
+
+                // If still not found, check card header
+                if (!toolbarTarget && tableContainer) {
+                    toolbarTarget = tableContainer.querySelector('.card-header, .d-flex.justify-content-between');
+                }
+
+                if (toolbarTarget && !toolbarTarget.querySelector('.view-switcher')) {
+                    var s2 = createSwitcherElement(currentMode);
+                    s2.classList.add('me-2');
+                    toolbarTarget.insertBefore(s2, toolbarTarget.firstChild);
+                }
+            });
+
+            // Fallback: if still no switcher in page, inject right before first table wrapper
+            if (!document.querySelector('.view-switcher')) {
+                var firstTable = tables[0];
+                var tableWrap = firstTable.closest('.table-responsive') || firstTable;
+                var sFallback = createSwitcherElement(currentMode);
+                sFallback.classList.add('mb-3');
+                tableWrap.parentNode.insertBefore(sFallback, tableWrap);
+            }
+
+            syncUniversalPageViewMode();
+        }
+
+        window.initUniversalListGridSystem = function() {
+            injectUniversalViewSwitcher();
+            syncUniversalPageViewMode();
+        };
+
+        // Initialize immediately and on DOM events
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', window.initUniversalListGridSystem);
+        } else {
+            window.initUniversalListGridSystem();
+        }
+        document.addEventListener('shown.bs.tab', window.initUniversalListGridSystem);
+        document.addEventListener('shown.bs.modal', window.initUniversalListGridSystem);
     })();
     </script>
 

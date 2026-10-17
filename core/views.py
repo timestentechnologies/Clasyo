@@ -1500,7 +1500,35 @@ class CalendarView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['school_slug'] = self.kwargs.get('school_slug', '')
+        school_slug = self.kwargs.get('school_slug', '')
+        context['school_slug'] = school_slug
+
+        import json
+        events_data = []
+        try:
+            from tenants.models import School
+            school = School.objects.filter(slug=school_slug).first()
+            if school:
+                events = CalendarEvent.objects.filter(
+                    Q(created_by__school=school) | Q(participants__school=school)
+                ).distinct().order_by('start_date')
+                for event in events:
+                    local_start = timezone.localtime(event.start_date) if event.start_date and django_settings.USE_TZ else event.start_date
+                    local_end = timezone.localtime(event.end_date) if event.end_date and django_settings.USE_TZ else event.end_date
+                    events_data.append({
+                        'id': event.id,
+                        'title': event.title,
+                        'raw_type': event.event_type,
+                        'event_type': event.get_event_type_display(),
+                        'start': local_start.isoformat() if local_start else '',
+                        'end': local_end.isoformat() if local_end else '',
+                        'location': event.location or '',
+                        'description': event.description or '',
+                        'start_date_display': local_start.strftime('%b %d, %Y %I:%M %p') if local_start else '',
+                    })
+        except Exception:
+            pass
+        context['initial_events_json'] = json.dumps(events_data)
         return context
 
 
@@ -1533,21 +1561,28 @@ class CalendarEventListView(LoginRequiredMixin, ListView):
                 target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
                 start_dt = datetime.combine(target_date, time.min)
                 end_dt = datetime.combine(target_date, time.max)
+                if django_settings.USE_TZ:
+                    tz = timezone.get_current_timezone()
+                    start_dt = timezone.make_aware(start_dt, tz)
+                    end_dt = timezone.make_aware(end_dt, tz)
                 queryset = queryset.filter(start_date__lte=end_dt, end_date__gte=start_dt)
-            except ValueError:
+            except (ValueError, OverflowError):
                 pass
 
         events_data = []
         for event in queryset.order_by('start_date'):
+            local_start = timezone.localtime(event.start_date) if event.start_date and django_settings.USE_TZ else event.start_date
+            local_end = timezone.localtime(event.end_date) if event.end_date and django_settings.USE_TZ else event.end_date
             events_data.append({
                 'id': event.id,
                 'title': event.title,
+                'raw_type': event.event_type,
                 'event_type': event.get_event_type_display(),
-                'start': event.start_date.isoformat() if event.start_date else '',
-                'end': event.end_date.isoformat() if event.end_date else '',
-                'location': event.location,
-                'description': event.description,
-                'start_date_display': event.start_date.strftime('%b %d, %Y %I:%M %p') if event.start_date else '',
+                'start': local_start.isoformat() if local_start else '',
+                'end': local_end.isoformat() if local_end else '',
+                'location': event.location or '',
+                'description': event.description or '',
+                'start_date_display': local_start.strftime('%b %d, %Y %I:%M %p') if local_start else '',
             })
 
         return JsonResponse({'success': True, 'events': events_data})
@@ -1562,17 +1597,41 @@ class CalendarEventCreateView(View):
                 return JsonResponse({'success': False, 'error': 'Not authenticated'})
 
             start_date_str = request.POST.get('start_date')
-            end_date_str = request.POST.get('end_date')
+            end_date_str = request.POST.get('end_date') or start_date_str
             start_time_str = request.POST.get('start_time') or '00:00'
             end_time_str = request.POST.get('end_time') or start_time_str
 
             try:
                 start_dt = datetime.strptime(f"{start_date_str} {start_time_str}", "%Y-%m-%d %H:%M") if start_date_str else None
                 end_dt = datetime.strptime(f"{end_date_str} {end_time_str}", "%Y-%m-%d %H:%M") if end_date_str else None
+                if django_settings.USE_TZ:
+                    tz = timezone.get_current_timezone()
+                    if start_dt and timezone.is_naive(start_dt):
+                        start_dt = timezone.make_aware(start_dt, tz)
+                    if end_dt and timezone.is_naive(end_dt):
+                        end_dt = timezone.make_aware(end_dt, tz)
+                if start_dt and end_dt and end_dt < start_dt:
+                    end_dt = start_dt
             except ValueError:
                 return JsonResponse({'success': False, 'error': 'Invalid date or time format'}, status=400)
 
-            CalendarEvent.objects.create(
+            school_slug = kwargs.get('school_slug')
+            school = School.objects.filter(slug=school_slug).first() if school_slug else None
+
+            event_id = request.POST.get('event_id') or request.POST.get('id')
+            if event_id:
+                event = CalendarEvent.objects.filter(pk=event_id).first()
+                if event:
+                    event.title = request.POST.get('title')
+                    event.description = request.POST.get('description', '')
+                    event.event_type = request.POST.get('event_type', 'other')
+                    event.start_date = start_dt
+                    event.end_date = end_dt
+                    event.location = request.POST.get('location', '')
+                    event.save()
+                    return JsonResponse({'success': True, 'message': 'Event updated successfully!'})
+
+            event = CalendarEvent.objects.create(
                 title=request.POST.get('title'),
                 description=request.POST.get('description', ''),
                 event_type=request.POST.get('event_type', 'other'),
@@ -1581,6 +1640,14 @@ class CalendarEventCreateView(View):
                 location=request.POST.get('location', ''),
                 created_by=request.user
             )
+
+            # Ensure event is visible in the current school context
+            if school and (not getattr(request.user, 'school', None) or request.user.school != school):
+                from accounts.models import User
+                school_user = User.objects.filter(school=school).first()
+                if school_user:
+                    event.participants.add(school_user)
+
             return JsonResponse({'success': True, 'message': 'Event created successfully!'})
         except Exception as e:
             import traceback
@@ -1608,6 +1675,30 @@ class CalendarEventDeleteView(View):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
+class CalendarEventBulkDeleteView(View):
+    """Bulk delete calendar events"""
+    def post(self, request, *args, **kwargs):
+        try:
+            if not request.user.is_authenticated:
+                return JsonResponse({'success': False, 'error': 'Not authenticated'}, status=401)
+            selected_ids = request.POST.getlist('selected_ids')
+            if not selected_ids:
+                try:
+                    import json
+                    body = json.loads(request.body)
+                    selected_ids = body.get('selected_ids', [])
+                except Exception:
+                    pass
+            if selected_ids:
+                CalendarEvent.objects.filter(id__in=selected_ids).delete()
+            return JsonResponse({'success': True, 'message': f'{len(selected_ids)} events deleted successfully.'})
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
 class CalendarEventDetailView(View):
     """Return a single event as JSON"""
     def get(self, request, pk, *args, **kwargs):
@@ -1621,14 +1712,17 @@ class CalendarEventDetailView(View):
                 ),
                 pk=pk
             )
+            local_start = timezone.localtime(event.start_date) if event.start_date and django_settings.USE_TZ else event.start_date
+            local_end = timezone.localtime(event.end_date) if event.end_date and django_settings.USE_TZ else event.end_date
             return JsonResponse({
                 'success': True,
                 'event': {
                     'id': event.id,
                     'title': event.title,
+                    'raw_type': event.event_type,
                     'type': event.get_event_type_display(),
-                    'start_date': event.start_date.strftime('%b %d, %Y %I:%M %p') if event.start_date else '',
-                    'end_date': event.end_date.strftime('%b %d, %Y %I:%M %p') if event.end_date else '',
+                    'start_date': local_start.strftime('%b %d, %Y %I:%M %p') if local_start else '',
+                    'end_date': local_end.strftime('%b %d, %Y %I:%M %p') if local_end else '',
                     'location': event.location,
                     'description': event.description,
                 }
@@ -2061,7 +2155,29 @@ class EventsView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['school_slug'] = self.kwargs.get('school_slug', '')
+        school_slug = self.kwargs.get('school_slug', '')
+        context['school_slug'] = school_slug
+
+        import json
+        events_data = []
+        try:
+            for event in context.get('events', []):
+                local_start = timezone.localtime(event.start_date) if event.start_date and django_settings.USE_TZ else event.start_date
+                local_end = timezone.localtime(event.end_date) if event.end_date and django_settings.USE_TZ else event.end_date
+                events_data.append({
+                    'id': event.id,
+                    'title': event.title,
+                    'raw_type': event.event_type,
+                    'event_type': event.get_event_type_display(),
+                    'start': local_start.isoformat() if local_start else '',
+                    'end': local_end.isoformat() if local_end else '',
+                    'location': event.location or '',
+                    'description': event.description or '',
+                    'start_date_display': local_start.strftime('%b %d, %Y %I:%M %p') if local_start else '',
+                })
+        except Exception:
+            pass
+        context['initial_events_json'] = json.dumps(events_data)
         return context
 
 
@@ -2111,15 +2227,12 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
         phone = request.POST.get('phone', '').strip()
-        nav_layout = request.POST.get('navigation_layout', '')
         
         if first_name:
             user.first_name = first_name
         if last_name:
             user.last_name = last_name
         user.phone = phone
-        if nav_layout in ['', 'sidebar', 'horizontal']:
-            user.navigation_layout = nav_layout
             
         if 'avatar' in request.FILES:
             user.avatar = request.FILES['avatar']

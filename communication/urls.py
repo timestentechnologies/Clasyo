@@ -5,6 +5,7 @@ app_name = 'communication'
 
 urlpatterns = [
     path('notices/', views.NoticeListView.as_view(), name='notices'),
+    path('notices/bulk-delete/', views.NoticeBulkDeleteView.as_view(), name='notice_bulk_delete'),
     path('notices/<int:pk>/', views.NoticeDetailView.as_view(), name='notice_detail'),
     path('notices/<int:pk>/edit/', views.NoticeUpdateView.as_view(), name='notice_update'),
     path('notices/<int:pk>/delete/', views.NoticeDeleteView.as_view(), name='notice_delete'),

@@ -84,14 +84,6 @@
                     <label class="form-label small fw-bold">Role</label>
                     <input type="text" class="form-control" value="{% if school_slug and user.role == 'superadmin' %}School Administrator{% else %}{{ user.get_role_display|default:user.role|title }}{% endif %}" disabled readonly style="background-color: var(--card-bg-subtle, rgba(255,255,255,0.03)); cursor: not-allowed;">
                 </div>
-                <div class="col-12 col-md-6">
-                    <label class="form-label small fw-bold">Navigation Layout Preference</label>
-                    <select name="navigation_layout" class="form-select">
-                        <option value="" {% if not user.navigation_layout %}selected{% endif %}>School Default ({{ navigation_layout|title }})</option>
-                        <option value="sidebar" {% if user.navigation_layout == 'sidebar' %}selected{% endif %}>Vertical Sidebar</option>
-                        <option value="horizontal" {% if user.navigation_layout == 'horizontal' %}selected{% endif %}>Horizontal Tabs</option>
-                    </select>
-                </div>
             </div>
 
             <!-- Security & Password Section -->

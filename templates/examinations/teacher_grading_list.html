@@ -10,7 +10,7 @@
 
     <div class="modern-card">
         <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table modern-table table-hover align-middle mb-0">
                     <thead>
                         <tr>
                             <th>Student</th>
@@ -19,12 +19,11 @@
                             <th>Submitted At</th>
                             <th>Status</th>
                             <th>Score</th>
-                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for submission in submissions %}
-                        <tr class="clickable-row" data-edit-url="{% url 'examinations:teacher_grade_submission' school_slug=school_slug submission_id=submission.id %}">
+                        <tr class="clickable-row cursor-pointer" data-edit-url="{% url 'examinations:teacher_grade_submission' school_slug=school_slug submission_id=submission.id %}" style="cursor: pointer;">
                             <td>
                                 <div class="d-flex align-items-center">
                                     <div class="user-avatar me-2">
@@ -62,16 +61,10 @@
                                 <span class="text-muted">Not graded yet</span>
                                 {% endif %}
                             </td>
-                            <td onclick="event.stopPropagation();">
-                                <a href="{% url 'examinations:teacher_grade_submission' school_slug=school_slug submission_id=submission.id %}" 
-                                   class="btn btn-sm btn-primary" title="{% if submission.status == 'graded' %}Review Submission{% else %}Grade Submission{% endif %}">
-                                    <i class="fas fa-{% if submission.status == 'graded' %}eye{% else %}pen{% endif %}"></i>
-                                </a>
-                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
+                            <td colspan="6" class="text-center text-muted py-4">
                                 <i class="fas fa-inbox fa-3x mb-3"></i>
                                 <p>No submissions to grade yet.</p>
                             </td>
